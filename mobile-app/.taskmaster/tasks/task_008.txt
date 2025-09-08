@@ -1,0 +1,55 @@
+# Task ID: 8
+# Title: Daily Canvas User Interface
+# Status: pending
+# Dependencies: 6
+# Priority: high
+# Description: Create the main journal interface with timeline, map, media gallery, and text editor
+# Details:
+Build comprehensive daily journal view using Flutter widgets. Implement timeline/calendar navigation using table_calendar. Create interactive map widget using flutter_map to display daily routes and locations. Build media gallery with cached_network_image and easy_image_viewer for photo viewing. Implement rich text editor for journal content with markdown support using flutter_markdown. Add skeleton loading states with skeletonizer. Ensure responsive design for various screen sizes.
+
+# Test Strategy:
+Test UI responsiveness across different screen sizes and orientations. Verify timeline navigation and date selection. Test map integration and location visualization. Validate media gallery performance with large photo collections. Test text editing and formatting features.
+
+# Subtasks:
+## 1. Design main daily journal layout structure [pending]
+### Dependencies: None
+### Description: Create the overall layout architecture for the daily journal interface with proper widget hierarchy and navigation structure
+### Details:
+Design the main scaffold structure with AppBar, body sections for timeline, map, media, and text editor. Create responsive layout that adapts to different screen sizes. Define widget hierarchy and state management approach using Riverpod providers. Implement basic navigation between different sections of the daily view.
+
+## 2. Implement timeline/calendar navigation widget [pending]
+### Dependencies: 8.1
+### Description: Build calendar navigation system using table_calendar package for date selection and timeline browsing
+### Details:
+Integrate table_calendar widget with custom styling to match app theme. Implement date selection logic and state management. Add visual indicators for days with journal entries. Create smooth transitions between selected dates. Handle calendar events and date range selections for journal browsing.
+
+## 3. Create interactive map widget with flutter_map [pending]
+### Dependencies: 8.1
+### Description: Build map component to display daily routes, locations, and geographic context for journal entries
+### Details:
+Integrate flutter_map package with OpenStreetMap tiles. Implement location plotting from GPS metadata and location events. Add route visualization for daily movements. Create location markers and pop-ups for significant places. Handle map interactions, zoom controls, and location clustering for better performance.
+
+## 4. Build optimized media gallery component [pending]
+### Dependencies: 8.1
+### Description: Create photo and video gallery using cached_network_image and easy_image_viewer for efficient media display
+### Details:
+Implement grid layout for media thumbnails using cached_network_image for performance. Integrate easy_image_viewer for full-screen photo viewing with gestures. Add video playback support using video_player or similar. Implement lazy loading and memory management for large media collections. Create smooth transitions and animations for media interactions.
+
+## 5. Implement rich text editor with markdown support [pending]
+### Dependencies: 8.1
+### Description: Build text editing interface with markdown rendering using flutter_markdown for journal content creation and editing
+### Details:
+Create text input field with markdown formatting toolbar. Implement real-time markdown preview using flutter_markdown. Add formatting buttons for common markdown elements (headers, bold, italic, lists). Handle text editing state management and auto-save functionality. Support for embedding media and location references in text.
+
+## 6. Add skeleton loading states with skeletonizer [pending]
+### Dependencies: 8.2, 8.3, 8.4, 8.5
+### Description: Implement loading placeholders using skeletonizer package for smooth user experience during data loading
+### Details:
+Create skeleton placeholders for calendar, map, media gallery, and text editor components. Implement loading states that match the actual component layouts. Add smooth transitions from skeleton to loaded content. Handle different loading scenarios (network delay, database queries, media processing).
+
+## 7. Ensure responsive design across screen sizes [pending]
+### Dependencies: 8.2, 8.3, 8.4, 8.5, 8.6
+### Description: Optimize layout and interactions for various device screen sizes and orientations
+### Details:
+Implement responsive breakpoints for phone, tablet, and desktop layouts. Optimize component sizing and spacing for different screen densities. Handle orientation changes gracefully. Test and adjust layouts for accessibility requirements. Ensure touch targets meet platform guidelines across all screen sizes.
+

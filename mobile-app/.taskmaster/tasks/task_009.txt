@@ -1,0 +1,61 @@
+# Task ID: 9
+# Title: Data Export and Backup System
+# Status: pending
+# Dependencies: 8
+# Priority: medium
+# Description: Implement comprehensive data export with multiple backup options including Nostr/Blossom integration
+# Details:
+Create export system that packages complete journal database into documented JSON format with media files. Implement multiple backup destinations: local file system, Google Drive (using googleapis), Syncthing folder sync, and Blossom decentralized storage. Add client-side encryption for all backup methods using industry-standard encryption. Implement Nostr integration for selective sharing of journal entries using dart_nostr or similar package. Create backup scheduling and status monitoring. Ensure all exports include complete schema documentation.
+
+# Test Strategy:
+Test export functionality with various data sizes and formats. Verify encryption/decryption of backup files. Test integration with Google Drive API and permissions. Validate Nostr publishing and Blossom storage. Test backup restoration and data integrity.
+
+# Subtasks:
+## 1. Design export data format and schema [pending]
+### Dependencies: None
+### Description: Create comprehensive JSON schema for journal data export including metadata, media references, and documentation
+### Details:
+Define JSON structure for complete journal database export. Include schema for journal entries, media files, location data, calendar events, and metadata. Create documentation format that explains data structure and field meanings. Design versioning system for schema evolution. Ensure format supports partial and incremental exports.
+
+## 2. Implement local file system export [pending]
+### Dependencies: 9.1
+### Description: Create local export functionality that saves journal data and media to device storage
+### Details:
+Use path_provider to access platform-specific directories. Implement export service that packages journal data into JSON format with accompanying media files. Create folder structure for organized export. Add progress tracking and error handling for large exports. Implement data integrity verification after export completion.
+
+## 3. Add Google Drive integration with googleapis [pending]
+### Dependencies: 9.2
+### Description: Implement Google Drive backup functionality using googleapis package
+### Details:
+Integrate googleapis package for Google Drive API access. Implement OAuth2 authentication flow for Drive permissions. Create DriveBackupService to upload export packages to user's Drive folder. Add progress tracking for upload operations. Implement folder organization and file naming conventions for backups.
+
+## 4. Implement Syncthing folder sync [pending]
+### Dependencies: 9.2
+### Description: Create Syncthing integration for automatic folder synchronization
+### Details:
+Research Syncthing API and folder monitoring capabilities. Implement SyncthingService to detect configured Syncthing folders. Add automatic export to designated Syncthing sync folders. Implement conflict resolution and file versioning. Create status monitoring for sync operations.
+
+## 5. Add Blossom decentralized storage [pending]
+### Dependencies: 9.2
+### Description: Implement Blossom protocol integration for decentralized backup storage
+### Details:
+Research Blossom protocol specifications and available Dart implementations. Create BlossomService for decentralized storage operations. Implement file upload and retrieval using Blossom network. Add metadata tracking for stored files. Implement redundancy and availability verification.
+
+## 6. Implement client-side encryption [pending]
+### Dependencies: 9.1
+### Description: Add industry-standard encryption for all backup methods
+### Details:
+Implement AES-256 encryption using pointycastle or crypto packages. Create EncryptionService with secure key derivation and management. Add encryption support to all export formats and backup destinations. Implement secure key storage using flutter_secure_storage. Create encryption status indicators and user controls.
+
+## 7. Create Nostr integration for selective sharing [pending]
+### Dependencies: 9.1, 9.6
+### Description: Implement Nostr publishing for selective journal entry sharing
+### Details:
+Integrate existing Nostr functionality for selective sharing. Create NostrSharingService to publish selected journal entries. Implement privacy controls and content filtering for shared entries. Add Nostr relay management and publishing status tracking. Create user interface for selecting entries to share publicly.
+
+## 8. Add backup scheduling and monitoring [pending]
+### Dependencies: 9.3, 9.4, 9.5, 9.6
+### Description: Implement automated backup scheduling with comprehensive status monitoring
+### Details:
+Create BackupScheduler service with configurable intervals and conditions. Implement background task scheduling using workmanager or similar. Add backup status monitoring and success/failure tracking. Create notification system for backup completion and errors. Implement backup history and restoration capabilities.
+

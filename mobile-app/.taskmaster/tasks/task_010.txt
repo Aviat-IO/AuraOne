@@ -1,0 +1,11 @@
+# Task ID: 10
+# Title: Privacy Controls and Permissions Management
+# Status: pending
+# Dependencies: 9
+# Priority: high
+# Description: Build comprehensive privacy settings and transparent permission management interface
+# Details:
+Create granular privacy settings screen where users can control each data source (location, photos, calendar, etc.). Implement just-in-time permission requests with clear explanations for each permission. Add privacy dashboard showing what data is being collected and stored locally. Implement data deletion tools for selective or complete journal history removal. Add security features like app lock with biometric authentication. Ensure all privacy controls are easily accessible and clearly explained.
+
+# Test Strategy:
+Test all permission request flows and user experience. Verify data collection controls work correctly. Test privacy dashboard accuracy and data visualization. Validate data deletion functionality. Test security features like app lock across different devices.

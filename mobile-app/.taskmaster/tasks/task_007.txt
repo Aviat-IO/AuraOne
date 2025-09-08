@@ -1,0 +1,49 @@
+# Task ID: 7
+# Title: Voice-to-Text Editing Interface
+# Status: pending
+# Dependencies: 6
+# Priority: medium
+# Description: Build conversational editing system for modifying AI-generated journal entries
+# Details:
+Implement on-device speech-to-text using speech_to_text package with offline capabilities. Create VoiceEditingService that interprets natural language editing commands like 'rewrite the morning section' or 'add more detail about lunch'. Implement NLP logic to parse editing intents and apply them to journal text. Build voice recording UI with proper microphone permissions and audio feedback. Add text-to-speech for reading back edited content.
+
+# Test Strategy:
+Test speech recognition accuracy in various environments. Verify command interpretation and text editing accuracy. Test microphone permissions and audio quality. Validate voice editing workflows end-to-end.
+
+# Subtasks:
+## 1. Integrate speech_to_text Package [pending]
+### Dependencies: None
+### Description: Add speech_to_text dependency and configure on-device speech recognition capabilities
+### Details:
+Add speech_to_text package to pubspec.yaml. Configure platform-specific permissions (microphone access). Implement basic SpeechRecognitionService with offline capabilities. Test speech recognition accuracy and language support. Handle initialization and error states.
+
+## 2. Implement VoiceEditingService [pending]
+### Dependencies: 7.1
+### Description: Create service layer for processing voice commands and applying text edits
+### Details:
+Build VoiceEditingService class to manage voice editing workflows. Implement text processing methods for applying edits to journal content. Create command validation and error handling. Add support for different editing modes (append, replace, insert). Integrate with journal data models.
+
+## 3. Create NLP Command Parsing Logic [pending]
+### Dependencies: 7.2
+### Description: Implement natural language processing to interpret editing commands
+### Details:
+Build NLP parser to extract editing intents from voice commands. Implement pattern matching for common commands like 'rewrite', 'add detail', 'remove section'. Create command classification system (rewrite, append, delete, modify). Handle ambiguous commands with clarification prompts. Map commands to specific text operations.
+
+## 4. Build Voice Recording UI [pending]
+### Dependencies: 7.1
+### Description: Create user interface for voice recording with visual feedback and controls
+### Details:
+Design voice recording interface with recording button, waveform visualization, and status indicators. Implement real-time audio level feedback during recording. Add recording controls (start, stop, cancel, replay). Create proper loading states and error handling UI. Ensure accessibility compliance for voice controls.
+
+## 5. Add Text-to-Speech Feedback [pending]
+### Dependencies: 7.2
+### Description: Implement text-to-speech capabilities for reading back edited content
+### Details:
+Integrate flutter_tts package for text-to-speech functionality. Implement TtsService for reading journal content aloud. Add playback controls (play, pause, stop, speed adjustment). Create voice selection and configuration options. Implement reading back edited sections for user verification.
+
+## 6. Handle Microphone Permissions and Audio Quality [pending]
+### Dependencies: 7.4
+### Description: Implement proper permission handling and audio quality management
+### Details:
+Implement microphone permission request flow for iOS and Android. Create permission status checking and re-request mechanisms. Add audio quality detection and noise cancellation if available. Implement background audio handling and interruption management. Create fallback options for denied permissions.
+
