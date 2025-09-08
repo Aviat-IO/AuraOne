@@ -6,7 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 import '../utils/logger.dart';
 
-/// Service for managing photo library access and scanning
+/// Service for managing photo library access and automated scanning
 class PhotoService {
   static final _logger = AppLogger('PhotoService');
   
@@ -18,6 +18,25 @@ class PhotoService {
   
   /// Stream of photo discovery events
   Stream<PhotoDiscoveryEvent> get photoDiscoveryStream => _photoDiscoveryController.stream;
+  
+  /// Timer for automated scanning
+  Timer? _scanTimer;
+  
+  /// Last scan timestamp
+  DateTime? _lastScanTime;
+  
+  /// Cached photo IDs to detect new items
+  final Set<String> _knownPhotoIds = {};
+  
+  /// Scanning configuration
+  Duration _scanInterval = const Duration(minutes: 30);
+  bool _isAutomaticScanningEnabled = false;
+  
+  /// Stream controller for new photo events
+  final _newPhotoController = StreamController<List<AssetEntity>>.broadcast();
+  
+  /// Stream of newly discovered photos
+  Stream<List<AssetEntity>> get newPhotoStream => _newPhotoController.stream;
   
   /// Check if we have photo library access
   bool get hasAccess => _permissionState?.hasAccess ?? false;
@@ -246,11 +265,128 @@ class PhotoService {
     // Trigger a rescan or update UI as needed
   }
   
+  /// Start automated scanning for new photos
+  void startAutomaticScanning({Duration? interval}) {
+    if (!hasAccess) {
+      _logger.warning('Cannot start automatic scanning without photo library access');
+      return;
+    }
+    
+    if (interval != null) {
+      _scanInterval = interval;
+    }
+    
+    _isAutomaticScanningEnabled = true;
+    _logger.info('Starting automatic photo scanning with interval: $_scanInterval');
+    
+    // Perform initial scan
+    _performAutomaticScan();
+    
+    // Schedule periodic scans
+    _scanTimer?.cancel();
+    _scanTimer = Timer.periodic(_scanInterval, (_) => _performAutomaticScan());
+  }
+  
+  /// Stop automated scanning
+  void stopAutomaticScanning() {
+    _isAutomaticScanningEnabled = false;
+    _scanTimer?.cancel();
+    _scanTimer = null;
+    _logger.info('Stopped automatic photo scanning');
+  }
+  
+  /// Perform an automatic scan for new photos
+  Future<void> _performAutomaticScan() async {
+    if (!_isAutomaticScanningEnabled || !hasAccess) {
+      return;
+    }
+    
+    try {
+      _logger.info('Performing automatic photo scan...');
+      
+      // Determine scan time range
+      final now = DateTime.now();
+      final scanSince = _lastScanTime ?? now.subtract(const Duration(days: 1));
+      
+      // Scan for new photos
+      final allPhotos = await scanNewPhotos(
+        since: scanSince,
+        until: now,
+      );
+      
+      // Filter out known photos to find only new ones
+      final newPhotos = <AssetEntity>[];
+      for (final photo in allPhotos) {
+        if (!_knownPhotoIds.contains(photo.id)) {
+          _knownPhotoIds.add(photo.id);
+          newPhotos.add(photo);
+        }
+      }
+      
+      if (newPhotos.isNotEmpty) {
+        _logger.info('Found ${newPhotos.length} new photos');
+        _newPhotoController.add(newPhotos);
+      }
+      
+      _lastScanTime = now;
+    } catch (e, stack) {
+      _logger.error('Automatic scan failed', error: e, stackTrace: stack);
+    }
+  }
+  
+  /// Manually trigger a scan for new photos
+  Future<List<AssetEntity>> performManualScan({
+    DateTime? since,
+    Duration lookback = const Duration(hours: 24),
+  }) async {
+    if (!hasAccess) {
+      _logger.warning('Cannot perform manual scan without photo library access');
+      return [];
+    }
+    
+    try {
+      final scanSince = since ?? DateTime.now().subtract(lookback);
+      _logger.info('Performing manual scan since $scanSince');
+      
+      final photos = await scanNewPhotos(since: scanSince);
+      
+      // Update known photos cache
+      for (final photo in photos) {
+        _knownPhotoIds.add(photo.id);
+      }
+      
+      return photos;
+    } catch (e, stack) {
+      _logger.error('Manual scan failed', error: e, stackTrace: stack);
+      return [];
+    }
+  }
+  
+  /// Clear the photo cache (useful for fresh rescans)
+  void clearPhotoCache() {
+    _knownPhotoIds.clear();
+    _lastScanTime = null;
+    _logger.info('Cleared photo cache');
+  }
+  
+  /// Get scan statistics
+  Map<String, dynamic> getScanStatistics() {
+    return {
+      'isScanning': _isAutomaticScanningEnabled,
+      'scanInterval': _scanInterval.inMinutes,
+      'lastScanTime': _lastScanTime?.toIso8601String(),
+      'knownPhotosCount': _knownPhotoIds.length,
+      'hasAccess': hasAccess,
+    };
+  }
+  
   /// Clean up resources
   void dispose() {
+    stopAutomaticScanning();
     PhotoManager.removeChangeCallback(_onPhotoLibraryChanged);
     PhotoManager.stopChangeNotify();
     _photoDiscoveryController.close();
+    _newPhotoController.close();
     _logger.info('PhotoService disposed');
   }
 }
@@ -307,3 +443,95 @@ final todayPhotosProvider = FutureProvider<List<AssetEntity>>((ref) async {
   
   return await service.scanNewPhotos(since: startOfDay);
 });
+
+/// Provider for new photo stream
+final newPhotoStreamProvider = StreamProvider<List<AssetEntity>>((ref) {
+  final service = ref.watch(photoServiceProvider);
+  return service.newPhotoStream;
+});
+
+/// Provider for automatic scanning state
+final automaticScanningProvider = StateNotifierProvider<AutomaticScanningNotifier, AutomaticScanningState>((ref) {
+  final service = ref.watch(photoServiceProvider);
+  return AutomaticScanningNotifier(service);
+});
+
+/// State for automatic scanning
+class AutomaticScanningState {
+  final bool isEnabled;
+  final Duration interval;
+  final DateTime? lastScanTime;
+  final int knownPhotosCount;
+  
+  AutomaticScanningState({
+    this.isEnabled = false,
+    this.interval = const Duration(minutes: 30),
+    this.lastScanTime,
+    this.knownPhotosCount = 0,
+  });
+  
+  AutomaticScanningState copyWith({
+    bool? isEnabled,
+    Duration? interval,
+    DateTime? lastScanTime,
+    int? knownPhotosCount,
+  }) {
+    return AutomaticScanningState(
+      isEnabled: isEnabled ?? this.isEnabled,
+      interval: interval ?? this.interval,
+      lastScanTime: lastScanTime ?? this.lastScanTime,
+      knownPhotosCount: knownPhotosCount ?? this.knownPhotosCount,
+    );
+  }
+}
+
+/// Notifier for automatic scanning state
+class AutomaticScanningNotifier extends StateNotifier<AutomaticScanningState> {
+  final PhotoService _service;
+  
+  AutomaticScanningNotifier(this._service) : super(AutomaticScanningState());
+  
+  void startScanning({Duration? interval}) {
+    _service.startAutomaticScanning(interval: interval);
+    state = state.copyWith(
+      isEnabled: true,
+      interval: interval ?? state.interval,
+    );
+    updateStatistics();
+  }
+  
+  void stopScanning() {
+    _service.stopAutomaticScanning();
+    state = state.copyWith(isEnabled: false);
+  }
+  
+  void updateInterval(Duration interval) {
+    if (state.isEnabled) {
+      _service.stopAutomaticScanning();
+      _service.startAutomaticScanning(interval: interval);
+    }
+    state = state.copyWith(interval: interval);
+  }
+  
+  void updateStatistics() {
+    final stats = _service.getScanStatistics();
+    state = state.copyWith(
+      isEnabled: stats['isScanning'] as bool,
+      lastScanTime: stats['lastScanTime'] != null 
+        ? DateTime.parse(stats['lastScanTime'] as String)
+        : null,
+      knownPhotosCount: stats['knownPhotosCount'] as int,
+    );
+  }
+  
+  Future<List<AssetEntity>> performManualScan({Duration lookback = const Duration(hours: 24)}) async {
+    final photos = await _service.performManualScan(lookback: lookback);
+    updateStatistics();
+    return photos;
+  }
+  
+  void clearCache() {
+    _service.clearPhotoCache();
+    updateStatistics();
+  }
+}
