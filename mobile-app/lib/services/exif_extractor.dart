@@ -139,7 +139,8 @@ class ExifExtractor {
         return null;
       }
       
-      if (image.exif.data.isEmpty) {
+      // Check if EXIF data exists by checking if any IFD has data
+      if (image.exif.imageIfd.keys.isEmpty && image.exif.exifIfd.keys.isEmpty && image.exif.gpsIfd.keys.isEmpty) {
         _logger.info('No EXIF data found in image');
         return null;
       }
@@ -191,11 +192,33 @@ class ExifExtractor {
       whiteBalance: _getIntValue(exifIfd['WhiteBalance']),
     );
     
+    // Convert IFD data to maps for JSON serialization
+    final imageIfdMap = <String, dynamic>{};
+    final exifIfdMap = <String, dynamic>{};
+    final gpsIfdMap = <String, dynamic>{};
+    
+    // Convert imageIfd - use toString() for keys to handle int keys
+    for (var key in imageIfd.keys) {
+      imageIfdMap[key.toString()] = imageIfd[key];
+    }
+    
+    // Convert exifIfd
+    for (var key in exifIfd.keys) {
+      exifIfdMap[key.toString()] = exifIfd[key];
+    }
+    
+    // Convert gpsIfd if it has data
+    if (gpsIfd.keys.isNotEmpty) {
+      for (var key in gpsIfd.keys) {
+        gpsIfdMap[key.toString()] = gpsIfd[key];
+      }
+    }
+    
     // Combine all EXIF data
     final allExifData = <String, dynamic>{
-      'imageIfd': imageIfd,
-      'exifIfd': exifIfd,
-      if (gpsIfd.isNotEmpty) 'gpsIfd': gpsIfd,
+      'imageIfd': imageIfdMap,
+      'exifIfd': exifIfdMap,
+      if (gpsIfdMap.isNotEmpty) 'gpsIfd': gpsIfdMap,
     };
     
     return ExifData(
@@ -215,13 +238,22 @@ class ExifExtractor {
   }
   
   /// Extract GPS coordinates from GPS IFD
-  static GpsCoordinates? _extractGpsCoordinates(Map<String, dynamic> gpsIfd) {
-    if (gpsIfd.isEmpty) return null;
+  static GpsCoordinates? _extractGpsCoordinates(dynamic gpsIfd) {
+    // Convert IfdDirectory to Map if needed
+    Map<String, dynamic> gpsMap = {};
+    if (gpsIfd != null && gpsIfd.keys.isNotEmpty) {
+      // Extract values from IfdDirectory
+      for (var key in gpsIfd.keys) {
+        gpsMap[key.toString()] = gpsIfd[key];
+      }
+    }
     
-    final latitudeRef = _getStringValue(gpsIfd['GPSLatitudeRef']);
-    final longitudeRef = _getStringValue(gpsIfd['GPSLongitudeRef']);
-    final latitude = gpsIfd['GPSLatitude'];
-    final longitude = gpsIfd['GPSLongitude'];
+    if (gpsMap.isEmpty) return null;
+    
+    final latitudeRef = _getStringValue(gpsMap['GPSLatitudeRef']);
+    final longitudeRef = _getStringValue(gpsMap['GPSLongitudeRef']);
+    final latitude = gpsMap['GPSLatitude'];
+    final longitude = gpsMap['GPSLongitude'];
     
     if (latitude == null || longitude == null) return null;
     
@@ -261,12 +293,12 @@ class ExifExtractor {
     
     // Extract altitude if available
     double? alt;
-    final altitude = gpsIfd['GPSAltitude'];
+    final altitude = gpsMap['GPSAltitude'];
     if (altitude != null) {
       alt = _fractionToDouble(altitude);
       
       // GPSAltitudeRef: 0 = above sea level, 1 = below sea level
-      final altitudeRef = _getIntValue(gpsIfd['GPSAltitudeRef']);
+      final altitudeRef = _getIntValue(gpsMap['GPSAltitudeRef']);
       if (altitudeRef == 1 && alt != null) {
         alt = -alt;
       }
