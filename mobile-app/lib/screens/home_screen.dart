@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../services/simple_location_service.dart';
 import '../widgets/location_settings_card.dart';
+import '../widgets/photo_permission_card.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -97,6 +98,10 @@ class HomeScreen extends ConsumerWidget {
             
             // Location Status Card
             const LocationSettingsCard(),
+            const SizedBox(height: 16),
+            
+            // Photo Library Permission Card
+            const PhotoPermissionCard(),
             const SizedBox(height: 16),
             
             // Current Location Card (if tracking)

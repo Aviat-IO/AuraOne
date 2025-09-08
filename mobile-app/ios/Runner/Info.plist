@@ -62,5 +62,11 @@
 	<array>
 		<string>location</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Aura One needs access to your photo library to discover photos and videos from your day to enrich your journal entries.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Aura One needs permission to save photos to your photo library.</string>
+	<key>PHPhotoLibraryPreventAutomaticLimitedAccessAlert</key>
+	<true/>
 </dict>
 </plist>

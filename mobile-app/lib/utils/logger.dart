@@ -7,8 +7,9 @@ final appLogger = AppLogger();
 /// Custom logger wrapper with app-specific configuration
 class AppLogger {
   late final Logger _logger;
+  final String? name;
   
-  AppLogger() {
+  AppLogger([this.name]) {
     _logger = Logger(
       printer: PrettyPrinter(
         methodCount: kDebugMode ? 2 : 0,
