@@ -2,8 +2,16 @@
     <!-- Required for network requests to Nostr relays -->
     <uses-permission android:name="android.permission.INTERNET"/>
     
+    <!-- Location permissions for journaling with location context -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    
     <application
-        android:label="purplestack"
+        android:label="Aura One"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

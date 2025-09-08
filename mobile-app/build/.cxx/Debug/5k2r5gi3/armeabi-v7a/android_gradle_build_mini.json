@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "/Users/alancolver/fvm/versions/3.32.7/packages/flutter_tools/gradle/src/main/scripts/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/alancolver/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/alancolver/dev/soveng/auraone/mobile-app/build/.cxx/Debug/5k2r5gi3/armeabi-v7a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/alancolver/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/alancolver/dev/soveng/auraone/mobile-app/build/.cxx/Debug/5k2r5gi3/armeabi-v7a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}

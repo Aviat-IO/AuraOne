@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Purplestack</string>
+	<string>Aura One</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>purplestack</string>
+	<string>aura_one</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -49,6 +49,18 @@
 	<array>
 		<string>https</string>
 		<string>http</string>
+	</array>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.lifestyle</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2025 Aura One. All rights reserved.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Aura One needs your location to add context to your journal entries and track the places you visit.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Aura One can track your daily journey in the background to automatically map your day and add location context to your memories.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
 	</array>
 </dict>
 </plist>

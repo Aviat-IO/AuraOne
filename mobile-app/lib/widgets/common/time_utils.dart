@@ -64,6 +64,25 @@ class TimeUtils {
       return '${timestamp.day}/${timestamp.month}/${timestamp.year}';
     }
   }
+
+  /// Formats time in HH:MM format
+  static String formatTime(DateTime dateTime) {
+    return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// Formats date and time in a readable format
+  static String formatDateTime(DateTime dateTime) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[dateTime.month - 1]} ${dateTime.day}, ${dateTime.year} at ${formatTime(dateTime)}';
+  }
+
+  /// Formats date in readable format
+  static String formatDate(DateTime dateTime) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[dateTime.month - 1]} ${dateTime.day}, ${dateTime.year}';
+  }
 }
 
 /// A reactive text widget that automatically updates time-relative displays

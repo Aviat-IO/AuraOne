@@ -1,6 +1,6 @@
-name: purplestack
-description: Agentic development stack for building Nostr-enabled Flutter applications
-version: 0.2.0
+name: aura_one
+description: A mindful journaling app for self-reflection and personal growth
+version: 0.1.0
 
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
@@ -46,6 +46,11 @@ dependencies:
   video_player: ^2.9.2
   just_audio: ^0.9.42
   args: ^2.7.0
+  logger: ^2.6.1
+  drift: ^2.28.1
+  geolocator: ^14.0.2
+  permission_handler: ^12.0.1
+  drift_flutter: ^0.2.6
 
 dependency_overrides:
   models:
@@ -78,6 +83,8 @@ dev_dependencies:
   bm25: ^2.2.3
   archive: ^4.0.7
   mcp_dart: ^0.5.3
+  drift_dev: ^2.28.2
+  build_runner: ^2.7.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -119,3 +126,25 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Icon configuration
+icons_launcher:
+  image_path: "assets/icons/app_icon_large.png"
+  platforms:
+    android:
+      enable: true
+      image_path: "assets/icons/app_icon_large.png"
+      adaptive_background_color: "#9370DB"
+      adaptive_foreground_image: "assets/icons/app_icon_medium.png"
+    ios:
+      enable: true
+      image_path: "assets/icons/app_icon_large.png"
+    macos:
+      enable: true
+      image_path: "assets/icons/app_icon_large.png"
+    windows:
+      enable: true
+      image_path: "assets/icons/app_icon_large.png"
+    linux:
+      enable: true
+      image_path: "assets/icons/app_icon_large.png"

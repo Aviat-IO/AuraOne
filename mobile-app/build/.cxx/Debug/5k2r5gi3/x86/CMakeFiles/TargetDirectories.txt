@@ -1,0 +1,2 @@
+/Users/alancolver/dev/soveng/auraone/mobile-app/build/.cxx/Debug/5k2r5gi3/x86/CMakeFiles/edit_cache.dir
+/Users/alancolver/dev/soveng/auraone/mobile-app/build/.cxx/Debug/5k2r5gi3/x86/CMakeFiles/rebuild_cache.dir

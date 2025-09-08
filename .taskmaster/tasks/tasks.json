@@ -1,0 +1,818 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "App Initialization and Configuration",
+        "description": "Setup the core application identity, branding, and configuration for the Aura One journaling app",
+        "details": "Use the existing rename_app.dart script to change app name from 'Purplestack' to 'Aura One' and update package identifier from 'com.example.purplestack' to 'com.auraone.app'. Update app icon, splash screen, and basic branding elements. Configure app metadata and descriptions to reflect the journaling app purpose. Implement proper error handling and logging infrastructure for production use.",
+        "testStrategy": "Verify app installs with correct name and icon on target platforms. Test that all package references are updated correctly. Validate app launches without errors and displays correct branding.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Execute rename_app script with new identity",
+            "description": "Run the existing rename_app.dart script to change app name from 'Purplestack' to 'Aura One' and update package identifier from 'com.example.purplestack' to 'com.auraone.app'",
+            "dependencies": [],
+            "details": "Use the rename_app.dart script in the tools/scripts directory to update all app identifiers, package names, and references throughout the Flutter project structure. This includes updating AndroidManifest.xml, iOS Info.plist, pubspec.yaml, and all other configuration files that contain the old app identity.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Update app icons and splash screen branding",
+            "description": "Replace default app icons and splash screen with Aura One branding elements across all platforms",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "Create or obtain Aura One app icons in required sizes for Android (mipmap densities) and iOS (AppIcon.appiconset). Update splash screen images and colors to match the journaling app theme. Ensure icons are properly configured in platform-specific directories and manifest files.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Configure app metadata and descriptions",
+            "description": "Update all app metadata, descriptions, and store listings to reflect the journaling app purpose",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "Update app descriptions in pubspec.yaml, AndroidManifest.xml, and iOS Info.plist to describe Aura One as a journaling application. Configure appropriate app categories, permissions descriptions, and user-facing text to clearly communicate the app's purpose and data usage for journaling functionality.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement error handling and logging infrastructure",
+            "description": "Set up comprehensive error handling and logging system for production use",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "Implement global error handling using Flutter's ErrorWidget.builder and PlatformDispatcher.instance.onError. Set up structured logging using packages like logger or similar. Configure crash reporting and error tracking for production builds. Add debug logging for development and filtered logging for release builds. Ensure sensitive journal data is never logged.",
+            "status": "done",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Core Database Schema and Models",
+        "description": "Design and implement the local SQLite database schema for storing journal entries, media, and metadata",
+        "details": "Extend the existing Purplebase SQLite configuration to include journal-specific tables: JournalEntry (id, date, content, metadata), MediaItem (id, type, path, timestamp, location), LocationEvent (id, timestamp, latitude, longitude, accuracy), CalendarEvent (id, title, start, end, source), and PersonTag (id, name, face_embedding). Implement Drift database models with proper relationships and foreign keys. Add indices for performance on date ranges and search queries.",
+        "testStrategy": "Unit tests for all database operations (CRUD). Integration tests for complex queries and relationships. Test database migration scenarios and data integrity constraints.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design journal-specific database schema",
+            "description": "Define the complete database schema for journal entries, media, location events, calendar events, and person tags with proper relationships",
+            "dependencies": [],
+            "details": "Create comprehensive database schema design including table definitions for JournalEntry, MediaItem, LocationEvent, CalendarEvent, and PersonTag. Define foreign key relationships between tables (MediaItem -> JournalEntry, LocationEvent -> JournalEntry, etc.). Plan data types, constraints, and normalization. Document schema relationships and ensure compatibility with existing Purplebase SQLite structure.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Create JournalEntry model with Drift",
+            "description": "Implement the core JournalEntry database model using Drift ORM with proper data access objects",
+            "dependencies": [
+              "2.1"
+            ],
+            "details": "Create Drift table definition for JournalEntry with fields: id, date, content, metadata. Implement corresponding DAO (Data Access Object) with CRUD operations. Add methods for querying entries by date ranges and searching content. Ensure proper serialization of metadata JSON field and handle null values appropriately.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create MediaItem model with relationships",
+            "description": "Implement MediaItem database model with foreign key relationships to journal entries",
+            "dependencies": [
+              "2.1",
+              "2.2"
+            ],
+            "details": "Create Drift table for MediaItem with fields: id, type, path, timestamp, location, journal_entry_id. Implement DAO with methods for media CRUD operations and querying by journal entry. Add support for various media types (photo, video, audio). Establish proper foreign key relationship to JournalEntry table with cascade delete behavior.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Create LocationEvent model",
+            "description": "Implement LocationEvent database model for storing GPS coordinates and location data",
+            "dependencies": [
+              "2.1",
+              "2.2"
+            ],
+            "details": "Create Drift table for LocationEvent with fields: id, timestamp, latitude, longitude, accuracy, journal_entry_id. Implement DAO with spatial query capabilities for location-based searches. Add methods for querying locations within date ranges and geographic bounds. Establish foreign key relationship to JournalEntry with proper indexing for performance.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Create CalendarEvent and PersonTag models",
+            "description": "Implement remaining database models for calendar integration and person tagging",
+            "dependencies": [
+              "2.1",
+              "2.2"
+            ],
+            "details": "Create Drift table for CalendarEvent with fields: id, title, start, end, source, journal_entry_id. Create PersonTag table with fields: id, name, face_embedding, media_item_id. Implement corresponding DAOs with appropriate query methods. Add support for calendar event synchronization and face embedding storage for person recognition. Establish proper foreign key relationships.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Implement database indices and migration support",
+            "description": "Add performance indices and database migration system for schema updates",
+            "dependencies": [
+              "2.2",
+              "2.3",
+              "2.4",
+              "2.5"
+            ],
+            "details": "Create database indices for frequently queried fields: date ranges on JournalEntry and LocationEvent, timestamp on MediaItem, spatial indices on LocationEvent coordinates. Implement Drift migration system to handle schema updates between app versions. Add database initialization and upgrade logic. Test migration scenarios and ensure data integrity during schema changes.",
+            "status": "done",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Location Services Integration",
+        "description": "Implement passive location tracking and geofencing for automatic day mapping",
+        "details": "Integrate location package for background location services with proper permission handling. Implement LocationService class that monitors significant location changes and stores them in the database. Add geofencing capabilities to detect when users arrive/leave significant locations. Implement battery-efficient location tracking with configurable accuracy and frequency settings. Ensure compliance with platform background execution limits.",
+        "testStrategy": "Test location permission flows. Verify background location tracking accuracy and battery impact. Test geofencing triggers and location history storage. Validate location data privacy and local storage.",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "in-progress",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add location package and configure permissions",
+            "description": "Integrate location package dependency and configure platform-specific location permissions",
+            "dependencies": [],
+            "details": "Add location package to pubspec.yaml. Configure location permissions in Android manifest (ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, ACCESS_BACKGROUND_LOCATION) and iOS Info.plist (NSLocationWhenInUseUsageDescription, NSLocationAlwaysAndWhenInUseUsageDescription). Set up permission request flows for runtime permission handling.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement LocationService class with background tracking",
+            "description": "Create LocationService class to handle background location monitoring and significant location changes",
+            "dependencies": [
+              "3.1"
+            ],
+            "details": "Implement LocationService with methods for starting/stopping background location tracking. Configure location stream listeners for significant location changes. Handle location accuracy settings and update frequency. Implement error handling for location service failures and GPS unavailability.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Add geofencing capabilities",
+            "description": "Implement geofencing to detect arrival and departure from significant locations",
+            "dependencies": [
+              "3.2"
+            ],
+            "details": "Add geofencing functionality to detect when users enter or exit predefined geographical areas. Implement geofence creation, monitoring, and event handling. Create system to identify and automatically create geofences for frequently visited locations. Handle geofence trigger events and notifications.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Configure battery-efficient tracking settings",
+            "description": "Implement power-optimized location tracking with configurable accuracy and frequency",
+            "dependencies": [
+              "3.2"
+            ],
+            "details": "Configure location tracking for optimal battery usage with adjustable accuracy levels (high, medium, low power). Implement intelligent tracking frequency based on user movement patterns. Add settings for minimum distance and time intervals between location updates. Create adaptive tracking that reduces frequency when stationary.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Handle platform background execution limits",
+            "description": "Ensure compliance with Android and iOS background execution policies",
+            "dependencies": [
+              "3.2"
+            ],
+            "details": "Implement foreground service for Android background location tracking with proper notification. Handle iOS background app refresh limitations and significant location change APIs. Configure proper background modes in iOS Info.plist. Implement graceful degradation when background permissions are denied.\n<info added on 2025-09-08T18:42:38.634Z>\nSuccessfully implemented comprehensive platform-specific background location handling with EnhancedLocationService featuring Android foreground service support, iOS significant location changes, battery optimization modes (aggressive/balanced/performance), and graceful permission degradation. Added Android foreground service with customizable notifications, background permission checking, and battery optimization detection. Implemented iOS background location with significant changes, proper Info.plist configuration, and activity type for fitness tracking. Created LocationSettingsCard UI component with platform-specific controls and permission guidance. Features include automatic error recovery with reduced accuracy, Riverpod state management, platform-specific permission handling, battery-based update throttling, and comprehensive service status monitoring.\n</info added on 2025-09-08T18:42:38.634Z>",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Implement location data storage",
+            "description": "Create database schema and storage system for location history and geofencing data",
+            "dependencies": [
+              "3.3"
+            ],
+            "details": "Design and implement database tables for storing location points, geofences, and location events. Create data models for LocationPoint and GeofenceEvent. Implement efficient querying for location history by date/time ranges. Add data retention policies and cleanup for old location data.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Add privacy controls and permission flows",
+            "description": "Implement user-facing privacy controls and permission management UI",
+            "dependencies": [
+              "3.1",
+              "3.6"
+            ],
+            "details": "Create permission request UI with clear explanations of location usage. Implement privacy settings allowing users to control location tracking granularity and data retention. Add location history viewing and deletion capabilities. Create opt-out mechanisms and data export for location information.\n<info added on 2025-09-08T19:29:22.404Z>\nImplementation started with comprehensive privacy settings screen featuring location tracking granularity controls (precise/approximate/off), data retention period settings (1 week to forever), and automatic data deletion schedules. Built permission request dialog with clear explanations of how location data enhances journaling through automatic day mapping and memory triggers. Developed location history viewer with interactive timeline, map visualization, and selective deletion capabilities. Implemented data export functionality generating JSON/CSV formats of all location data with timestamps and metadata. Created complete opt-out mechanisms allowing users to disable location services while preserving existing journal entries, with one-click data purge option. Leveraging existing LocationSettingsCard architecture and expanding with dedicated privacy controls section in app settings.\n</info added on 2025-09-08T19:29:22.404Z>\n<info added on 2025-09-08T19:38:38.267Z>\nPrivacy controls and permission flows implementation fully completed. Successfully deployed comprehensive PrivacySettingsScreen with granular location tracking controls supporting off/approximate/balanced/precise modes, configurable data retention periods from 1 week to forever, and automated deletion scheduling. LocationPermissionFlow implementation includes detailed usage explanations, platform-specific guidance, and privacy assurance messaging. LocationHistoryScreen provides interactive timeline visualization with location entry management, selective deletion capabilities, and multi-format data export supporting JSON, CSV, and GPX formats. Complete opt-out mechanisms implemented with detailed privacy policy integration. Navigation routes established and main app interface updated with seamless settings access. All privacy requirements fulfilled with professional UI/UX design standards and user-centric privacy controls.\n</info added on 2025-09-08T19:38:38.267Z>",
+            "status": "done",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Photo and Media Library Integration",
+        "description": "Build automatic photo discovery and metadata extraction system",
+        "details": "Use photo_manager package to access device media library. Implement PhotoService to scan for new photos/videos created each day. Extract EXIF metadata including GPS coordinates, timestamps, and camera settings using exif package. Implement on-device face detection using google_mlkit_face_detection and face clustering for person tagging. Store media references and metadata in database without copying actual files. Add support for various media formats (JPEG, HEIC, MP4, etc.).",
+        "testStrategy": "Test media library access permissions and scanning performance. Verify EXIF data extraction accuracy. Test face detection and clustering algorithms with various image qualities. Validate metadata storage and retrieval.",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Integrate photo_manager package and setup media library access",
+            "description": "Add photo_manager dependency and implement basic media library access with proper permissions handling",
+            "dependencies": [],
+            "details": "Install photo_manager package, configure platform-specific permissions (iOS Info.plist and Android manifest), implement permission request flow, and create basic media library connection with error handling",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement PhotoService for automated media scanning",
+            "description": "Create PhotoService class to discover and scan new photos/videos created each day",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "Build PhotoService with methods to scan device media library, filter by date ranges, track new media items, and implement efficient scanning algorithms with configurable intervals",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Add EXIF metadata extraction using exif package",
+            "description": "Implement comprehensive EXIF data extraction including GPS coordinates, timestamps, and camera settings",
+            "dependencies": [
+              "4.2"
+            ],
+            "details": "Integrate exif package, extract GPS coordinates, capture timestamps, camera settings (ISO, aperture, focal length), device information, and handle various EXIF data formats with error handling for corrupted metadata",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Integrate google_mlkit_face_detection for on-device face detection",
+            "description": "Setup ML Kit face detection to identify faces in photos with proper configuration",
+            "dependencies": [
+              "4.2"
+            ],
+            "details": "Configure google_mlkit_face_detection, implement face detection pipeline, optimize detection parameters for accuracy vs performance, handle various image sizes and qualities, and extract facial landmarks and bounding boxes",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Implement face clustering algorithms for person identification",
+            "description": "Build face clustering system to group detected faces by person for tagging",
+            "dependencies": [
+              "4.4"
+            ],
+            "details": "Implement face embedding extraction, clustering algorithms (k-means or DBSCAN), similarity matching for person identification, handle face vector storage, and create person tagging workflow with confidence scoring",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Create media database models and storage schema",
+            "description": "Design and implement database models for storing media references and extracted metadata",
+            "dependencies": [
+              "4.3",
+              "4.5"
+            ],
+            "details": "Create MediaItem, MediaMetadata, and PersonTag database models using Drift, implement relationships between media and metadata, store file references without copying files, and add indices for efficient queries",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Add support for various media formats (JPEG, HEIC, MP4)",
+            "description": "Implement comprehensive media format support including images and videos",
+            "dependencies": [
+              "4.6"
+            ],
+            "details": "Handle JPEG, HEIC, PNG image formats, support MP4, MOV video formats, implement format-specific metadata extraction, add thumbnail generation, and handle platform-specific format variations",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Optimize performance for large media collections",
+            "description": "Implement performance optimizations for handling large photo libraries efficiently",
+            "dependencies": [
+              "4.7"
+            ],
+            "details": "Add pagination for media scanning, implement background processing with isolates, create efficient caching strategies, optimize database queries with proper indexing, and add progress tracking for long-running operations",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Calendar and System Integration",
+        "description": "Implement automatic import of calendar events and system activities",
+        "details": "Integrate with platform-specific calendar APIs (EventKit on iOS, Calendar Provider on Android) to automatically import daily appointments and events. Implement CalendarService to sync calendar data while respecting user privacy. Add integration with HealthKit (iOS) and Google Fit (Android) for fitness and health data. Implement Bluetooth Low Energy scanning using flutter_blue_plus for proximity detection. Store all integrated data locally with proper attribution to source apps.",
+        "testStrategy": "Test calendar permission flows and data import accuracy. Verify health data integration across platforms. Test BLE scanning and proximity detection. Validate data attribution and source tracking.",
+        "priority": "medium",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement iOS EventKit integration",
+            "description": "Add EventKit framework integration for iOS to access calendar events with proper permissions",
+            "dependencies": [],
+            "details": "Create iOS-specific calendar service using EventKit framework. Implement permission request flow for calendar access. Add methods to fetch calendar events with date range filtering. Handle event parsing and conversion to app models. Ensure proper error handling for permission denials.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement Android Calendar Provider integration",
+            "description": "Add Android Calendar Provider integration to access calendar events with proper permissions",
+            "dependencies": [],
+            "details": "Create Android-specific calendar service using Calendar Provider API. Implement permission request flow for calendar read access. Add methods to query calendar events from all user calendars. Handle event parsing and conversion to app models. Ensure proper error handling for permission denials.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Add HealthKit integration (iOS)",
+            "description": "Integrate with iOS HealthKit for fitness and health data import",
+            "dependencies": [],
+            "details": "Implement HealthKit integration for iOS using health package. Request permissions for relevant health data types (steps, workouts, heart rate). Create methods to fetch daily health summaries. Convert health data to app models with proper attribution. Handle privacy permissions and data access restrictions.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Add Google Fit integration (Android)",
+            "description": "Integrate with Google Fit API for Android fitness and health data",
+            "dependencies": [],
+            "details": "Implement Google Fit integration using fitness package or direct API calls. Set up Google Fit API credentials and permissions. Create methods to fetch daily fitness data (steps, activities, locations). Convert fitness data to app models with proper source attribution. Handle OAuth flow and API rate limits.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Implement BLE scanning with flutter_blue_plus",
+            "description": "Add Bluetooth Low Energy scanning for proximity detection and device tracking",
+            "dependencies": [],
+            "details": "Integrate flutter_blue_plus for BLE functionality. Implement background BLE scanning with proper permission handling. Add device discovery and proximity detection logic. Store discovered devices with timestamps and signal strength. Implement battery-efficient scanning intervals and filters.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Create CalendarService with privacy controls",
+            "description": "Implement unified calendar service with privacy settings and data management",
+            "dependencies": [
+              "5.1",
+              "5.2"
+            ],
+            "details": "Create CalendarService class that abstracts platform-specific implementations. Add privacy controls for calendar data sync (enable/disable, selective calendar access). Implement data sync scheduling and background refresh. Add user preferences for sync frequency and data retention. Ensure local-only storage with optional cloud backup.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Handle data attribution and source tracking",
+            "description": "Implement comprehensive source attribution system for all integrated data",
+            "dependencies": [
+              "5.3",
+              "5.4",
+              "5.5",
+              "5.6"
+            ],
+            "details": "Create data attribution system that tracks source applications and APIs for all imported data. Implement metadata fields for calendar events, health data, and BLE discoveries. Add source-specific icons and labels in UI. Create data management interface for users to control which sources are active. Implement data cleanup and source removal functionality.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "On-Device AI Text Generation",
+        "description": "Implement local AI model for generating daily journal summaries from collected data",
+        "details": "Integrate tflite_flutter package with a mobile-optimized language model (quantized Gemma or similar). Implement AIService class that processes structured daily data (locations, photos, events) into coherent narrative summaries. Create data synthesis pipeline that converts raw database entries into JSON context for the AI model. Implement prompt engineering for consistent, personalized journal entry generation. Add fallback text templates for when AI processing fails.",
+        "testStrategy": "Test AI model loading and inference performance on target devices. Verify text generation quality and coherence. Test with various data scenarios (minimal data, rich data, missing data). Benchmark processing time and memory usage.",
+        "priority": "high",
+        "dependencies": [
+          3,
+          4,
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Integrate tflite_flutter package",
+            "description": "Add and configure tflite_flutter dependency for on-device AI model execution",
+            "dependencies": [],
+            "details": "Add tflite_flutter package to pubspec.yaml and configure platform-specific setup for iOS and Android. Ensure proper native library linking and test basic package functionality.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Select and optimize mobile language model",
+            "description": "Research, download and prepare quantized Gemma or similar mobile-optimized language model",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "Evaluate available quantized language models (Gemma, TinyLLaMA, etc.) for mobile deployment. Download selected model, convert to TensorFlow Lite format if needed, and optimize for mobile constraints (size, memory, inference speed).",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement AIService class architecture",
+            "description": "Create core AIService class to manage model loading, inference, and text generation",
+            "dependencies": [
+              "6.2"
+            ],
+            "details": "Design and implement AIService singleton class with methods for model initialization, text generation from structured data, and resource management. Include proper error handling and lifecycle management.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Create data synthesis pipeline",
+            "description": "Build system to convert raw database entries into structured JSON context for AI model",
+            "dependencies": [],
+            "details": "Implement data aggregation logic to collect daily activities (locations, photos, events, calendar items) and format them into structured JSON context that the AI model can process for narrative generation.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Develop prompt engineering templates",
+            "description": "Design and implement prompt templates for consistent, personalized journal entry generation",
+            "dependencies": [
+              "6.4"
+            ],
+            "details": "Create comprehensive prompt templates that guide the AI model to generate coherent, personalized journal summaries. Include templates for different data scenarios and user preferences.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Add fallback text generation",
+            "description": "Implement fallback text templates for when AI processing fails or is unavailable",
+            "dependencies": [
+              "6.4"
+            ],
+            "details": "Create template-based text generation system that can produce basic journal summaries using rule-based approaches when AI model fails or performs poorly. Ensure graceful degradation of functionality.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Optimize model performance and memory usage",
+            "description": "Implement performance optimizations for efficient mobile AI inference",
+            "dependencies": [
+              "6.3",
+              "6.5"
+            ],
+            "details": "Optimize model loading, caching strategies, and inference performance. Implement memory management to prevent OOM issues. Add performance monitoring and metrics collection for inference times and resource usage.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Handle model loading and inference errors",
+            "description": "Implement comprehensive error handling for AI model operations",
+            "dependencies": [
+              "6.3",
+              "6.6"
+            ],
+            "details": "Add robust error handling for model loading failures, inference errors, and resource constraints. Implement graceful fallbacks, user notifications, and recovery mechanisms. Include logging and debugging capabilities for AI-related issues.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Voice-to-Text Editing Interface",
+        "description": "Build conversational editing system for modifying AI-generated journal entries",
+        "details": "Implement on-device speech-to-text using speech_to_text package with offline capabilities. Create VoiceEditingService that interprets natural language editing commands like 'rewrite the morning section' or 'add more detail about lunch'. Implement NLP logic to parse editing intents and apply them to journal text. Build voice recording UI with proper microphone permissions and audio feedback. Add text-to-speech for reading back edited content.",
+        "testStrategy": "Test speech recognition accuracy in various environments. Verify command interpretation and text editing accuracy. Test microphone permissions and audio quality. Validate voice editing workflows end-to-end.",
+        "priority": "medium",
+        "dependencies": [
+          6
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Integrate speech_to_text Package",
+            "description": "Add speech_to_text dependency and configure on-device speech recognition capabilities",
+            "dependencies": [],
+            "details": "Add speech_to_text package to pubspec.yaml. Configure platform-specific permissions (microphone access). Implement basic SpeechRecognitionService with offline capabilities. Test speech recognition accuracy and language support. Handle initialization and error states.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement VoiceEditingService",
+            "description": "Create service layer for processing voice commands and applying text edits",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "Build VoiceEditingService class to manage voice editing workflows. Implement text processing methods for applying edits to journal content. Create command validation and error handling. Add support for different editing modes (append, replace, insert). Integrate with journal data models.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create NLP Command Parsing Logic",
+            "description": "Implement natural language processing to interpret editing commands",
+            "dependencies": [
+              "7.2"
+            ],
+            "details": "Build NLP parser to extract editing intents from voice commands. Implement pattern matching for common commands like 'rewrite', 'add detail', 'remove section'. Create command classification system (rewrite, append, delete, modify). Handle ambiguous commands with clarification prompts. Map commands to specific text operations.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Build Voice Recording UI",
+            "description": "Create user interface for voice recording with visual feedback and controls",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "Design voice recording interface with recording button, waveform visualization, and status indicators. Implement real-time audio level feedback during recording. Add recording controls (start, stop, cancel, replay). Create proper loading states and error handling UI. Ensure accessibility compliance for voice controls.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Add Text-to-Speech Feedback",
+            "description": "Implement text-to-speech capabilities for reading back edited content",
+            "dependencies": [
+              "7.2"
+            ],
+            "details": "Integrate flutter_tts package for text-to-speech functionality. Implement TtsService for reading journal content aloud. Add playback controls (play, pause, stop, speed adjustment). Create voice selection and configuration options. Implement reading back edited sections for user verification.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Handle Microphone Permissions and Audio Quality",
+            "description": "Implement proper permission handling and audio quality management",
+            "dependencies": [
+              "7.4"
+            ],
+            "details": "Implement microphone permission request flow for iOS and Android. Create permission status checking and re-request mechanisms. Add audio quality detection and noise cancellation if available. Implement background audio handling and interruption management. Create fallback options for denied permissions.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Daily Canvas User Interface",
+        "description": "Create the main journal interface with timeline, map, media gallery, and text editor",
+        "details": "Build comprehensive daily journal view using Flutter widgets. Implement timeline/calendar navigation using table_calendar. Create interactive map widget using flutter_map to display daily routes and locations. Build media gallery with cached_network_image and easy_image_viewer for photo viewing. Implement rich text editor for journal content with markdown support using flutter_markdown. Add skeleton loading states with skeletonizer. Ensure responsive design for various screen sizes.",
+        "testStrategy": "Test UI responsiveness across different screen sizes and orientations. Verify timeline navigation and date selection. Test map integration and location visualization. Validate media gallery performance with large photo collections. Test text editing and formatting features.",
+        "priority": "high",
+        "dependencies": [
+          6
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design main daily journal layout structure",
+            "description": "Create the overall layout architecture for the daily journal interface with proper widget hierarchy and navigation structure",
+            "dependencies": [],
+            "details": "Design the main scaffold structure with AppBar, body sections for timeline, map, media, and text editor. Create responsive layout that adapts to different screen sizes. Define widget hierarchy and state management approach using Riverpod providers. Implement basic navigation between different sections of the daily view.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement timeline/calendar navigation widget",
+            "description": "Build calendar navigation system using table_calendar package for date selection and timeline browsing",
+            "dependencies": [
+              "8.1"
+            ],
+            "details": "Integrate table_calendar widget with custom styling to match app theme. Implement date selection logic and state management. Add visual indicators for days with journal entries. Create smooth transitions between selected dates. Handle calendar events and date range selections for journal browsing.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create interactive map widget with flutter_map",
+            "description": "Build map component to display daily routes, locations, and geographic context for journal entries",
+            "dependencies": [
+              "8.1"
+            ],
+            "details": "Integrate flutter_map package with OpenStreetMap tiles. Implement location plotting from GPS metadata and location events. Add route visualization for daily movements. Create location markers and pop-ups for significant places. Handle map interactions, zoom controls, and location clustering for better performance.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Build optimized media gallery component",
+            "description": "Create photo and video gallery using cached_network_image and easy_image_viewer for efficient media display",
+            "dependencies": [
+              "8.1"
+            ],
+            "details": "Implement grid layout for media thumbnails using cached_network_image for performance. Integrate easy_image_viewer for full-screen photo viewing with gestures. Add video playback support using video_player or similar. Implement lazy loading and memory management for large media collections. Create smooth transitions and animations for media interactions.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Implement rich text editor with markdown support",
+            "description": "Build text editing interface with markdown rendering using flutter_markdown for journal content creation and editing",
+            "dependencies": [
+              "8.1"
+            ],
+            "details": "Create text input field with markdown formatting toolbar. Implement real-time markdown preview using flutter_markdown. Add formatting buttons for common markdown elements (headers, bold, italic, lists). Handle text editing state management and auto-save functionality. Support for embedding media and location references in text.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Add skeleton loading states with skeletonizer",
+            "description": "Implement loading placeholders using skeletonizer package for smooth user experience during data loading",
+            "dependencies": [
+              "8.2",
+              "8.3",
+              "8.4",
+              "8.5"
+            ],
+            "details": "Create skeleton placeholders for calendar, map, media gallery, and text editor components. Implement loading states that match the actual component layouts. Add smooth transitions from skeleton to loaded content. Handle different loading scenarios (network delay, database queries, media processing).",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Ensure responsive design across screen sizes",
+            "description": "Optimize layout and interactions for various device screen sizes and orientations",
+            "dependencies": [
+              "8.2",
+              "8.3",
+              "8.4",
+              "8.5",
+              "8.6"
+            ],
+            "details": "Implement responsive breakpoints for phone, tablet, and desktop layouts. Optimize component sizing and spacing for different screen densities. Handle orientation changes gracefully. Test and adjust layouts for accessibility requirements. Ensure touch targets meet platform guidelines across all screen sizes.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Data Export and Backup System",
+        "description": "Implement comprehensive data export with multiple backup options including Nostr/Blossom integration",
+        "details": "Create export system that packages complete journal database into documented JSON format with media files. Implement multiple backup destinations: local file system, Google Drive (using googleapis), Syncthing folder sync, and Blossom decentralized storage. Add client-side encryption for all backup methods using industry-standard encryption. Implement Nostr integration for selective sharing of journal entries using dart_nostr or similar package. Create backup scheduling and status monitoring. Ensure all exports include complete schema documentation.",
+        "testStrategy": "Test export functionality with various data sizes and formats. Verify encryption/decryption of backup files. Test integration with Google Drive API and permissions. Validate Nostr publishing and Blossom storage. Test backup restoration and data integrity.",
+        "priority": "medium",
+        "dependencies": [
+          8
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design export data format and schema",
+            "description": "Create comprehensive JSON schema for journal data export including metadata, media references, and documentation",
+            "dependencies": [],
+            "details": "Define JSON structure for complete journal database export. Include schema for journal entries, media files, location data, calendar events, and metadata. Create documentation format that explains data structure and field meanings. Design versioning system for schema evolution. Ensure format supports partial and incremental exports.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement local file system export",
+            "description": "Create local export functionality that saves journal data and media to device storage",
+            "dependencies": [
+              "9.1"
+            ],
+            "details": "Use path_provider to access platform-specific directories. Implement export service that packages journal data into JSON format with accompanying media files. Create folder structure for organized export. Add progress tracking and error handling for large exports. Implement data integrity verification after export completion.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Add Google Drive integration with googleapis",
+            "description": "Implement Google Drive backup functionality using googleapis package",
+            "dependencies": [
+              "9.2"
+            ],
+            "details": "Integrate googleapis package for Google Drive API access. Implement OAuth2 authentication flow for Drive permissions. Create DriveBackupService to upload export packages to user's Drive folder. Add progress tracking for upload operations. Implement folder organization and file naming conventions for backups.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement Syncthing folder sync",
+            "description": "Create Syncthing integration for automatic folder synchronization",
+            "dependencies": [
+              "9.2"
+            ],
+            "details": "Research Syncthing API and folder monitoring capabilities. Implement SyncthingService to detect configured Syncthing folders. Add automatic export to designated Syncthing sync folders. Implement conflict resolution and file versioning. Create status monitoring for sync operations.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Add Blossom decentralized storage",
+            "description": "Implement Blossom protocol integration for decentralized backup storage",
+            "dependencies": [
+              "9.2"
+            ],
+            "details": "Research Blossom protocol specifications and available Dart implementations. Create BlossomService for decentralized storage operations. Implement file upload and retrieval using Blossom network. Add metadata tracking for stored files. Implement redundancy and availability verification.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Implement client-side encryption",
+            "description": "Add industry-standard encryption for all backup methods",
+            "dependencies": [
+              "9.1"
+            ],
+            "details": "Implement AES-256 encryption using pointycastle or crypto packages. Create EncryptionService with secure key derivation and management. Add encryption support to all export formats and backup destinations. Implement secure key storage using flutter_secure_storage. Create encryption status indicators and user controls.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Create Nostr integration for selective sharing",
+            "description": "Implement Nostr publishing for selective journal entry sharing",
+            "dependencies": [
+              "9.1",
+              "9.6"
+            ],
+            "details": "Integrate existing Nostr functionality for selective sharing. Create NostrSharingService to publish selected journal entries. Implement privacy controls and content filtering for shared entries. Add Nostr relay management and publishing status tracking. Create user interface for selecting entries to share publicly.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Add backup scheduling and monitoring",
+            "description": "Implement automated backup scheduling with comprehensive status monitoring",
+            "dependencies": [
+              "9.3",
+              "9.4",
+              "9.5",
+              "9.6"
+            ],
+            "details": "Create BackupScheduler service with configurable intervals and conditions. Implement background task scheduling using workmanager or similar. Add backup status monitoring and success/failure tracking. Create notification system for backup completion and errors. Implement backup history and restoration capabilities.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Privacy Controls and Permissions Management",
+        "description": "Build comprehensive privacy settings and transparent permission management interface",
+        "details": "Create granular privacy settings screen where users can control each data source (location, photos, calendar, etc.). Implement just-in-time permission requests with clear explanations for each permission. Add privacy dashboard showing what data is being collected and stored locally. Implement data deletion tools for selective or complete journal history removal. Add security features like app lock with biometric authentication. Ensure all privacy controls are easily accessible and clearly explained.",
+        "testStrategy": "Test all permission request flows and user experience. Verify data collection controls work correctly. Test privacy dashboard accuracy and data visualization. Validate data deletion functionality. Test security features like app lock across different devices.",
+        "priority": "high",
+        "dependencies": [
+          9
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-09-08T12:11:30.842Z",
+      "updated": "2025-09-08T19:38:50.315Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
