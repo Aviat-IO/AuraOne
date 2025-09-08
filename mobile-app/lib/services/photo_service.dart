@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 import '../utils/logger.dart';
+import 'exif_extractor.dart';
 
 /// Service for managing photo library access and automated scanning
 class PhotoService {
@@ -259,6 +260,78 @@ class PhotoService {
     }
   }
   
+  /// Extract EXIF metadata from a photo asset
+  Future<ExifData?> extractExifData(AssetEntity asset) async {
+    if (asset.type != AssetType.image) {
+      _logger.warning('Cannot extract EXIF from non-image asset: ${asset.id}');
+      return null;
+    }
+    
+    try {
+      // Get the original file to preserve EXIF data
+      final file = await getFile(asset, isOrigin: true);
+      if (file == null) {
+        _logger.warning('Could not get file for EXIF extraction: ${asset.id}');
+        return null;
+      }
+      
+      // Extract EXIF data
+      final exifData = await ExifExtractor.extractFromFile(file.path);
+      
+      if (exifData != null) {
+        _logger.info('Successfully extracted EXIF data from asset: ${asset.id}');
+        _logger.debug('GPS: ${exifData.gpsCoordinates}, Camera: ${exifData.make} ${exifData.model}');
+      } else {
+        _logger.info('No EXIF data found in asset: ${asset.id}');
+      }
+      
+      return exifData;
+    } catch (e, stack) {
+      _logger.error('Failed to extract EXIF data from asset: ${asset.id}', 
+                   error: e, stackTrace: stack);
+      return null;
+    }
+  }
+  
+  /// Extract EXIF data from multiple photo assets
+  Future<Map<String, ExifData>> extractExifDataBatch(List<AssetEntity> assets) async {
+    final results = <String, ExifData>{};
+    
+    for (final asset in assets) {
+      if (asset.type == AssetType.image) {
+        final exifData = await extractExifData(asset);
+        if (exifData != null) {
+          results[asset.id] = exifData;
+        }
+      }
+    }
+    
+    _logger.info('Extracted EXIF data from ${results.length}/${assets.length} assets');
+    return results;
+  }
+  
+  /// Get photos with GPS coordinates from a list of assets
+  Future<List<PhotoWithLocation>> getPhotosWithLocation(List<AssetEntity> assets) async {
+    final photosWithLocation = <PhotoWithLocation>[];
+    
+    for (final asset in assets) {
+      if (asset.type == AssetType.image) {
+        final exifData = await extractExifData(asset);
+        if (exifData?.gpsCoordinates != null) {
+          photosWithLocation.add(PhotoWithLocation(
+            asset: asset,
+            coordinates: exifData!.gpsCoordinates!,
+            timestamp: ExifExtractor.parseExifDateTime(exifData.dateTimeOriginal) ??
+                      asset.createDateTime,
+          ));
+        }
+      }
+    }
+    
+    _logger.info('Found ${photosWithLocation.length} photos with GPS coordinates');
+    return photosWithLocation;
+  }
+  
   /// Handle photo library changes
   void _onPhotoLibraryChanged(MethodCall call) {
     _logger.info('Photo library changed: ${call.method}');
@@ -400,6 +473,25 @@ class PhotoDiscoveryEvent {
     required this.assets,
     required this.timestamp,
   });
+}
+
+/// Photo with location information
+class PhotoWithLocation {
+  final AssetEntity asset;
+  final GpsCoordinates coordinates;
+  final DateTime timestamp;
+  
+  PhotoWithLocation({
+    required this.asset,
+    required this.coordinates,
+    required this.timestamp,
+  });
+  
+  Map<String, dynamic> toJson() => {
+    'assetId': asset.id,
+    'coordinates': coordinates.toJson(),
+    'timestamp': timestamp.toIso8601String(),
+  };
 }
 
 /// Provider for PhotoService
