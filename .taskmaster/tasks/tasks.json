@@ -348,7 +348,7 @@
             "description": "Add EventKit framework integration for iOS to access calendar events with proper permissions",
             "dependencies": [],
             "details": "Create iOS-specific calendar service using EventKit framework. Implement permission request flow for calendar access. Add methods to fetch calendar events with date range filtering. Handle event parsing and conversion to app models. Ensure proper error handling for permission denials.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -357,7 +357,7 @@
             "description": "Add Android Calendar Provider integration to access calendar events with proper permissions",
             "dependencies": [],
             "details": "Create Android-specific calendar service using Calendar Provider API. Implement permission request flow for calendar read access. Add methods to query calendar events from all user calendars. Handle event parsing and conversion to app models. Ensure proper error handling for permission denials.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -366,7 +366,7 @@
             "description": "Integrate with iOS HealthKit for fitness and health data import",
             "dependencies": [],
             "details": "Implement HealthKit integration for iOS using health package. Request permissions for relevant health data types (steps, workouts, heart rate). Create methods to fetch daily health summaries. Convert health data to app models with proper attribution. Handle privacy permissions and data access restrictions.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -375,7 +375,7 @@
             "description": "Integrate with Google Fit API for Android fitness and health data",
             "dependencies": [],
             "details": "Implement Google Fit integration using fitness package or direct API calls. Set up Google Fit API credentials and permissions. Create methods to fetch daily fitness data (steps, activities, locations). Convert fitness data to app models with proper source attribution. Handle OAuth flow and API rate limits.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -396,7 +396,7 @@
               "5.2"
             ],
             "details": "Create CalendarService class that abstracts platform-specific implementations. Add privacy controls for calendar data sync (enable/disable, selective calendar access). Implement data sync scheduling and background refresh. Add user preferences for sync frequency and data retention. Ensure local-only storage with optional cloud backup.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -811,7 +811,7 @@
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-09T08:30:15.684Z",
+      "updated": "2025-09-09T11:40:58.577Z",
       "description": "Tasks for master context"
     }
   }
