@@ -34,13 +34,15 @@ class OnboardingScreen extends HookConsumerWidget {
     // Check initial permission states
     useEffect(() {
       Future.microtask(() async {
+        final updatedPermissions = <Permission, bool>{};
         for (final permission in permissionsGranted.value.keys) {
           final status = await permission.status;
-          permissionsGranted.value = {
-            ...permissionsGranted.value,
-            permission: status.isGranted,
-          };
+          updatedPermissions[permission] = status.isGranted || status.isLimited;
         }
+        permissionsGranted.value = {
+          ...permissionsGranted.value,
+          ...updatedPermissions,
+        };
       });
       return null;
     }, []);
@@ -258,7 +260,7 @@ class OnboardingScreen extends HookConsumerWidget {
                   theme,
                   ref,
                   Icons.location_on,
-                  'Location Access',
+                  'Location',
                   'Track your journeys and places visited',
                   Permission.locationAlways,
                   permissionsGranted,
@@ -544,7 +546,10 @@ class OnboardingScreen extends HookConsumerWidget {
     ValueNotifier<Map<Permission, bool>> permissionsGranted, {
     bool isRequired = false,
   }) {
-    final isGranted = permissionsGranted.value[permission] ?? false;
+    return ValueListenableBuilder<Map<Permission, bool>>(
+      valueListenable: permissionsGranted,
+      builder: (context, permissions, child) {
+        final isGranted = permissions[permission] ?? false;
     
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -606,23 +611,44 @@ class OnboardingScreen extends HookConsumerWidget {
               )
             : OutlinedButton(
                 onPressed: () async {
+                  print('Enable button pressed for permission: $permission');
+                  
+                  // Check current status before requesting
+                  final currentStatus = await permission.status;
+                  print('Current permission status: ${currentStatus.toString()}');
+                  
+                  // If already granted, just update the UI
+                  if (currentStatus.isGranted || currentStatus.isLimited) {
+                    print('Permission already granted, updating UI');
+                    final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
+                    newPermissions[permission] = true;
+                    permissionsGranted.value = newPermissions;
+                    return;
+                  }
+                  
+                  // Otherwise, request the permission
                   final status = await permission.request();
-                  permissionsGranted.value = {
-                    ...permissionsGranted.value,
-                    permission: status.isGranted,
-                  };
+                  print('Permission request result: ${status.toString()}');
+                  
+                  final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
+                  newPermissions[permission] = status.isGranted || status.isLimited;
+                  permissionsGranted.value = newPermissions;
+                  print('Updated permissions: $newPermissions');
                   
                   // For location, also handle location services
-                  if (permission == Permission.locationAlways) {
+                  if (permission == Permission.locationAlways && (status.isGranted || status.isLimited)) {
                     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
                     if (!serviceEnabled) {
+                      print('Location services not enabled, opening settings');
                       await Geolocator.openLocationSettings();
                     }
                   }
                 },
                 child: const Text('Enable'),
               ),
-      ),
+        ),
+      );
+      },
     );
   }
   
@@ -659,21 +685,58 @@ class OnboardingScreen extends HookConsumerWidget {
           
           // Skip/Next button
           if (!isLastPage)
-            FilledButton(
-              onPressed: (isPermissionsPage && !hasRequiredPermissions)
-                  ? null
-                  : () {
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Add Skip button for permissions page
+                if (isPermissionsPage && !hasRequiredPermissions)
+                  TextButton(
+                    onPressed: () {
                       pageController.nextPage(
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeInOut,
                       );
                     },
-              child: Text(
-                isPermissionsPage ? 'Continue' : 'Next',
-              ),
+                    child: const Text('Skip for now'),
+                  ),
+                if (isPermissionsPage && !hasRequiredPermissions)
+                  const SizedBox(width: 12),
+                FilledButton(
+                  onPressed: (isPermissionsPage && !hasRequiredPermissions)
+                      ? null
+                      : () {
+                          pageController.nextPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        },
+                  child: Text(
+                    isPermissionsPage ? 'Continue' : 'Next',
+                  ),
+                ),
+              ],
             )
           else
-            const SizedBox(width: 80),
+            FilledButton(
+              onPressed: () async {
+                // Complete onboarding
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('onboarding_completed', true);
+                
+                // Start services
+                final locationService = ref.read(simpleLocationServiceProvider);
+                await locationService.startTracking();
+                
+                final movementService = ref.read(movementTrackingServiceProvider);
+                await movementService.startTracking();
+                
+                // Navigate to main app
+                if (context.mounted) {
+                  context.go('/home');
+                }
+              },
+              child: const Text('Get Started'),
+            ),
         ],
       ),
     );

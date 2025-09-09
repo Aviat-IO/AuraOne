@@ -3,12 +3,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../theme/colors.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
-import 'daily_canvas_screen.dart';
 import 'history_screen.dart';
 import 'privacy_screen.dart';
 import 'settings_screen.dart';
 
-final selectedTabIndexProvider = StateProvider<int>((ref) => 2); // Default to Home (center tab)
+final selectedTabIndexProvider = StateProvider<int>((ref) => 2); // Default to Home (middle tab)
 
 class MainLayoutScreen extends ConsumerWidget {
   const MainLayoutScreen({super.key});
@@ -21,9 +20,9 @@ class MainLayoutScreen extends ConsumerWidget {
 
     final screens = [
       const SearchScreen(),
-      const DailyCanvasScreen(),
-      const HomeScreen(),
       const HistoryScreen(),
+      const HomeScreen(),
+      const PrivacyScreen(),
       const SettingsScreen(),
     ];
 
@@ -79,8 +78,8 @@ class MainLayoutScreen extends ConsumerWidget {
                   isLight: isLight,
                   index: 1,
                   selectedIndex: selectedIndex,
-                  icon: Icons.dashboard,
-                  label: 'Canvas',
+                  icon: Icons.history,
+                  label: 'History',
                   onTap: () => ref.read(selectedTabIndexProvider.notifier).state = 1,
                 ),
                 // Emphasized center Home button
@@ -100,8 +99,8 @@ class MainLayoutScreen extends ConsumerWidget {
                   isLight: isLight,
                   index: 3,
                   selectedIndex: selectedIndex,
-                  icon: Icons.history,
-                  label: 'History',
+                  icon: Icons.privacy_tip,
+                  label: 'Privacy',
                   onTap: () => ref.read(selectedTabIndexProvider.notifier).state = 3,
                 ),
                 _buildNavItem(
