@@ -15,6 +15,14 @@ class GpsCoordinates {
     this.altitude,
   });
   
+  factory GpsCoordinates.fromJson(Map<String, dynamic> json) {
+    return GpsCoordinates(
+      latitude: (json['latitude'] as num).toDouble(),
+      longitude: (json['longitude'] as num).toDouble(),
+      altitude: json['altitude'] != null ? (json['altitude'] as num).toDouble() : null,
+    );
+  }
+  
   @override
   String toString() {
     return 'Lat: $latitude, Lng: $longitude${altitude != null ? ', Alt: ${altitude}m' : ''}';
@@ -48,6 +56,19 @@ class CameraSettings {
     this.meteringMode,
     this.whiteBalance,
   });
+  
+  factory CameraSettings.fromJson(Map<String, dynamic> json) {
+    return CameraSettings(
+      aperture: json['aperture'],
+      shutterSpeed: json['shutterSpeed'],
+      iso: json['iso'],
+      focalLength: json['focalLength'],
+      flash: json['flash'] as int?,
+      exposureMode: json['exposureMode'] as int?,
+      meteringMode: json['meteringMode'] as int?,
+      whiteBalance: json['whiteBalance'] as int?,
+    );
+  }
   
   Map<String, dynamic> toJson() => {
     if (aperture != null) 'aperture': aperture,
@@ -91,6 +112,27 @@ class ExifData {
     required this.allExifData,
   });
   
+  factory ExifData.fromJson(Map<String, dynamic> json) {
+    return ExifData(
+      make: json['make'] as String?,
+      model: json['model'] as String?,
+      software: json['software'] as String?,
+      dateTime: json['dateTime'] as String?,
+      dateTimeOriginal: json['dateTimeOriginal'] as String?,
+      dateTimeDigitized: json['dateTimeDigitized'] as String?,
+      gpsCoordinates: json['gpsCoordinates'] != null
+          ? GpsCoordinates.fromJson(json['gpsCoordinates'] as Map<String, dynamic>)
+          : null,
+      cameraSettings: CameraSettings.fromJson(
+        json['cameraSettings'] as Map<String, dynamic>? ?? {},
+      ),
+      imageWidth: json['imageWidth'] as int?,
+      imageHeight: json['imageHeight'] as int?,
+      orientation: json['orientation'] as int?,
+      allExifData: json['allExifData'] as Map<String, dynamic>? ?? {},
+    );
+  }
+  
   Map<String, dynamic> toJson() => {
     if (make != null) 'make': make,
     if (model != null) 'model': model,
@@ -103,6 +145,7 @@ class ExifData {
     if (imageWidth != null) 'imageWidth': imageWidth,
     if (imageHeight != null) 'imageHeight': imageHeight,
     if (orientation != null) 'orientation': orientation,
+    'allExifData': allExifData,
   };
 }
 

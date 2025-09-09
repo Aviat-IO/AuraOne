@@ -12,6 +12,8 @@ import 'media_format_handler.dart';
 import 'face_detector.dart';
 import 'face_clustering.dart';
 import 'person_service.dart';
+import 'media_processing_isolate.dart';
+import 'media_cache_service.dart';
 
 /// Service for managing photo library access and automated scanning
 class PhotoService {
@@ -47,6 +49,17 @@ class PhotoService {
   /// Scanning configuration
   Duration _scanInterval = const Duration(minutes: 30);
   bool _isAutomaticScanningEnabled = false;
+  
+  /// Pagination configuration
+  static const int defaultPageSize = 50;
+  static const int maxConcurrentProcessing = 3;
+  
+  /// Background processing pool
+  MediaProcessingPool? _processingPool;
+  bool _isPoolInitialized = false;
+  
+  /// Cache service
+  final _cacheService = MediaCacheService();
   
   /// Stream controller for new photo events
   final _newPhotoController = StreamController<List<AssetEntity>>.broadcast();
@@ -91,6 +104,9 @@ class PhotoService {
   Future<void> initialize() async {
     try {
       _logger.info('Initializing PhotoService...');
+      
+      // Initialize cache service
+      _cacheService.initialize();
       
       // Check current permission state
       _permissionState = await PhotoManager.requestPermissionExtend();
@@ -347,6 +363,13 @@ class PhotoService {
     }
     
     try {
+      // Check cache first
+      final cachedData = _cacheService.getCachedExifData(asset.id);
+      if (cachedData != null) {
+        _logger.debug('EXIF cache hit for asset: ${asset.id}');
+        return ExifData.fromJson(cachedData);
+      }
+      
       // Check if the format supports metadata extraction
       if (!MediaFormatHandler.supportsMetadata(asset.mimeType)) {
         _logger.debug('Format ${asset.mimeType} does not support metadata extraction');
@@ -357,6 +380,9 @@ class PhotoService {
       final exifData = await MediaFormatHandler.extractImageMetadata(asset);
       
       if (exifData != null) {
+        // Cache the result
+        _cacheService.cacheExifData(asset.id, exifData.toJson());
+        
         final formatInfo = MediaFormatHandler.getFormatInfo(asset.mimeType);
         _logger.info('Successfully extracted EXIF data from ${formatInfo.format.name} asset: ${asset.id}');
         _logger.debug('GPS: ${exifData.gpsCoordinates}, Camera: ${exifData.make} ${exifData.model}');
@@ -1216,14 +1242,330 @@ class PhotoService {
     }
   }
   
+  /// Scan media library with pagination and progress tracking
+  Future<void> scanMediaLibraryWithPagination({
+    DateTime? since,
+    DateTime? until,
+    RequestType type = RequestType.common,
+    int pageSize = defaultPageSize,
+    void Function(int processed, int total)? onProgress,
+    void Function(List<AssetEntity> batch)? onBatchProcessed,
+    bool processInBackground = false,
+  }) async {
+    if (!hasAccess) {
+      _logger.warning('Cannot scan media library without access');
+      return;
+    }
+    
+    try {
+      _logger.info('Starting paginated media library scan');
+      
+      final filterOption = FilterOptionGroup(
+        createTimeCond: since != null || until != null
+            ? DateTimeCond(
+                min: since ?? DateTime(1970),
+                max: until ?? DateTime.now(),
+              )
+            : null,
+        orders: [
+          OrderOption(
+            type: OrderOptionType.createDate,
+            asc: false,
+          ),
+        ],
+      );
+      
+      // Get all photo paths
+      final paths = await PhotoManager.getAssetPathList(
+        type: type,
+        onlyAll: true,
+        filterOption: filterOption,
+      );
+      
+      if (paths.isEmpty) {
+        _logger.info('No media collections found');
+        return;
+      }
+      
+      final allPhotos = paths.first;
+      final totalAssets = await allPhotos.assetCountAsync;
+      
+      _logger.info('Found $totalAssets assets to process');
+      
+      if (totalAssets == 0) {
+        return;
+      }
+      
+      // Calculate number of pages
+      final pageCount = (totalAssets / pageSize).ceil();
+      int processedCount = 0;
+      
+      // Process pages in batches for better performance
+      for (int page = 0; page < pageCount; page++) {
+        // Fetch current page of assets
+        final pageAssets = await allPhotos.getAssetListPaged(
+          page: page,
+          size: pageSize,
+        );
+        
+        if (pageAssets.isEmpty) {
+          continue;
+        }
+        
+        // Process batch
+        if (processInBackground) {
+          // Queue for background processing (will be implemented with isolates)
+          await _queueForBackgroundProcessing(pageAssets);
+        } else {
+          // Process immediately
+          await _processBatch(pageAssets);
+        }
+        
+        processedCount += pageAssets.length;
+        
+        // Report progress
+        onProgress?.call(processedCount, totalAssets);
+        onBatchProcessed?.call(pageAssets);
+        
+        _logger.debug('Processed batch ${page + 1}/$pageCount (${processedCount}/$totalAssets assets)');
+        
+        // Add small delay between batches to prevent overwhelming the system
+        if (page < pageCount - 1) {
+          await Future.delayed(const Duration(milliseconds: 100));
+        }
+      }
+      
+      _logger.info('Completed paginated scan: processed $processedCount assets');
+    } catch (e, stack) {
+      _logger.error('Paginated scan failed', error: e, stackTrace: stack);
+      rethrow;
+    }
+  }
+  
+  /// Process a batch of assets
+  Future<void> _processBatch(List<AssetEntity> assets) async {
+    try {
+      for (final asset in assets) {
+        // Check if already in database
+        final existing = await mediaDatabase.getMediaItem(asset.id);
+        if (existing != null && existing.isProcessed) {
+          continue;
+        }
+        
+        // Add to database if new
+        if (existing == null) {
+          await mediaManagement.addMediaItem(
+            id: asset.id,
+            fileName: asset.title ?? 'Untitled',
+            mimeType: asset.mimeType ?? 'application/octet-stream',
+            fileSize: 0, // Will be updated when file is accessed
+            createdDate: asset.createDateTime,
+            modifiedDate: asset.modifiedDateTime,
+            width: asset.width,
+            height: asset.height,
+            duration: asset.duration,
+          );
+        }
+        
+        // Extract metadata based on type
+        if (asset.type == AssetType.image) {
+          final exifData = await extractExifData(asset);
+          if (exifData != null) {
+            await _storeExifMetadata(asset.id, exifData);
+          }
+        } else if (asset.type == AssetType.video) {
+          final videoMetadata = await extractVideoMetadata(asset);
+          if (videoMetadata != null) {
+            await _storeVideoMetadata(asset.id, videoMetadata);
+          }
+        }
+        
+        // Mark as processed
+        await mediaManagement.markMediaProcessed(asset.id);
+        
+        // Add to known IDs cache
+        _knownPhotoIds.add(asset.id);
+      }
+    } catch (e, stack) {
+      _logger.error('Failed to process batch', error: e, stackTrace: stack);
+    }
+  }
+  
+  /// Queue assets for background processing
+  Future<void> _queueForBackgroundProcessing(List<AssetEntity> assets) async {
+    try {
+      // Initialize pool if needed
+      if (!_isPoolInitialized) {
+        await _initializeProcessingPool();
+      }
+      
+      if (_processingPool == null) {
+        // Fallback to inline processing if pool initialization failed
+        await _processBatch(assets);
+        return;
+      }
+      
+      // Get database path
+      final databasePath = 'media_database';
+      
+      // Convert AssetEntity list to ID list for isolate
+      final assetIds = assets.map((asset) => asset.id).toList();
+      
+      // Process in isolate pool
+      final results = await _processingPool!.processAssetsInParallel(
+        assetIds,
+        databasePath,
+        onProgress: (processed, total) {
+          _logger.debug('Background processing: $processed/$total assets');
+        },
+      );
+      
+      // Store results in database
+      for (final result in results) {
+        if (result.success && result.metadata != null) {
+          final metadata = result.metadata!;
+          
+          if (metadata['type'] == 'exif') {
+            // Store EXIF metadata
+            await mediaManagement.addMetadata(
+              mediaId: result.assetId,
+              metadataType: 'exif',
+              key: 'data',
+              value: jsonEncode(metadata['data']),
+            );
+          } else if (metadata['type'] == 'video') {
+            // Store video metadata
+            await mediaManagement.addMetadata(
+              mediaId: result.assetId,
+              metadataType: 'video',
+              key: 'data',
+              value: jsonEncode(metadata['data']),
+            );
+          }
+        }
+        
+        // Mark as processed
+        await mediaManagement.markMediaProcessed(result.assetId);
+        _knownPhotoIds.add(result.assetId);
+      }
+      
+      _logger.info('Background processing completed for ${results.length} assets');
+    } catch (e, stack) {
+      _logger.error('Background processing failed', error: e, stackTrace: stack);
+      // Fallback to inline processing
+      await _processBatch(assets);
+    }
+  }
+  
+  /// Initialize background processing pool
+  Future<void> _initializeProcessingPool() async {
+    try {
+      _logger.info('Initializing background processing pool');
+      _processingPool = MediaProcessingPool(poolSize: maxConcurrentProcessing);
+      await _processingPool!.initialize();
+      _isPoolInitialized = true;
+      _logger.info('Background processing pool initialized successfully');
+    } catch (e, stack) {
+      _logger.error('Failed to initialize processing pool', error: e, stackTrace: stack);
+      _processingPool = null;
+      _isPoolInitialized = false;
+    }
+  }
+  
+  /// Get unprocessed media count
+  Future<int> getUnprocessedMediaCount() async {
+    try {
+      final unprocessed = await mediaDatabase.getUnprocessedMedia();
+      return unprocessed.length;
+    } catch (e, stack) {
+      _logger.error('Failed to get unprocessed media count', error: e, stackTrace: stack);
+      return 0;
+    }
+  }
+  
+  /// Process unprocessed media in batches
+  Future<void> processUnprocessedMedia({
+    int batchSize = defaultPageSize,
+    void Function(int processed, int total)? onProgress,
+  }) async {
+    try {
+      final unprocessed = await mediaDatabase.getUnprocessedMedia();
+      final total = unprocessed.length;
+      
+      if (total == 0) {
+        _logger.info('No unprocessed media found');
+        return;
+      }
+      
+      _logger.info('Processing $total unprocessed media items');
+      
+      int processed = 0;
+      for (int i = 0; i < total; i += batchSize) {
+        final end = (i + batchSize < total) ? i + batchSize : total;
+        final batch = unprocessed.sublist(i, end);
+        
+        // Process each item in the batch
+        for (final mediaItem in batch) {
+          try {
+            // Get the corresponding AssetEntity
+            final asset = await AssetEntity.fromId(mediaItem.id);
+            if (asset != null) {
+              // Extract metadata
+              if (asset.type == AssetType.image) {
+                final exifData = await extractExifData(asset);
+                if (exifData != null) {
+                  await _storeExifMetadata(asset.id, exifData);
+                }
+              } else if (asset.type == AssetType.video) {
+                final videoMetadata = await extractVideoMetadata(asset);
+                if (videoMetadata != null) {
+                  await _storeVideoMetadata(asset.id, videoMetadata);
+                }
+              }
+            }
+            
+            // Mark as processed
+            await mediaManagement.markMediaProcessed(mediaItem.id);
+            processed++;
+            
+          } catch (e) {
+            _logger.error('Failed to process media item ${mediaItem.id}', error: e);
+          }
+        }
+        
+        onProgress?.call(processed, total);
+        
+        // Small delay between batches
+        if (i + batchSize < total) {
+          await Future.delayed(const Duration(milliseconds: 50));
+        }
+      }
+      
+      _logger.info('Completed processing unprocessed media: $processed/$total items');
+    } catch (e, stack) {
+      _logger.error('Failed to process unprocessed media', error: e, stackTrace: stack);
+    }
+  }
+  
   /// Clean up resources
-  void dispose() {
+  void dispose() async {
     stopAutomaticScanning();
     PhotoManager.removeChangeCallback(_onPhotoLibraryChanged);
     PhotoManager.stopChangeNotify();
     _photoDiscoveryController.close();
     _newPhotoController.close();
     _mediaDatabase?.close();
+    
+    // Shutdown isolate pool
+    if (_processingPool != null) {
+      await _processingPool!.shutdown();
+      _processingPool = null;
+      _isPoolInitialized = false;
+    }
+    
+    // Dispose cache service
+    _cacheService.dispose();
+    
     _logger.info('PhotoService disposed');
   }
 }

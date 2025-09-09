@@ -142,12 +142,18 @@ class MediaCollectionItems extends Table {
 ])
 class MediaDatabase extends _$MediaDatabase {
   MediaDatabase() : super(_openConnection());
+  
+  MediaDatabase.withPath(String path) : super(_openConnectionWithPath(path));
 
   @override
   int get schemaVersion => 1;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'media_database');
+  }
+  
+  static QueryExecutor _openConnectionWithPath(String path) {
+    return driftDatabase(name: path);
   }
 
   // Media Items Methods
@@ -194,6 +200,20 @@ class MediaDatabase extends _$MediaDatabase {
           ..orderBy([(tbl) => OrderingTerm.desc(tbl.createdDate)])
           ..limit(limit))
         .get();
+  }
+  
+  Future<List<MediaItem>> getUnprocessedMedia({int? limit}) {
+    final query = select(mediaItems)
+      ..where((tbl) => 
+          tbl.isProcessed.equals(false) &
+          tbl.isDeleted.equals(false))
+      ..orderBy([(tbl) => OrderingTerm.asc(tbl.createdDate)]);
+    
+    if (limit != null) {
+      query.limit(limit);
+    }
+    
+    return query.get();
   }
 
   Future<int> softDeleteMediaItem(String id) {
