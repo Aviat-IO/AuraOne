@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'theme/colors.dart';
 
-final brightnessProvider = StateProvider<Brightness>((ref) => Brightness.dark);
+final brightnessProvider = StateProvider<Brightness>((ref) => Brightness.light);
 
 // Theme provider that switches between light and dark
 final themeProvider = Provider<ThemeData>((ref) {
@@ -60,58 +61,106 @@ TextTheme _scaleTextTheme(TextTheme baseTextTheme, double scaleFactor) {
   );
 }
 
-// Light theme
+// Light theme with warm, peaceful colors
 final lightTheme =
     ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.purple,
-        brightness: Brightness.light,
-      ),
+      colorScheme: AuraColors.lightScheme,
       typography: Typography.material2021(),
-      cardTheme: const CardThemeData(elevation: 1, margin: EdgeInsets.all(8.0)),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        margin: const EdgeInsets.all(8.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        color: const Color(0xFFFFFFFF).withValues(alpha: 0.95),
+      ),
       chipTheme: ChipThemeData(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+        backgroundColor: AuraColors.lightSurfaceContainerHigh,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+      appBarTheme: const AppBarTheme(
+        elevation: 0,
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        selectedItemColor: AuraColors.lightPrimary,
+        unselectedItemColor: AuraColors.lightOutline,
       ),
     ).copyWith(
       textTheme: _scaleTextTheme(
         ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.purple,
-            brightness: Brightness.light,
-          ),
+          colorScheme: const ColorScheme.light(),
           useMaterial3: true,
         ).textTheme,
-        1.2, // 20% bigger fonts
+        1.15, // 15% bigger fonts for better readability
       ),
     );
 
-// Dark theme
+// Dark theme - warm and cozy
 final darkTheme =
     ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.purple,
-        brightness: Brightness.dark,
-      ),
+      colorScheme: AuraColors.darkScheme,
       typography: Typography.material2021(),
-      cardTheme: const CardThemeData(elevation: 1, margin: EdgeInsets.all(8.0)),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        margin: const EdgeInsets.all(8.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        color: const Color(0xFF2A221C).withValues(alpha: 0.95),
+      ),
       chipTheme: ChipThemeData(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+        backgroundColor: AuraColors.darkSurfaceContainerHigh,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+      appBarTheme: const AppBarTheme(
+        elevation: 0,
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        elevation: 0,
+        backgroundColor: AuraColors.darkSurface,
+        selectedItemColor: AuraColors.darkPrimary,
+        unselectedItemColor: AuraColors.darkOutline,
       ),
     ).copyWith(
       textTheme: _scaleTextTheme(
         ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.purple,
-            brightness: Brightness.dark,
-          ),
+          colorScheme: const ColorScheme.dark(),
           useMaterial3: true,
         ).textTheme,
-        1.2, // 20% bigger fonts
+        1.15, // 15% bigger fonts for better readability
       ),
     );

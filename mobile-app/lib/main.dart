@@ -8,6 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:purplebase/purplebase.dart';
 import 'package:aura_one/router.dart';
 import 'package:aura_one/theme.dart';
+import 'package:aura_one/theme/colors.dart';
+import 'package:aura_one/widgets/simple_theme_switcher.dart';
 import 'package:aura_one/utils/error_handler.dart';
 import 'package:aura_one/utils/logger.dart';
 import 'package:aura_one/services/simple_location_service.dart';
@@ -93,26 +95,35 @@ class AuraOneSplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isLight = Theme.of(context).brightness == Brightness.light;
     
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              colorScheme.surface,
-              colorScheme.surface.withValues(alpha: 0.95),
-              Color.lerp(colorScheme.surface, colorScheme.primary, 0.05)!,
-            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isLight 
+              ? AuraColors.lightBackgroundGradient
+              : AuraColors.darkBackgroundGradient,
+            stops: const [0.0, 0.5, 1.0],
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+          child: Stack(
+            children: [
+              // Theme switcher at the top right
+              Positioned(
+                top: 16,
+                right: 16,
+                child: const SimpleThemeSwitcher(),
+              ),
+              // Main content
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                 // Aura One Logo - a mindful, circular design
                 Container(
                   width: 120,
@@ -122,16 +133,19 @@ class AuraOneSplashScreen extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [
-                        colorScheme.primary,
-                        colorScheme.secondary,
-                      ],
+                      colors: isLight 
+                        ? AuraColors.lightLogoGradient
+                        : AuraColors.darkLogoGradient,
+                      stops: const [0.0, 0.5, 1.0],
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: colorScheme.primary.withValues(alpha: 0.3),
-                        blurRadius: 30,
-                        spreadRadius: 5,
+                        color: isLight 
+                          ? AuraColors.lightPrimary.withValues(alpha: 0.2)
+                          : AuraColors.darkPrimary.withValues(alpha: 0.15),
+                        blurRadius: 40,
+                        spreadRadius: 8,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
@@ -213,7 +227,9 @@ class AuraOneSplashScreen extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

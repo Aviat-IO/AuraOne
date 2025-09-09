@@ -1,0 +1,401 @@
+import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import '../widgets/simple_theme_switcher.dart';
+import '../theme.dart';
+import '../theme/colors.dart';
+
+class SettingsScreen extends ConsumerWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final brightness = ref.watch(brightnessProvider);
+    final isLight = theme.brightness == Brightness.light;
+    
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isLight ? [
+              AuraColors.lightSurface,
+              AuraColors.lightSurface.withValues(alpha: 0.95),
+              AuraColors.lightSurfaceContainerLow.withValues(alpha: 0.9),
+            ] : [
+              AuraColors.darkSurface,
+              AuraColors.darkSurface.withValues(alpha: 0.98),
+              AuraColors.darkSurfaceContainerLow.withValues(alpha: 0.95),
+            ],
+            stops: const [0.0, 0.3, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Settings header
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: isLight 
+                            ? AuraColors.lightLogoGradient
+                            : AuraColors.darkLogoGradient,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isLight 
+                              ? AuraColors.lightPrimary.withValues(alpha: 0.2)
+                              : AuraColors.darkPrimary.withValues(alpha: 0.15),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.settings,
+                        size: 24,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Settings',
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Customize your wellness experience',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                
+                // Settings sections
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Appearance section
+                        Text(
+                          'Appearance',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        _buildSettingsCard(
+                          context: context,
+                          theme: theme,
+                          isLight: isLight,
+                          child: Column(
+                            children: [
+                              _buildSettingsTile(
+                                icon: Icons.palette,
+                                title: 'Theme',
+                                subtitle: brightness == Brightness.light ? 'Light mode' : 'Dark mode',
+                                trailing: const SimpleThemeSwitcher(),
+                                theme: theme,
+                              ),
+                              Divider(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                                height: 1,
+                              ),
+                              _buildSettingsTile(
+                                icon: Icons.text_fields,
+                                title: 'Font Size',
+                                subtitle: 'Adjust text size for better readability',
+                                trailing: Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                ),
+                                theme: theme,
+                                onTap: () {
+                                  // TODO: Implement font size settings
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Font size settings coming soon')),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Journal section
+                        Text(
+                          'Journal',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        _buildSettingsCard(
+                          context: context,
+                          theme: theme,
+                          isLight: isLight,
+                          child: Column(
+                            children: [
+                              _buildSettingsTile(
+                                icon: Icons.notifications,
+                                title: 'Daily Reminders',
+                                subtitle: 'Get reminded to write in your journal',
+                                trailing: Switch(
+                                  value: false, // TODO: Connect to actual settings
+                                  onChanged: (value) {
+                                    // TODO: Implement reminder settings
+                                  },
+                                ),
+                                theme: theme,
+                              ),
+                              Divider(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                                height: 1,
+                              ),
+                              _buildSettingsTile(
+                                icon: Icons.auto_awesome,
+                                title: 'AI Suggestions',
+                                subtitle: 'Enable AI-powered writing suggestions',
+                                trailing: Switch(
+                                  value: true, // TODO: Connect to actual settings
+                                  onChanged: (value) {
+                                    // TODO: Implement AI settings
+                                  },
+                                ),
+                                theme: theme,
+                              ),
+                              Divider(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                                height: 1,
+                              ),
+                              _buildSettingsTile(
+                                icon: Icons.backup,
+                                title: 'Auto Backup',
+                                subtitle: 'Automatically backup your entries',
+                                trailing: Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                ),
+                                theme: theme,
+                                onTap: () {
+                                  // TODO: Implement backup settings
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Backup settings coming soon')),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Wellness section
+                        Text(
+                          'Wellness',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        _buildSettingsCard(
+                          context: context,
+                          theme: theme,
+                          isLight: isLight,
+                          child: Column(
+                            children: [
+                              _buildSettingsTile(
+                                icon: Icons.track_changes,
+                                title: 'Mood Tracking',
+                                subtitle: 'Track your daily mood and emotions',
+                                trailing: Switch(
+                                  value: true, // TODO: Connect to actual settings
+                                  onChanged: (value) {
+                                    // TODO: Implement mood tracking settings
+                                  },
+                                ),
+                                theme: theme,
+                              ),
+                              Divider(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                                height: 1,
+                              ),
+                              _buildSettingsTile(
+                                icon: Icons.insights,
+                                title: 'Wellness Insights',
+                                subtitle: 'Get personalized wellness recommendations',
+                                trailing: Switch(
+                                  value: true, // TODO: Connect to actual settings
+                                  onChanged: (value) {
+                                    // TODO: Implement insights settings
+                                  },
+                                ),
+                                theme: theme,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Support section
+                        Text(
+                          'Support',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        _buildSettingsCard(
+                          context: context,
+                          theme: theme,
+                          isLight: isLight,
+                          child: Column(
+                            children: [
+                              _buildSettingsTile(
+                                icon: Icons.help_outline,
+                                title: 'Help & Support',
+                                subtitle: 'Get help and contact support',
+                                trailing: Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                ),
+                                theme: theme,
+                                onTap: () {
+                                  // TODO: Navigate to help screen
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Help & Support coming soon')),
+                                  );
+                                },
+                              ),
+                              Divider(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                                height: 1,
+                              ),
+                              _buildSettingsTile(
+                                icon: Icons.info_outline,
+                                title: 'About Aura One',
+                                subtitle: 'App version and information',
+                                trailing: Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                ),
+                                theme: theme,
+                                onTap: () {
+                                  // TODO: Navigate to about screen
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('About page coming soon')),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsCard({
+    required BuildContext context,
+    required ThemeData theme,
+    required bool isLight,
+    required Widget child,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isLight 
+            ? AuraColors.lightCardGradient
+            : AuraColors.darkCardGradient,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isLight 
+              ? AuraColors.lightPrimary.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.2),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildSettingsTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget trailing,
+    required ThemeData theme,
+    VoidCallback? onTap,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          color: theme.colorScheme.primary,
+          size: 20,
+        ),
+      ),
+      title: Text(
+        title,
+        style: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+        ),
+      ),
+      trailing: trailing,
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    );
+  }
+}

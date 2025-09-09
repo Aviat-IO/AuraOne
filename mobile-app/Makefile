@@ -118,7 +118,7 @@ update:
 # Quick emulator launch (tries to launch first available emulator)
 quick-emulator:
 	@echo "🚀 Launching first available emulator..."
-	@EMULATOR=$$(fvm flutter emulators | grep -o "^[^•]*" | head -n 1 | xargs); \
+	@EMULATOR=$$(fvm flutter emulators | grep "^[a-zA-Z0-9_-]* •" | head -n 1 | cut -d' ' -f1); \
 	if [ -n "$$EMULATOR" ]; then \
 		echo "Launching $$EMULATOR..."; \
 		fvm flutter emulators --launch "$$EMULATOR"; \

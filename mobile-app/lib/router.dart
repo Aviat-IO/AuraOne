@@ -1,6 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:aura_one/screens/home_screen.dart';
+import 'package:aura_one/screens/main_layout_screen.dart';
 import 'package:aura_one/screens/privacy_settings_screen.dart';
 import 'package:aura_one/screens/location_history_screen.dart';
 import 'package:aura_one/screens/photo_test_screen.dart';
@@ -11,7 +11,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) => const HomeScreen(),
+        builder: (context, state) => const MainLayoutScreen(),
       ),
       
       // Privacy and location settings
