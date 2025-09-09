@@ -58,6 +58,8 @@ dependencies:
   device_calendar: ^4.3.2
   flutter_blue_plus: ^1.35.0
   health: ^13.1.2
+  tflite_flutter: ^0.11.0
+  onnxruntime: ^1.4.1
 
 dependency_overrides:
   models:
