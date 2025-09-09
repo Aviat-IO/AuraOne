@@ -13,6 +13,7 @@ import 'package:aura_one/widgets/simple_theme_switcher.dart';
 import 'package:aura_one/utils/error_handler.dart';
 import 'package:aura_one/utils/logger.dart';
 import 'package:aura_one/services/simple_location_service.dart';
+import 'package:aura_one/services/movement_tracking_service.dart';
 
 void main() {
   // Initialize error handling first
@@ -263,6 +264,11 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
     appLogger.info('Initializing location service...');
     final locationService = ref.read(simpleLocationServiceProvider);
     await locationService.initialize();
+    
+    // Initialize movement tracking service
+    appLogger.info('Initializing movement tracking service...');
+    final movementService = ref.read(movementTrackingServiceProvider);
+    await movementService.initialize();
     
     appLogger.info('App initialization complete');
   } catch (error, stackTrace) {

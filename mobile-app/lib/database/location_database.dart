@@ -80,18 +80,33 @@ class LocationSummaries extends Table {
   ];
 }
 
+// Table for movement tracking data from gyroscope/accelerometer
+class MovementData extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  DateTimeColumn get timestamp => dateTime()();
+  TextColumn get state => text()(); // still, walking, running, driving, unknown
+  RealColumn get averageMagnitude => real()();
+  IntColumn get sampleCount => integer()();
+  RealColumn get stillPercentage => real()();
+  RealColumn get walkingPercentage => real()();
+  RealColumn get runningPercentage => real()();
+  RealColumn get drivingPercentage => real()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 @DriftDatabase(tables: [
   LocationPoints,
   GeofenceAreas,
   GeofenceEvents,
   LocationNotes,
   LocationSummaries,
+  MovementData,
 ])
 class LocationDatabase extends _$LocationDatabase {
   LocationDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'location_database');

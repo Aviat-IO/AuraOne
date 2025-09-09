@@ -50,14 +50,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               children: [
                 // Search header
                 Text(
-                  'Search Journal Entries',
+                  'Search Journal',
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Find your past thoughts and memories',
+                  'Find your past entries',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),

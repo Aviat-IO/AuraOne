@@ -18,7 +18,7 @@ class PrivacyScreen extends ConsumerWidget {
     final locationEnabled = ref.watch(locationTrackingEnabledProvider);
     final photoAccessEnabled = ref.watch(photoAccessEnabledProvider);
     final locationService = ref.watch(simpleLocationServiceProvider);
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -51,13 +51,13 @@ class PrivacyScreen extends ConsumerWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
-                          colors: isLight 
+                          colors: isLight
                             ? AuraColors.lightLogoGradient
                             : AuraColors.darkLogoGradient,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: isLight 
+                            color: isLight
                               ? AuraColors.lightPrimary.withValues(alpha: 0.2)
                               : AuraColors.darkPrimary.withValues(alpha: 0.15),
                             blurRadius: 12,
@@ -84,7 +84,7 @@ class PrivacyScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Manage your privacy settings and permissions',
+                            'Manage your privacy settings',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
@@ -95,7 +95,7 @@ class PrivacyScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Privacy overview card (scrollable)
                 Container(
                   decoration: BoxDecoration(
@@ -103,13 +103,13 @@ class PrivacyScreen extends ConsumerWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: isLight 
+                      colors: isLight
                         ? AuraColors.lightCardGradient
                         : AuraColors.darkCardGradient,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: isLight 
+                        color: isLight
                           ? AuraColors.lightPrimary.withValues(alpha: 0.08)
                           : Colors.black.withValues(alpha: 0.2),
                         blurRadius: 16,
@@ -207,7 +207,7 @@ class PrivacyScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Permission Settings
                 Text(
                   'Permission Settings',
@@ -216,7 +216,7 @@ class PrivacyScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Location tracking toggle
                 Container(
                   decoration: BoxDecoration(
@@ -224,13 +224,13 @@ class PrivacyScreen extends ConsumerWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: isLight 
+                      colors: isLight
                         ? AuraColors.lightCardGradient
                         : AuraColors.darkCardGradient,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: isLight 
+                        color: isLight
                           ? AuraColors.lightPrimary.withValues(alpha: 0.05)
                           : Colors.black.withValues(alpha: 0.15),
                         blurRadius: 8,
@@ -277,7 +277,7 @@ class PrivacyScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                
+
                 // Photo library access toggle
                 Container(
                   decoration: BoxDecoration(
@@ -285,13 +285,13 @@ class PrivacyScreen extends ConsumerWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: isLight 
+                      colors: isLight
                         ? AuraColors.lightCardGradient
                         : AuraColors.darkCardGradient,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: isLight 
+                        color: isLight
                           ? AuraColors.lightPrimary.withValues(alpha: 0.05)
                           : Colors.black.withValues(alpha: 0.15),
                         blurRadius: 8,
@@ -339,7 +339,7 @@ class PrivacyScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                
+
                 // View location history button
                 if (locationEnabled)
                   Container(
@@ -348,13 +348,13 @@ class PrivacyScreen extends ConsumerWidget {
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: isLight 
+                        colors: isLight
                           ? AuraColors.lightCardGradient
                           : AuraColors.darkCardGradient,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: isLight 
+                          color: isLight
                             ? AuraColors.lightPrimary.withValues(alpha: 0.05)
                             : Colors.black.withValues(alpha: 0.15),
                           blurRadius: 8,
@@ -395,9 +395,9 @@ class PrivacyScreen extends ConsumerWidget {
                       onTap: () => context.push('/privacy/location-history'),
                     ),
                   ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Data & Privacy section
                 Text(
                   'Data & Privacy',
@@ -406,7 +406,7 @@ class PrivacyScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 _buildPrivacyOption(
                   context: context,
                   theme: theme,
@@ -422,7 +422,7 @@ class PrivacyScreen extends ConsumerWidget {
                   },
                 ),
                 const SizedBox(height: 12),
-                
+
                 _buildPrivacyOption(
                   context: context,
                   theme: theme,
@@ -436,7 +436,7 @@ class PrivacyScreen extends ConsumerWidget {
                   },
                 ),
                 const SizedBox(height: 12),
-                
+
                 _buildPrivacyOption(
                   context: context,
                   theme: theme,
@@ -474,13 +474,13 @@ class PrivacyScreen extends ConsumerWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isLight 
+          colors: isLight
             ? AuraColors.lightCardGradient
             : AuraColors.darkCardGradient,
         ),
         boxShadow: [
           BoxShadow(
-            color: isLight 
+            color: isLight
               ? AuraColors.lightPrimary.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.15),
             blurRadius: 8,
@@ -492,14 +492,14 @@ class PrivacyScreen extends ConsumerWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: isDestructive 
+            color: isDestructive
               ? Colors.red.withValues(alpha: 0.1)
               : theme.colorScheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
             icon,
-            color: isDestructive 
+            color: isDestructive
               ? Colors.red
               : theme.colorScheme.primary,
             size: 20,

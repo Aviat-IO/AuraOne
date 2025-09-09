@@ -2907,6 +2907,634 @@ class LocationSummariesCompanion extends UpdateCompanion<LocationSummary> {
   }
 }
 
+class $MovementDataTable extends MovementData
+    with TableInfo<$MovementDataTable, MovementDataData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MovementDataTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _timestampMeta = const VerificationMeta(
+    'timestamp',
+  );
+  @override
+  late final GeneratedColumn<DateTime> timestamp = GeneratedColumn<DateTime>(
+    'timestamp',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stateMeta = const VerificationMeta('state');
+  @override
+  late final GeneratedColumn<String> state = GeneratedColumn<String>(
+    'state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _averageMagnitudeMeta = const VerificationMeta(
+    'averageMagnitude',
+  );
+  @override
+  late final GeneratedColumn<double> averageMagnitude = GeneratedColumn<double>(
+    'average_magnitude',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sampleCountMeta = const VerificationMeta(
+    'sampleCount',
+  );
+  @override
+  late final GeneratedColumn<int> sampleCount = GeneratedColumn<int>(
+    'sample_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stillPercentageMeta = const VerificationMeta(
+    'stillPercentage',
+  );
+  @override
+  late final GeneratedColumn<double> stillPercentage = GeneratedColumn<double>(
+    'still_percentage',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _walkingPercentageMeta = const VerificationMeta(
+    'walkingPercentage',
+  );
+  @override
+  late final GeneratedColumn<double> walkingPercentage =
+      GeneratedColumn<double>(
+        'walking_percentage',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _runningPercentageMeta = const VerificationMeta(
+    'runningPercentage',
+  );
+  @override
+  late final GeneratedColumn<double> runningPercentage =
+      GeneratedColumn<double>(
+        'running_percentage',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _drivingPercentageMeta = const VerificationMeta(
+    'drivingPercentage',
+  );
+  @override
+  late final GeneratedColumn<double> drivingPercentage =
+      GeneratedColumn<double>(
+        'driving_percentage',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    timestamp,
+    state,
+    averageMagnitude,
+    sampleCount,
+    stillPercentage,
+    walkingPercentage,
+    runningPercentage,
+    drivingPercentage,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'movement_data';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MovementDataData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('timestamp')) {
+      context.handle(
+        _timestampMeta,
+        timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_timestampMeta);
+    }
+    if (data.containsKey('state')) {
+      context.handle(
+        _stateMeta,
+        state.isAcceptableOrUnknown(data['state']!, _stateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stateMeta);
+    }
+    if (data.containsKey('average_magnitude')) {
+      context.handle(
+        _averageMagnitudeMeta,
+        averageMagnitude.isAcceptableOrUnknown(
+          data['average_magnitude']!,
+          _averageMagnitudeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_averageMagnitudeMeta);
+    }
+    if (data.containsKey('sample_count')) {
+      context.handle(
+        _sampleCountMeta,
+        sampleCount.isAcceptableOrUnknown(
+          data['sample_count']!,
+          _sampleCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sampleCountMeta);
+    }
+    if (data.containsKey('still_percentage')) {
+      context.handle(
+        _stillPercentageMeta,
+        stillPercentage.isAcceptableOrUnknown(
+          data['still_percentage']!,
+          _stillPercentageMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_stillPercentageMeta);
+    }
+    if (data.containsKey('walking_percentage')) {
+      context.handle(
+        _walkingPercentageMeta,
+        walkingPercentage.isAcceptableOrUnknown(
+          data['walking_percentage']!,
+          _walkingPercentageMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_walkingPercentageMeta);
+    }
+    if (data.containsKey('running_percentage')) {
+      context.handle(
+        _runningPercentageMeta,
+        runningPercentage.isAcceptableOrUnknown(
+          data['running_percentage']!,
+          _runningPercentageMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_runningPercentageMeta);
+    }
+    if (data.containsKey('driving_percentage')) {
+      context.handle(
+        _drivingPercentageMeta,
+        drivingPercentage.isAcceptableOrUnknown(
+          data['driving_percentage']!,
+          _drivingPercentageMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_drivingPercentageMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MovementDataData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MovementDataData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      timestamp: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}timestamp'],
+      )!,
+      state: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}state'],
+      )!,
+      averageMagnitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}average_magnitude'],
+      )!,
+      sampleCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sample_count'],
+      )!,
+      stillPercentage: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}still_percentage'],
+      )!,
+      walkingPercentage: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}walking_percentage'],
+      )!,
+      runningPercentage: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}running_percentage'],
+      )!,
+      drivingPercentage: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}driving_percentage'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $MovementDataTable createAlias(String alias) {
+    return $MovementDataTable(attachedDatabase, alias);
+  }
+}
+
+class MovementDataData extends DataClass
+    implements Insertable<MovementDataData> {
+  final int id;
+  final DateTime timestamp;
+  final String state;
+  final double averageMagnitude;
+  final int sampleCount;
+  final double stillPercentage;
+  final double walkingPercentage;
+  final double runningPercentage;
+  final double drivingPercentage;
+  final DateTime createdAt;
+  const MovementDataData({
+    required this.id,
+    required this.timestamp,
+    required this.state,
+    required this.averageMagnitude,
+    required this.sampleCount,
+    required this.stillPercentage,
+    required this.walkingPercentage,
+    required this.runningPercentage,
+    required this.drivingPercentage,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['timestamp'] = Variable<DateTime>(timestamp);
+    map['state'] = Variable<String>(state);
+    map['average_magnitude'] = Variable<double>(averageMagnitude);
+    map['sample_count'] = Variable<int>(sampleCount);
+    map['still_percentage'] = Variable<double>(stillPercentage);
+    map['walking_percentage'] = Variable<double>(walkingPercentage);
+    map['running_percentage'] = Variable<double>(runningPercentage);
+    map['driving_percentage'] = Variable<double>(drivingPercentage);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  MovementDataCompanion toCompanion(bool nullToAbsent) {
+    return MovementDataCompanion(
+      id: Value(id),
+      timestamp: Value(timestamp),
+      state: Value(state),
+      averageMagnitude: Value(averageMagnitude),
+      sampleCount: Value(sampleCount),
+      stillPercentage: Value(stillPercentage),
+      walkingPercentage: Value(walkingPercentage),
+      runningPercentage: Value(runningPercentage),
+      drivingPercentage: Value(drivingPercentage),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory MovementDataData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MovementDataData(
+      id: serializer.fromJson<int>(json['id']),
+      timestamp: serializer.fromJson<DateTime>(json['timestamp']),
+      state: serializer.fromJson<String>(json['state']),
+      averageMagnitude: serializer.fromJson<double>(json['averageMagnitude']),
+      sampleCount: serializer.fromJson<int>(json['sampleCount']),
+      stillPercentage: serializer.fromJson<double>(json['stillPercentage']),
+      walkingPercentage: serializer.fromJson<double>(json['walkingPercentage']),
+      runningPercentage: serializer.fromJson<double>(json['runningPercentage']),
+      drivingPercentage: serializer.fromJson<double>(json['drivingPercentage']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'timestamp': serializer.toJson<DateTime>(timestamp),
+      'state': serializer.toJson<String>(state),
+      'averageMagnitude': serializer.toJson<double>(averageMagnitude),
+      'sampleCount': serializer.toJson<int>(sampleCount),
+      'stillPercentage': serializer.toJson<double>(stillPercentage),
+      'walkingPercentage': serializer.toJson<double>(walkingPercentage),
+      'runningPercentage': serializer.toJson<double>(runningPercentage),
+      'drivingPercentage': serializer.toJson<double>(drivingPercentage),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  MovementDataData copyWith({
+    int? id,
+    DateTime? timestamp,
+    String? state,
+    double? averageMagnitude,
+    int? sampleCount,
+    double? stillPercentage,
+    double? walkingPercentage,
+    double? runningPercentage,
+    double? drivingPercentage,
+    DateTime? createdAt,
+  }) => MovementDataData(
+    id: id ?? this.id,
+    timestamp: timestamp ?? this.timestamp,
+    state: state ?? this.state,
+    averageMagnitude: averageMagnitude ?? this.averageMagnitude,
+    sampleCount: sampleCount ?? this.sampleCount,
+    stillPercentage: stillPercentage ?? this.stillPercentage,
+    walkingPercentage: walkingPercentage ?? this.walkingPercentage,
+    runningPercentage: runningPercentage ?? this.runningPercentage,
+    drivingPercentage: drivingPercentage ?? this.drivingPercentage,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  MovementDataData copyWithCompanion(MovementDataCompanion data) {
+    return MovementDataData(
+      id: data.id.present ? data.id.value : this.id,
+      timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
+      state: data.state.present ? data.state.value : this.state,
+      averageMagnitude: data.averageMagnitude.present
+          ? data.averageMagnitude.value
+          : this.averageMagnitude,
+      sampleCount: data.sampleCount.present
+          ? data.sampleCount.value
+          : this.sampleCount,
+      stillPercentage: data.stillPercentage.present
+          ? data.stillPercentage.value
+          : this.stillPercentage,
+      walkingPercentage: data.walkingPercentage.present
+          ? data.walkingPercentage.value
+          : this.walkingPercentage,
+      runningPercentage: data.runningPercentage.present
+          ? data.runningPercentage.value
+          : this.runningPercentage,
+      drivingPercentage: data.drivingPercentage.present
+          ? data.drivingPercentage.value
+          : this.drivingPercentage,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MovementDataData(')
+          ..write('id: $id, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('state: $state, ')
+          ..write('averageMagnitude: $averageMagnitude, ')
+          ..write('sampleCount: $sampleCount, ')
+          ..write('stillPercentage: $stillPercentage, ')
+          ..write('walkingPercentage: $walkingPercentage, ')
+          ..write('runningPercentage: $runningPercentage, ')
+          ..write('drivingPercentage: $drivingPercentage, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    timestamp,
+    state,
+    averageMagnitude,
+    sampleCount,
+    stillPercentage,
+    walkingPercentage,
+    runningPercentage,
+    drivingPercentage,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MovementDataData &&
+          other.id == this.id &&
+          other.timestamp == this.timestamp &&
+          other.state == this.state &&
+          other.averageMagnitude == this.averageMagnitude &&
+          other.sampleCount == this.sampleCount &&
+          other.stillPercentage == this.stillPercentage &&
+          other.walkingPercentage == this.walkingPercentage &&
+          other.runningPercentage == this.runningPercentage &&
+          other.drivingPercentage == this.drivingPercentage &&
+          other.createdAt == this.createdAt);
+}
+
+class MovementDataCompanion extends UpdateCompanion<MovementDataData> {
+  final Value<int> id;
+  final Value<DateTime> timestamp;
+  final Value<String> state;
+  final Value<double> averageMagnitude;
+  final Value<int> sampleCount;
+  final Value<double> stillPercentage;
+  final Value<double> walkingPercentage;
+  final Value<double> runningPercentage;
+  final Value<double> drivingPercentage;
+  final Value<DateTime> createdAt;
+  const MovementDataCompanion({
+    this.id = const Value.absent(),
+    this.timestamp = const Value.absent(),
+    this.state = const Value.absent(),
+    this.averageMagnitude = const Value.absent(),
+    this.sampleCount = const Value.absent(),
+    this.stillPercentage = const Value.absent(),
+    this.walkingPercentage = const Value.absent(),
+    this.runningPercentage = const Value.absent(),
+    this.drivingPercentage = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  MovementDataCompanion.insert({
+    this.id = const Value.absent(),
+    required DateTime timestamp,
+    required String state,
+    required double averageMagnitude,
+    required int sampleCount,
+    required double stillPercentage,
+    required double walkingPercentage,
+    required double runningPercentage,
+    required double drivingPercentage,
+    this.createdAt = const Value.absent(),
+  }) : timestamp = Value(timestamp),
+       state = Value(state),
+       averageMagnitude = Value(averageMagnitude),
+       sampleCount = Value(sampleCount),
+       stillPercentage = Value(stillPercentage),
+       walkingPercentage = Value(walkingPercentage),
+       runningPercentage = Value(runningPercentage),
+       drivingPercentage = Value(drivingPercentage);
+  static Insertable<MovementDataData> custom({
+    Expression<int>? id,
+    Expression<DateTime>? timestamp,
+    Expression<String>? state,
+    Expression<double>? averageMagnitude,
+    Expression<int>? sampleCount,
+    Expression<double>? stillPercentage,
+    Expression<double>? walkingPercentage,
+    Expression<double>? runningPercentage,
+    Expression<double>? drivingPercentage,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (timestamp != null) 'timestamp': timestamp,
+      if (state != null) 'state': state,
+      if (averageMagnitude != null) 'average_magnitude': averageMagnitude,
+      if (sampleCount != null) 'sample_count': sampleCount,
+      if (stillPercentage != null) 'still_percentage': stillPercentage,
+      if (walkingPercentage != null) 'walking_percentage': walkingPercentage,
+      if (runningPercentage != null) 'running_percentage': runningPercentage,
+      if (drivingPercentage != null) 'driving_percentage': drivingPercentage,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  MovementDataCompanion copyWith({
+    Value<int>? id,
+    Value<DateTime>? timestamp,
+    Value<String>? state,
+    Value<double>? averageMagnitude,
+    Value<int>? sampleCount,
+    Value<double>? stillPercentage,
+    Value<double>? walkingPercentage,
+    Value<double>? runningPercentage,
+    Value<double>? drivingPercentage,
+    Value<DateTime>? createdAt,
+  }) {
+    return MovementDataCompanion(
+      id: id ?? this.id,
+      timestamp: timestamp ?? this.timestamp,
+      state: state ?? this.state,
+      averageMagnitude: averageMagnitude ?? this.averageMagnitude,
+      sampleCount: sampleCount ?? this.sampleCount,
+      stillPercentage: stillPercentage ?? this.stillPercentage,
+      walkingPercentage: walkingPercentage ?? this.walkingPercentage,
+      runningPercentage: runningPercentage ?? this.runningPercentage,
+      drivingPercentage: drivingPercentage ?? this.drivingPercentage,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (timestamp.present) {
+      map['timestamp'] = Variable<DateTime>(timestamp.value);
+    }
+    if (state.present) {
+      map['state'] = Variable<String>(state.value);
+    }
+    if (averageMagnitude.present) {
+      map['average_magnitude'] = Variable<double>(averageMagnitude.value);
+    }
+    if (sampleCount.present) {
+      map['sample_count'] = Variable<int>(sampleCount.value);
+    }
+    if (stillPercentage.present) {
+      map['still_percentage'] = Variable<double>(stillPercentage.value);
+    }
+    if (walkingPercentage.present) {
+      map['walking_percentage'] = Variable<double>(walkingPercentage.value);
+    }
+    if (runningPercentage.present) {
+      map['running_percentage'] = Variable<double>(runningPercentage.value);
+    }
+    if (drivingPercentage.present) {
+      map['driving_percentage'] = Variable<double>(drivingPercentage.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MovementDataCompanion(')
+          ..write('id: $id, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('state: $state, ')
+          ..write('averageMagnitude: $averageMagnitude, ')
+          ..write('sampleCount: $sampleCount, ')
+          ..write('stillPercentage: $stillPercentage, ')
+          ..write('walkingPercentage: $walkingPercentage, ')
+          ..write('runningPercentage: $runningPercentage, ')
+          ..write('drivingPercentage: $drivingPercentage, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$LocationDatabase extends GeneratedDatabase {
   _$LocationDatabase(QueryExecutor e) : super(e);
   $LocationDatabaseManager get managers => $LocationDatabaseManager(this);
@@ -2916,6 +3544,7 @@ abstract class _$LocationDatabase extends GeneratedDatabase {
   late final $LocationNotesTable locationNotes = $LocationNotesTable(this);
   late final $LocationSummariesTable locationSummaries =
       $LocationSummariesTable(this);
+  late final $MovementDataTable movementData = $MovementDataTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2926,6 +3555,7 @@ abstract class _$LocationDatabase extends GeneratedDatabase {
     geofenceEvents,
     locationNotes,
     locationSummaries,
+    movementData,
   ];
 }
 
@@ -4829,6 +5459,317 @@ typedef $$LocationSummariesTableProcessedTableManager =
       LocationSummary,
       PrefetchHooks Function()
     >;
+typedef $$MovementDataTableCreateCompanionBuilder =
+    MovementDataCompanion Function({
+      Value<int> id,
+      required DateTime timestamp,
+      required String state,
+      required double averageMagnitude,
+      required int sampleCount,
+      required double stillPercentage,
+      required double walkingPercentage,
+      required double runningPercentage,
+      required double drivingPercentage,
+      Value<DateTime> createdAt,
+    });
+typedef $$MovementDataTableUpdateCompanionBuilder =
+    MovementDataCompanion Function({
+      Value<int> id,
+      Value<DateTime> timestamp,
+      Value<String> state,
+      Value<double> averageMagnitude,
+      Value<int> sampleCount,
+      Value<double> stillPercentage,
+      Value<double> walkingPercentage,
+      Value<double> runningPercentage,
+      Value<double> drivingPercentage,
+      Value<DateTime> createdAt,
+    });
+
+class $$MovementDataTableFilterComposer
+    extends Composer<_$LocationDatabase, $MovementDataTable> {
+  $$MovementDataTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get averageMagnitude => $composableBuilder(
+    column: $table.averageMagnitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sampleCount => $composableBuilder(
+    column: $table.sampleCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get stillPercentage => $composableBuilder(
+    column: $table.stillPercentage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get walkingPercentage => $composableBuilder(
+    column: $table.walkingPercentage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get runningPercentage => $composableBuilder(
+    column: $table.runningPercentage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get drivingPercentage => $composableBuilder(
+    column: $table.drivingPercentage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MovementDataTableOrderingComposer
+    extends Composer<_$LocationDatabase, $MovementDataTable> {
+  $$MovementDataTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get averageMagnitude => $composableBuilder(
+    column: $table.averageMagnitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sampleCount => $composableBuilder(
+    column: $table.sampleCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get stillPercentage => $composableBuilder(
+    column: $table.stillPercentage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get walkingPercentage => $composableBuilder(
+    column: $table.walkingPercentage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get runningPercentage => $composableBuilder(
+    column: $table.runningPercentage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get drivingPercentage => $composableBuilder(
+    column: $table.drivingPercentage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MovementDataTableAnnotationComposer
+    extends Composer<_$LocationDatabase, $MovementDataTable> {
+  $$MovementDataTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get timestamp =>
+      $composableBuilder(column: $table.timestamp, builder: (column) => column);
+
+  GeneratedColumn<String> get state =>
+      $composableBuilder(column: $table.state, builder: (column) => column);
+
+  GeneratedColumn<double> get averageMagnitude => $composableBuilder(
+    column: $table.averageMagnitude,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sampleCount => $composableBuilder(
+    column: $table.sampleCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get stillPercentage => $composableBuilder(
+    column: $table.stillPercentage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get walkingPercentage => $composableBuilder(
+    column: $table.walkingPercentage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get runningPercentage => $composableBuilder(
+    column: $table.runningPercentage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get drivingPercentage => $composableBuilder(
+    column: $table.drivingPercentage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$MovementDataTableTableManager
+    extends
+        RootTableManager<
+          _$LocationDatabase,
+          $MovementDataTable,
+          MovementDataData,
+          $$MovementDataTableFilterComposer,
+          $$MovementDataTableOrderingComposer,
+          $$MovementDataTableAnnotationComposer,
+          $$MovementDataTableCreateCompanionBuilder,
+          $$MovementDataTableUpdateCompanionBuilder,
+          (
+            MovementDataData,
+            BaseReferences<
+              _$LocationDatabase,
+              $MovementDataTable,
+              MovementDataData
+            >,
+          ),
+          MovementDataData,
+          PrefetchHooks Function()
+        > {
+  $$MovementDataTableTableManager(
+    _$LocationDatabase db,
+    $MovementDataTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MovementDataTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MovementDataTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MovementDataTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<DateTime> timestamp = const Value.absent(),
+                Value<String> state = const Value.absent(),
+                Value<double> averageMagnitude = const Value.absent(),
+                Value<int> sampleCount = const Value.absent(),
+                Value<double> stillPercentage = const Value.absent(),
+                Value<double> walkingPercentage = const Value.absent(),
+                Value<double> runningPercentage = const Value.absent(),
+                Value<double> drivingPercentage = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => MovementDataCompanion(
+                id: id,
+                timestamp: timestamp,
+                state: state,
+                averageMagnitude: averageMagnitude,
+                sampleCount: sampleCount,
+                stillPercentage: stillPercentage,
+                walkingPercentage: walkingPercentage,
+                runningPercentage: runningPercentage,
+                drivingPercentage: drivingPercentage,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required DateTime timestamp,
+                required String state,
+                required double averageMagnitude,
+                required int sampleCount,
+                required double stillPercentage,
+                required double walkingPercentage,
+                required double runningPercentage,
+                required double drivingPercentage,
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => MovementDataCompanion.insert(
+                id: id,
+                timestamp: timestamp,
+                state: state,
+                averageMagnitude: averageMagnitude,
+                sampleCount: sampleCount,
+                stillPercentage: stillPercentage,
+                walkingPercentage: walkingPercentage,
+                runningPercentage: runningPercentage,
+                drivingPercentage: drivingPercentage,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MovementDataTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LocationDatabase,
+      $MovementDataTable,
+      MovementDataData,
+      $$MovementDataTableFilterComposer,
+      $$MovementDataTableOrderingComposer,
+      $$MovementDataTableAnnotationComposer,
+      $$MovementDataTableCreateCompanionBuilder,
+      $$MovementDataTableUpdateCompanionBuilder,
+      (
+        MovementDataData,
+        BaseReferences<
+          _$LocationDatabase,
+          $MovementDataTable,
+          MovementDataData
+        >,
+      ),
+      MovementDataData,
+      PrefetchHooks Function()
+    >;
 
 class $LocationDatabaseManager {
   final _$LocationDatabase _db;
@@ -4843,4 +5784,6 @@ class $LocationDatabaseManager {
       $$LocationNotesTableTableManager(_db, _db.locationNotes);
   $$LocationSummariesTableTableManager get locationSummaries =>
       $$LocationSummariesTableTableManager(_db, _db.locationSummaries);
+  $$MovementDataTableTableManager get movementData =>
+      $$MovementDataTableTableManager(_db, _db.movementData);
 }

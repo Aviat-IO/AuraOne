@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../widgets/simple_theme_switcher.dart';
 import '../theme.dart';
 import '../theme/colors.dart';
@@ -312,6 +313,58 @@ class SettingsScreen extends ConsumerWidget {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text('About page coming soon')),
                                   );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Debug section
+                        Text(
+                          'Debug',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        _buildSettingsCard(
+                          context: context,
+                          theme: theme,
+                          isLight: isLight,
+                          child: Column(
+                            children: [
+                              _buildSettingsTile(
+                                icon: Icons.speed,
+                                title: 'Data Viewer',
+                                subtitle: 'View real-time sensor data',
+                                trailing: Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                ),
+                                theme: theme,
+                                onTap: () {
+                                  context.push('/debug/data-viewer');
+                                },
+                              ),
+                              Divider(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                                height: 1,
+                              ),
+                              _buildSettingsTile(
+                                icon: Icons.storage,
+                                title: 'Database',
+                                subtitle: 'Browse historical collected data',
+                                trailing: Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                ),
+                                theme: theme,
+                                onTap: () {
+                                  context.push('/debug/database-viewer');
                                 },
                               ),
                             ],

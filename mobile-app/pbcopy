@@ -1,0 +1,158 @@
+🚀 Starting development server...
+→ Checking for running emulators...
+Unhandled exception:
+FileSystemException: writeFrom failed, path = '' (OS Error: Broken pipe, errno = 32)
+#0      _RandomAccessFile.writeFromSync (dart:io/file_impl.dart:1026:7)
+#1      _StdConsumer.addStream.<anonymous closure> (dart:io/stdio.dart:328:17)
+#2      _rootRunUnary (dart:async/zone.dart:1546:13)
+#3      _CustomZone.runUnary (dart:async/zone.dart:1429:19)
+#4      _CustomZone.runUnaryGuarded (dart:async/zone.dart:1329:7)
+#5      _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+#6      _BufferingStreamSubscription._add (dart:async/stream_impl.dart:312:7)
+#7      _SyncStreamControllerDispatch._sendData (dart:async/stream_controller.dart:798:19)
+#8      _StreamController._add (dart:async/stream_controller.dart:663:7)
+#9      _StreamController.add (dart:async/stream_controller.dart:618:5)
+#10     _StreamSinkImpl.add (dart:io/io_sink.dart:155:17)
+#11     _IOSinkImpl.write (dart:io/io_sink.dart:296:5)
+#12     _StdSink._write (dart:io/stdio.dart:429:13)
+#13     _StdSink.write (dart:io/stdio.dart:438:33)
+#14     Stdio._stdioWrite.<anonymous closure> (package:flutter_tools/src/base/io.dart:378:14)
+#15     asyncGuard.<anonymous closure> (package:flutter_tools/src/base/async_guard.dart:109:34)
+#16     _rootRun (dart:async/zone.dart:1525:13)
+#17     _CustomZone.run (dart:async/zone.dart:1422:19)
+#18     _runZoned (dart:async/zone.dart:2033:6)
+#19     runZonedGuarded (dart:async/zone.dart:2019:12)
+#20     runZoned (dart:async/zone.dart:1952:12)
+#21     asyncGuard (package:flutter_tools/src/base/async_guard.dart:106:3)
+#22     Stdio._stdioWrite (package:flutter_tools/src/base/io.dart:376:5)
+#23     Stdio.stdoutWrite (package:flutter_tools/src/base/io.dart:362:7)
+#24     StdoutLogger.writeToStdOut (package:flutter_tools/src/base/logger.dart:555:48)
+#25     StdoutLogger.printStatus (package:flutter_tools/src/base/logger.dart:537:5)
+#26     Device.printDevices (package:flutter_tools/src/device.dart:853:14)
+<asynchronous suspension>
+#27     DevicesCommandOutputWithExtendedWirelessDeviceDiscovery.findAndOutputAllTargetDevices (package:flutter_tools/src/commands/devices.dart:275:7)
+<asynchronous suspension>
+#28     DevicesCommand.runCommand (package:flutter_tools/src/commands/devices.dart:81:5)
+<asynchronous suspension>
+#29     FlutterCommand.run.<anonymous closure> (package:flutter_tools/src/runner/flutter_command.dart:1563:27)
+<asynchronous suspension>
+#30     AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+<asynchronous suspension>
+#31     CommandRunner.runCommand (package:args/command_runner.dart:212:13)
+<asynchronous suspension>
+#32     FlutterCommandRunner.runCommand.<anonymous closure> (package:flutter_tools/src/runner/flutter_command_runner.dart:494:9)
+<asynchronous suspension>
+#33     AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+<asynchronous suspension>
+#34     FlutterCommandRunner.runCommand (package:flutter_tools/src/runner/flutter_command_runner.dart:431:5)
+<asynchronous suspension>
+#35     run.<anonymous closure>.<anonymous closure> (package:flutter_tools/runner.dart:98:11)
+<asynchronous suspension>
+#36     AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+<asynchronous suspension>
+#37     main (package:flutter_tools/executable.dart:102:3)
+<asynchronous suspension>
+→ Running app with hot reload...
+fvm flutter run
+Launching lib/main.dart on sdk gphone64 arm64 in debug mode...
+Running Gradle task 'assembleDebug'...                          
+lib/services/movement_tracking_service.dart:356:38: Error: The getter 'movementData' isn't defined for the class 'LocationDatabase'.
+ - 'LocationDatabase' is from 'package:aura_one/database/location_database.dart' ('lib/database/location_database.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'movementData'.
+      await _database.into(_database.movementData).insert(
+                                     ^^^^^^^^^^^^
+lib/services/movement_tracking_service.dart:357:9: Error: The getter 'MovementDataCompanion' isn't defined for the class 'MovementTrackingService'.
+ - 'MovementTrackingService' is from 'package:aura_one/services/movement_tracking_service.dart' ('lib/services/movement_tracking_service.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'MovementDataCompanion'.
+        MovementDataCompanion.insert(
+        ^^^^^^^^^^^^^^^^^^^^^
+lib/services/movement_tracking_service.dart:383:46: Error: The getter 'movementData' isn't defined for the class 'LocationDatabase'.
+ - 'LocationDatabase' is from 'package:aura_one/database/location_database.dart' ('lib/database/location_database.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'movementData'.
+    final query = _database.select(_database.movementData)
+                                             ^^^^^^^^^^^^
+lib/services/movement_tracking_service.dart:384:28: Error: The getter 'timestamp' isn't defined for the class 'HasResultSet'.
+ - 'HasResultSet' is from 'package:drift/src/dsl/dsl.dart' ('../../../../.pub-cache/hosted/pub.dev/drift-2.28.1/lib/src/dsl/dsl.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'timestamp'.
+      ..where((tbl) => tbl.timestamp.isBetweenValues(start, end));
+                           ^^^^^^^^^
+lib/services/movement_tracking_service.dart:416:52: Error: A value of type 'num' can't be returned from a function with return type 'int'.
+      'totalSamples': data.fold(0, (sum, e) => sum + e.sampleCount),
+                                                   ^
+lib/services/movement_tracking_service.dart:438:38: Error: The getter 'movementData' isn't defined for the class 'LocationDatabase'.
+ - 'LocationDatabase' is from 'package:aura_one/database/location_database.dart' ('lib/database/location_database.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'movementData'.
+    await _database.delete(_database.movementData).go();
+                                     ^^^^^^^^^^^^
+lib/services/movement_tracking_service.dart:451:46: Error: The getter 'movementData' isn't defined for the class 'LocationDatabase'.
+ - 'LocationDatabase' is from 'package:aura_one/database/location_database.dart' ('lib/database/location_database.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'movementData'.
+    final query = _database.select(_database.movementData)
+                                             ^^^^^^^^^^^^
+lib/services/movement_tracking_service.dart:452:28: Error: The getter 'timestamp' isn't defined for the class 'HasResultSet'.
+ - 'HasResultSet' is from 'package:drift/src/dsl/dsl.dart' ('../../../../.pub-cache/hosted/pub.dev/drift-2.28.1/lib/src/dsl/dsl.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'timestamp'.
+      ..where((tbl) => tbl.timestamp.isBetweenValues(start, end))
+                           ^^^^^^^^^
+lib/services/movement_tracking_service.dart:453:54: Error: The getter 'timestamp' isn't defined for the class 'HasResultSet'.
+ - 'HasResultSet' is from 'package:drift/src/dsl/dsl.dart' ('../../../../.pub-cache/hosted/pub.dev/drift-2.28.1/lib/src/dsl/dsl.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'timestamp'.
+      ..orderBy([(tbl) => drift.OrderingTerm.asc(tbl.timestamp)]);
+                                                     ^^^^^^^^^
+lib/screens/debug/database_viewer_screen.dart:49:40: Error: 'MovementDataData' isn't a type.
+    final movementData = useState<List<MovementDataData>>([]);
+                                       ^^^^^^^^^^^^^^^^
+lib/screens/debug/database_viewer_screen.dart:58:50: Error: The getter 'movementData' isn't defined for the class 'LocationDatabase'.
+ - 'LocationDatabase' is from 'package:aura_one/database/location_database.dart' ('lib/database/location_database.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'movementData'.
+          final query = database.select(database.movementData);
+                                                 ^^^^^^^^^^^^
+lib/screens/debug/database_viewer_screen.dart:61:38: Error: The getter 'timestamp' isn't defined for the class 'HasResultSet'.
+ - 'HasResultSet' is from 'package:drift/src/dsl/dsl.dart' ('../../../../.pub-cache/hosted/pub.dev/drift-2.28.1/lib/src/dsl/dsl.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'timestamp'.
+            query.where((tbl) => tbl.timestamp.isBetweenValues(
+                                     ^^^^^^^^^
+lib/screens/debug/database_viewer_screen.dart:67:35: Error: The getter 'OrderingTerm' isn't defined for the class '_MovementDataTab'.
+ - '_MovementDataTab' is from 'package:aura_one/screens/debug/database_viewer_screen.dart' ('lib/screens/debug/database_viewer_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'OrderingTerm'.
+          query.orderBy([(tbl) => OrderingTerm.desc(tbl.timestamp)]);
+                                  ^^^^^^^^^^^^
+lib/screens/debug/database_viewer_screen.dart:67:57: Error: The getter 'timestamp' isn't defined for the class 'HasResultSet'.
+ - 'HasResultSet' is from 'package:drift/src/dsl/dsl.dart' ('../../../../.pub-cache/hosted/pub.dev/drift-2.28.1/lib/src/dsl/dsl.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'timestamp'.
+          query.orderBy([(tbl) => OrderingTerm.desc(tbl.timestamp)]);
+                                                        ^^^^^^^^^
+lib/screens/debug/database_viewer_screen.dart:327:33: Error: The getter 'OrderingTerm' isn't defined for the class '_LocationDataTab'.
+ - '_LocationDataTab' is from 'package:aura_one/screens/debug/database_viewer_screen.dart' ('lib/screens/debug/database_viewer_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'OrderingTerm'.
+            ..orderBy([(tbl) => OrderingTerm.desc(tbl.timestamp)])
+                                ^^^^^^^^^^^^
+lib/screens/debug/database_viewer_screen.dart:530:33: Error: The getter 'OrderingTerm' isn't defined for the class '_SummaryDataTab'.
+ - '_SummaryDataTab' is from 'package:aura_one/screens/debug/database_viewer_screen.dart' ('lib/screens/debug/database_viewer_screen.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'OrderingTerm'.
+            ..orderBy([(tbl) => OrderingTerm.desc(tbl.date)])
+                                ^^^^^^^^^^^^
+lib/screens/debug/database_viewer_screen.dart:684:54: Error: The getter 'movementData' isn't defined for the class 'LocationDatabase'.
+ - 'LocationDatabase' is from 'package:aura_one/database/location_database.dart' ('lib/database/location_database.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'movementData'.
+                    future: database.select(database.movementData).get().then((data) => data.length),
+                                                     ^^^^^^^^^^^^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command '/Users/alancolver/fvm/versions/3.32.7/bin/flutter'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 2s
+Running Gradle task 'assembleDebug'...                           2,956ms
+Error: Gradle task assembleDebug failed with exit code 1
+make: *** [dev] Error 1
