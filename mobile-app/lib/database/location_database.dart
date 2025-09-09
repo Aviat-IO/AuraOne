@@ -1,10 +1,7 @@
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 
 part 'location_database.g.dart';
 

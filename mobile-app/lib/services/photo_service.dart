@@ -1,15 +1,30 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 import '../utils/logger.dart';
+import '../database/media_database.dart';
+import '../providers/media_database_provider.dart';
 import 'exif_extractor.dart';
+import 'media_format_handler.dart';
+import 'face_detector.dart';
+import 'face_clustering.dart';
+import 'person_service.dart';
 
 /// Service for managing photo library access and automated scanning
 class PhotoService {
   static final _logger = AppLogger('PhotoService');
+  
+  /// Reference to Riverpod container for database access
+  final Ref? _ref;
+  
+  /// Media database for storing photo metadata
+  MediaDatabase? _mediaDatabase;
+  
+  /// Media management service
+  MediaManagementService? _mediaManagement;
   
   /// Current permission state
   PermissionState? _permissionState;
@@ -44,6 +59,33 @@ class PhotoService {
   
   /// Check if we have full photo library access
   bool get hasFullAccess => _permissionState?.isAuth ?? false;
+  
+  /// Constructor that optionally accepts a Riverpod ref for database access
+  PhotoService([this._ref]);
+  
+  /// Get media database instance
+  MediaDatabase get mediaDatabase {
+    if (_mediaDatabase == null) {
+      if (_ref != null) {
+        _mediaDatabase = _ref!.read(mediaDatabaseProvider);
+      } else {
+        _mediaDatabase = MediaDatabase();
+      }
+    }
+    return _mediaDatabase!;
+  }
+  
+  /// Get media management service
+  MediaManagementService get mediaManagement {
+    if (_mediaManagement == null) {
+      if (_ref != null) {
+        _mediaManagement = _ref!.read(mediaManagementProvider);
+      } else {
+        _mediaManagement = MediaManagementService(_ref!);
+      }
+    }
+    return _mediaManagement!;
+  }
   
   /// Initialize the photo service
   Future<void> initialize() async {
@@ -207,6 +249,11 @@ class PhotoService {
         timestamp: DateTime.now(),
       ));
       
+      // Store new media items in database if we have database access
+      if (_ref != null) {
+        await _storeMediaItemsInDatabase(assets);
+      }
+      
       return assets;
     } catch (e, stack) {
       _logger.error('Failed to scan for new photos', error: e, stackTrace: stack);
@@ -246,6 +293,38 @@ class PhotoService {
     }
   }
   
+  /// Generate enhanced thumbnail using MediaFormatHandler
+  Future<ThumbnailResult?> generateThumbnail(
+    AssetEntity asset, {
+    int size = 200,
+    int quality = 85,
+  }) async {
+    try {
+      // Check if format is supported for processing
+      if (!MediaFormatHandler.isProcessableAsset(asset)) {
+        _logger.warning('Asset format ${asset.mimeType} is not supported for processing: ${asset.id}');
+        return null;
+      }
+      
+      // Use enhanced format handler for thumbnail generation
+      final thumbnailResult = await MediaFormatHandler.generateThumbnail(
+        asset,
+        size: size,
+        quality: quality,
+      );
+      
+      if (thumbnailResult != null) {
+        final formatInfo = MediaFormatHandler.getFormatInfo(asset.mimeType);
+        _logger.debug('Generated ${thumbnailResult.format} thumbnail for ${formatInfo.format.name} asset: ${asset.id}');
+      }
+      
+      return thumbnailResult;
+    } catch (e, stack) {
+      _logger.error('Failed to generate enhanced thumbnail for asset: ${asset.id}', error: e, stackTrace: stack);
+      return null;
+    }
+  }
+  
   /// Get the full file for an asset
   Future<File?> getFile(AssetEntity asset, {bool isOrigin = false}) async {
     try {
@@ -260,7 +339,7 @@ class PhotoService {
     }
   }
   
-  /// Extract EXIF metadata from a photo asset
+  /// Extract EXIF metadata from a photo asset using enhanced format handler
   Future<ExifData?> extractExifData(AssetEntity asset) async {
     if (asset.type != AssetType.image) {
       _logger.warning('Cannot extract EXIF from non-image asset: ${asset.id}');
@@ -268,18 +347,18 @@ class PhotoService {
     }
     
     try {
-      // Get the original file to preserve EXIF data
-      final file = await getFile(asset, isOrigin: true);
-      if (file == null) {
-        _logger.warning('Could not get file for EXIF extraction: ${asset.id}');
+      // Check if the format supports metadata extraction
+      if (!MediaFormatHandler.supportsMetadata(asset.mimeType)) {
+        _logger.debug('Format ${asset.mimeType} does not support metadata extraction');
         return null;
       }
       
-      // Extract EXIF data
-      final exifData = await ExifExtractor.extractFromFile(file.path);
+      // Use enhanced format handler for metadata extraction
+      final exifData = await MediaFormatHandler.extractImageMetadata(asset);
       
       if (exifData != null) {
-        _logger.info('Successfully extracted EXIF data from asset: ${asset.id}');
+        final formatInfo = MediaFormatHandler.getFormatInfo(asset.mimeType);
+        _logger.info('Successfully extracted EXIF data from ${formatInfo.format.name} asset: ${asset.id}');
         _logger.debug('GPS: ${exifData.gpsCoordinates}, Camera: ${exifData.make} ${exifData.model}');
       } else {
         _logger.info('No EXIF data found in asset: ${asset.id}');
@@ -308,6 +387,33 @@ class PhotoService {
     
     _logger.info('Extracted EXIF data from ${results.length}/${assets.length} assets');
     return results;
+  }
+  
+  /// Extract video metadata from a video asset
+  Future<VideoMetadata?> extractVideoMetadata(AssetEntity asset) async {
+    if (asset.type != AssetType.video) {
+      _logger.warning('Cannot extract video metadata from non-video asset: ${asset.id}');
+      return null;
+    }
+    
+    try {
+      // Use enhanced format handler for video metadata extraction
+      final videoMetadata = await MediaFormatHandler.extractVideoMetadata(asset);
+      
+      if (videoMetadata != null) {
+        final formatInfo = MediaFormatHandler.getFormatInfo(asset.mimeType);
+        _logger.info('Successfully extracted video metadata from ${formatInfo.format.name} asset: ${asset.id}');
+        _logger.debug('Duration: ${videoMetadata.duration}, Resolution: ${videoMetadata.width}x${videoMetadata.height}');
+      } else {
+        _logger.info('No video metadata found in asset: ${asset.id}');
+      }
+      
+      return videoMetadata;
+    } catch (e, stack) {
+      _logger.error('Failed to extract video metadata from asset: ${asset.id}',
+                   error: e, stackTrace: stack);
+      return null;
+    }
   }
   
   /// Get photos with GPS coordinates from a list of assets
@@ -453,6 +559,663 @@ class PhotoService {
     };
   }
   
+  /// Detect faces in a single photo asset
+  Future<FaceDetectionResult?> detectFacesInPhoto(
+    AssetEntity asset, {
+    FaceDetectionConfig? config,
+  }) async {
+    if (asset.type != AssetType.image) {
+      _logger.warning('Cannot detect faces in non-image asset: ${asset.id}');
+      return null;
+    }
+    
+    try {
+      final faceDetector = FaceDetectionService(config: config);
+      final result = await faceDetector.detectFacesInAsset(asset);
+      
+      await faceDetector.dispose();
+      
+      if (result.faces.isNotEmpty) {
+        _logger.info('Detected ${result.faces.length} faces in asset: ${asset.id}');
+        _logger.debug('High quality faces: ${result.highQualityFaces.length}');
+        
+        // Store face detection results in database
+        await storeFaceDetectionResults(asset.id, result);
+      } else {
+        _logger.info('No faces detected in asset: ${asset.id}');
+      }
+      
+      return result;
+    } catch (e, stack) {
+      _logger.error('Face detection failed for asset: ${asset.id}', 
+                   error: e, stackTrace: stack);
+      return null;
+    }
+  }
+  
+  /// Detect faces in multiple photo assets
+  Future<Map<String, FaceDetectionResult>> detectFacesBatch(
+    List<AssetEntity> assets, {
+    FaceDetectionConfig? config,
+    void Function(int completed, int total)? onProgress,
+  }) async {
+    final imageAssets = assets.where((asset) => asset.type == AssetType.image).toList();
+    
+    if (imageAssets.isEmpty) {
+      _logger.warning('No image assets provided for face detection');
+      return {};
+    }
+    
+    try {
+      final faceDetector = FaceDetectionService(config: config);
+      final results = await faceDetector.detectFacesBatch(
+        imageAssets, 
+        onProgress: onProgress,
+      );
+      
+      await faceDetector.dispose();
+      
+      final totalFaces = results.values.fold(0, (sum, result) => sum + result.faces.length);
+      _logger.info('Batch face detection complete: ${results.length} assets with faces, $totalFaces total faces');
+      
+      return results;
+    } catch (e, stack) {
+      _logger.error('Batch face detection failed', error: e, stackTrace: stack);
+      return {};
+    }
+  }
+  
+  /// Get photos that contain faces with high quality for recognition
+  Future<Map<String, FaceDetectionResult>> getPhotosWithFaces(
+    List<AssetEntity> assets, {
+    FaceDetectionConfig? config,
+    bool highQualityOnly = true,
+    void Function(int completed, int total)? onProgress,
+  }) async {
+    final allResults = await detectFacesBatch(
+      assets, 
+      config: config, 
+      onProgress: onProgress,
+    );
+    
+    if (highQualityOnly) {
+      return Map.fromEntries(
+        allResults.entries.where(
+          (entry) => entry.value.highQualityFaces.isNotEmpty,
+        ),
+      );
+    }
+    
+    return allResults;
+  }
+  
+  /// Stream face detection results for large batches
+  Stream<MapEntry<String, FaceDetectionResult>> detectFacesStream(
+    List<AssetEntity> assets, {
+    FaceDetectionConfig? config,
+  }) async* {
+    final imageAssets = assets.where((asset) => asset.type == AssetType.image).toList();
+    
+    if (imageAssets.isEmpty) {
+      _logger.warning('No image assets provided for face detection stream');
+      return;
+    }
+    
+    FaceDetectionService? faceDetector;
+    
+    try {
+      faceDetector = FaceDetectionService(config: config);
+      
+      await for (final entry in faceDetector.detectFacesStream(imageAssets)) {
+        yield entry;
+      }
+      
+      _logger.info('Face detection stream completed for ${imageAssets.length} assets');
+    } catch (e, stack) {
+      _logger.error('Face detection stream failed', error: e, stackTrace: stack);
+    } finally {
+      await faceDetector?.dispose();
+    }
+  }
+  
+  /// Get photos with faces detected today
+  Future<Map<String, FaceDetectionResult>> getTodayPhotosWithFaces({
+    FaceDetectionConfig? config,
+    bool highQualityOnly = true,
+  }) async {
+    try {
+      // Get today's photos
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day);
+      final todayPhotos = await scanNewPhotos(since: startOfDay);
+      
+      if (todayPhotos.isEmpty) {
+        _logger.info('No photos found from today for face detection');
+        return {};
+      }
+      
+      // Detect faces in today's photos
+      return await getPhotosWithFaces(
+        todayPhotos,
+        config: config,
+        highQualityOnly: highQualityOnly,
+      );
+    } catch (e, stack) {
+      _logger.error('Failed to get today\'s photos with faces', error: e, stackTrace: stack);
+      return {};
+    }
+  }
+  
+  // MARK: - Face Clustering and Person Identification
+  
+  /// Initialize face clustering and person identification services
+  FaceClusteringService? _clusteringService;
+  PersonService? _personService;
+  
+  /// Get or initialize clustering service
+  FaceClusteringService get clusteringService {
+    _clusteringService ??= FaceClusteringService();
+    return _clusteringService!;
+  }
+  
+  /// Get or initialize person service
+  PersonService get personService {
+    _personService ??= PersonService(clusteringService: clusteringService);
+    return _personService!;
+  }
+  
+  /// Initialize person identification service
+  Future<void> initializePersonService() async {
+    if (_personService == null) {
+      _personService = PersonService(clusteringService: clusteringService);
+      await _personService!.initialize();
+      _logger.info('Person service initialized');
+    }
+  }
+  
+  /// Process photos to identify persons through face clustering
+  Future<List<Person>> identifyPersonsInPhotos(List<AssetEntity> photos) async {
+    try {
+      await initializePersonService();
+      
+      _logger.info('Starting person identification for ${photos.length} photos');
+      
+      final persons = await personService.processPhotos(photos);
+      
+      _logger.info('Person identification complete: found ${persons.length} persons');
+      
+      // Store person identification results for each photo
+      for (final photo in photos) {
+        final personsInPhoto = persons.where((person) =>
+          person.cluster.photoIds.contains(photo.id)
+        ).toList();
+        
+        if (personsInPhoto.isNotEmpty) {
+          await storePersonTags(photo.id, personsInPhoto);
+        }
+      }
+      
+      return persons;
+    } catch (e, stack) {
+      _logger.error('Failed to identify persons in photos', error: e, stackTrace: stack);
+      return [];
+    }
+  }
+  
+  /// Get all identified persons
+  Future<List<Person>> getAllPersons() async {
+    try {
+      await initializePersonService();
+      return personService.persons;
+    } catch (e, stack) {
+      _logger.error('Failed to get all persons', error: e, stackTrace: stack);
+      return [];
+    }
+  }
+  
+  /// Find persons in a specific photo
+  Future<List<Person>> getPersonsInPhoto(String photoId) async {
+    try {
+      await initializePersonService();
+      return personService.getPersonsInPhoto(photoId);
+    } catch (e, stack) {
+      _logger.error('Failed to get persons in photo', error: e, stackTrace: stack);
+      return [];
+    }
+  }
+  
+  /// Name a person identified through face clustering
+  Future<Person?> namePerson(String personId, String name) async {
+    try {
+      await initializePersonService();
+      return await personService.namePerson(personId, name);
+    } catch (e, stack) {
+      _logger.error('Failed to name person', error: e, stackTrace: stack);
+      return null;
+    }
+  }
+  
+  /// Merge two persons into one
+  Future<Person?> mergePersons(String person1Id, String person2Id, {String? newName}) async {
+    try {
+      await initializePersonService();
+      return await personService.mergePersons(person1Id, person2Id, newName: newName);
+    } catch (e, stack) {
+      _logger.error('Failed to merge persons', error: e, stackTrace: stack);
+      return null;
+    }
+  }
+  
+  /// Get person identification statistics
+  Future<Map<String, dynamic>> getPersonStatistics() async {
+    try {
+      await initializePersonService();
+      return personService.getStatistics();
+    } catch (e, stack) {
+      _logger.error('Failed to get person statistics', error: e, stackTrace: stack);
+      return {};
+    }
+  }
+  
+  /// Search for persons by name
+  Future<List<Person>> searchPersonsByName(String query) async {
+    try {
+      await initializePersonService();
+      return personService.searchPersonsByName(query);
+    } catch (e, stack) {
+      _logger.error('Failed to search persons by name', error: e, stackTrace: stack);
+      return [];
+    }
+  }
+  
+  /// Process today's photos to identify new persons
+  Future<List<Person>> identifyPersonsInTodayPhotos() async {
+    try {
+      // Get today's photos
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day);
+      final todayPhotos = await scanNewPhotos(since: startOfDay);
+      
+      if (todayPhotos.isEmpty) {
+        _logger.info('No photos found from today for person identification');
+        return [];
+      }
+      
+      _logger.info('Processing ${todayPhotos.length} photos from today for person identification');
+      
+      return await identifyPersonsInPhotos(todayPhotos);
+    } catch (e, stack) {
+      _logger.error('Failed to identify persons in today\'s photos', error: e, stackTrace: stack);
+      return [];
+    }
+  }
+  
+  // MARK: - Database Integration Methods
+  
+  /// Store media items in the database
+  Future<void> _storeMediaItemsInDatabase(List<AssetEntity> assets) async {
+    if (_ref == null) return;
+    
+    try {
+      _logger.info('Storing ${assets.length} media items in database');
+      
+      for (final asset in assets) {
+        await _storeMediaItem(asset);
+      }
+      
+      _logger.info('Successfully stored ${assets.length} media items in database');
+    } catch (e, stack) {
+      _logger.error('Failed to store media items in database', error: e, stackTrace: stack);
+    }
+  }
+  
+  /// Store a single media item in the database
+  Future<void> _storeMediaItem(AssetEntity asset) async {
+    try {
+      // Check if media item already exists
+      final existingItem = await mediaDatabase.getMediaItem(asset.id);
+      if (existingItem != null) {
+        _logger.debug('Media item already exists in database: ${asset.id}');
+        return;
+      }
+      
+      // Get file info
+      final file = await asset.file;
+      final fileSize = file != null ? await file.length() : 0;
+      
+      // Store basic media item
+      await mediaManagement.addMediaItem(
+        id: asset.id,
+        fileName: asset.title ?? 'Unknown',
+        mimeType: asset.mimeType ?? 'unknown',
+        fileSize: fileSize,
+        createdDate: asset.createDateTime,
+        modifiedDate: asset.modifiedDateTime,
+        filePath: file?.path,
+        width: asset.width,
+        height: asset.height,
+        duration: asset.videoDuration?.inSeconds,
+      );
+      
+      _logger.debug('Stored media item: ${asset.id}');
+      
+      // Store metadata asynchronously
+      _storeMediaMetadata(asset);
+    } catch (e, stack) {
+      _logger.error('Failed to store media item ${asset.id}', error: e, stackTrace: stack);
+    }
+  }
+  
+  /// Store metadata for a media item (runs asynchronously)
+  Future<void> _storeMediaMetadata(AssetEntity asset) async {
+    try {
+      // Store basic metadata
+      await mediaManagement.addMetadata(
+        mediaId: asset.id,
+        metadataType: 'asset_info',
+        key: 'type',
+        value: asset.type.name,
+      );
+      
+      if (asset.orientation != null) {
+        await mediaManagement.addMetadata(
+          mediaId: asset.id,
+          metadataType: 'asset_info',
+          key: 'orientation',
+          value: asset.orientation.toString(),
+        );
+      }
+      
+      // Extract and store metadata based on media type
+      if (asset.type == AssetType.image) {
+        final exifData = await extractExifData(asset);
+        if (exifData != null) {
+          await _storeExifMetadata(asset.id, exifData);
+        }
+      } else if (asset.type == AssetType.video) {
+        final videoMetadata = await extractVideoMetadata(asset);
+        if (videoMetadata != null) {
+          await _storeVideoMetadata(asset.id, videoMetadata);
+        }
+      }
+      
+      // Mark as processed
+      await mediaManagement.markMediaProcessed(asset.id);
+    } catch (e, stack) {
+      _logger.error('Failed to store metadata for ${asset.id}', error: e, stackTrace: stack);
+    }
+  }
+  
+  /// Store EXIF metadata in database
+  Future<void> _storeExifMetadata(String mediaId, ExifData exifData) async {
+    try {
+      // Store camera information
+      if (exifData.make != null) {
+        await mediaManagement.addMetadata(
+          mediaId: mediaId,
+          metadataType: 'exif',
+          key: 'camera_make',
+          value: exifData.make!,
+        );
+      }
+      
+      if (exifData.model != null) {
+        await mediaManagement.addMetadata(
+          mediaId: mediaId,
+          metadataType: 'exif',
+          key: 'camera_model',
+          value: exifData.model!,
+        );
+      }
+      
+      // Store GPS coordinates
+      if (exifData.gpsCoordinates != null) {
+        await mediaManagement.addMetadata(
+          mediaId: mediaId,
+          metadataType: 'exif',
+          key: 'gps_latitude',
+          value: exifData.gpsCoordinates!.latitude.toString(),
+        );
+        
+        await mediaManagement.addMetadata(
+          mediaId: mediaId,
+          metadataType: 'exif',
+          key: 'gps_longitude',
+          value: exifData.gpsCoordinates!.longitude.toString(),
+        );
+      }
+      
+      // Store technical details from camera settings
+      if (exifData.cameraSettings.aperture != null) {
+        await mediaManagement.addMetadata(
+          mediaId: mediaId,
+          metadataType: 'exif',
+          key: 'aperture',
+          value: exifData.cameraSettings.aperture.toString(),
+        );
+      }
+      
+      if (exifData.cameraSettings.shutterSpeed != null) {
+        await mediaManagement.addMetadata(
+          mediaId: mediaId,
+          metadataType: 'exif',
+          key: 'shutter_speed',
+          value: exifData.cameraSettings.shutterSpeed.toString(),
+        );
+      }
+      
+      if (exifData.cameraSettings.iso != null) {
+        await mediaManagement.addMetadata(
+          mediaId: mediaId,
+          metadataType: 'exif',
+          key: 'iso',
+          value: exifData.cameraSettings.iso.toString(),
+        );
+      }
+      
+      _logger.debug('Stored EXIF metadata for media: $mediaId');
+    } catch (e, stack) {
+      _logger.error('Failed to store EXIF metadata for $mediaId', error: e, stackTrace: stack);
+    }
+  }
+  
+  /// Store video metadata in database
+  Future<void> _storeVideoMetadata(String mediaId, VideoMetadata videoMetadata) async {
+    try {
+      // Store video dimensions
+      if (videoMetadata.width != null && videoMetadata.height != null) {
+        await mediaManagement.addMetadata(
+          mediaId: mediaId,
+          metadataType: 'video',
+          key: 'resolution',
+          value: '${videoMetadata.width}x${videoMetadata.height}',
+        );
+      }
+      
+      // Store duration
+      if (videoMetadata.duration != null) {
+        await mediaManagement.addMetadata(
+          mediaId: mediaId,
+          metadataType: 'video',
+          key: 'duration_seconds',
+          value: videoMetadata.duration!.inSeconds.toString(),
+        );
+      }
+      
+      // Store frame rate
+      if (videoMetadata.frameRate != null) {
+        await mediaManagement.addMetadata(
+          mediaId: mediaId,
+          metadataType: 'video',
+          key: 'frame_rate',
+          value: videoMetadata.frameRate.toString(),
+        );
+      }
+      
+      // Store bitrate
+      if (videoMetadata.bitrate != null) {
+        await mediaManagement.addMetadata(
+          mediaId: mediaId,
+          metadataType: 'video',
+          key: 'bitrate',
+          value: videoMetadata.bitrate.toString(),
+        );
+      }
+      
+      // Store codec
+      if (videoMetadata.codec != null) {
+        await mediaManagement.addMetadata(
+          mediaId: mediaId,
+          metadataType: 'video',
+          key: 'codec',
+          value: videoMetadata.codec!,
+        );
+      }
+      
+      // Store GPS coordinates if available
+      if (videoMetadata.location != null) {
+        await mediaManagement.addMetadata(
+          mediaId: mediaId,
+          metadataType: 'video',
+          key: 'gps_latitude',
+          value: videoMetadata.location!.latitude.toString(),
+        );
+        
+        await mediaManagement.addMetadata(
+          mediaId: mediaId,
+          metadataType: 'video',
+          key: 'gps_longitude',
+          value: videoMetadata.location!.longitude.toString(),
+        );
+        
+        if (videoMetadata.location!.altitude != null) {
+          await mediaManagement.addMetadata(
+            mediaId: mediaId,
+            metadataType: 'video',
+            key: 'gps_altitude',
+            value: videoMetadata.location!.altitude.toString(),
+          );
+        }
+      }
+      
+      _logger.debug('Stored video metadata for media: $mediaId');
+    } catch (e, stack) {
+      _logger.error('Failed to store video metadata for $mediaId', error: e, stackTrace: stack);
+    }
+  }
+  
+  /// Store face detection results in database
+  Future<void> storeFaceDetectionResults(String mediaId, FaceDetectionResult result) async {
+    if (_ref == null) return;
+    
+    try {
+      // Store face count metadata
+      await mediaManagement.addMetadata(
+        mediaId: mediaId,
+        metadataType: 'face_detection',
+        key: 'face_count',
+        value: result.faces.length.toString(),
+      );
+      
+      await mediaManagement.addMetadata(
+        mediaId: mediaId,
+        metadataType: 'face_detection',
+        key: 'high_quality_face_count',
+        value: result.highQualityFaces.length.toString(),
+      );
+      
+      // Store individual face data
+      for (int i = 0; i < result.faces.length; i++) {
+        final face = result.faces[i];
+        
+        // Store face bounding box and confidence
+        final faceData = {
+          'bounding_box': {
+            'x': face.boundingBox.left,
+            'y': face.boundingBox.top,
+            'width': face.boundingBox.width,
+            'height': face.boundingBox.height,
+          },
+          'quality_score': face.qualityScore,
+          'confidence': face.confidence,
+          'landmarks_count': face.landmarks.length,
+        };
+        
+        await mediaManagement.addMetadata(
+          mediaId: mediaId,
+          metadataType: 'face_detection',
+          key: 'face_$i',
+          value: json.encode(faceData),
+        );
+      }
+      
+      _logger.info('Stored face detection results for media: $mediaId (${result.faces.length} faces)');
+    } catch (e, stack) {
+      _logger.error('Failed to store face detection results for $mediaId', error: e, stackTrace: stack);
+    }
+  }
+  
+  /// Store person identification results in database
+  Future<void> storePersonTags(String mediaId, List<Person> persons) async {
+    if (_ref == null) return;
+    
+    try {
+      for (final person in persons) {
+        // Get the representative face for this person in this photo
+        final facesInPhoto = person.cluster.faces.where((face) => face.photoId == mediaId).toList();
+        
+        for (final face in facesInPhoto) {
+          await mediaManagement.addPersonTag(
+            personId: person.personId,
+            mediaId: mediaId,
+            boundingBoxX: face.boundingBox.left,
+            boundingBoxY: face.boundingBox.top,
+            boundingBoxWidth: face.boundingBox.width,
+            boundingBoxHeight: face.boundingBox.height,
+            confidence: face.confidence,
+            personName: person.name,
+            personNickname: person.nickname,
+            similarity: null, // similarity is not a direct property of FaceEmbedding
+          );
+        }
+      }
+      
+      _logger.info('Stored person tags for media: $mediaId (${persons.length} persons)');
+    } catch (e, stack) {
+      _logger.error('Failed to store person tags for $mediaId', error: e, stackTrace: stack);
+    }
+  }
+  
+  /// Get media items from database
+  Future<List<MediaItem>> getStoredMediaItems({
+    bool includeDeleted = false,
+    bool processedOnly = false,
+  }) async {
+    if (_ref == null) return [];
+    
+    try {
+      final items = await _ref!.read(mediaItemsProvider(
+        (includeDeleted: includeDeleted, processedOnly: processedOnly)
+      ).future);
+      return items;
+    } catch (e, stack) {
+      _logger.error('Failed to get stored media items', error: e, stackTrace: stack);
+      return [];
+    }
+  }
+  
+  /// Get media statistics from database
+  Future<Map<String, int>> getStoredMediaStatistics() async {
+    if (_ref == null) return {};
+    
+    try {
+      return await _ref!.read(mediaStatisticsProvider.future);
+    } catch (e, stack) {
+      _logger.error('Failed to get media statistics', error: e, stackTrace: stack);
+      return {};
+    }
+  }
+  
   /// Clean up resources
   void dispose() {
     stopAutomaticScanning();
@@ -460,6 +1223,7 @@ class PhotoService {
     PhotoManager.stopChangeNotify();
     _photoDiscoveryController.close();
     _newPhotoController.close();
+    _mediaDatabase?.close();
     _logger.info('PhotoService disposed');
   }
 }
