@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../services/simple_location_service.dart';
+import '../services/movement_tracking_service.dart';
 
 // Battery optimization enum
 enum BatteryOptimization {
@@ -70,6 +71,10 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               
               // Location tracking granularity
               _buildLocationGranularitySection(context, ref, granularity),
+              const SizedBox(height: 24),
+              
+              // Movement tracking section
+              _buildMovementTrackingSection(context, ref),
               const SizedBox(height: 24),
               
               // Data retention settings
@@ -258,6 +263,293 @@ class PrivacySettingsScreen extends HookConsumerWidget {
         ),
       ),
     );
+  }
+  
+  Widget _buildMovementTrackingSection(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final movementEnabled = ref.watch(movementTrackingEnabledProvider);
+    final currentState = ref.watch(currentMovementStateProvider);
+    final movementHistory = ref.watch(movementHistoryProvider);
+    
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.directions_walk,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Movement Tracking',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Track movement patterns using device sensors to determine wakefulness, activity levels, and movement type.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Movement tracking toggle
+            SwitchListTile(
+              title: const Text('Enable Movement Tracking'),
+              subtitle: Text(
+                movementEnabled 
+                  ? 'Gyroscope and accelerometer data is being collected'
+                  : 'Movement tracking is disabled',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              value: movementEnabled,
+              onChanged: (bool value) async {
+                ref.read(movementTrackingEnabledProvider.notifier).state = value;
+                
+                final movementService = ref.read(movementTrackingServiceProvider);
+                if (value) {
+                  await movementService.startTracking();
+                } else {
+                  movementService.stopTracking();
+                }
+              },
+              secondary: Icon(
+                movementEnabled ? Icons.sensors : Icons.sensors_off,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            
+            if (movementEnabled) ...[
+              const Divider(),
+              
+              // Current movement state display
+              ListTile(
+                leading: Icon(
+                  _getMovementStateIcon(currentState),
+                  color: _getMovementStateColor(currentState, theme),
+                ),
+                title: const Text('Current Activity'),
+                subtitle: Text(
+                  _getMovementStateText(currentState),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: _getMovementStateColor(currentState, theme),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                trailing: movementHistory.isNotEmpty
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${(movementHistory.last.confidence * 100).toStringAsFixed(0)}%',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  : null,
+              ),
+              
+              const SizedBox(height: 8),
+              
+              // Movement history summary
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Last Hour Summary',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (movementHistory.isNotEmpty) ...[
+                      _buildMovementSummaryRow(
+                        context,
+                        'Samples Collected',
+                        movementHistory.length.toString(),
+                      ),
+                      _buildMovementSummaryRow(
+                        context,
+                        'Primary Activity',
+                        _getMostFrequentState(movementHistory),
+                      ),
+                      _buildMovementSummaryRow(
+                        context,
+                        'Average Confidence',
+                        '${(_getAverageConfidence(movementHistory) * 100).toStringAsFixed(0)}%',
+                      ),
+                    ] else ...[
+                      Text(
+                        'No movement data collected yet',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // View detailed movement data button
+              OutlinedButton.icon(
+                onPressed: () {
+                  context.push('/privacy/movement-history');
+                },
+                icon: const Icon(Icons.analytics, size: 20),
+                label: const Text('View Movement History'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 40),
+                ),
+              ),
+            ],
+            
+            const SizedBox(height: 12),
+            
+            // Privacy note
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Movement data is processed locally on your device and never transmitted to external servers. This data helps determine your activity patterns and wakefulness.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildMovementSummaryRow(BuildContext context, String label, String value) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+          Text(
+            value,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  IconData _getMovementStateIcon(MovementState state) {
+    return switch (state) {
+      MovementState.still => Icons.person,
+      MovementState.walking => Icons.directions_walk,
+      MovementState.running => Icons.directions_run,
+      MovementState.driving => Icons.directions_car,
+      MovementState.unknown => Icons.help_outline,
+    };
+  }
+  
+  Color _getMovementStateColor(MovementState state, ThemeData theme) {
+    return switch (state) {
+      MovementState.still => theme.colorScheme.secondary,
+      MovementState.walking => Colors.green,
+      MovementState.running => Colors.orange,
+      MovementState.driving => Colors.blue,
+      MovementState.unknown => theme.colorScheme.onSurface.withValues(alpha: 0.5),
+    };
+  }
+  
+  String _getMovementStateText(MovementState state) {
+    return switch (state) {
+      MovementState.still => 'Still / Resting',
+      MovementState.walking => 'Walking',
+      MovementState.running => 'Running',
+      MovementState.driving => 'In Vehicle',
+      MovementState.unknown => 'Detecting...',
+    };
+  }
+  
+  String _getMostFrequentState(List<MovementData> history) {
+    if (history.isEmpty) return 'Unknown';
+    
+    final stateCounts = <MovementState, int>{};
+    for (final data in history) {
+      stateCounts[data.state] = (stateCounts[data.state] ?? 0) + 1;
+    }
+    
+    MovementState mostFrequent = MovementState.unknown;
+    int maxCount = 0;
+    stateCounts.forEach((state, count) {
+      if (count > maxCount) {
+        maxCount = count;
+        mostFrequent = state;
+      }
+    });
+    
+    return _getMovementStateText(mostFrequent);
+  }
+  
+  double _getAverageConfidence(List<MovementData> history) {
+    if (history.isEmpty) return 0.0;
+    
+    double total = 0;
+    for (final data in history) {
+      total += data.confidence;
+    }
+    return total / history.length;
   }
   
   Widget _buildDataRetentionSection(BuildContext context, WidgetRef ref, DataRetentionPeriod retention, bool autoDelete) {
@@ -611,7 +903,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
   }
   
   // Action methods
-  void _updateLocationSettings(WidgetRef ref, LocationGranularity granularity) {
+  void _updateLocationSettings(WidgetRef ref, LocationGranularity granularity) async {
     // Update battery optimization based on granularity
     final batteryMode = switch (granularity) {
       LocationGranularity.off => BatteryOptimization.aggressive,
@@ -622,10 +914,21 @@ class PrivacySettingsScreen extends HookConsumerWidget {
     
     ref.read(batteryOptimizationProvider.notifier).state = batteryMode;
     
-    // If location is turned off, stop tracking
+    final locationService = ref.read(simpleLocationServiceProvider);
+    
+    // Handle location tracking based on granularity
     if (granularity == LocationGranularity.off) {
-      final locationService = ref.read(simpleLocationServiceProvider);
-      locationService.stopTracking();
+      // If location is turned off, stop tracking
+      await locationService.stopTracking();
+    } else {
+      // If location is being enabled, request permission and start tracking
+      final hasPermission = await locationService.checkLocationPermission();
+      if (hasPermission) {
+        await locationService.startTracking();
+      } else {
+        // If permission denied, reset to off
+        ref.read(locationTrackingGranularityProvider.notifier).state = LocationGranularity.off;
+      }
     }
   }
   

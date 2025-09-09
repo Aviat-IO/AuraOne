@@ -1,9 +1,12 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../widgets/common/time_utils.dart';
+import '../providers/location_database_provider.dart';
+import '../database/location_database.dart';
 
-// Sample location entry for UI development
+// Location entry for display
 class LocationEntry {
   final String id;
   final DateTime timestamp;
@@ -24,26 +27,84 @@ class LocationEntry {
     this.address,
     this.durationAtLocation,
   });
+  
+  factory LocationEntry.fromLocationPoint(LocationPoint point, {String? placeName, String? address, Duration? duration}) {
+    return LocationEntry(
+      id: point.id.toString(),
+      timestamp: point.timestamp,
+      latitude: point.latitude,
+      longitude: point.longitude,
+      accuracy: point.accuracy ?? 10.0,
+      placeName: placeName,
+      address: address,
+      durationAtLocation: duration,
+    );
+  }
 }
 
-// Mock data provider for development
-final locationHistoryProvider = StateProvider<List<LocationEntry>>((ref) {
-  // Generate sample data for UI development
-  final now = DateTime.now();
-  return List.generate(50, (index) {
-    final timestamp = now.subtract(Duration(hours: index * 2));
-    return LocationEntry(
-      id: 'loc_$index',
-      timestamp: timestamp,
-      latitude: 37.7749 + (index % 10) * 0.01,
-      longitude: -122.4194 + (index % 8) * 0.01,
-      accuracy: 5.0 + (index % 3) * 10,
-      placeName: index % 5 == 0 ? ['Home', 'Work', 'Coffee Shop', 'Park', 'Library'][index % 5] : null,
-      address: '${100 + index} Sample St, San Francisco, CA',
-      durationAtLocation: index % 4 == 0 ? Duration(minutes: 20 + index % 60) : null,
-    );
-  });
+// Real location data provider from database
+final locationHistoryProvider = StreamProvider<List<LocationEntry>>((ref) async* {
+  final database = ref.watch(locationDatabaseProvider);
+  
+  // Stream recent location points from database (last 7 days)
+  final stream = database.watchRecentLocationPoints(duration: const Duration(days: 7));
+  
+  await for (final points in stream) {
+    // Convert LocationPoint to LocationEntry
+    final entries = <LocationEntry>[];
+    
+    for (int i = 0; i < points.length; i++) {
+      final point = points[i];
+      
+      // Calculate duration at location (if stayed at same spot)
+      Duration? duration;
+      if (i < points.length - 1) {
+        final nextPoint = points[i + 1];
+        // If next point is within 50 meters, consider it same location
+        final distance = _calculateDistance(
+          point.latitude,
+          point.longitude,
+          nextPoint.latitude,
+          nextPoint.longitude,
+        );
+        if (distance < 50) {
+          duration = nextPoint.timestamp.difference(point.timestamp);
+        }
+      }
+      
+      // For now, we don't have a places table, so we'll use activity type as place name
+      String? placeName = point.activityType;
+      String? address;
+      
+      // You could add reverse geocoding here later to get actual addresses
+      
+      entries.add(LocationEntry.fromLocationPoint(
+        point,
+        placeName: placeName,
+        address: address,
+        duration: duration,
+      ));
+    }
+    
+    yield entries;
+  }
 });
+
+// Helper function to calculate distance
+double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+  const double earthRadius = 6371000; // meters
+  final double dLat = (lat2 - lat1) * (math.pi / 180);
+  final double dLon = (lon2 - lon1) * (math.pi / 180);
+  
+  final double a = 
+    math.sin(dLat / 2) * math.sin(dLat / 2) +
+    math.cos(lat1 * math.pi / 180) * 
+    math.cos(lat2 * math.pi / 180) *
+    math.sin(dLon / 2) * math.sin(dLon / 2);
+  
+  final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+  return earthRadius * c;
+}
 
 final selectedDateRangeProvider = StateProvider<DateTimeRange?>((ref) => null);
 final selectedLocationIdsProvider = StateProvider<Set<String>>((ref) => {});
@@ -55,9 +116,19 @@ class LocationHistoryScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final tabController = useTabController(initialLength: 2);
-    final locationEntries = ref.watch(locationHistoryProvider);
+    final locationEntriesAsync = ref.watch(locationHistoryProvider);
     final selectedDateRange = ref.watch(selectedDateRangeProvider);
     final selectedIds = ref.watch(selectedLocationIdsProvider);
+    
+    // Handle async state
+    final locationEntries = locationEntriesAsync.when(
+      data: (entries) => entries,
+      loading: () => <LocationEntry>[],
+      error: (error, stack) {
+        debugPrint('Error loading location history: $error');
+        return <LocationEntry>[];
+      },
+    );
     
     final filteredEntries = selectedDateRange != null
         ? locationEntries.where((entry) {
@@ -210,6 +281,23 @@ class LocationHistoryScreen extends HookConsumerWidget {
   
   Widget _buildTimelineView(BuildContext context, WidgetRef ref, ThemeData theme, List<LocationEntry> entries) {
     final selectedIds = ref.watch(selectedLocationIdsProvider);
+    final locationEntriesAsync = ref.watch(locationHistoryProvider);
+    
+    // Show loading state
+    if (locationEntriesAsync.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+    
+    // Show error state
+    if (locationEntriesAsync.hasError) {
+      return _buildEmptyState(
+        context, 
+        theme, 
+        'Error loading location data. Please check location permissions.',
+      );
+    }
     
     if (entries.isEmpty) {
       return _buildEmptyState(context, theme, 'No location data found for the selected period.');
@@ -611,20 +699,17 @@ class LocationHistoryScreen extends HookConsumerWidget {
     );
   }
   
-  void _performDeleteEntry(BuildContext context, WidgetRef ref, LocationEntry entry) {
-    final currentEntries = ref.read(locationHistoryProvider);
-    final updatedEntries = currentEntries.where((e) => e.id != entry.id).toList();
-    ref.read(locationHistoryProvider.notifier).state = updatedEntries;
+  void _performDeleteEntry(BuildContext context, WidgetRef ref, LocationEntry entry) async {
+    // For now, just show a message since we can't modify the stream
+    // In a real implementation, you would delete from the database
+    final database = ref.read(locationDatabaseProvider);
+    
+    // TODO: Add a delete method in LocationDatabase if needed
+    // await database.deleteLocationPoint(entry.id);
     
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Location entry deleted'),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () {
-            ref.read(locationHistoryProvider.notifier).state = currentEntries;
-          },
-        ),
+      const SnackBar(
+        content: Text('Delete functionality not yet implemented'),
       ),
     );
   }
@@ -659,18 +744,23 @@ class LocationHistoryScreen extends HookConsumerWidget {
     );
   }
   
-  void _performDeleteSelected(BuildContext context, WidgetRef ref) {
+  void _performDeleteSelected(BuildContext context, WidgetRef ref) async {
     final selectedIds = ref.read(selectedLocationIdsProvider);
-    final currentEntries = ref.read(locationHistoryProvider);
-    final updatedEntries = currentEntries.where((e) => !selectedIds.contains(e.id)).toList();
     
-    ref.read(locationHistoryProvider.notifier).state = updatedEntries;
+    // For now, just show a message since we can't modify the stream
+    // In a real implementation, you would delete from the database
+    final database = ref.read(locationDatabaseProvider);
+    
+    // TODO: Add batch delete method in LocationDatabase if needed
+    // for (final id in selectedIds) {
+    //   await database.deleteLocationPoint(id);
+    // }
+    
     ref.read(selectedLocationIdsProvider.notifier).state = {};
     
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${selectedIds.length} location entries deleted'),
-        backgroundColor: Colors.green,
+      const SnackBar(
+        content: Text('Delete functionality not yet implemented'),
       ),
     );
   }
