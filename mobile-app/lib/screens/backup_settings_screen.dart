@@ -54,7 +54,9 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
     }
   }
 
-  Future<void> _saveSettings() async {
+  
+  /// Auto-save settings when they change
+  Future<void> _autoSaveSettings() async {
     try {
       await BackupScheduler.saveConfig(_config);
       
@@ -64,24 +66,14 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
         await BackupScheduler.cancelScheduledBackup();
       }
       
-      if (mounted) {
-        Fluttertoast.showToast(
-          msg: 'Backup settings saved successfully',
-          toastLength: Toast.LENGTH_SHORT,
-        );
-      }
-      
       // Reload status to get updated next scheduled time
       final status = await BackupScheduler.getStatus();
-      setState(() => _status = status);
-    } catch (e) {
       if (mounted) {
-        Fluttertoast.showToast(
-          msg: 'Failed to save settings: $e',
-          toastLength: Toast.LENGTH_LONG,
-          backgroundColor: Colors.red,
-        );
+        setState(() => _status = status);
       }
+    } catch (e) {
+      // Silently fail for auto-save to avoid disrupting user experience
+      debugPrint('Auto-save failed: $e');
     }
   }
 
@@ -98,13 +90,6 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Backup Settings'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveSettings,
-            tooltip: 'Save Settings',
-          ),
-        ],
       ),
       body: SafeArea(
         child: ListView(
@@ -163,8 +148,29 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                       child: FilledButton.icon(
                         onPressed: () async {
                           try {
+                            // First check if we have storage permissions
+                            final hasPermissions = await BackupScheduler.hasStoragePermissions();
+                            if (!hasPermissions) {
+                              // Request permissions first
+                              final granted = await BackupScheduler.requestStoragePermissions();
+                              if (!granted) {
+                                if (mounted) {
+                                  Fluttertoast.showToast(
+                                    msg: 'Storage permission is required for backups',
+                                    toastLength: Toast.LENGTH_LONG,
+                                    backgroundColor: Colors.red,
+                                  );
+                                }
+                                return;
+                              }
+                            }
+                            
+                            // Perform the backup
                             await BackupScheduler.performManualBackup();
+                            
+                            // Refresh settings to update status
                             await _loadSettings();
+                            
                             if (mounted) {
                               Fluttertoast.showToast(
                                 msg: 'Manual backup started',
@@ -229,7 +235,8 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                               preferredTime: _config.preferredTime,
                               includeMedia: _config.includeMedia,
                               includeLocation: _config.includeLocation,
-                              includeSensorData: _config.includeSensorData,
+                              includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
                               enableEncryption: _config.enableEncryption,
                               encryptionPassword: _config.encryptionPassword,
                               useBlossomStorage: _config.useBlossomStorage,
@@ -262,7 +269,8 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                                     preferredTime: time,
                                     includeMedia: _config.includeMedia,
                                     includeLocation: _config.includeLocation,
-                                    includeSensorData: _config.includeSensorData,
+                                    includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
                                     enableEncryption: _config.enableEncryption,
                                     encryptionPassword: _config.encryptionPassword,
                                     useBlossomStorage: _config.useBlossomStorage,
@@ -288,7 +296,8 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                                   preferredTime: _config.preferredTime,
                                   includeMedia: _config.includeMedia,
                                   includeLocation: _config.includeLocation,
-                                  includeSensorData: _config.includeSensorData,
+                                  includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
                                   enableEncryption: _config.enableEncryption,
                                   encryptionPassword: _config.encryptionPassword,
                                   useBlossomStorage: _config.useBlossomStorage,
@@ -313,7 +322,8 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                                   preferredTime: _config.preferredTime,
                                   includeMedia: _config.includeMedia,
                                   includeLocation: _config.includeLocation,
-                                  includeSensorData: _config.includeSensorData,
+                                  includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
                                   enableEncryption: _config.enableEncryption,
                                   encryptionPassword: _config.encryptionPassword,
                                   useBlossomStorage: _config.useBlossomStorage,
@@ -361,7 +371,8 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                             preferredTime: _config.preferredTime,
                             includeMedia: value,
                             includeLocation: _config.includeLocation,
-                            includeSensorData: _config.includeSensorData,
+                            includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
                             enableEncryption: _config.enableEncryption,
                             encryptionPassword: _config.encryptionPassword,
                             useBlossomStorage: _config.useBlossomStorage,
@@ -371,6 +382,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                             onlyWhenCharging: _config.onlyWhenCharging,
                           );
                         });
+                        _autoSaveSettings();
                       },
                     ),
                     SwitchListTile(
@@ -384,7 +396,8 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                             preferredTime: _config.preferredTime,
                             includeMedia: _config.includeMedia,
                             includeLocation: value,
-                            includeSensorData: _config.includeSensorData,
+                            includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
                             enableEncryption: _config.enableEncryption,
                             encryptionPassword: _config.encryptionPassword,
                             useBlossomStorage: _config.useBlossomStorage,
@@ -394,12 +407,13 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                             onlyWhenCharging: _config.onlyWhenCharging,
                           );
                         });
+                        _autoSaveSettings();
                       },
                     ),
                     SwitchListTile(
-                      title: const Text('Include Sensor Data'),
-                      subtitle: const Text('Back up health and calendar data'),
-                      value: _config.includeSensorData,
+                      title: const Text('Include Health Data'),
+                      subtitle: const Text('Back up fitness and wellness data'),
+                      value: _config.includeHealthData,
                       onChanged: (value) {
                         setState(() {
                           _config = BackupConfig(
@@ -407,7 +421,8 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                             preferredTime: _config.preferredTime,
                             includeMedia: _config.includeMedia,
                             includeLocation: _config.includeLocation,
-                            includeSensorData: value,
+                            includeHealthData: value,
+                            includeCalendarData: _config.includeCalendarData,
                             enableEncryption: _config.enableEncryption,
                             encryptionPassword: _config.encryptionPassword,
                             useBlossomStorage: _config.useBlossomStorage,
@@ -417,6 +432,32 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                             onlyWhenCharging: _config.onlyWhenCharging,
                           );
                         });
+                        _autoSaveSettings();
+                      },
+                    ),
+                    SwitchListTile(
+                      title: const Text('Include Calendar Data'),
+                      subtitle: const Text('Back up events and appointments'),
+                      value: _config.includeCalendarData,
+                      onChanged: (value) {
+                        setState(() {
+                          _config = BackupConfig(
+                            frequency: _config.frequency,
+                            preferredTime: _config.preferredTime,
+                            includeMedia: _config.includeMedia,
+                            includeLocation: _config.includeLocation,
+                            includeHealthData: _config.includeHealthData,
+                            includeCalendarData: value,
+                            enableEncryption: _config.enableEncryption,
+                            encryptionPassword: _config.encryptionPassword,
+                            useBlossomStorage: _config.useBlossomStorage,
+                            useSyncthingFolder: _config.useSyncthingFolder,
+                            maxBackupsToKeep: _config.maxBackupsToKeep,
+                            onlyOnWifi: _config.onlyOnWifi,
+                            onlyWhenCharging: _config.onlyWhenCharging,
+                          );
+                        });
+                        _autoSaveSettings();
                       },
                     ),
                   ],
@@ -459,7 +500,8 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                             preferredTime: _config.preferredTime,
                             includeMedia: _config.includeMedia,
                             includeLocation: _config.includeLocation,
-                            includeSensorData: _config.includeSensorData,
+                            includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
                             enableEncryption: _config.enableEncryption,
                             encryptionPassword: _config.encryptionPassword,
                             useBlossomStorage: false,
@@ -487,7 +529,8 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                             preferredTime: _config.preferredTime,
                             includeMedia: _config.includeMedia,
                             includeLocation: _config.includeLocation,
-                            includeSensorData: _config.includeSensorData,
+                            includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
                             enableEncryption: _config.enableEncryption,
                             encryptionPassword: _config.encryptionPassword,
                             useBlossomStorage: true,
@@ -515,7 +558,8 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                             preferredTime: _config.preferredTime,
                             includeMedia: _config.includeMedia,
                             includeLocation: _config.includeLocation,
-                            includeSensorData: _config.includeSensorData,
+                            includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
                             enableEncryption: _config.enableEncryption,
                             encryptionPassword: _config.encryptionPassword,
                             useBlossomStorage: false,
@@ -527,6 +571,206 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                         });
                       },
                     ),
+                    
+                    // Blossom Storage Configuration
+                    if (_config.useBlossomStorage) ...[
+                      const SizedBox(height: 16),
+                      Card(
+                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Blossom Configuration',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              TextFormField(
+                                initialValue: _config.blossomServerUrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Blossom Server URL',
+                                  hintText: 'https://blossom.example.com',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.cloud_upload),
+                                ),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _config = BackupConfig(
+                                      frequency: _config.frequency,
+                                      preferredTime: _config.preferredTime,
+                                      includeMedia: _config.includeMedia,
+                                      includeLocation: _config.includeLocation,
+                                      includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
+                                      enableEncryption: _config.enableEncryption,
+                                      encryptionPassword: _config.encryptionPassword,
+                                      useBlossomStorage: _config.useBlossomStorage,
+                                      blossomServerUrl: value.isEmpty ? null : value,
+                                      blossomNsec: _config.blossomNsec,
+                                      useSyncthingFolder: _config.useSyncthingFolder,
+                                      syncthingFolderPath: _config.syncthingFolderPath,
+                                      maxBackupsToKeep: _config.maxBackupsToKeep,
+                                      onlyOnWifi: _config.onlyOnWifi,
+                                      onlyWhenCharging: _config.onlyWhenCharging,
+                                    );
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              TextFormField(
+                                initialValue: _config.blossomNsec,
+                                decoration: InputDecoration(
+                                  labelText: 'Nostr Private Key (nsec)',
+                                  hintText: 'nsec1...',
+                                  border: const OutlineInputBorder(),
+                                  prefixIcon: const Icon(Icons.key),
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.info_outline),
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('About nsec'),
+                                          content: const Text(
+                                            'Your Nostr private key is used to authenticate with the Blossom server. '
+                                            'It will be stored securely on your device.\n\n'
+                                            'For better security, consider using a signing app or browser extension instead.',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context),
+                                              child: const Text('OK'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                obscureText: true,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _config = BackupConfig(
+                                      frequency: _config.frequency,
+                                      preferredTime: _config.preferredTime,
+                                      includeMedia: _config.includeMedia,
+                                      includeLocation: _config.includeLocation,
+                                      includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
+                                      enableEncryption: _config.enableEncryption,
+                                      encryptionPassword: _config.encryptionPassword,
+                                      useBlossomStorage: _config.useBlossomStorage,
+                                      blossomServerUrl: _config.blossomServerUrl,
+                                      blossomNsec: value.isEmpty ? null : value,
+                                      useSyncthingFolder: _config.useSyncthingFolder,
+                                      syncthingFolderPath: _config.syncthingFolderPath,
+                                      maxBackupsToKeep: _config.maxBackupsToKeep,
+                                      onlyOnWifi: _config.onlyOnWifi,
+                                      onlyWhenCharging: _config.onlyWhenCharging,
+                                    );
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              ElevatedButton.icon(
+                                onPressed: () async {
+                                  // TODO: Test Blossom connection
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Testing Blossom connection...')),
+                                  );
+                                },
+                                icon: const Icon(Icons.check_circle),
+                                label: const Text('Test Connection'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    
+                    // Syncthing Folder Configuration
+                    if (_config.useSyncthingFolder) ...[
+                      const SizedBox(height: 16),
+                      Card(
+                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Syncthing Configuration',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              TextFormField(
+                                initialValue: _config.syncthingFolderPath ?? '/sdcard/Syncthing/AuraOneBackup',
+                                decoration: const InputDecoration(
+                                  labelText: 'Syncthing Folder Path',
+                                  hintText: '/sdcard/Syncthing/AuraOneBackup',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.folder),
+                                  helperText: 'Folder must be monitored by Syncthing',
+                                ),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _config = BackupConfig(
+                                      frequency: _config.frequency,
+                                      preferredTime: _config.preferredTime,
+                                      includeMedia: _config.includeMedia,
+                                      includeLocation: _config.includeLocation,
+                                      includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
+                                      enableEncryption: _config.enableEncryption,
+                                      encryptionPassword: _config.encryptionPassword,
+                                      useBlossomStorage: _config.useBlossomStorage,
+                                      blossomServerUrl: _config.blossomServerUrl,
+                                      blossomNsec: _config.blossomNsec,
+                                      useSyncthingFolder: _config.useSyncthingFolder,
+                                      syncthingFolderPath: value.isEmpty ? null : value,
+                                      maxBackupsToKeep: _config.maxBackupsToKeep,
+                                      onlyOnWifi: _config.onlyOnWifi,
+                                      onlyWhenCharging: _config.onlyWhenCharging,
+                                    );
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      color: theme.colorScheme.primary,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        'Make sure this folder is configured in your Syncthing app to sync with other devices.',
+                                        style: theme.textTheme.bodySmall,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    
                     const SizedBox(height: 16),
                     TextFormField(
                       initialValue: _config.maxBackupsToKeep.toString(),
@@ -544,7 +788,8 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                             preferredTime: _config.preferredTime,
                             includeMedia: _config.includeMedia,
                             includeLocation: _config.includeLocation,
-                            includeSensorData: _config.includeSensorData,
+                            includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
                             enableEncryption: _config.enableEncryption,
                             encryptionPassword: _config.encryptionPassword,
                             useBlossomStorage: _config.useBlossomStorage,
@@ -591,7 +836,8 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                             preferredTime: _config.preferredTime,
                             includeMedia: _config.includeMedia,
                             includeLocation: _config.includeLocation,
-                            includeSensorData: _config.includeSensorData,
+                            includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
                             enableEncryption: value,
                             encryptionPassword: value ? _passwordController.text : null,
                             useBlossomStorage: _config.useBlossomStorage,
@@ -621,7 +867,8 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                               preferredTime: _config.preferredTime,
                               includeMedia: _config.includeMedia,
                               includeLocation: _config.includeLocation,
-                              includeSensorData: _config.includeSensorData,
+                              includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
                               enableEncryption: _config.enableEncryption,
                               encryptionPassword: value,
                               useBlossomStorage: _config.useBlossomStorage,

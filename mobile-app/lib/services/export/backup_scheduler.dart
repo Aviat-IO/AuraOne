@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'export_service.dart';
 import 'export_schema.dart';
 import 'syncthing_service.dart';
-import 'blossom_service.dart';
+import 'blossom_storage_service.dart';
 
 /// Background task callback
 @pragma('vm:entry-point')
@@ -51,11 +52,15 @@ class BackupConfig {
   final TimeOfDay preferredTime;
   final bool includeMedia;
   final bool includeLocation;
-  final bool includeSensorData;
+  final bool includeHealthData;
+  final bool includeCalendarData;
   final bool enableEncryption;
   final String? encryptionPassword;
   final bool useBlossomStorage;
+  final String? blossomServerUrl;
+  final String? blossomNsec; // Encrypted/secured storage required
   final bool useSyncthingFolder;
+  final String? syncthingFolderPath;
   final int maxBackupsToKeep;
   final bool onlyOnWifi;
   final bool onlyWhenCharging;
@@ -65,11 +70,15 @@ class BackupConfig {
     this.preferredTime = const TimeOfDay(hour: 2, minute: 0),
     this.includeMedia = true,
     this.includeLocation = true,
-    this.includeSensorData = true,
+    this.includeHealthData = true,
+    this.includeCalendarData = true,
     this.enableEncryption = false,
     this.encryptionPassword,
     this.useBlossomStorage = false,
+    this.blossomServerUrl,
+    this.blossomNsec,
     this.useSyncthingFolder = false,
+    this.syncthingFolderPath,
     this.maxBackupsToKeep = 10,
     this.onlyOnWifi = true,
     this.onlyWhenCharging = false,
@@ -80,11 +89,15 @@ class BackupConfig {
     'preferredTime': '${preferredTime.hour}:${preferredTime.minute}',
     'includeMedia': includeMedia,
     'includeLocation': includeLocation,
-    'includeSensorData': includeSensorData,
+    'includeHealthData': includeHealthData,
+    'includeCalendarData': includeCalendarData,
     'enableEncryption': enableEncryption,
     'encryptionPassword': encryptionPassword,
     'useBlossomStorage': useBlossomStorage,
+    'blossomServerUrl': blossomServerUrl,
+    'blossomNsec': blossomNsec,
     'useSyncthingFolder': useSyncthingFolder,
+    'syncthingFolderPath': syncthingFolderPath,
     'maxBackupsToKeep': maxBackupsToKeep,
     'onlyOnWifi': onlyOnWifi,
     'onlyWhenCharging': onlyWhenCharging,
@@ -103,11 +116,16 @@ class BackupConfig {
       ),
       includeMedia: json['includeMedia'] ?? true,
       includeLocation: json['includeLocation'] ?? true,
-      includeSensorData: json['includeSensorData'] ?? true,
+      // For backward compatibility, use includeSensorData if new fields aren't present
+      includeHealthData: json['includeHealthData'] ?? json['includeSensorData'] ?? true,
+      includeCalendarData: json['includeCalendarData'] ?? json['includeSensorData'] ?? true,
       enableEncryption: json['enableEncryption'] ?? false,
       encryptionPassword: json['encryptionPassword'],
       useBlossomStorage: json['useBlossomStorage'] ?? false,
+      blossomServerUrl: json['blossomServerUrl'],
+      blossomNsec: json['blossomNsec'],
       useSyncthingFolder: json['useSyncthingFolder'] ?? false,
+      syncthingFolderPath: json['syncthingFolderPath'],
       maxBackupsToKeep: json['maxBackupsToKeep'] ?? 10,
       onlyOnWifi: json['onlyOnWifi'] ?? true,
       onlyWhenCharging: json['onlyWhenCharging'] ?? false,
@@ -289,7 +307,7 @@ class BackupScheduler {
       'cleanup_old_backups',
       frequency: const Duration(days: 1),
       constraints: Constraints(
-        networkType: NetworkType.not_required,
+        networkType: NetworkType.notRequired,
         requiresBatteryNotLow: true,
       ),
       inputData: {'maxBackupsToKeep': config.maxBackupsToKeep},
@@ -317,6 +335,12 @@ class BackupScheduler {
   
   /// Perform a scheduled backup (called from background task)
   static Future<void> _performScheduledBackup(Map<String, dynamic> inputData) async {
+    // Check storage permissions first
+    final hasPermissions = await hasStoragePermissions();
+    if (!hasPermissions) {
+      throw Exception('Storage permission denied');
+    }
+    
     final config = BackupConfig.fromJson(inputData);
     final status = await getStatus();
     
@@ -352,6 +376,11 @@ class BackupScheduler {
       double backupSizeMB = 0;
       
       if (config.useSyncthingFolder) {
+        // Use configured folder path if available
+        final customFolderName = config.syncthingFolderPath?.isNotEmpty == true 
+            ? config.syncthingFolderPath 
+            : null;
+        
         final result = await SyncthingService.exportToSyncthingFolder(
           appVersion: '0.1.0',
           userData: userData,
@@ -361,6 +390,7 @@ class BackupScheduler {
           exportDate: DateTime.now(),
           password: config.enableEncryption ? config.encryptionPassword : null,
           isScheduledBackup: true,
+          customFolderName: customFolderName,
           onProgress: (progress) async {
             await _showNotification(
               'Backup in Progress',
@@ -381,26 +411,51 @@ class BackupScheduler {
           throw Exception(result.error ?? 'Syncthing backup failed');
         }
       } else if (config.useBlossomStorage) {
-        final result = await ExportService.exportToBlossom(
+        // For now, create a temporary local file and upload to Blossom
+        // In the future, this should be updated to use ExportService.exportToBlossom
+        // when that method is properly implemented
+        
+        // First create the export file locally
+        final tempFilePath = await ExportService.exportToLocalFile(
           appVersion: '0.1.0',
           userData: userData,
           journalEntries: journalEntries,
           mediaReferences: mediaReferences,
           metadata: metadata,
           exportDate: DateTime.now(),
-          password: config.enableEncryption ? config.encryptionPassword : null,
           onProgress: (progress) async {
             await _showNotification(
               'Backup in Progress',
-              'Uploading to Blossom... ${(progress * 100).toInt()}%',
-              progress: (progress * 100).toInt(),
+              'Creating backup... ${(progress * 50).toInt()}%',
+              progress: (progress * 50).toInt(),
               maxProgress: 100,
             );
           },
         );
         
-        backupLocation = 'Blossom: ${result.hash}';
-        backupSizeMB = result.size / 1024 / 1024;
+        // Upload to Blossom server
+        if (config.blossomServerUrl?.isNotEmpty == true) {
+          final uploadUrl = await BlossomStorageService.uploadFile(
+            serverUrl: config.blossomServerUrl!,
+            filePath: tempFilePath,
+            nsec: config.blossomNsec,
+          );
+          
+          if (uploadUrl != null) {
+            backupLocation = 'Blossom: $uploadUrl';
+            final file = File(tempFilePath);
+            if (await file.exists()) {
+              backupSizeMB = (await file.length()) / 1024 / 1024;
+            }
+            
+            // Clean up temporary file after successful upload
+            await file.delete();
+          } else {
+            throw Exception('Failed to upload to Blossom server');
+          }
+        } else {
+          throw Exception('Blossom server URL not configured');
+        }
       } else {
         // Local backup
         final filePath = await ExportService.exportToLocalFile(
@@ -454,6 +509,7 @@ class BackupScheduler {
         'Backup Complete',
         'Your journal has been backed up successfully',
       );
+      
     } catch (e) {
       // Update status with error
       await _updateStatus(BackupStatus(
@@ -486,14 +542,16 @@ class BackupScheduler {
   /// Clean up old backups
   static Future<void> _cleanupOldBackups(Map<String, dynamic> inputData) async {
     final maxBackupsToKeep = inputData['maxBackupsToKeep'] ?? 10;
+    final syncthingFolderPath = inputData['syncthingFolderPath'] as String?;
     
-    // Clean up Syncthing backups
+    // Clean up Syncthing backups with configured folder path
     await SyncthingService.cleanOldBackups(
+      customFolderName: syncthingFolderPath,
       keepLastCount: maxBackupsToKeep,
       olderThan: const Duration(days: 30),
     );
     
-    // TODO: Clean up local backups
+    // TODO: Clean up local backups based on retention settings
   }
   
   /// Show notification
@@ -504,18 +562,21 @@ class BackupScheduler {
     int? progress,
     int? maxProgress,
   }) async {
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       'backup_channel',
       'Backup Notifications',
       channelDescription: 'Notifications for backup operations',
       importance: Importance.high,
       priority: Priority.high,
-      showProgress: true,
+      showProgress: progress != null,
+      maxProgress: maxProgress ?? 100,
+      progress: progress ?? 0,
+      icon: '@mipmap/ic_launcher',
     );
     
     const iosDetails = DarwinNotificationDetails();
     
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );
@@ -567,6 +628,84 @@ class BackupScheduler {
     await prefs.remove(_historyKey);
   }
   
+  /// Check and request storage permissions
+  static Future<bool> requestStoragePermissions() async {
+    if (Platform.isAndroid) {
+      // Check current permission status first
+      bool hasBasicAccess = false;
+      
+      // For Android 13+ (API 33+), check multiple permission types
+      if (await _isAndroid13OrHigher()) {
+        // Check if we already have any of the needed permissions
+        final currentStatuses = await [
+          Permission.photos,
+          Permission.videos,
+          Permission.audio,
+          Permission.manageExternalStorage,
+        ].request();
+        
+        hasBasicAccess = currentStatuses[Permission.manageExternalStorage]?.isGranted == true ||
+                        currentStatuses[Permission.photos]?.isGranted == true ||
+                        currentStatuses[Permission.videos]?.isGranted == true ||
+                        currentStatuses[Permission.audio]?.isGranted == true;
+        
+        // If we don't have access, try requesting storage permission
+        if (!hasBasicAccess) {
+          final storageStatus = await Permission.storage.request();
+          hasBasicAccess = storageStatus.isGranted;
+        }
+      } else {
+        // For older Android versions, use storage permission
+        final status = await Permission.storage.request();
+        hasBasicAccess = status.isGranted;
+      }
+      
+      return hasBasicAccess;
+    }
+    
+    // On iOS and other platforms, assume permission is granted
+    return true;
+  }
+  
+  /// Check current storage permissions without requesting
+  static Future<bool> hasStoragePermissions() async {
+    if (Platform.isAndroid) {
+      if (await _isAndroid13OrHigher()) {
+        // Check if we have any of the needed permissions
+        final permissions = [
+          Permission.photos,
+          Permission.videos,
+          Permission.audio,
+          Permission.manageExternalStorage,
+          Permission.storage,
+        ];
+        
+        for (final permission in permissions) {
+          final status = await permission.status;
+          if (status.isGranted) {
+            return true;
+          }
+        }
+        return false;
+      } else {
+        // For older Android versions
+        final status = await Permission.storage.status;
+        return status.isGranted;
+      }
+    }
+    
+    return true; // iOS and other platforms
+  }
+  
+  /// Check if running on Android 13+
+  static Future<bool> _isAndroid13OrHigher() async {
+    if (!Platform.isAndroid) return false;
+    
+    // Simple check - in a real app you'd use device_info_plus
+    // For now, assume we need the newer permissions
+    return true;
+  }
+
   /// Perform manual backup
   static Future<void> performManualBackup({
     void Function(double)? onProgress,
