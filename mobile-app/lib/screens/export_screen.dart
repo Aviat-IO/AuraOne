@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import '../services/export/export_service.dart';
 import '../services/export/export_schema.dart';
+import '../services/export/syncthing_service.dart';
 
 class ExportScreen extends ConsumerStatefulWidget {
   const ExportScreen({super.key});
@@ -23,6 +24,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   bool _enableEncryption = false;
   String _encryptionPassword = '';
   bool _useBlossomStorage = false;
+  bool _useSyncthingFolder = false;
   double _exportProgress = 0.0;
   final _passwordController = TextEditingController();
   
@@ -138,6 +140,25 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                           child: Text(
                             'Your backup will be uploaded to multiple Blossom servers for redundancy. '
                             'You\'ll receive a unique hash to retrieve your data.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                      SwitchListTile(
+                        title: const Text('Use Syncthing Folder'),
+                        subtitle: const Text('Export to folder monitored by Syncthing for automatic sync'),
+                        value: _useSyncthingFolder,
+                        onChanged: (value) => setState(() => _useSyncthingFolder = value),
+                      ),
+                      if (_useSyncthingFolder) ...[
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'Your backup will be saved to a Syncthing-monitored folder. '
+                            'Configure Syncthing to sync this folder across your devices.',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -416,7 +437,95 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       };
       
       // Perform export
-      if (_useBlossomStorage) {
+      if (_useSyncthingFolder) {
+        // Export to Syncthing folder
+        if (_enableEncryption && _encryptionPassword.isEmpty) {
+          if (mounted) {
+            Fluttertoast.showToast(
+              msg: 'Please enter an encryption password',
+              toastLength: Toast.LENGTH_LONG,
+              backgroundColor: Colors.orange,
+            );
+          }
+          setState(() => _exportProgress = 0.0);
+          return;
+        }
+        
+        final result = await SyncthingService.exportToSyncthingFolder(
+          appVersion: '0.1.0',
+          userData: userData,
+          journalEntries: journalEntries,
+          mediaReferences: mediaReferences,
+          metadata: metadata,
+          exportDate: DateTime.now(),
+          password: _enableEncryption ? _encryptionPassword : null,
+          onProgress: (progress) {
+            setState(() => _exportProgress = progress);
+          },
+        );
+        
+        setState(() => _exportProgress = 0.0);
+        
+        if (result.success) {
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Export to Syncthing Successful'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Your journal has been exported to the Syncthing folder.'),
+                      const SizedBox(height: 16),
+                      Text('Folder: ${result.syncFolderPath}', style: const TextStyle(fontSize: 12)),
+                      const SizedBox(height: 8),
+                      Text('File: ${result.fileName ?? 'Unknown'}'),
+                      Text('Type: ${result.isScheduled == true ? 'Scheduled' : 'Manual'} backup'),
+                      if (_enableEncryption)
+                        const Text('Encrypted: Yes'),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Make sure Syncthing is configured to monitor this folder '
+                        'to enable automatic synchronization across your devices.',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
+                  if (result.filePath != null && (Platform.isAndroid || Platform.isIOS))
+                    TextButton(
+                      onPressed: () {
+                        Share.shareXFiles(
+                          [XFile(result.filePath!)],
+                          subject: 'Aura One Journal Export',
+                          text: 'Syncthing backup location: ${result.syncFolderPath}',
+                        );
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Share'),
+                    ),
+                ],
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            Fluttertoast.showToast(
+              msg: 'Syncthing export failed: ${result.error ?? 'Unknown error'}',
+              toastLength: Toast.LENGTH_LONG,
+              backgroundColor: Colors.red,
+            );
+          }
+        }
+        return;
+      } else if (_useBlossomStorage) {
         // Export to Blossom storage
         if (_enableEncryption && _encryptionPassword.isEmpty) {
           if (mounted) {

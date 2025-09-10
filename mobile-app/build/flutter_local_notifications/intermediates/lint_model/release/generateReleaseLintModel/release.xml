@@ -1,0 +1,32 @@
+<variant
+    name="release"
+    package="com.dexterous.flutterlocalnotifications"
+    minSdkVersion="19"
+    targetSdkVersion="19"
+    mergedManifest="/Users/alancolver/dev/soveng/auraone/mobile-app/build/flutter_local_notifications/intermediates/merged_manifest/release/processReleaseManifest/AndroidManifest.xml"
+    manifestMergeReport="/Users/alancolver/dev/soveng/auraone/mobile-app/build/flutter_local_notifications/outputs/logs/manifest-merger-release-report.txt"
+    proguardFiles="/Users/alancolver/dev/soveng/auraone/mobile-app/build/flutter_local_notifications/intermediates/default_proguard_files/global/proguard-android.txt-8.7.3"
+    partialResultsDir="/Users/alancolver/dev/soveng/auraone/mobile-app/build/flutter_local_notifications/intermediates/lint_partial_results/release/lintAnalyzeRelease/out">
+  <buildFeatures
+      coreLibraryDesugaring="true"
+      namespacing="REQUIRED"/>
+  <sourceProviders>
+    <sourceProvider
+        manifests="src/main/AndroidManifest.xml"
+        javaDirectories="src/main/java:src/release/java:src/main/kotlin:src/release/kotlin"
+        resDirectories="src/main/res:src/release/res"
+        assetsDirectories="src/main/assets:src/release/assets"/>
+  </sourceProviders>
+  <testSourceProviders>
+  </testSourceProviders>
+  <testFixturesSourceProviders>
+  </testFixturesSourceProviders>
+  <artifact
+      classOutputs="/Users/alancolver/dev/soveng/auraone/mobile-app/build/flutter_local_notifications/intermediates/javac/release/compileReleaseJavaWithJavac/classes:/Users/alancolver/dev/soveng/auraone/mobile-app/build/flutter_local_notifications/intermediates/compile_r_class_jar/release/generateReleaseRFile/R.jar"
+      type="MAIN"
+      applicationId="com.dexterous.flutterlocalnotifications"
+      generatedSourceFolders="/Users/alancolver/dev/soveng/auraone/mobile-app/build/flutter_local_notifications/generated/ap_generated_sources/release/out"
+      generatedResourceFolders="/Users/alancolver/dev/soveng/auraone/mobile-app/build/flutter_local_notifications/generated/res/resValues/release"
+      desugaredMethodsFiles="/Users/alancolver/.gradle/caches/8.12/transforms/f7d5d9b1143b859493475be93dc823cc/transformed/desugar_jdk_libs_configuration-1.2.2-desugar-lint.txt:/Users/alancolver/.gradle/caches/8.12/transforms/00f471c6842000f0b37dccd7e88b7df1/transformed/D8BackportedDesugaredMethods.txt">
+  </artifact>
+</variant>
