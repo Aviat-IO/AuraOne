@@ -13,6 +13,7 @@ import 'package:aura_one/screens/import_screen.dart';
 import 'package:aura_one/screens/backup_settings_screen.dart';
 import 'package:aura_one/screens/app_lock_settings_screen.dart';
 import 'package:aura_one/screens/camera_screen.dart';
+import 'package:aura_one/screens/privacy_dashboard_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -50,6 +51,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/privacy',
         builder: (context, state) => const PrivacySettingsScreen(),
+      ),
+      
+      // Privacy dashboard
+      GoRoute(
+        path: '/privacy/dashboard',
+        builder: (context, state) => const PrivacyDashboardScreen(),
       ),
       
       // Location history management
