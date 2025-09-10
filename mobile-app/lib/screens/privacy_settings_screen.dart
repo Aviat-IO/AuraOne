@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:photo_manager/photo_manager.dart';
+import 'package:device_calendar/device_calendar.dart';
+import 'package:health/health.dart';
 import '../services/simple_location_service.dart';
 import '../services/movement_tracking_service.dart';
 
@@ -25,6 +29,19 @@ final dataRetentionProvider = StateProvider<DataRetentionPeriod>((ref) {
 });
 
 final automaticDeletionProvider = StateProvider<bool>((ref) => true);
+
+// Additional privacy control providers
+final photoAccessProvider = StateProvider<bool>((ref) => false);
+final calendarAccessProvider = StateProvider<bool>((ref) => false);
+final healthDataProvider = StateProvider<bool>((ref) => false);
+final bluetoothScanningProvider = StateProvider<bool>((ref) => false);
+final microphoneAccessProvider = StateProvider<bool>((ref) => false);
+final cameraAccessProvider = StateProvider<bool>((ref) => false);
+final contactsAccessProvider = StateProvider<bool>((ref) => false);
+final notificationAccessProvider = StateProvider<bool>((ref) => true);
+
+// Permission status providers
+final permissionStatusProvider = StateProvider<Map<Permission, PermissionStatus>>((ref) => {});
 
 enum LocationGranularity {
   off,         // No location tracking
@@ -79,6 +96,14 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               
               // Data retention settings
               _buildDataRetentionSection(context, ref, retention, autoDelete),
+              const SizedBox(height: 24),
+              
+              // Additional Data Source Controls
+              _buildDataSourceControlsSection(context, ref),
+              const SizedBox(height: 24),
+              
+              // Device Permissions
+              _buildDevicePermissionsSection(context, ref),
               const SizedBox(height: 24),
               
               // Location history management
@@ -733,7 +758,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => context.push('/export'),
+                    onPressed: () => _showExportDialog(context),
                     icon: const Icon(Icons.download),
                     label: const Text('Export Data'),
                   ),
@@ -1043,6 +1068,353 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       }
     }
   }
+
+  // New Data Source Controls Section
+  Widget _buildDataSourceControlsSection(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final photoAccess = ref.watch(photoAccessProvider);
+    final calendarAccess = ref.watch(calendarAccessProvider);
+    final healthData = ref.watch(healthDataProvider);
+    final bluetoothScanning = ref.watch(bluetoothScanningProvider);
+    
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.data_usage,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Data Source Access',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Control which device data sources the app can access for enhanced journaling features.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Photo Access Toggle
+            _buildDataSourceToggle(
+              context, 
+              ref,
+              icon: Icons.photo_library,
+              title: 'Photo Access',
+              subtitle: 'Access device photos for journal entries and memories',
+              value: photoAccess,
+              onChanged: (value) async {
+                if (value) {
+                  final status = await _requestPhotoPermission();
+                  if (status) {
+                    ref.read(photoAccessProvider.notifier).state = value;
+                  }
+                } else {
+                  ref.read(photoAccessProvider.notifier).state = value;
+                }
+              },
+            ),
+            
+            // Calendar Access Toggle  
+            _buildDataSourceToggle(
+              context,
+              ref,
+              icon: Icons.calendar_today,
+              title: 'Calendar Access',
+              subtitle: 'Read calendar events for automatic journal context',
+              value: calendarAccess,
+              onChanged: (value) async {
+                if (value) {
+                  final status = await _requestCalendarPermission();
+                  if (status) {
+                    ref.read(calendarAccessProvider.notifier).state = value;
+                  }
+                } else {
+                  ref.read(calendarAccessProvider.notifier).state = value;
+                }
+              },
+            ),
+            
+            // Health Data Toggle
+            _buildDataSourceToggle(
+              context,
+              ref,
+              icon: Icons.favorite,
+              title: 'Health Data',
+              subtitle: 'Track wellness metrics like steps, heart rate, and sleep',
+              value: healthData,
+              onChanged: (value) async {
+                if (value) {
+                  final status = await _requestHealthPermission();
+                  if (status) {
+                    ref.read(healthDataProvider.notifier).state = value;
+                  }
+                } else {
+                  ref.read(healthDataProvider.notifier).state = value;
+                }
+              },
+            ),
+            
+            // Bluetooth Scanning Toggle
+            _buildDataSourceToggle(
+              context,
+              ref,
+              icon: Icons.bluetooth_searching,
+              title: 'Bluetooth Scanning',
+              subtitle: 'Detect nearby devices for location context',
+              value: bluetoothScanning,
+              onChanged: (value) async {
+                if (value) {
+                  final status = await _requestBluetoothPermission();
+                  if (status) {
+                    ref.read(bluetoothScanningProvider.notifier).state = value;
+                  }
+                } else {
+                  ref.read(bluetoothScanningProvider.notifier).state = value;
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Device Permissions Section
+  Widget _buildDevicePermissionsSection(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final microphoneAccess = ref.watch(microphoneAccessProvider);
+    final cameraAccess = ref.watch(cameraAccessProvider);
+    final contactsAccess = ref.watch(contactsAccessProvider);
+    final notificationAccess = ref.watch(notificationAccessProvider);
+    
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.security,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Device Permissions',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Manage access to device features and sensors.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Microphone Toggle
+            _buildDataSourceToggle(
+              context,
+              ref,
+              icon: Icons.mic,
+              title: 'Microphone',
+              subtitle: 'Voice notes and audio recording',
+              value: microphoneAccess,
+              onChanged: (value) async {
+                if (value) {
+                  final status = await Permission.microphone.request();
+                  if (status.isGranted) {
+                    ref.read(microphoneAccessProvider.notifier).state = value;
+                  }
+                } else {
+                  ref.read(microphoneAccessProvider.notifier).state = value;
+                }
+              },
+            ),
+            
+            // Camera Toggle
+            _buildDataSourceToggle(
+              context,
+              ref,
+              icon: Icons.camera_alt,
+              title: 'Camera',
+              subtitle: 'Take photos directly within journal entries',
+              value: cameraAccess,
+              onChanged: (value) async {
+                if (value) {
+                  final status = await Permission.camera.request();
+                  if (status.isGranted) {
+                    ref.read(cameraAccessProvider.notifier).state = value;
+                  }
+                } else {
+                  ref.read(cameraAccessProvider.notifier).state = value;
+                }
+              },
+            ),
+            
+            // Contacts Toggle
+            _buildDataSourceToggle(
+              context,
+              ref,
+              icon: Icons.contacts,
+              title: 'Contacts',
+              subtitle: 'Tag people in journal entries',
+              value: contactsAccess,
+              onChanged: (value) async {
+                if (value) {
+                  final status = await Permission.contacts.request();
+                  if (status.isGranted) {
+                    ref.read(contactsAccessProvider.notifier).state = value;
+                  }
+                } else {
+                  ref.read(contactsAccessProvider.notifier).state = value;
+                }
+              },
+            ),
+            
+            // Notifications Toggle
+            _buildDataSourceToggle(
+              context,
+              ref,
+              icon: Icons.notifications,
+              title: 'Notifications',
+              subtitle: 'Reminders and app notifications',
+              value: notificationAccess,
+              onChanged: (value) async {
+                if (value) {
+                  final status = await Permission.notification.request();
+                  if (status.isGranted) {
+                    ref.read(notificationAccessProvider.notifier).state = value;
+                  }
+                } else {
+                  ref.read(notificationAccessProvider.notifier).state = value;
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Reusable toggle widget for data sources
+  Widget _buildDataSourceToggle(
+    BuildContext context,
+    WidgetRef ref, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required Function(bool) onChanged,
+  }) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: value 
+                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
+                : theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: value 
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.outline.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Icon(
+              icon,
+              color: value 
+                ? theme.colorScheme.primary
+                : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Permission request methods
+  Future<bool> _requestPhotoPermission() async {
+    final result = await PhotoManager.requestPermissionExtend();
+    return result == PermissionState.authorized || result == PermissionState.limited;
+  }
+
+  Future<bool> _requestCalendarPermission() async {
+    final DeviceCalendarPlugin deviceCalendarPlugin = DeviceCalendarPlugin();
+    final result = await deviceCalendarPlugin.requestPermissions();
+    return result.isSuccess == true;
+  }
+
+  Future<bool> _requestHealthPermission() async {
+    final types = [
+      HealthDataType.STEPS,
+      HealthDataType.HEART_RATE,
+      HealthDataType.SLEEP_IN_BED,
+      HealthDataType.ACTIVE_ENERGY_BURNED,
+    ];
+    return await Health().requestAuthorization(types, permissions: [
+      HealthDataAccess.READ,
+      HealthDataAccess.READ_WRITE,
+    ]);
+  }
+
+  Future<bool> _requestBluetoothPermission() async {
+    try {
+      final bluetoothPermission = await Permission.bluetooth.request();
+      final bluetoothScanPermission = await Permission.bluetoothScan.request();
+      return bluetoothPermission.isGranted && bluetoothScanPermission.isGranted;
+    } catch (e) {
+      return false;
+    }
+  }
 }
 
 // Export dialog widget
@@ -1060,8 +1432,6 @@ class _LocationDataExportDialogState extends State<LocationDataExportDialog> {
   
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
     return AlertDialog(
       title: const Text('Export Location Data'),
       content: Column(

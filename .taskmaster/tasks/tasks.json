@@ -701,7 +701,7 @@
         "dependencies": [
           8
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -731,7 +731,7 @@
               "9.2"
             ],
             "details": "Integrate googleapis package for Google Drive API access. Implement OAuth2 authentication flow for Drive permissions. Create DriveBackupService to upload export packages to user's Drive folder. Add progress tracking for upload operations. Implement folder organization and file naming conventions for backups.",
-            "status": "cancelled",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -805,7 +805,7 @@
         "dependencies": [
           9
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -813,7 +813,7 @@
             "description": "Create comprehensive privacy settings interface with granular controls for each data source",
             "dependencies": [],
             "details": "Design and implement privacy settings screen with toggle controls for location tracking, photo access, calendar integration, health data, and BLE scanning. Create categorized sections for different privacy aspects (data collection, storage, sharing). Implement clear labeling and explanations for each setting. Add visual indicators showing current privacy status and data collection activity.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1004,7 +1004,7 @@
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-10T10:53:48.783Z",
+      "updated": "2025-09-10T11:08:21.475Z",
       "description": "Tasks for master context"
     }
   }
