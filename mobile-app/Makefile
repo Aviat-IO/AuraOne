@@ -52,9 +52,9 @@ install:
 dev:
 	@echo "🚀 Starting development server..."
 	@echo "→ Checking for running emulators..."
-	@if ! fvm flutter devices | grep -q "emulator"; then \
+	@if ! fvm flutter devices 2>/dev/null | grep -q -E "(emulator|sdk_gphone|Pixel)"; then \
 		echo "No emulator running. Available emulators:"; \
-		fvm flutter emulators; \
+		fvm flutter emulators 2>/dev/null || echo "Could not list emulators"; \
 		echo ""; \
 		echo "Please start an emulator first:"; \
 		echo "  1. Open Android Studio → Tools → AVD Manager"; \

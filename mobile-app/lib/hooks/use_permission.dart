@@ -25,36 +25,15 @@ class PermissionState {
 }
 
 PermissionState usePermission(
-  Permission permission, {
+  Permission permission,
+  WidgetRef ref, {
   bool autoRequest = false,
   bool showEducationalUI = true,
 }) {
   final context = useContext();
-  final ref = useRef();
   final status = useState<PermissionStatus>(PermissionStatus.denied);
   final isRequesting = useState(false);
   final hasAutoRequested = useState(false);
-
-  // Check initial permission status
-  useEffect(() {
-    Future<void> checkStatus() async {
-      final currentStatus = await permission.status;
-      status.value = currentStatus;
-      
-      // Update global state
-      ref.read(permissionStatesProvider.notifier).updateStatus(permission, currentStatus);
-      
-      // Auto-request if enabled and not already granted
-      if (autoRequest && !hasAutoRequested.value && !currentStatus.isGranted) {
-        hasAutoRequested.value = true;
-        await request();
-      }
-    }
-    
-    checkStatus();
-    
-    return null;
-  }, [permission]);
 
   // Request function
   Future<PermissionStatus> request() async {
@@ -90,6 +69,27 @@ PermissionState usePermission(
     ref.read(permissionStatesProvider.notifier).updateStatus(permission, newStatus);
   }
 
+  // Check initial permission status
+  useEffect(() {
+    Future<void> checkStatus() async {
+      final currentStatus = await permission.status;
+      status.value = currentStatus;
+      
+      // Update global state
+      ref.read(permissionStatesProvider.notifier).updateStatus(permission, currentStatus);
+      
+      // Auto-request if enabled and not already granted
+      if (autoRequest && !hasAutoRequested.value && !currentStatus.isGranted) {
+        hasAutoRequested.value = true;
+        await request();
+      }
+    }
+    
+    checkStatus();
+    
+    return null;
+  }, [permission]);
+
   return PermissionState(
     status: status.value,
     isRequesting: isRequesting.value,
@@ -120,51 +120,15 @@ class MultiplePermissionsState {
 }
 
 MultiplePermissionsState useMultiplePermissions(
-  List<Permission> permissions, {
+  List<Permission> permissions,
+  WidgetRef ref, {
   bool autoRequest = false,
   bool showEducationalUI = true,
 }) {
   final context = useContext();
-  final ref = useRef();
   final statuses = useState<Map<Permission, PermissionStatus>>({});
   final isRequesting = useState(false);
   final hasAutoRequested = useState(false);
-
-  // Check initial permission statuses
-  useEffect(() {
-    Future<void> checkStatuses() async {
-      final Map<Permission, PermissionStatus> currentStatuses = {};
-      
-      for (final permission in permissions) {
-        currentStatuses[permission] = await permission.status;
-      }
-      
-      statuses.value = currentStatuses;
-      
-      // Update global state
-      final notifier = ref.read(permissionStatesProvider.notifier);
-      for (final entry in currentStatuses.entries) {
-        notifier.updateStatus(entry.key, entry.value);
-      }
-      
-      // Auto-request if enabled and not all granted
-      if (autoRequest && !hasAutoRequested.value) {
-        hasAutoRequested.value = true;
-        final notGranted = currentStatuses.entries
-            .where((e) => !e.value.isGranted && !e.value.isLimited)
-            .map((e) => e.key)
-            .toList();
-        
-        if (notGranted.isNotEmpty) {
-          await requestAll();
-        }
-      }
-    }
-    
-    checkStatuses();
-    
-    return null;
-  }, permissions);
 
   // Request all permissions
   Future<Map<Permission, PermissionStatus>> requestAll() async {
@@ -241,6 +205,42 @@ MultiplePermissionsState useMultiplePermissions(
       notifier.updateStatus(entry.key, entry.value);
     }
   }
+
+  // Check initial permission statuses
+  useEffect(() {
+    Future<void> checkStatuses() async {
+      final Map<Permission, PermissionStatus> currentStatuses = {};
+      
+      for (final permission in permissions) {
+        currentStatuses[permission] = await permission.status;
+      }
+      
+      statuses.value = currentStatuses;
+      
+      // Update global state
+      final notifier = ref.read(permissionStatesProvider.notifier);
+      for (final entry in currentStatuses.entries) {
+        notifier.updateStatus(entry.key, entry.value);
+      }
+      
+      // Auto-request if enabled and not all granted
+      if (autoRequest && !hasAutoRequested.value) {
+        hasAutoRequested.value = true;
+        final notGranted = currentStatuses.entries
+            .where((e) => !e.value.isGranted && !e.value.isLimited)
+            .map((e) => e.key)
+            .toList();
+        
+        if (notGranted.isNotEmpty) {
+          await requestAll();
+        }
+      }
+    }
+    
+    checkStatuses();
+    
+    return null;
+  }, permissions);
 
   return MultiplePermissionsState(
     statuses: statuses.value,

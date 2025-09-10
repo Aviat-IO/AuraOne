@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../hooks/use_permission.dart';
@@ -12,6 +13,7 @@ class CameraScreen extends HookConsumerWidget {
     final theme = Theme.of(context);
     final cameraPermission = usePermission(
       Permission.camera,
+      ref,
       autoRequest: false, // Don't auto-request, wait for user action
       showEducationalUI: true,
     );
