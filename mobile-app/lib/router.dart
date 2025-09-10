@@ -10,6 +10,7 @@ import 'package:aura_one/screens/debug/data_viewer_screen.dart';
 import 'package:aura_one/screens/debug/database_viewer_screen.dart';
 import 'package:aura_one/screens/export_screen.dart';
 import 'package:aura_one/screens/import_screen.dart';
+import 'package:aura_one/screens/backup_settings_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -81,6 +82,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/import',
         builder: (context, state) => const ImportScreen(),
+      ),
+      
+      // Backup settings screen
+      GoRoute(
+        path: '/settings/backup',
+        builder: (context, state) => const BackupSettingsScreen(),
       ),
     ],
   );

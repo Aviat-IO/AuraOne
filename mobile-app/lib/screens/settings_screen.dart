@@ -203,10 +203,7 @@ class SettingsScreen extends ConsumerWidget {
                                 ),
                                 theme: theme,
                                 onTap: () {
-                                  // TODO: Implement backup settings
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Backup settings coming soon')),
-                                  );
+                                  context.push('/settings/backup');
                                 },
                               ),
                             ],
