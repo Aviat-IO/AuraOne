@@ -13,9 +13,7 @@ import '../services/simple_location_service.dart';
 import '../providers/media_database_provider.dart';
 
 // Provider to store the current day's journal entry
-final todayJournalEntryProvider = StateProvider<String>((ref) => 
-  "Today was a peaceful day. You started with your morning routine at 7:30 AM, had a productive work session, and took a refreshing walk in the afternoon. You connected with a friend over coffee and spent the evening reading."
-);
+final todayJournalEntryProvider = StateProvider<String?>((ref) => null);
 
 // Provider for sub-tab index
 final homeSubTabIndexProvider = StateProvider<int>((ref) => 0);
@@ -197,7 +195,7 @@ class _OverviewTab extends HookConsumerWidget {
     final isLight = theme.brightness == Brightness.light;
     final journalEntry = ref.watch(todayJournalEntryProvider);
     final isEditing = useState(false);
-    final controller = useTextEditingController(text: journalEntry);
+    final controller = useTextEditingController(text: journalEntry ?? '');
     final isLoading = useState(false);
     
     // Get today's stats
@@ -344,13 +342,15 @@ class _OverviewTab extends HookConsumerWidget {
                               height: 1.5,
                             ),
                           )
-                        : Text(
-                            journalEntry,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              height: 1.5,
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
-                            ),
-                          ),
+                        : journalEntry != null && journalEntry.isNotEmpty
+                          ? Text(
+                              journalEntry,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                height: 1.5,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
+                              ),
+                            )
+                          : _buildSummaryEmptyState(theme),
                     ),
                   ],
                 ),
@@ -419,6 +419,40 @@ class _OverviewTab extends HookConsumerWidget {
             const SizedBox(height: 80), // Extra space for bottom navigation
           ],
         ),
+      ),
+    );
+  }
+  
+  // Build empty state for Today's Summary
+  Widget _buildSummaryEmptyState(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.analytics_outlined,
+            size: 48,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No data yet today',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your daily summary will automatically appear\nas you use the app throughout the day',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              height: 1.4,
+            ),
+          ),
+        ],
       ),
     );
   }
