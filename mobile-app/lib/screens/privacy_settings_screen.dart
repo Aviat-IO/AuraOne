@@ -117,6 +117,10 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               _buildDataRetentionSection(context, ref, retention, autoDelete),
               const SizedBox(height: 24),
               
+              // Data deletion controls
+              _buildDataDeletionSection(context),
+              const SizedBox(height: 24),
+              
               // App lock settings
               _buildAppLockSection(context),
               const SizedBox(height: 24),
@@ -1257,6 +1261,75 @@ class PrivacySettingsScreen extends HookConsumerWidget {
                   ref.read(bluetoothScanningProvider.notifier).state = value;
                 }
               },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDataDeletionSection(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.delete_sweep,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Data Deletion',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Remove data from your device. Choose specific data types and date ranges, or perform a complete wipe.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            ListTile(
+              leading: Icon(
+                Icons.cleaning_services,
+                color: theme.colorScheme.primary,
+              ),
+              title: const Text('Selective Data Deletion'),
+              subtitle: const Text('Choose specific data types and date ranges to delete'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/privacy/data-deletion'),
+            ),
+            
+            const Divider(height: 32),
+            
+            Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: theme.colorScheme.error,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'These actions cannot be undone',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

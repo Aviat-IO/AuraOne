@@ -3,6 +3,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../services/simple_location_service.dart';
 import '../theme/colors.dart';
+import '../widgets/common/help_tooltip.dart';
+import '../widgets/privacy/privacy_help_guide.dart';
+import '../widgets/privacy/privacy_quick_start.dart';
 
 // Providers for privacy settings
 final locationTrackingEnabledProvider = StateProvider<bool>((ref) => true);
@@ -76,10 +79,13 @@ class PrivacyScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Privacy & Security',
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+                          Semantics(
+                            header: true,
+                            child: Text(
+                              'Privacy & Security',
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -281,12 +287,12 @@ class PrivacyScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // Permission Settings
-                Text(
-                  'Permission Settings',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                // Permission Settings with help
+                HelpSectionHeader(
+                  title: 'Permission Settings',
+                  subtitle: 'Control what device features the app can access',
+                  helpText: 'These permissions enable specific features in the app. Location tracking helps provide context to your journal entries, while photo access lets you include images. You can enable or disable these anytime without affecting other app functionality.',
+                  icon: Icons.tune,
                 ),
                 const SizedBox(height: 16),
 
@@ -324,10 +330,14 @@ class PrivacyScreen extends ConsumerWidget {
                         size: 20,
                       ),
                     ),
-                    title: Text(
-                      'Location Tracking',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                    title: HelpTooltip(
+                      message: 'Location tracking provides context for your journal entries',
+                      detailedHelp: 'When enabled, the app tracks your location to automatically provide context for your journal entries. This helps you remember where you were when you wrote specific entries. Location data is stored locally on your device and never shared with external servers.',
+                      child: Text(
+                        'Location Tracking',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     subtitle: Text(
@@ -385,10 +395,14 @@ class PrivacyScreen extends ConsumerWidget {
                         size: 20,
                       ),
                     ),
-                    title: Text(
-                      'Photo Library Access',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                    title: HelpTooltip(
+                      message: 'Access device photos to include in journal entries',
+                      detailedHelp: 'Photo library access allows you to select existing photos from your device to include in journal entries. This makes it easy to add visual memories to your writing. The app only accesses photos you specifically select.',
+                      child: Text(
+                        'Photo Library Access',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     subtitle: Text(
@@ -471,22 +485,87 @@ class PrivacyScreen extends ConsumerWidget {
 
                 const SizedBox(height: 24),
 
-                // Data & Privacy section
-                Text(
-                  'Data & Privacy',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                // Data & Privacy section with help
+                HelpSectionHeader(
+                  title: 'Data & Privacy',
+                  subtitle: 'Manage your personal data and privacy settings',
+                  helpText: 'These options let you control your personal data. You can export a complete copy of your data, view our privacy policy, or delete all data from your device. All operations are performed locally and securely.',
+                  icon: Icons.folder_shared,
                 ),
                 const SizedBox(height: 16),
 
-                _buildPrivacyOption(
+                // Quick access to help and guides
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        HelpSectionHeader(
+                          title: 'Privacy Help & Guides',
+                          subtitle: 'Learn more about privacy controls and features',
+                          icon: Icons.help_outline,
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        // Privacy guide button
+                        Semantics(
+                          label: 'Open comprehensive privacy guide',
+                          hint: 'Double tap to learn about all privacy features',
+                          button: true,
+                          child: ListTile(
+                            leading: Icon(
+                              Icons.school,
+                              color: theme.colorScheme.primary,
+                            ),
+                            title: const Text('Privacy Guide'),
+                            subtitle: const Text('Complete guide to privacy controls and settings'),
+                            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const PrivacyHelpGuide(),
+                              ),
+                            ),
+                          ),
+                        ),
+                        
+                        const Divider(),
+                        
+                        // Quick start guide button
+                        Semantics(
+                          label: 'Open privacy quick start guide',
+                          hint: 'Double tap to configure privacy settings with guided setup',
+                          button: true,
+                          child: ListTile(
+                            leading: Icon(
+                              Icons.rocket_launch,
+                              color: theme.colorScheme.secondary,
+                            ),
+                            title: const Text('Quick Start Guide'),
+                            subtitle: const Text('Guided setup for new users'),
+                            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const PrivacyQuickStartGuide(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                _buildPrivacyOptionWithTooltip(
                   context: context,
                   theme: theme,
                   isLight: isLight,
                   icon: Icons.folder_shared,
                   title: 'Export Your Data',
                   subtitle: 'Download a copy of your journal entries and settings',
+                  helpMessage: 'Download a copy of all your personal data',
+                  detailedHelp: 'Export creates a complete backup of your journal entries, settings, and preferences. You can choose different formats (JSON, CSV) and decide what data to include. This is useful for backups or transferring to another device.',
                   onTap: () {
                     // TODO: Implement data export
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -496,13 +575,15 @@ class PrivacyScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
 
-                _buildPrivacyOption(
+                _buildPrivacyOptionWithTooltip(
                   context: context,
                   theme: theme,
                   isLight: isLight,
                   icon: Icons.delete_forever,
                   title: 'Delete All Data',
                   subtitle: 'Permanently remove all your data from this device',
+                  helpMessage: 'Permanently remove all data from this device',
+                  detailedHelp: 'This action permanently deletes all your journal entries, photos, settings, and app data from this device. This cannot be undone. Consider exporting your data first as a backup.',
                   isDestructive: true,
                   onTap: () {
                     _showDeleteDataDialog(context);
@@ -510,16 +591,17 @@ class PrivacyScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
 
-                _buildPrivacyOption(
+                _buildPrivacyOptionWithTooltip(
                   context: context,
                   theme: theme,
                   isLight: isLight,
                   icon: Icons.article,
                   title: 'Privacy Policy',
                   subtitle: 'Read our complete privacy policy and terms',
+                  helpMessage: 'Read our complete privacy policy and terms',
+                  detailedHelp: 'Our privacy policy explains how we handle your data, what information we collect, and your rights. We believe in transparency and your right to understand how your personal information is used.',
                   onTap: () {
-                    // Navigate to existing privacy page if it exists
-                    context.push('/privacy');
+                    _showPrivacyPolicyDialog(context);
                   },
                 ),
                 const SizedBox(height: 32),
@@ -527,6 +609,82 @@ class PrivacyScreen extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPrivacyOptionWithTooltip({
+    required BuildContext context,
+    required ThemeData theme,
+    required bool isLight,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    required String helpMessage,
+    String? detailedHelp,
+    bool isDestructive = false,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isLight
+            ? AuraColors.lightCardGradient
+            : AuraColors.darkCardGradient,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isLight
+              ? AuraColors.lightPrimary.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isDestructive
+              ? Colors.red.withValues(alpha: 0.1)
+              : theme.colorScheme.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            color: isDestructive
+              ? Colors.red
+              : theme.colorScheme.primary,
+            size: 20,
+          ),
+        ),
+        title: HelpTooltip(
+          message: helpMessage,
+          detailedHelp: detailedHelp,
+          child: Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: isDestructive ? Colors.red : null,
+            ),
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+        ),
+        onTap: onTap,
       ),
     );
   }
@@ -626,6 +784,100 @@ class PrivacyScreen extends ConsumerWidget {
               foregroundColor: Colors.red,
             ),
             child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPrivacyPolicyDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.policy, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 8),
+            const Text('Privacy Policy'),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Data Collection and Use',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Aura One is designed with privacy as a fundamental principle. We collect minimal data and only what is necessary to provide the journaling experience you expect.\n\n'
+                  '• Location data (if enabled): Used solely to provide context for your journal entries\n'
+                  '• Photos (if accessed): Only photos you explicitly select are processed\n'
+                  '• Usage data: Basic app usage statistics to improve functionality\n\n'
+                  'All personal data is stored locally on your device using industry-standard encryption.',
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Data Storage and Security',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '• Local-first architecture: Your data stays on your device\n'
+                  '• No cloud storage without explicit consent\n'
+                  '• End-to-end encryption for sensitive information\n'
+                  '• Regular security updates and audits\n'
+                  '• Data retention policies you control\n',
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Your Rights and Control',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '• Access: View all data we have about you\n'
+                  '• Export: Download your data in standard formats\n'
+                  '• Delete: Remove specific data or all data permanently\n'
+                  '• Control: Enable or disable features at any time\n'
+                  '• Transparency: This policy and our practices are always available\n',
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Contact and Updates',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'This policy may be updated to reflect changes in our practices or legal requirements. Any significant changes will be communicated through the app.\n\n'
+                  'For questions about privacy or data handling, you can contact us through the app settings.',
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.push('/privacy/settings');
+            },
+            child: const Text('Manage Settings'),
           ),
         ],
       ),

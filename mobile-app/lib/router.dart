@@ -14,6 +14,7 @@ import 'package:aura_one/screens/backup_settings_screen.dart';
 import 'package:aura_one/screens/app_lock_settings_screen.dart';
 import 'package:aura_one/screens/camera_screen.dart';
 import 'package:aura_one/screens/privacy_dashboard_screen.dart';
+import 'package:aura_one/screens/privacy/data_deletion_screen.dart';
 import 'package:aura_one/screens/font_size_settings_screen.dart';
 import 'package:aura_one/screens/about_screen.dart';
 
@@ -65,6 +66,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/privacy/location-history',
         builder: (context, state) => const LocationHistoryScreen(),
+      ),
+      
+      // Data deletion screen
+      GoRoute(
+        path: '/privacy/data-deletion',
+        builder: (context, state) => const DataDeletionScreen(),
       ),
       
       // Photo service test screen (for development)
