@@ -96,7 +96,7 @@ class MovementTrackingService {
   
   // Start tracking movement
   Future<void> startTracking() async {
-    debugPrint('[MovementTracking] Starting movement tracking...');
+    // Movement tracking starting...
     
     // Subscribe to gyroscope events
     _gyroscopeSubscription = gyroscopeEventStream(
@@ -104,7 +104,7 @@ class MovementTrackingService {
     ).listen(
       _handleGyroscopeEvent,
       onError: (error) {
-        debugPrint('[MovementTracking] Gyroscope error: $error');
+        // Gyroscope error: $error
       },
       cancelOnError: false,
     );
@@ -115,7 +115,7 @@ class MovementTrackingService {
     ).listen(
       _handleAccelerometerEvent,
       onError: (error) {
-        debugPrint('[MovementTracking] Accelerometer error: $error');
+        // Accelerometer error: $error
       },
       cancelOnError: false,
     );
@@ -126,7 +126,7 @@ class MovementTrackingService {
     ).listen(
       _handleUserAccelerometerEvent,
       onError: (error) {
-        debugPrint('[MovementTracking] User accelerometer error: $error');
+        // User accelerometer error: $error
       },
       cancelOnError: false,
     );
@@ -145,12 +145,12 @@ class MovementTrackingService {
       (_) => _persistMovementData(),
     );
     
-    debugPrint('[MovementTracking] Movement tracking started');
+    // Movement tracking started
   }
   
   // Stop tracking movement
   void stopTracking() {
-    debugPrint('[MovementTracking] Stopping movement tracking...');
+    // Movement tracking stopping...
     
     _gyroscopeSubscription?.cancel();
     _accelerometerSubscription?.cancel();
@@ -168,7 +168,7 @@ class MovementTrackingService {
     _recentGyroData.clear();
     _recentAccelData.clear();
     
-    debugPrint('[MovementTracking] Movement tracking stopped');
+    // Movement tracking stopped
   }
   
   // Handle gyroscope events
@@ -258,7 +258,7 @@ class MovementTrackingService {
     
     _ref.read(movementHistoryProvider.notifier).state = recentHistory;
     
-    debugPrint('[MovementTracking] State: $state, Confidence: ${confidence.toStringAsFixed(2)}');
+    // State: $state, Confidence: ${confidence.toStringAsFixed(2)}
   }
   
   // Determine movement state from sensor data
@@ -435,9 +435,9 @@ class MovementTrackingService {
         ),
       );
       
-      debugPrint('[MovementTracking] Persisted movement data to database');
+      // Persisted movement data to database
     } catch (e) {
-      debugPrint('[MovementTracking] Error persisting data: $e');
+      // Error persisting data: $e
     }
   }
   
@@ -506,7 +506,7 @@ class MovementTrackingService {
   Future<void> clearMovementData() async {
     await _database.delete(_database.movementData).go();
     _ref.read(movementHistoryProvider.notifier).state = [];
-    debugPrint('[MovementTracking] Cleared all movement data');
+    // Cleared all movement data
   }
   
   // Export movement data
