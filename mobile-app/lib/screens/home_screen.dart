@@ -118,40 +118,6 @@ class HomeScreen extends HookConsumerWidget {
                 ),
               ),
               
-              // Sub-tabs
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface.withValues(alpha: 0.8),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isLight 
-                        ? Colors.black.withValues(alpha: 0.05)
-                        : Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TabBar(
-                  controller: tabController,
-                  indicator: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: theme.colorScheme.primaryContainer,
-                  ),
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  labelColor: theme.colorScheme.onPrimaryContainer,
-                  unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  tabs: const [
-                    Tab(text: 'Overview', icon: Icon(Icons.dashboard, size: 20)),
-                    Tab(text: 'Map', icon: Icon(Icons.map, size: 20)),
-                    Tab(text: 'Media', icon: Icon(Icons.photo_library, size: 20)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              
               // Tab content
               Expanded(
                 child: TabBarView(
@@ -161,6 +127,87 @@ class HomeScreen extends HookConsumerWidget {
                     _MapTab(),
                     _MediaTab(),
                   ],
+                ),
+              ),
+              
+              // Sub-tabs at bottom (sticky) - matching main nav bar colors
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: isLight
+                        ? [
+                            AuraColors.lightSurface.withValues(alpha: 0.95),
+                            AuraColors.lightSurface,
+                          ]
+                        : [
+                            AuraColors.darkSurface.withValues(alpha: 0.95),
+                            AuraColors.darkSurface,
+                          ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isLight 
+                        ? Colors.black.withValues(alpha: 0.05)
+                        : Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(12, 8, 12, 12), // More bottom padding to push separator down
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TabBar(
+                    controller: tabController,
+                    indicator: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: theme.colorScheme.primaryContainer,
+                    ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    labelColor: theme.colorScheme.onPrimaryContainer,
+                    unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    labelPadding: const EdgeInsets.symmetric(vertical: 8), // Add vertical padding to tabs
+                    tabs: const [
+                      Tab(
+                        height: 48, // Fixed height for consistent sizing
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.dashboard, size: 16), // Reduced from 20
+                            SizedBox(height: 4),
+                            Text('Overview', style: TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      Tab(
+                        height: 48,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.map, size: 16), // Reduced from 20
+                            SizedBox(height: 4),
+                            Text('Map', style: TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      Tab(
+                        height: 48,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.photo_library, size: 16), // Reduced from 20
+                            SizedBox(height: 4),
+                            Text('Media', style: TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
