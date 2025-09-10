@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../theme/colors.dart';
+import '../widgets/page_header.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -49,18 +50,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Search header
-                Text(
-                  'Search Journal',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Find your past entries',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
+                const PageHeader(
+                  icon: Icons.search,
+                  title: 'Search Journal',
+                  subtitle: 'Find your past entries',
                 ),
                 const SizedBox(height: 24),
 

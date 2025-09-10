@@ -6,7 +6,6 @@ enum FontSize {
   small,
   medium,
   large,
-  extraLarge,
 }
 
 final fontSizeProvider = StateNotifierProvider<FontSizeNotifier, FontSize>((ref) {
@@ -14,13 +13,13 @@ final fontSizeProvider = StateNotifierProvider<FontSizeNotifier, FontSize>((ref)
 });
 
 class FontSizeNotifier extends StateNotifier<FontSize> {
-  FontSizeNotifier() : super(FontSize.medium) {
+  FontSizeNotifier() : super(FontSize.small) {
     _loadFontSize();
   }
 
   Future<void> _loadFontSize() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedValue = prefs.getInt('fontSize') ?? 1;
+    final savedValue = prefs.getInt('fontSize') ?? 0; // Default to small (which is now the middle option)
     state = FontSize.values[savedValue];
   }
 
@@ -32,10 +31,9 @@ class FontSizeNotifier extends StateNotifier<FontSize> {
 
   double get scaleFactor {
     return switch (state) {
-      FontSize.small => 0.85,
-      FontSize.medium => 1.0,
-      FontSize.large => 1.15,
-      FontSize.extraLarge => 1.3,
+      FontSize.small => 1.0,  // Previously medium
+      FontSize.medium => 1.15, // Previously large
+      FontSize.large => 1.3,   // Previously extraLarge
     };
   }
 }

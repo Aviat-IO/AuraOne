@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../theme/colors.dart';
+import '../widgets/page_header.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
@@ -14,7 +15,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   final CalendarFormat _calendarFormat = CalendarFormat.month; // Fixed to month view
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  
+
   // Mock data for dates with entries - in a real app, this would come from storage
   final Map<DateTime, List<String>> _journalEntries = {
     DateTime(2025, 1, 5): ['Morning reflection', 'Evening gratitude'],
@@ -44,7 +45,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -70,21 +71,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // History header
-                Text(
-                  'Journal History',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Navigate through your wellness journey',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
+                PageHeader(
+                  icon: Icons.book,
+                  title: 'Journal History',
+                  subtitle:
+                  'Find your past entries',
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Calendar widget
                 Container(
                   decoration: BoxDecoration(
@@ -92,13 +86,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: isLight 
+                      colors: isLight
                         ? AuraColors.lightCardGradient
                         : AuraColors.darkCardGradient,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: isLight 
+                        color: isLight
                           ? AuraColors.lightPrimary.withValues(alpha: 0.08)
                           : Colors.black.withValues(alpha: 0.2),
                         blurRadius: 16,
@@ -168,7 +162,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Selected day entries
                 Expanded(
                   child: _selectedDay != null
@@ -186,7 +180,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Widget _buildSelectedDayEntries(ThemeData theme, bool isLight) {
     final entries = _getEntriesForDay(_selectedDay!);
     final selectedDate = _selectedDay!;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -197,7 +191,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        
+
         if (entries.isEmpty)
           Expanded(
             child: Container(
@@ -206,13 +200,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: isLight 
+                  colors: isLight
                     ? AuraColors.lightCardGradient
                     : AuraColors.darkCardGradient,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: isLight 
+                    color: isLight
                       ? AuraColors.lightPrimary.withValues(alpha: 0.08)
                       : Colors.black.withValues(alpha: 0.2),
                     blurRadius: 16,
@@ -262,13 +256,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: isLight 
+                      colors: isLight
                         ? AuraColors.lightCardGradient
                         : AuraColors.darkCardGradient,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: isLight 
+                        color: isLight
                           ? AuraColors.lightPrimary.withValues(alpha: 0.05)
                           : Colors.black.withValues(alpha: 0.15),
                         blurRadius: 8,
@@ -315,13 +309,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isLight 
+          colors: isLight
             ? AuraColors.lightCardGradient
             : AuraColors.darkCardGradient,
         ),
         boxShadow: [
           BoxShadow(
-            color: isLight 
+            color: isLight
               ? AuraColors.lightPrimary.withValues(alpha: 0.08)
               : Colors.black.withValues(alpha: 0.2),
             blurRadius: 16,

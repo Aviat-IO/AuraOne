@@ -846,7 +846,7 @@
               "10.3"
             ],
             "details": "Build data deletion interface allowing users to selectively remove journal entries by date range, data type, or source. Implement complete data wipe functionality with confirmation dialogs. Add preview of what will be deleted before confirmation. Ensure proper deletion from database and file system including media files. Implement secure deletion that prevents data recovery. Add export option before deletion.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -870,7 +870,7 @@
               "10.5"
             ],
             "details": "Add prominent privacy settings access from main menu and onboarding flow. Create comprehensive help documentation explaining each privacy control and its impact. Implement contextual help tooltips and info buttons throughout privacy settings. Add privacy policy and data handling documentation. Ensure all privacy controls are accessible with screen readers and follow accessibility guidelines. Create privacy quick-start guide for new users.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -881,7 +881,7 @@
         "description": "Implement an animated bottom navigation bar where tab titles only appear when selected, with smooth animations moving icons up and titles down for a cleaner minimal interface.",
         "details": "Create a custom bottom navigation bar widget that dynamically shows/hides tab titles based on selection state. When a tab is selected: animate the icon upward, fade in the title with a downward slide animation, and ensure proper spacing. When deselected: fade out the title with upward animation and move icon to center position. Use AnimationController with Tween animations for smooth transitions (duration ~300ms). Implement custom TabBarItem widget with separate icon and title containers. Use Transform.translate for vertical movement and FadeTransition for opacity changes. Ensure the navigation bar height adjusts smoothly to accommodate title text. Integrate with existing router configuration and maintain proper tab state management. Consider using AnimatedContainer for height changes and Positioned widgets for precise layout control. Add subtle spring physics to animations using Curves.elasticOut for modern feel.",
         "testStrategy": "Test animation smoothness across different devices and screen sizes. Verify tab selection state persistence during navigation. Test rapid tab switching to ensure animations don't conflict. Validate that the navigation bar integrates properly with the three sub-tabs (Overview, Map, Media) from the home page. Test accessibility features like screen readers with dynamic title visibility. Verify animation performance doesn't impact overall app responsiveness. Test on both iOS and Android for platform-specific behavior differences.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           8
         ],
@@ -1004,7 +1004,7 @@
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-10T14:29:11.361Z",
+      "updated": "2025-09-10T15:31:07.194Z",
       "description": "Tasks for master context"
     }
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/simple_theme_switcher.dart';
+import '../widgets/page_header.dart';
 import '../theme.dart';
 import '../theme/colors.dart';
 import '../providers/settings_providers.dart';
@@ -37,70 +38,20 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
         child: SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Settings header
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: isLight 
-                            ? AuraColors.lightLogoGradient
-                            : AuraColors.darkLogoGradient,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isLight 
-                              ? AuraColors.lightPrimary.withValues(alpha: 0.2)
-                              : AuraColors.darkPrimary.withValues(alpha: 0.15),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.settings,
-                        size: 24,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Settings',
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Customize your wellness experience',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                const PageHeader(
+                  icon: Icons.settings,
+                  title: 'Settings',
+                  subtitle: 'Customize your wellness experience',
                 ),
                 const SizedBox(height: 32),
                 
                 // Settings sections
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
                         // Appearance section
                         Text(
                           'Appearance',
@@ -405,12 +356,8 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+              ),
+            );
   }
 
   Widget _buildSettingsCard({
@@ -484,10 +431,9 @@ class SettingsScreen extends ConsumerWidget {
 
   String _getFontSizeSubtitle(FontSize size) {
     return switch (size) {
-      FontSize.small => 'Small text',
-      FontSize.medium => 'Medium text (Default)',
+      FontSize.small => 'Standard text (Default)',
+      FontSize.medium => 'Medium text',
       FontSize.large => 'Large text',
-      FontSize.extraLarge => 'Extra large text',
     };
   }
 }

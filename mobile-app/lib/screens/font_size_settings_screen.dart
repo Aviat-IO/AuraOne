@@ -193,28 +193,25 @@ class FontSizeSettingsScreen extends ConsumerWidget {
 
   String _getSizeName(FontSize size) {
     return switch (size) {
-      FontSize.small => 'Small',
-      FontSize.medium => 'Medium (Default)',
+      FontSize.small => 'Small (Default)',
+      FontSize.medium => 'Medium',
       FontSize.large => 'Large',
-      FontSize.extraLarge => 'Extra Large',
     };
   }
 
   String _getSizeDescription(FontSize size) {
     return switch (size) {
-      FontSize.small => 'Compact text for more content',
-      FontSize.medium => 'Standard reading size',
-      FontSize.large => 'Easier reading',
-      FontSize.extraLarge => 'Maximum readability',
+      FontSize.small => 'Standard reading size',
+      FontSize.medium => 'Easier reading',
+      FontSize.large => 'Maximum readability',
     };
   }
 
   double _getPreviewSize(FontSize size) {
     return switch (size) {
-      FontSize.small => 13,
-      FontSize.medium => 16,
-      FontSize.large => 18.5,
-      FontSize.extraLarge => 21,
+      FontSize.small => 16,
+      FontSize.medium => 18.5,
+      FontSize.large => 21,
     };
   }
 }

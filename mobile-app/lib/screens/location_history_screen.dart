@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../widgets/common/time_utils.dart';
+import '../widgets/page_header.dart';
 import '../providers/location_database_provider.dart';
 import '../database/location_database.dart';
 
@@ -139,7 +140,7 @@ class LocationHistoryScreen extends HookConsumerWidget {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Location History'),
+        toolbarHeight: 0,
         backgroundColor: theme.colorScheme.surface,
         foregroundColor: theme.colorScheme.onSurface,
         elevation: 0,
@@ -198,6 +199,15 @@ class LocationHistoryScreen extends HookConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: PageHeader(
+                icon: Icons.history,
+                title: 'Location History',
+                subtitle: '${filteredEntries.length} locations tracked',
+              ),
+            ),
             // Filter controls
             _buildFilterControls(context, ref, theme, filteredEntries.length),
             

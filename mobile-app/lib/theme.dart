@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'theme/colors.dart';
+import 'providers/settings_providers.dart';
 
 final brightnessProvider = StateProvider<Brightness>((ref) => Brightness.light);
 
-// Theme provider that switches between light and dark
+// Theme provider that switches between light and dark with font size scaling
 final themeProvider = Provider<ThemeData>((ref) {
   final brightness = ref.watch(brightnessProvider);
-  return brightness == Brightness.light ? lightTheme : darkTheme;
+  ref.watch(fontSizeProvider); // Watch for font size changes
+  final fontSizeNotifier = ref.read(fontSizeProvider.notifier);
+  
+  // Get base theme
+  final baseTheme = brightness == Brightness.light ? lightTheme : darkTheme;
+  
+  // Apply font size scaling to the text theme
+  return baseTheme.copyWith(
+    textTheme: _scaleTextTheme(baseTheme.textTheme, fontSizeNotifier.scaleFactor),
+  );
 });
 
 // Helper function to scale text theme proportionally
@@ -103,14 +113,6 @@ final lightTheme =
         selectedItemColor: AuraColors.lightPrimary,
         unselectedItemColor: AuraColors.lightOutline,
       ),
-    ).copyWith(
-      textTheme: _scaleTextTheme(
-        ThemeData(
-          colorScheme: const ColorScheme.light(),
-          useMaterial3: true,
-        ).textTheme,
-        1.15, // 15% bigger fonts for better readability
-      ),
     );
 
 // Dark theme - warm and cozy
@@ -154,13 +156,5 @@ final darkTheme =
         backgroundColor: AuraColors.darkSurface,
         selectedItemColor: AuraColors.darkPrimary,
         unselectedItemColor: AuraColors.darkOutline,
-      ),
-    ).copyWith(
-      textTheme: _scaleTextTheme(
-        ThemeData(
-          colorScheme: const ColorScheme.dark(),
-          useMaterial3: true,
-        ).textTheme,
-        1.15, // 15% bigger fonts for better readability
       ),
     );

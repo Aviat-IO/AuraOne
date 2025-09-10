@@ -7,6 +7,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../theme/colors.dart';
+import '../widgets/page_header.dart';
 import '../database/media_database.dart';
 import '../services/simple_location_service.dart';
 import '../providers/media_database_provider.dart';
@@ -61,64 +62,16 @@ class HomeScreen extends HookConsumerWidget {
         child: SafeArea(
           child: Column(
             children: [
-              // Header with date and greeting
+              // Header - consistent across all tabs
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: isLight 
-                        ? AuraColors.lightCardGradient
-                        : AuraColors.darkCardGradient,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isLight 
-                          ? AuraColors.lightPrimary.withValues(alpha: 0.08)
-                          : Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.wb_sunny,
-                          color: theme.colorScheme.primary,
-                          size: 28,
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _getGreeting(),
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _getFormattedDate(),
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+                child: PageHeader(
+                  icon: Icons.home,
+                  title: _getGreeting(),
+                  subtitle: _getFormattedDate(),
                 ),
               ),
-              
-              // Tab content
+              // Tab content without header
               Expanded(
                 child: TabBarView(
                   controller: tabController,
@@ -172,15 +125,15 @@ class HomeScreen extends HookConsumerWidget {
                     labelColor: theme.colorScheme.onPrimaryContainer,
                     unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     labelPadding: const EdgeInsets.symmetric(vertical: 8), // Add vertical padding to tabs
-                    tabs: const [
+                    tabs: [
                       Tab(
                         height: 48, // Fixed height for consistent sizing
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.dashboard, size: 16), // Reduced from 20
-                            SizedBox(height: 4),
-                            Text('Overview', style: TextStyle(fontSize: 12)),
+                            const Icon(Icons.dashboard, size: 16), // Reduced from 20
+                            const SizedBox(height: 4),
+                            Text('Overview', style: theme.textTheme.labelSmall),
                           ],
                         ),
                       ),
@@ -189,9 +142,9 @@ class HomeScreen extends HookConsumerWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.map, size: 16), // Reduced from 20
-                            SizedBox(height: 4),
-                            Text('Map', style: TextStyle(fontSize: 12)),
+                            const Icon(Icons.map, size: 16), // Reduced from 20
+                            const SizedBox(height: 4),
+                            Text('Map', style: theme.textTheme.labelSmall),
                           ],
                         ),
                       ),
@@ -200,9 +153,9 @@ class HomeScreen extends HookConsumerWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.photo_library, size: 16), // Reduced from 20
-                            SizedBox(height: 4),
-                            Text('Media', style: TextStyle(fontSize: 12)),
+                            const Icon(Icons.photo_library, size: 16), // Reduced from 20
+                            const SizedBox(height: 4),
+                            Text('Media', style: theme.textTheme.labelSmall),
                           ],
                         ),
                       ),
@@ -227,14 +180,12 @@ class HomeScreen extends HookConsumerWidget {
       return 'Good Evening';
     }
   }
-  
+
   String _getFormattedDate() {
     final now = DateTime.now();
-    final weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    final months = ['January', 'February', 'March', 'April', 'May', 'June', 
-                   'July', 'August', 'September', 'October', 'November', 'December'];
-    
-    return '${weekdays[now.weekday % 7]}, ${months[now.month - 1]} ${now.day}, ${now.year}';
+    final weekday = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][now.weekday - 1];
+    final month = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][now.month - 1];
+    return '$weekday, $month ${now.day}';
   }
 }
 

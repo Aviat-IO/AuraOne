@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
+import '../widgets/page_header.dart';
 import '../services/data_attribution_service.dart';
 import '../providers/location_database_provider.dart';
 import '../services/photo_service.dart';
@@ -112,22 +113,20 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
           child: CustomScrollView(
             controller: scrollController,
             slivers: [
-              // App Bar
-              SliverAppBar(
-                floating: true,
-                backgroundColor: Colors.transparent,
-                title: Text(
-                  'Privacy Dashboard',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+              // Header
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: PageHeader(
+                    icon: Icons.shield,
+                    title: 'Privacy Dashboard',
+                    subtitle: 'Your data at a glance',
+                    trailing: IconButton(
+                      icon: const Icon(Icons.settings),
+                      onPressed: () => context.push('/privacy'),
+                    ),
                   ),
                 ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.settings),
-                    onPressed: () => context.push('/privacy'),
-                  ),
-                ],
               ),
               
               // Dashboard Content
