@@ -12,6 +12,7 @@ import 'package:aura_one/screens/export_screen.dart';
 import 'package:aura_one/screens/import_screen.dart';
 import 'package:aura_one/screens/backup_settings_screen.dart';
 import 'package:aura_one/screens/app_lock_settings_screen.dart';
+import 'package:aura_one/screens/camera_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -95,6 +96,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/privacy/app-lock',
         builder: (context, state) => const AppLockSettingsScreen(),
+      ),
+      
+      // Camera screen
+      GoRoute(
+        path: '/camera',
+        builder: (context, state) => const CameraScreen(),
       ),
     ],
   );

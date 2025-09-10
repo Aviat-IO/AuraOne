@@ -824,7 +824,7 @@
               "10.1"
             ],
             "details": "Implement permission request dialogs that appear when users first attempt to use features requiring permissions. Create clear explanations for why each permission is needed and how data will be used. Build permission state management to track granted/denied permissions. Implement graceful degradation when permissions are denied. Add settings shortcuts to easily modify permissions later.",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
@@ -1004,7 +1004,7 @@
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-10T12:45:20.578Z",
+      "updated": "2025-09-10T13:27:26.271Z",
       "description": "Tasks for master context"
     }
   }
