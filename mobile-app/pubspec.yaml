@@ -74,6 +74,8 @@ dependencies:
   crypto: ^3.0.5
   workmanager: ^0.9.0+3
   flutter_local_notifications: ^18.0.1
+  flutter_screen_lock: ^9.2.2+2
+  local_auth: ^2.3.0
 
 dependency_overrides:
   models:

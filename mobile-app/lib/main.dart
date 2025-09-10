@@ -10,6 +10,9 @@ import 'package:aura_one/router.dart';
 import 'package:aura_one/theme.dart';
 import 'package:aura_one/theme/colors.dart';
 import 'package:aura_one/widgets/simple_theme_switcher.dart';
+import 'package:aura_one/widgets/privacy_screen_overlay.dart';
+import 'package:aura_one/screens/app_lock_screen.dart';
+import 'package:aura_one/services/app_lock_service.dart';
 import 'package:aura_one/utils/error_handler.dart';
 import 'package:aura_one/utils/logger.dart';
 import 'package:aura_one/services/simple_location_service.dart';
@@ -84,7 +87,16 @@ class AuraOneApp extends ConsumerWidget {
         theme: theme,
         routerConfig: ref.watch(routerProvider),
         debugShowCheckedModeBanner: false,
-        builder: (_, child) => child!,
+        builder: (context, child) {
+          return PrivacyScreenOverlay(
+            child: Stack(
+              children: [
+                child!,
+                const AppLockScreen(),
+              ],
+            ),
+          );
+        },
       ),
     };
   }

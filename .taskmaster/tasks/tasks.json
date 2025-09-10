@@ -855,7 +855,7 @@
             "description": "Add security layer with biometric authentication and app lock functionality",
             "dependencies": [],
             "details": "Integrate local_auth package for biometric authentication (fingerprint, face ID, etc.). Implement app lock screen that appears on app launch or after inactivity timeout. Add fallback PIN/password authentication when biometrics unavailable. Implement timeout settings for auto-lock (immediate, 1 min, 5 min, etc.). Add privacy screen overlay when app goes to background to hide sensitive content.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1004,7 +1004,7 @@
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-10T11:08:21.475Z",
+      "updated": "2025-09-10T12:45:20.578Z",
       "description": "Tasks for master context"
     }
   }

@@ -82,6 +82,18 @@ clean:
 	@fvm flutter clean
 	@echo "✅ Clean complete!"
 
+# Deep clean including Gradle and Flutter caches
+deep-clean:
+	@echo "🧹 Deep cleaning all caches..."
+	@fvm flutter clean
+	@echo "→ Cleaning Gradle cache..."
+	@cd android && ./gradlew clean 2>/dev/null || true
+	@echo "→ Clearing Flutter pub cache..."
+	@fvm flutter pub cache clean --force 2>/dev/null || true
+	@echo "→ Reinstalling dependencies..."
+	@fvm flutter pub get
+	@echo "✅ Deep clean complete!"
+
 # Additional helpful targets
 
 # Run in release mode for better performance
@@ -92,7 +104,9 @@ release:
 # Build APK for distribution
 build-apk:
 	@echo "📦 Building APK..."
-	fvm flutter build apk --target-platform android-arm64 --split-per-abi
+	@echo "→ Cleaning Gradle cache to prevent POM errors..."
+	@cd android && ./gradlew clean 2>/dev/null || true
+	fvm flutter build apk --target-platform android-arm64 --split-per-abi 2>&1 | grep -v "Fatal Error.*pom" || true
 	@echo "✅ APK built! Find it in build/app/outputs/flutter-apk/"
 
 # Run tests

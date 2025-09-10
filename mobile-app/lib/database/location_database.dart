@@ -106,7 +106,7 @@ class LocationDatabase extends _$LocationDatabase {
   LocationDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'location_database');
@@ -284,6 +284,41 @@ class LocationDatabase extends _$LocationDatabase {
     return degrees * (math.pi / 180);
   }
 
+  // Movement Data Methods
+  Future<int> insertMovementData(MovementDataCompanion data) {
+    return into(movementData).insert(data);
+  }
+
+  Stream<List<MovementDataData>> watchRecentMovementData({
+    Duration duration = const Duration(hours: 24),
+  }) {
+    final cutoff = DateTime.now().subtract(duration);
+    return (select(movementData)
+          ..where((tbl) => tbl.timestamp.isBiggerOrEqualValue(cutoff))
+          ..orderBy([(tbl) => OrderingTerm.desc(tbl.timestamp)]))
+        .watch();
+  }
+
+  Future<List<MovementDataData>> getMovementDataBetween(
+    DateTime start,
+    DateTime end,
+  ) {
+    return (select(movementData)
+          ..where((tbl) =>
+              tbl.timestamp.isBetweenValues(start, end))
+          ..orderBy([(tbl) => OrderingTerm.asc(tbl.timestamp)]))
+        .get();
+  }
+
+  Future<void> cleanupOldMovementData({
+    Duration retentionPeriod = const Duration(days: 7),
+  }) async {
+    final cutoff = DateTime.now().subtract(retentionPeriod);
+    await (delete(movementData)
+          ..where((tbl) => tbl.timestamp.isSmallerThanValue(cutoff)))
+        .go();
+  }
+
   // Migration and schema updates
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -291,7 +326,23 @@ class LocationDatabase extends _$LocationDatabase {
           await m.createAll();
         },
         onUpgrade: (Migrator m, int from, int to) async {
-          // Handle future schema updates
+          // Migration from version 1 to 2: Added MovementData table
+          if (from < 2) {
+            await m.createTable(movementData);
+          }
+          
+          // Migration from version 2 to 3: Ensure MovementData table exists
+          // This handles cases where the table wasn't created properly
+          if (from < 3) {
+            // Check if table exists and create if it doesn't
+            try {
+              // Try to count rows to check if table exists
+              await customSelect('SELECT COUNT(*) FROM movement_data').getSingle();
+            } catch (e) {
+              // Table doesn't exist, create it
+              await m.createTable(movementData);
+            }
+          }
         },
       );
 }
