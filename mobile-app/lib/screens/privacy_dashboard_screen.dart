@@ -2,16 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
-import '../widgets/page_header.dart';
-import '../services/data_attribution_service.dart';
 import '../providers/location_database_provider.dart';
 import '../services/photo_service.dart';
 import '../services/calendar_service.dart';
 import '../services/health_service.dart';
 import '../services/ble_scanning_service.dart';
 import '../providers/service_providers.dart';
+import 'main_layout_screen.dart';
 
 class PrivacyDashboardScreen extends HookConsumerWidget {
   const PrivacyDashboardScreen({super.key});
@@ -22,7 +20,6 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
     final scrollController = useScrollController();
     
     // Get data from various services
-    final dataAttributionService = ref.watch(dataAttributionServiceProvider);
     final locationDb = ref.watch(locationDatabaseProvider);
     final photoService = ref.watch(photoServiceProvider);
     final calendarService = ref.watch(calendarServiceProvider);
@@ -97,6 +94,28 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
     }, []);
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: theme.colorScheme.surface,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: theme.colorScheme.onSurface),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(
+          'Privacy Dashboard',
+          style: TextStyle(color: theme.colorScheme.onSurface),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings, color: theme.colorScheme.onSurface),
+            onPressed: () {
+              context.pop(); // Go back to privacy screen first
+              context.go('/settings'); // Then go to settings tab
+              ref.read(selectedTabIndexProvider.notifier).state = 4; // Settings tab index
+            },
+          ),
+        ],
+      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -113,22 +132,6 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
           child: CustomScrollView(
             controller: scrollController,
             slivers: [
-              // Header
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: PageHeader(
-                    icon: Icons.shield,
-                    title: 'Privacy Dashboard',
-                    subtitle: 'Your data at a glance',
-                    trailing: IconButton(
-                      icon: const Icon(Icons.settings),
-                      onPressed: () => context.push('/privacy'),
-                    ),
-                  ),
-                ),
-              ),
-              
               // Dashboard Content
               SliverPadding(
                 padding: const EdgeInsets.all(16),
