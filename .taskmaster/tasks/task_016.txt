@@ -1,0 +1,11 @@
+# Task ID: 16
+# Title: Replace Today's Summary placeholder with empty state
+# Status: pending
+# Dependencies: 8
+# Priority: medium
+# Description: Remove all fake/placeholder data from Today's Summary section and implement an empty state message that informs users that data will be automatically collected.
+# Details:
+Remove all hardcoded placeholder data from the Today's Summary section in the Overview tab. Implement a proper empty state UI that displays when no real data is available. The empty state should include: 1) A descriptive icon (such as Icons.auto_awesome or Icons.analytics), 2) A clear heading like 'No data yet today', 3) Explanatory text informing users that their daily summary will automatically appear as they use the app throughout the day, 4) Proper styling using Material 3 design tokens with appropriate spacing and typography. Use conditional rendering to show either the real data summary or the empty state based on whether actual user data exists. The empty state should be centered vertically within the available space and use muted colors from the theme's color scheme. Consider adding subtle animations or micro-interactions to make the empty state feel polished rather than broken.
+
+# Test Strategy:
+Verify that placeholder data no longer appears in the Today's Summary section when the app has no real user data. Test the empty state message displays correctly with proper centering, typography, and spacing. Confirm the empty state uses appropriate Material 3 styling and theme colors. Test the conditional logic by simulating scenarios with and without real data to ensure the correct UI state is shown. Validate that the empty state is responsive across different screen sizes and orientations. Test the transition between empty state and populated data state when real user data becomes available.

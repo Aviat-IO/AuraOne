@@ -1,0 +1,19 @@
+<lint-module
+    format="1"
+    dir="/Users/alancolver/.pub-cache/hosted/pub.dev/google_mlkit_commons-0.11.0/android"
+    name=":google_mlkit_commons"
+    type="LIBRARY"
+    maven="com.google_mlkit_commons:google_mlkit_commons:1.0"
+    agpVersion="8.7.3"
+    buildFolder="/Users/alancolver/dev/soveng/auraone/mobile-app/build/google_mlkit_commons"
+    bootClassPath="/Users/alancolver/Library/Android/sdk/platforms/android-35/android.jar:/Users/alancolver/Library/Android/sdk/build-tools/34.0.0/core-lambda-stubs.jar"
+    javaSourceLevel="11"
+    compileTarget="android-35"
+    neverShrinking="true">
+  <lintOptions
+      abortOnError="true"
+      absolutePaths="true"
+      checkReleaseBuilds="true"
+      explainIssues="true"/>
+  <variant name="release"/>
+</lint-module>

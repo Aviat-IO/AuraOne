@@ -1,0 +1,11 @@
+# Task ID: 12
+# Title: Android Microphone Permission Integration
+# Status: pending
+# Dependencies: 7
+# Priority: medium
+# Description: Implement proper Android system microphone permission integration for voice-to-text features with runtime permission requests and graceful handling
+# Details:
+Integrate Flutter's permission_handler package to manage microphone permissions properly on Android. Implement PermissionService class that handles runtime permission requests following Android's permission model. Create permission request flow that: 1) Checks current permission status before attempting voice recording, 2) Shows custom rationale dialog explaining why microphone access is needed for voice editing features, 3) Requests permission using permission_handler's requestPermission method, 4) Handles all permission states (granted, denied, permanently denied, restricted). Implement fallback behavior when permission is denied - disable voice editing UI elements and show informative message. Add permission status monitoring to update UI when permissions change. Create permission priming UI that explains the feature before first permission request. Implement deep linking to app settings when permission is permanently denied. Ensure integration with existing VoiceEditingService from Task 7, updating it to check permissions before initializing speech recognition. Add proper error handling and user feedback for all permission scenarios. Update AndroidManifest.xml with required RECORD_AUDIO permission declaration.
+
+# Test Strategy:
+Test permission request flow on various Android versions (API 23+). Verify rationale dialog appears when appropriate. Test permission denial scenarios and verify graceful degradation. Test permanently denied state and settings redirect. Validate that voice features are properly disabled when permission is not granted. Test permission changes while app is running. Verify integration with existing voice editing functionality from Task 7.

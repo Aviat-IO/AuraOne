@@ -597,10 +597,10 @@
       },
       {
         "id": 8,
-        "title": "Daily Canvas User Interface",
-        "description": "Create the main journal interface with timeline, map, media gallery, and text editor",
-        "details": "Build comprehensive daily journal view using Flutter widgets. Implement timeline/calendar navigation using table_calendar. Create interactive map widget using flutter_map to display daily routes and locations. Build media gallery with cached_network_image and easy_image_viewer for photo viewing. Implement rich text editor for journal content with markdown support using flutter_markdown. Add skeleton loading states with skeletonizer. Ensure responsive design for various screen sizes.",
-        "testStrategy": "Test UI responsiveness across different screen sizes and orientations. Verify timeline navigation and date selection. Test map integration and location visualization. Validate media gallery performance with large photo collections. Test text editing and formatting features.",
+        "title": "Home Page with Sub-tabs Interface",
+        "description": "Create the home page interface with three sub-tabs (Overview, Map, Media) that appear above the main bottom tabs",
+        "details": "Build home page with sub-tab navigation that appears directly above the main bottom tabs, only visible when Home is selected. Overview tab displays AI-generated text summary (editable with simple text editor - no formatting) plus daily stats (photos taken, distance traveled, active time). Map tab shows locations visited that day using flutter_map. Media tab displays photos taken that day in an optimized gallery. Sub-tabs should be visually distinct from main navigation. Add skeleton loading states with skeletonizer. Ensure responsive design for various screen sizes.",
+        "testStrategy": "Test UI responsiveness across different screen sizes and orientations. Verify sub-tab navigation works correctly and only appears on home page. Test map integration and location visualization. Validate media gallery performance with large photo collections. Test simple text editing functionality.",
         "priority": "high",
         "dependencies": [
           6
@@ -609,28 +609,28 @@
         "subtasks": [
           {
             "id": 1,
-            "title": "Design main daily journal layout structure",
-            "description": "Create the overall layout architecture for the daily journal interface with proper widget hierarchy and navigation structure",
+            "title": "Design home page layout with sub-tabs structure",
+            "description": "Create the overall layout architecture for the home page with sub-tab navigation that appears above bottom tabs",
             "dependencies": [],
-            "details": "Design the main scaffold structure with AppBar, body sections for timeline, map, media, and text editor. Create responsive layout that adapts to different screen sizes. Define widget hierarchy and state management approach using Riverpod providers. Implement basic navigation between different sections of the daily view.",
+            "details": "Design the main home page scaffold with sub-tab bar positioned above the bottom navigation tabs. Create responsive layout that adapts to different screen sizes. Define widget hierarchy and state management approach using Riverpod providers. Implement navigation between Overview, Map, and Media sub-tabs. Ensure sub-tabs only show when Home tab is selected.",
             "status": "done",
             "testStrategy": ""
           },
           {
             "id": 2,
-            "title": "Implement timeline/calendar navigation widget",
-            "description": "Build calendar navigation system using table_calendar package for date selection and timeline browsing",
+            "title": "Implement Overview sub-tab with AI summary and stats",
+            "description": "Build Overview tab showing AI-generated text summary and daily statistics",
             "dependencies": [
               "8.1"
             ],
-            "details": "Integrate table_calendar widget with custom styling to match app theme. Implement date selection logic and state management. Add visual indicators for days with journal entries. Create smooth transitions between selected dates. Handle calendar events and date range selections for journal browsing.",
+            "details": "Create Overview tab content with AI-generated daily summary displayed in a simple editable text field (no formatting/markdown). Add daily statistics section showing photos taken count, distance traveled, and active time. Implement simple text editing for the AI summary. Create clean layout with good typography and spacing.",
             "status": "done",
             "testStrategy": ""
           },
           {
             "id": 3,
-            "title": "Create interactive map widget with flutter_map",
-            "description": "Build map component to display daily routes, locations, and geographic context for journal entries",
+            "title": "Implement Map sub-tab with daily locations",
+            "description": "Build Map tab to display locations visited during the day",
             "dependencies": [
               "8.1"
             ],
@@ -640,8 +640,8 @@
           },
           {
             "id": 4,
-            "title": "Build optimized media gallery component",
-            "description": "Create photo and video gallery using cached_network_image and easy_image_viewer for efficient media display",
+            "title": "Implement Media sub-tab with daily photos",
+            "description": "Build Media tab to display photos taken during the day using cached_network_image and easy_image_viewer",
             "dependencies": [
               "8.1"
             ],
@@ -651,12 +651,12 @@
           },
           {
             "id": 5,
-            "title": "Implement rich text editor with markdown support",
-            "description": "Build text editing interface with markdown rendering using flutter_markdown for journal content creation and editing",
+            "title": "Implement sub-tab navigation controls",
+            "description": "Create navigation controls for switching between Overview, Map, and Media sub-tabs",
             "dependencies": [
               "8.1"
             ],
-            "details": "Create text input field with markdown formatting toolbar. Implement real-time markdown preview using flutter_markdown. Add formatting buttons for common markdown elements (headers, bold, italic, lists). Handle text editing state management and auto-save functionality. Support for embedding media and location references in text.",
+            "details": "Create TabBar widget for sub-tab navigation positioned above bottom navigation. Implement TabController for managing sub-tab state. Style sub-tabs to be visually distinct from main navigation. Add smooth transition animations between sub-tabs. Ensure sub-tabs only display when Home tab is active.",
             "status": "done",
             "testStrategy": ""
           },
@@ -670,7 +670,7 @@
               "8.4",
               "8.5"
             ],
-            "details": "Create skeleton placeholders for calendar, map, media gallery, and text editor components. Implement loading states that match the actual component layouts. Add smooth transitions from skeleton to loaded content. Handle different loading scenarios (network delay, database queries, media processing).",
+            "details": "Create skeleton placeholders for Overview stats, Map, and Media gallery components. Implement loading states that match the actual component layouts. Add smooth transitions from skeleton to loaded content. Handle different loading scenarios (AI generation, location loading, media processing).",
             "status": "done",
             "testStrategy": ""
           },
@@ -701,15 +701,15 @@
         "dependencies": [
           8
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
             "title": "Design export data format and schema",
             "description": "Create comprehensive JSON schema for journal data export including metadata, media references, and documentation",
             "dependencies": [],
-            "details": "Define JSON structure for complete journal database export. Include schema for journal entries, media files, location data, calendar events, and metadata. Create documentation format that explains data structure and field meanings. Design versioning system for schema evolution. Ensure format supports partial and incremental exports.",
-            "status": "pending",
+            "details": "Define JSON structure for complete journal database export. Include schema for journal entries, media files, location data, calendar events, and metadata. Create documentation format that explains data structure and field meanings. Design versioning system for schema evolution. Ensure format supports partial and incremental exports.\n<info added on 2025-09-10T07:59:31.210Z>\nImplementation completed successfully. Created comprehensive JSON export schema with structured type definitions for all journal data models including metadata, media references, location events, calendar entries, and person tags. Schema includes version 1.0.0 with built-in documentation fields explaining data structure and field meanings. Supports both full and incremental export formats with proper timestamp tracking for synchronization.\n</info added on 2025-09-10T07:59:31.210Z>",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -719,8 +719,8 @@
             "dependencies": [
               "9.1"
             ],
-            "details": "Use path_provider to access platform-specific directories. Implement export service that packages journal data into JSON format with accompanying media files. Create folder structure for organized export. Add progress tracking and error handling for large exports. Implement data integrity verification after export completion.",
-            "status": "pending",
+            "details": "Use path_provider to access platform-specific directories. Implement export service that packages journal data into JSON format with accompanying media files. Create folder structure for organized export. Add progress tracking and error handling for large exports. Implement data integrity verification after export completion.\n<info added on 2025-09-10T08:00:27.931Z>\nImplementation completed successfully. ExportService created in /mobile-app/lib/services/export/export_service.dart with comprehensive functionality including ZIP archive creation using archive package, systematic media file inclusion with proper path resolution, real-time progress tracking through streams, and robust platform-specific directory handling via path_provider. Added complementary ImportService with flutter file picker integration for seamless data restoration. Created complete UI implementation with dedicated export and import screens featuring progress indicators, error handling, and intuitive user workflows. System supports full journal data packaging with media preservation and provides users with complete backup and restore capabilities through local file system operations.\n</info added on 2025-09-10T08:00:27.931Z>",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -753,7 +753,7 @@
               "9.2"
             ],
             "details": "Research Blossom protocol specifications and available Dart implementations. Create BlossomService for decentralized storage operations. Implement file upload and retrieval using Blossom network. Add metadata tracking for stored files. Implement redundancy and availability verification.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -764,7 +764,7 @@
               "9.1"
             ],
             "details": "Implement AES-256 encryption using pointycastle or crypto packages. Create EncryptionService with secure key derivation and management. Add encryption support to all export formats and backup destinations. Implement secure key storage using flutter_secure_storage. Create encryption status indicators and user controls.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -776,7 +776,7 @@
               "9.6"
             ],
             "details": "Integrate existing Nostr functionality for selective sharing. Create NostrSharingService to publish selected journal entries. Implement privacy controls and content filtering for shared entries. Add Nostr relay management and publishing status tracking. Create user interface for selecting entries to share publicly.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -806,12 +806,205 @@
           9
         ],
         "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design granular privacy settings UI",
+            "description": "Create comprehensive privacy settings interface with granular controls for each data source",
+            "dependencies": [],
+            "details": "Design and implement privacy settings screen with toggle controls for location tracking, photo access, calendar integration, health data, and BLE scanning. Create categorized sections for different privacy aspects (data collection, storage, sharing). Implement clear labeling and explanations for each setting. Add visual indicators showing current privacy status and data collection activity.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement just-in-time permission request flows",
+            "description": "Build contextual permission request system with clear explanations",
+            "dependencies": [
+              "10.1"
+            ],
+            "details": "Implement permission request dialogs that appear when users first attempt to use features requiring permissions. Create clear explanations for why each permission is needed and how data will be used. Build permission state management to track granted/denied permissions. Implement graceful degradation when permissions are denied. Add settings shortcuts to easily modify permissions later.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create privacy dashboard with data visualization",
+            "description": "Build comprehensive dashboard showing data collection and local storage status",
+            "dependencies": [
+              "10.1"
+            ],
+            "details": "Create privacy dashboard that visualizes what data is being collected, how much is stored locally, and when it was last accessed. Implement charts showing data collection patterns over time. Add breakdown by data source (photos, location, calendar, etc.). Show storage usage statistics and data retention policies. Include timeline of recent data collection activities.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Add selective data deletion tools",
+            "description": "Implement tools for selective or complete journal history removal",
+            "dependencies": [
+              "10.3"
+            ],
+            "details": "Build data deletion interface allowing users to selectively remove journal entries by date range, data type, or source. Implement complete data wipe functionality with confirmation dialogs. Add preview of what will be deleted before confirmation. Ensure proper deletion from database and file system including media files. Implement secure deletion that prevents data recovery. Add export option before deletion.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Implement app lock with biometric authentication",
+            "description": "Add security layer with biometric authentication and app lock functionality",
+            "dependencies": [],
+            "details": "Integrate local_auth package for biometric authentication (fingerprint, face ID, etc.). Implement app lock screen that appears on app launch or after inactivity timeout. Add fallback PIN/password authentication when biometrics unavailable. Implement timeout settings for auto-lock (immediate, 1 min, 5 min, etc.). Add privacy screen overlay when app goes to background to hide sensitive content.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Ensure privacy controls accessibility and documentation",
+            "description": "Make privacy controls easily discoverable with comprehensive help documentation",
+            "dependencies": [
+              "10.1",
+              "10.2",
+              "10.3",
+              "10.4",
+              "10.5"
+            ],
+            "details": "Add prominent privacy settings access from main menu and onboarding flow. Create comprehensive help documentation explaining each privacy control and its impact. Implement contextual help tooltips and info buttons throughout privacy settings. Add privacy policy and data handling documentation. Ensure all privacy controls are accessible with screen readers and follow accessibility guidelines. Create privacy quick-start guide for new users.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Animated Bottom Navigation Tab Bar with Smart Titles",
+        "description": "Implement an animated bottom navigation bar where tab titles only appear when selected, with smooth animations moving icons up and titles down for a cleaner minimal interface.",
+        "details": "Create a custom bottom navigation bar widget that dynamically shows/hides tab titles based on selection state. When a tab is selected: animate the icon upward, fade in the title with a downward slide animation, and ensure proper spacing. When deselected: fade out the title with upward animation and move icon to center position. Use AnimationController with Tween animations for smooth transitions (duration ~300ms). Implement custom TabBarItem widget with separate icon and title containers. Use Transform.translate for vertical movement and FadeTransition for opacity changes. Ensure the navigation bar height adjusts smoothly to accommodate title text. Integrate with existing router configuration and maintain proper tab state management. Consider using AnimatedContainer for height changes and Positioned widgets for precise layout control. Add subtle spring physics to animations using Curves.elasticOut for modern feel.",
+        "testStrategy": "Test animation smoothness across different devices and screen sizes. Verify tab selection state persistence during navigation. Test rapid tab switching to ensure animations don't conflict. Validate that the navigation bar integrates properly with the three sub-tabs (Overview, Map, Media) from the home page. Test accessibility features like screen readers with dynamic title visibility. Verify animation performance doesn't impact overall app responsiveness. Test on both iOS and Android for platform-specific behavior differences.",
+        "status": "pending",
+        "dependencies": [
+          8
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Android Microphone Permission Integration",
+        "description": "Implement proper Android system microphone permission integration for voice-to-text features with runtime permission requests and graceful handling",
+        "details": "Integrate Flutter's permission_handler package to manage microphone permissions properly on Android. Implement PermissionService class that handles runtime permission requests following Android's permission model. Create permission request flow that: 1) Checks current permission status before attempting voice recording, 2) Shows custom rationale dialog explaining why microphone access is needed for voice editing features, 3) Requests permission using permission_handler's requestPermission method, 4) Handles all permission states (granted, denied, permanently denied, restricted). Implement fallback behavior when permission is denied - disable voice editing UI elements and show informative message. Add permission status monitoring to update UI when permissions change. Create permission priming UI that explains the feature before first permission request. Implement deep linking to app settings when permission is permanently denied. Ensure integration with existing VoiceEditingService from Task 7, updating it to check permissions before initializing speech recognition. Add proper error handling and user feedback for all permission scenarios. Update AndroidManifest.xml with required RECORD_AUDIO permission declaration.",
+        "testStrategy": "Test permission request flow on various Android versions (API 23+). Verify rationale dialog appears when appropriate. Test permission denial scenarios and verify graceful degradation. Test permanently denied state and settings redirect. Validate that voice features are properly disabled when permission is not granted. Test permission changes while app is running. Verify integration with existing voice editing functionality from Task 7.",
+        "status": "pending",
+        "dependencies": [
+          7
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "UI Navigation Update: Bottom Navigation Tab Restructuring",
+        "description": "Remove Canvas tab and restore Privacy tab in bottom navigation, then reorder all tabs to match the new specification: Search, History, Home, Privacy, Settings.",
+        "details": "Update the bottom navigation configuration to remove the Canvas tab that was previously added and restore the Privacy tab to the navigation bar. Reorder all navigation tabs from left to right as: Search, History, Home, Privacy, Settings. This involves modifying the main navigation widget to update the tab definitions, ensuring proper routing is maintained for each tab, and verifying that the Privacy tab correctly navigates to the privacy settings screen from Task 10. Update any navigation-related constants or enums to reflect the new tab order. Ensure the Home tab remains as the default selected tab and that the sub-tabs (Overview, Map, Media) from Task 8 continue to function correctly. Update any hardcoded tab indices throughout the codebase to match the new ordering.",
+        "testStrategy": "Verify that all five tabs (Search, History, Home, Privacy, Settings) appear in the correct order from left to right. Test navigation to each tab to ensure proper screen transitions. Confirm that the Privacy tab correctly navigates to the privacy settings screen. Verify that the Home tab's sub-tabs (Overview, Map, Media) still function correctly after the navigation changes. Test that any deep linking or programmatic navigation still works with the updated tab indices. Validate that the navigation bar visual design remains consistent and that tab icons and labels are properly aligned.",
+        "status": "done",
+        "dependencies": [
+          8,
+          10
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Fix Home Screen Banner Scroll Behavior",
+        "description": "Convert the fixed 'Good Morning/Evening' banner to a scrollable element that moves naturally with the content instead of remaining sticky at the top of the screen.",
+        "details": "Modify the home screen layout to integrate the greeting banner into the main scroll view instead of using a fixed positioning approach. This involves: 1) Removing any Positioned or sticky positioning from the banner widget, 2) Moving the banner into the main ScrollView or ListView as the first item, 3) Ensuring proper spacing and padding around the banner content, 4) Updating any gesture detection or tap handling to work within the scroll context, 5) Adjusting the scroll physics to maintain smooth scrolling behavior, 6) Testing with various content lengths to ensure the banner scrolls out of view naturally when users scroll down through journal entries or other content. Consider using a SliverAppBar with flexibleSpace if more complex scroll behaviors are needed, or simply place the banner as a regular widget within the scrollable content area. Ensure the banner's styling and animations are preserved during this layout change.",
+        "testStrategy": "Verify that the greeting banner appears at the top of the home screen content and scrolls out of view when scrolling down. Test scrolling behavior with different content lengths to ensure smooth performance. Validate that any interactive elements within the banner (if present) still function correctly within the scroll context. Test on different screen sizes to ensure proper spacing and layout. Confirm that the banner reappears when scrolling back to the top. Verify that the home screen's sub-tab navigation (Overview, Map, Media) still functions properly with the new scroll behavior. Test scroll physics and ensure no jarring transitions or unexpected scroll behavior occurs during normal usage.",
+        "status": "pending",
+        "dependencies": [
+          8,
+          11
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "Implement Sticky Tab Navigation for Home Screen Sub-tabs",
+        "description": "Create a sticky tab selector for Overview, Map, and Media tabs that remains fixed at the bottom of the home screen above the global navigation bar, preventing it from scrolling with content.",
+        "details": "Implement a custom sticky tab navigation system for the home screen's three sub-tabs (Overview, Map, Media). This involves: 1) Creating a StickyTabBar widget that uses a Stack or Column layout to position the tab selector above the bottom navigation bar, 2) Using a TabController to manage tab state and content switching, 3) Implementing the main content area with TabBarView wrapped in appropriate scroll widgets, 4) Ensuring the sticky tabs have proper Material 3 styling with smooth tab switching animations, 5) Calculating proper bottom padding to account for both the sticky tabs and the global navigation bar height, 6) Using SafeArea and MediaQuery to handle different screen sizes and device insets correctly. The sticky tab bar should remain visible during content scrolling and maintain proper z-index layering. Consider using a Container with fixed height positioned using Positioned.bottom or similar approach within a Stack layout. Ensure touch targets meet accessibility guidelines (minimum 44px height) and implement proper focus management for keyboard navigation.",
+        "testStrategy": "Verify that the Overview, Map, and Media tabs remain fixed at the bottom above the global navigation bar during content scrolling. Test tab switching functionality and ensure smooth animations between tabs. Validate proper spacing and positioning across different screen sizes and orientations. Test that content scrolling works correctly in each tab without interfering with the sticky navigation. Verify accessibility features including keyboard navigation and screen reader support. Test on various devices to ensure the sticky tabs don't overlap with system UI or the global navigation bar. Confirm that the tab selector maintains proper Material 3 styling and animation behavior consistent with the animated bottom navigation from Task 11.",
+        "status": "pending",
+        "dependencies": [
+          11,
+          14
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Replace Today's Summary placeholder with empty state",
+        "description": "Remove all fake/placeholder data from Today's Summary section and implement an empty state message that informs users that data will be automatically collected.",
+        "details": "Remove all hardcoded placeholder data from the Today's Summary section in the Overview tab. Implement a proper empty state UI that displays when no real data is available. The empty state should include: 1) A descriptive icon (such as Icons.auto_awesome or Icons.analytics), 2) A clear heading like 'No data yet today', 3) Explanatory text informing users that their daily summary will automatically appear as they use the app throughout the day, 4) Proper styling using Material 3 design tokens with appropriate spacing and typography. Use conditional rendering to show either the real data summary or the empty state based on whether actual user data exists. The empty state should be centered vertically within the available space and use muted colors from the theme's color scheme. Consider adding subtle animations or micro-interactions to make the empty state feel polished rather than broken.",
+        "testStrategy": "Verify that placeholder data no longer appears in the Today's Summary section when the app has no real user data. Test the empty state message displays correctly with proper centering, typography, and spacing. Confirm the empty state uses appropriate Material 3 styling and theme colors. Test the conditional logic by simulating scenarios with and without real data to ensure the correct UI state is shown. Validate that the empty state is responsive across different screen sizes and orientations. Test the transition between empty state and populated data state when real user data becomes available.",
+        "status": "pending",
+        "dependencies": [
+          8
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "Integrate on-device AI for Today's Summary generation",
+        "description": "Implement local AI model integration to analyze collected sensor data and generate personalized daily summary text for users.",
+        "details": "Build upon the existing on-device AI infrastructure from Task 6 to create a comprehensive daily summary generation system. Implement DataAnalysisService that aggregates data from multiple sources: location data from Task 3 (places visited, movement patterns), calendar events from Task 5 (appointments, activities), captured photos and media, and other sensor data. Create a data preprocessing pipeline that converts raw sensor data into structured context for AI analysis. Enhance the existing AI model with specialized prompts for daily summary generation that can identify patterns, significant events, and create coherent narrative summaries. Implement SummaryGenerationService that runs periodically (end of day or on-demand) to process accumulated data and generate personalized text. Add data filtering logic to identify meaningful activities and filter out noise. Create template-based fallback system for days with minimal data. Integrate with existing empty state from Task 16 to populate the Today's Summary section with generated content. Ensure privacy-first approach with all processing happening locally on device.",
+        "testStrategy": "Test AI summary generation with various data scenarios including rich data days, minimal data days, and edge cases with missing data types. Verify that location data, calendar events, and media are properly incorporated into summaries. Test processing performance and memory usage during AI inference. Validate summary quality and personalization across different user activity patterns. Test fallback templates when AI processing fails. Verify integration with existing Today's Summary UI and proper replacement of empty states. Test periodic summary generation scheduling and on-demand generation triggers.",
+        "status": "pending",
+        "dependencies": [
+          6,
+          16,
+          3,
+          5
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 18,
+        "title": "Voice Command Interface for AI Summary Editing",
+        "description": "Implement a voice command system that allows users to issue spoken commands to modify and update their AI-generated daily summary text through natural language instructions.",
+        "details": "Build upon the existing voice-to-text editing system from Task 7 to create a comprehensive voice command interface specifically for AI summary editing. Implement an enhanced VoiceCommandProcessor that extends the existing VoiceEditingService to handle AI-specific editing commands such as 'make the summary more detailed', 'shorten the afternoon section', 'add more emotion to the description', or 'rewrite in a more professional tone'. Create a VoiceCommandInterpreter that uses natural language processing to parse voice commands and translate them into specific AI editing instructions. Integrate with the on-device AI system from Task 17 to apply these voice commands to modify the generated summary text. Implement a conversational feedback system where the AI reads back changes using text-to-speech and asks for confirmation before applying modifications. Add support for multi-turn voice conversations allowing users to refine edits through follow-up commands. Create a voice command help system that can be activated by saying 'what can I say' or similar phrases. Ensure the interface works seamlessly with the existing Today's Summary section in the Overview tab, providing visual feedback during voice processing and displaying real-time text changes as they occur.",
+        "testStrategy": "Test voice command recognition accuracy for various AI editing instructions including tone changes, content additions/deletions, and style modifications. Verify that voice commands properly integrate with the AI summary generation system and produce appropriate text modifications. Test multi-turn conversations to ensure context is maintained across multiple voice commands. Validate text-to-speech feedback system reads back changes clearly and requests appropriate confirmations. Test voice command help system provides useful guidance on available commands. Verify visual feedback during voice processing and ensure seamless integration with the Overview tab's Today's Summary section. Test performance and responsiveness when processing complex editing commands through the AI system.",
+        "status": "pending",
+        "dependencies": [
+          7,
+          17,
+          8
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 19,
+        "title": "Standardized Bottom Navigation Tab Behavior with Consistent Visual States",
+        "description": "Standardize the bottom navigation bar by removing unique home button styling and implementing consistent behavior where inactive tabs show only icons and active tabs display icon, text label, and background color with smooth transitions.",
+        "details": "Implement a unified bottom navigation system that treats all tabs consistently. Remove any special styling from the home button that makes it appear different from other tabs. Create a custom BottomNavigationBarItem widget that handles two distinct states: 1) Inactive state - displays only the icon centered in the tab area with no text or background styling, 2) Active state - shows the icon, text label below it, and a subtle background color/highlight. Implement smooth AnimationController-based transitions (300-400ms duration) that handle: icon vertical position changes (slight upward movement when active), text opacity fade-in/out with slide animation, background color fade-in/out using ColorTween. Use Material 3 design tokens for colors, ensuring the active background uses theme.colorScheme.primaryContainer or secondaryContainer. Implement proper state management to ensure only one tab can be active at a time. Handle rapid tab switching by properly disposing/interrupting ongoing animations to prevent visual glitches. Consider using AnimatedSwitcher or custom AnimatedBuilder widgets for smooth state transitions. Ensure the animation timing follows Material Design motion principles with appropriate easing curves (Curves.easeInOut or Curves.fastOutSlowIn).",
+        "testStrategy": "Test that all navigation tabs (Search, History, Home, Privacy, Settings) display consistently in inactive state with only icons visible and no text or special background. Verify active state shows icon, text label, and background highlight for each tab. Test smooth transitions when switching between tabs, ensuring animations complete properly without visual glitches. Validate that rapid tab switching doesn't cause animation conflicts or performance issues. Test animation performance across different device types and screen sizes. Verify that the standardized behavior maintains accessibility features like semantic labels and proper touch targets. Confirm that theme changes (light/dark mode) properly update the active tab background colors and maintain appropriate contrast ratios.",
+        "status": "pending",
+        "dependencies": [
+          11,
+          13
+        ],
+        "priority": "medium",
         "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-09T20:16:23.238Z",
+      "updated": "2025-09-10T08:17:40.815Z",
       "description": "Tasks for master context"
     }
   }

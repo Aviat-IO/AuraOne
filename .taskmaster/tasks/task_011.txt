@@ -1,0 +1,11 @@
+# Task ID: 11
+# Title: Animated Bottom Navigation Tab Bar with Smart Titles
+# Status: pending
+# Dependencies: 8
+# Priority: medium
+# Description: Implement an animated bottom navigation bar where tab titles only appear when selected, with smooth animations moving icons up and titles down for a cleaner minimal interface.
+# Details:
+Create a custom bottom navigation bar widget that dynamically shows/hides tab titles based on selection state. When a tab is selected: animate the icon upward, fade in the title with a downward slide animation, and ensure proper spacing. When deselected: fade out the title with upward animation and move icon to center position. Use AnimationController with Tween animations for smooth transitions (duration ~300ms). Implement custom TabBarItem widget with separate icon and title containers. Use Transform.translate for vertical movement and FadeTransition for opacity changes. Ensure the navigation bar height adjusts smoothly to accommodate title text. Integrate with existing router configuration and maintain proper tab state management. Consider using AnimatedContainer for height changes and Positioned widgets for precise layout control. Add subtle spring physics to animations using Curves.elasticOut for modern feel.
+
+# Test Strategy:
+Test animation smoothness across different devices and screen sizes. Verify tab selection state persistence during navigation. Test rapid tab switching to ensure animations don't conflict. Validate that the navigation bar integrates properly with the three sub-tabs (Overview, Map, Media) from the home page. Test accessibility features like screen readers with dynamic title visibility. Verify animation performance doesn't impact overall app responsiveness. Test on both iOS and Android for platform-specific behavior differences.

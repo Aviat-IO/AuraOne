@@ -1,0 +1,11 @@
+# Task ID: 13
+# Title: UI Navigation Update: Bottom Navigation Tab Restructuring
+# Status: done
+# Dependencies: 8, 10
+# Priority: medium
+# Description: Remove Canvas tab and restore Privacy tab in bottom navigation, then reorder all tabs to match the new specification: Search, History, Home, Privacy, Settings.
+# Details:
+Update the bottom navigation configuration to remove the Canvas tab that was previously added and restore the Privacy tab to the navigation bar. Reorder all navigation tabs from left to right as: Search, History, Home, Privacy, Settings. This involves modifying the main navigation widget to update the tab definitions, ensuring proper routing is maintained for each tab, and verifying that the Privacy tab correctly navigates to the privacy settings screen from Task 10. Update any navigation-related constants or enums to reflect the new tab order. Ensure the Home tab remains as the default selected tab and that the sub-tabs (Overview, Map, Media) from Task 8 continue to function correctly. Update any hardcoded tab indices throughout the codebase to match the new ordering.
+
+# Test Strategy:
+Verify that all five tabs (Search, History, Home, Privacy, Settings) appear in the correct order from left to right. Test navigation to each tab to ensure proper screen transitions. Confirm that the Privacy tab correctly navigates to the privacy settings screen. Verify that the Home tab's sub-tabs (Overview, Map, Media) still function correctly after the navigation changes. Test that any deep linking or programmatic navigation still works with the updated tab indices. Validate that the navigation bar visual design remains consistent and that tab icons and labels are properly aligned.

@@ -1,0 +1,11 @@
+# Task ID: 14
+# Title: Fix Home Screen Banner Scroll Behavior
+# Status: pending
+# Dependencies: 8, 11
+# Priority: medium
+# Description: Convert the fixed 'Good Morning/Evening' banner to a scrollable element that moves naturally with the content instead of remaining sticky at the top of the screen.
+# Details:
+Modify the home screen layout to integrate the greeting banner into the main scroll view instead of using a fixed positioning approach. This involves: 1) Removing any Positioned or sticky positioning from the banner widget, 2) Moving the banner into the main ScrollView or ListView as the first item, 3) Ensuring proper spacing and padding around the banner content, 4) Updating any gesture detection or tap handling to work within the scroll context, 5) Adjusting the scroll physics to maintain smooth scrolling behavior, 6) Testing with various content lengths to ensure the banner scrolls out of view naturally when users scroll down through journal entries or other content. Consider using a SliverAppBar with flexibleSpace if more complex scroll behaviors are needed, or simply place the banner as a regular widget within the scrollable content area. Ensure the banner's styling and animations are preserved during this layout change.
+
+# Test Strategy:
+Verify that the greeting banner appears at the top of the home screen content and scrolls out of view when scrolling down. Test scrolling behavior with different content lengths to ensure smooth performance. Validate that any interactive elements within the banner (if present) still function correctly within the scroll context. Test on different screen sizes to ensure proper spacing and layout. Confirm that the banner reappears when scrolling back to the top. Verify that the home screen's sub-tab navigation (Overview, Map, Media) still functions properly with the new scroll behavior. Test scroll physics and ensure no jarring transitions or unexpected scroll behavior occurs during normal usage.

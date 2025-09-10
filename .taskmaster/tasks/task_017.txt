@@ -1,0 +1,11 @@
+# Task ID: 17
+# Title: Integrate on-device AI for Today's Summary generation
+# Status: pending
+# Dependencies: 6, 16, 3, 5
+# Priority: medium
+# Description: Implement local AI model integration to analyze collected sensor data and generate personalized daily summary text for users.
+# Details:
+Build upon the existing on-device AI infrastructure from Task 6 to create a comprehensive daily summary generation system. Implement DataAnalysisService that aggregates data from multiple sources: location data from Task 3 (places visited, movement patterns), calendar events from Task 5 (appointments, activities), captured photos and media, and other sensor data. Create a data preprocessing pipeline that converts raw sensor data into structured context for AI analysis. Enhance the existing AI model with specialized prompts for daily summary generation that can identify patterns, significant events, and create coherent narrative summaries. Implement SummaryGenerationService that runs periodically (end of day or on-demand) to process accumulated data and generate personalized text. Add data filtering logic to identify meaningful activities and filter out noise. Create template-based fallback system for days with minimal data. Integrate with existing empty state from Task 16 to populate the Today's Summary section with generated content. Ensure privacy-first approach with all processing happening locally on device.
+
+# Test Strategy:
+Test AI summary generation with various data scenarios including rich data days, minimal data days, and edge cases with missing data types. Verify that location data, calendar events, and media are properly incorporated into summaries. Test processing performance and memory usage during AI inference. Validate summary quality and personalization across different user activity patterns. Test fallback templates when AI processing fails. Verify integration with existing Today's Summary UI and proper replacement of empty states. Test periodic summary generation scheduling and on-demand generation triggers.

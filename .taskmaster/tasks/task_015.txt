@@ -1,0 +1,11 @@
+# Task ID: 15
+# Title: Implement Sticky Tab Navigation for Home Screen Sub-tabs
+# Status: pending
+# Dependencies: 11, 14
+# Priority: medium
+# Description: Create a sticky tab selector for Overview, Map, and Media tabs that remains fixed at the bottom of the home screen above the global navigation bar, preventing it from scrolling with content.
+# Details:
+Implement a custom sticky tab navigation system for the home screen's three sub-tabs (Overview, Map, Media). This involves: 1) Creating a StickyTabBar widget that uses a Stack or Column layout to position the tab selector above the bottom navigation bar, 2) Using a TabController to manage tab state and content switching, 3) Implementing the main content area with TabBarView wrapped in appropriate scroll widgets, 4) Ensuring the sticky tabs have proper Material 3 styling with smooth tab switching animations, 5) Calculating proper bottom padding to account for both the sticky tabs and the global navigation bar height, 6) Using SafeArea and MediaQuery to handle different screen sizes and device insets correctly. The sticky tab bar should remain visible during content scrolling and maintain proper z-index layering. Consider using a Container with fixed height positioned using Positioned.bottom or similar approach within a Stack layout. Ensure touch targets meet accessibility guidelines (minimum 44px height) and implement proper focus management for keyboard navigation.
+
+# Test Strategy:
+Verify that the Overview, Map, and Media tabs remain fixed at the bottom above the global navigation bar during content scrolling. Test tab switching functionality and ensure smooth animations between tabs. Validate proper spacing and positioning across different screen sizes and orientations. Test that content scrolling works correctly in each tab without interfering with the sticky navigation. Verify accessibility features including keyboard navigation and screen reader support. Test on various devices to ensure the sticky tabs don't overlap with system UI or the global navigation bar. Confirm that the tab selector maintains proper Material 3 styling and animation behavior consistent with the animated bottom navigation from Task 11.

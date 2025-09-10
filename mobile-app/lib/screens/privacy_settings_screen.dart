@@ -733,7 +733,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _showExportDialog(context),
+                    onPressed: () => context.push('/export'),
                     icon: const Icon(Icons.download),
                     label: const Text('Export Data'),
                   ),

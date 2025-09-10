@@ -1,6 +1,6 @@
 # Task ID: 5
 # Title: Calendar and System Integration
-# Status: pending
+# Status: done
 # Dependencies: 2
 # Priority: medium
 # Description: Implement automatic import of calendar events and system activities
@@ -11,43 +11,43 @@ Integrate with platform-specific calendar APIs (EventKit on iOS, Calendar Provid
 Test calendar permission flows and data import accuracy. Verify health data integration across platforms. Test BLE scanning and proximity detection. Validate data attribution and source tracking.
 
 # Subtasks:
-## 1. Implement iOS EventKit integration [pending]
+## 1. Implement iOS EventKit integration [done]
 ### Dependencies: None
 ### Description: Add EventKit framework integration for iOS to access calendar events with proper permissions
 ### Details:
 Create iOS-specific calendar service using EventKit framework. Implement permission request flow for calendar access. Add methods to fetch calendar events with date range filtering. Handle event parsing and conversion to app models. Ensure proper error handling for permission denials.
 
-## 2. Implement Android Calendar Provider integration [pending]
+## 2. Implement Android Calendar Provider integration [done]
 ### Dependencies: None
 ### Description: Add Android Calendar Provider integration to access calendar events with proper permissions
 ### Details:
 Create Android-specific calendar service using Calendar Provider API. Implement permission request flow for calendar read access. Add methods to query calendar events from all user calendars. Handle event parsing and conversion to app models. Ensure proper error handling for permission denials.
 
-## 3. Add HealthKit integration (iOS) [pending]
+## 3. Add HealthKit integration (iOS) [done]
 ### Dependencies: None
 ### Description: Integrate with iOS HealthKit for fitness and health data import
 ### Details:
 Implement HealthKit integration for iOS using health package. Request permissions for relevant health data types (steps, workouts, heart rate). Create methods to fetch daily health summaries. Convert health data to app models with proper attribution. Handle privacy permissions and data access restrictions.
 
-## 4. Add Google Fit integration (Android) [pending]
+## 4. Add Google Fit integration (Android) [done]
 ### Dependencies: None
 ### Description: Integrate with Google Fit API for Android fitness and health data
 ### Details:
 Implement Google Fit integration using fitness package or direct API calls. Set up Google Fit API credentials and permissions. Create methods to fetch daily fitness data (steps, activities, locations). Convert fitness data to app models with proper source attribution. Handle OAuth flow and API rate limits.
 
-## 5. Implement BLE scanning with flutter_blue_plus [pending]
+## 5. Implement BLE scanning with flutter_blue_plus [done]
 ### Dependencies: None
 ### Description: Add Bluetooth Low Energy scanning for proximity detection and device tracking
 ### Details:
 Integrate flutter_blue_plus for BLE functionality. Implement background BLE scanning with proper permission handling. Add device discovery and proximity detection logic. Store discovered devices with timestamps and signal strength. Implement battery-efficient scanning intervals and filters.
 
-## 6. Create CalendarService with privacy controls [pending]
+## 6. Create CalendarService with privacy controls [done]
 ### Dependencies: 5.1, 5.2
 ### Description: Implement unified calendar service with privacy settings and data management
 ### Details:
 Create CalendarService class that abstracts platform-specific implementations. Add privacy controls for calendar data sync (enable/disable, selective calendar access). Implement data sync scheduling and background refresh. Add user preferences for sync frequency and data retention. Ensure local-only storage with optional cloud backup.
 
-## 7. Handle data attribution and source tracking [pending]
+## 7. Handle data attribution and source tracking [done]
 ### Dependencies: 5.3, 5.4, 5.5, 5.6
 ### Description: Implement comprehensive source attribution system for all integrated data
 ### Details:

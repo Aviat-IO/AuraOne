@@ -1,6 +1,6 @@
 # Task ID: 2
 # Title: Core Database Schema and Models
-# Status: pending
+# Status: done
 # Dependencies: 1
 # Priority: high
 # Description: Design and implement the local SQLite database schema for storing journal entries, media, and metadata
@@ -11,37 +11,37 @@ Extend the existing Purplebase SQLite configuration to include journal-specific 
 Unit tests for all database operations (CRUD). Integration tests for complex queries and relationships. Test database migration scenarios and data integrity constraints.
 
 # Subtasks:
-## 1. Design journal-specific database schema [pending]
+## 1. Design journal-specific database schema [done]
 ### Dependencies: None
 ### Description: Define the complete database schema for journal entries, media, location events, calendar events, and person tags with proper relationships
 ### Details:
 Create comprehensive database schema design including table definitions for JournalEntry, MediaItem, LocationEvent, CalendarEvent, and PersonTag. Define foreign key relationships between tables (MediaItem -> JournalEntry, LocationEvent -> JournalEntry, etc.). Plan data types, constraints, and normalization. Document schema relationships and ensure compatibility with existing Purplebase SQLite structure.
 
-## 2. Create JournalEntry model with Drift [pending]
+## 2. Create JournalEntry model with Drift [done]
 ### Dependencies: 2.1
 ### Description: Implement the core JournalEntry database model using Drift ORM with proper data access objects
 ### Details:
 Create Drift table definition for JournalEntry with fields: id, date, content, metadata. Implement corresponding DAO (Data Access Object) with CRUD operations. Add methods for querying entries by date ranges and searching content. Ensure proper serialization of metadata JSON field and handle null values appropriately.
 
-## 3. Create MediaItem model with relationships [pending]
+## 3. Create MediaItem model with relationships [done]
 ### Dependencies: 2.1, 2.2
 ### Description: Implement MediaItem database model with foreign key relationships to journal entries
 ### Details:
 Create Drift table for MediaItem with fields: id, type, path, timestamp, location, journal_entry_id. Implement DAO with methods for media CRUD operations and querying by journal entry. Add support for various media types (photo, video, audio). Establish proper foreign key relationship to JournalEntry table with cascade delete behavior.
 
-## 4. Create LocationEvent model [pending]
+## 4. Create LocationEvent model [done]
 ### Dependencies: 2.1, 2.2
 ### Description: Implement LocationEvent database model for storing GPS coordinates and location data
 ### Details:
 Create Drift table for LocationEvent with fields: id, timestamp, latitude, longitude, accuracy, journal_entry_id. Implement DAO with spatial query capabilities for location-based searches. Add methods for querying locations within date ranges and geographic bounds. Establish foreign key relationship to JournalEntry with proper indexing for performance.
 
-## 5. Create CalendarEvent and PersonTag models [pending]
+## 5. Create CalendarEvent and PersonTag models [done]
 ### Dependencies: 2.1, 2.2
 ### Description: Implement remaining database models for calendar integration and person tagging
 ### Details:
 Create Drift table for CalendarEvent with fields: id, title, start, end, source, journal_entry_id. Create PersonTag table with fields: id, name, face_embedding, media_item_id. Implement corresponding DAOs with appropriate query methods. Add support for calendar event synchronization and face embedding storage for person recognition. Establish proper foreign key relationships.
 
-## 6. Implement database indices and migration support [pending]
+## 6. Implement database indices and migration support [done]
 ### Dependencies: 2.2, 2.3, 2.4, 2.5
 ### Description: Add performance indices and database migration system for schema updates
 ### Details:
