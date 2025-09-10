@@ -1,1 +1,0 @@
-biz.nostr.signer_plugin
