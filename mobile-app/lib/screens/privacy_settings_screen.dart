@@ -31,7 +31,26 @@ final dataRetentionProvider = StateProvider<DataRetentionPeriod>((ref) {
 final automaticDeletionProvider = StateProvider<bool>((ref) => true);
 
 // Additional privacy control providers
-final photoAccessProvider = StateProvider<bool>((ref) => false);
+final photoAccessProvider = StateNotifierProvider<PhotoAccessNotifier, bool>((ref) {
+  return PhotoAccessNotifier();
+});
+
+class PhotoAccessNotifier extends StateNotifier<bool> {
+  PhotoAccessNotifier() : super(false) {
+    _checkInitialState();
+  }
+
+  Future<void> _checkInitialState() async {
+    final result = await PhotoManager.requestPermissionExtend();
+    state = result == PermissionState.authorized || result == PermissionState.limited;
+  }
+
+  Future<void> updateState() async {
+    final result = await PhotoManager.requestPermissionExtend();
+    state = result == PermissionState.authorized || result == PermissionState.limited;
+  }
+}
+
 final calendarAccessProvider = StateProvider<bool>((ref) => false);
 final healthDataProvider = StateProvider<bool>((ref) => false);
 final bluetoothScanningProvider = StateProvider<bool>((ref) => false);
@@ -744,41 +763,68 @@ class PrivacySettingsScreen extends HookConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Data Control',
+              'Data & Privacy',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Export or delete all your location data.',
+              'Manage your personal data and privacy settings.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
             const SizedBox(height: 16),
             
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showExportDialog(context),
-                    icon: const Icon(Icons.download),
-                    label: const Text('Export Data'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () => _showDeleteAllDialog(context),
-                    icon: const Icon(Icons.delete_forever),
-                    label: const Text('Delete All'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: theme.colorScheme.error,
-                    ),
-                  ),
-                ),
-              ],
+            // Privacy Policy
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.policy,
+                color: theme.colorScheme.primary,
+              ),
+              title: const Text('Privacy Policy'),
+              subtitle: const Text('Read our privacy policy'),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () => _showDetailedPrivacyInfo(context),
+            ),
+            
+            const Divider(),
+            
+            // Export Your Data
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.download,
+                color: theme.colorScheme.primary,
+              ),
+              title: const Text('Export Your Data'),
+              subtitle: const Text('Download all your personal data'),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () => _showExportDialog(context),
+            ),
+            
+            const Divider(),
+            
+            // Delete All Data
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.delete_forever,
+                color: theme.colorScheme.error,
+              ),
+              title: Text(
+                'Delete All Data',
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+              subtitle: const Text('Permanently remove all your data'),
+              trailing: Icon(
+                Icons.arrow_forward_ios, 
+                size: 16,
+                color: theme.colorScheme.error,
+              ),
+              onTap: () => _showDeleteAllDialog(context),
             ),
           ],
         ),
@@ -1111,22 +1157,44 @@ class PrivacySettingsScreen extends HookConsumerWidget {
             ),
             const SizedBox(height: 16),
             
-            // Photo Access Toggle
+            // Photo Library Access Toggle
             _buildDataSourceToggle(
               context, 
               ref,
               icon: Icons.photo_library,
-              title: 'Photo Access',
+              title: 'Photo Library Access',
               subtitle: 'Access device photos for journal entries and memories',
               value: photoAccess,
               onChanged: (value) async {
                 if (value) {
                   final status = await _requestPhotoPermission();
                   if (status) {
-                    ref.read(photoAccessProvider.notifier).state = value;
+                    await ref.read(photoAccessProvider.notifier).updateState();
                   }
                 } else {
-                  ref.read(photoAccessProvider.notifier).state = value;
+                  // Can't programmatically revoke permission, guide user to settings
+                  await showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Photo Library Access'),
+                      content: const Text(
+                        'To revoke photo library access, please go to Settings > Apps > Aura One > Permissions and disable Photos.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('OK'),
+                        ),
+                        FilledButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            openAppSettings();
+                          },
+                          child: const Text('Open Settings'),
+                        ),
+                      ],
+                    ),
+                  );
                 }
               },
             ),

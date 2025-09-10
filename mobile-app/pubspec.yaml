@@ -60,7 +60,9 @@ dependencies:
   health: ^13.1.2
   tflite_flutter: ^0.11.0
   onnxruntime: ^1.4.1
+  package_info_plus: ^8.1.1
   sensors_plus: ^6.1.2
+  fl_chart: ^0.69.0
   intl: ^0.20.0
   speech_to_text: ^7.3.0
   flutter_tts: ^4.2.3

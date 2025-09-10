@@ -355,7 +355,7 @@ class BleScanningService {
         rssi: result.rssi,
         lastSeenAt: now,
         manufacturerData: _privacySettings.storeManufacturerData
-            ? result.advertisementData.manufacturerData
+            ? _convertManufacturerData(result.advertisementData.manufacturerData)
             : null,
         serviceUuids: result.advertisementData.serviceUuids
             .map((uuid) => uuid.toString())
@@ -373,7 +373,7 @@ class BleScanningService {
         discoveredAt: now,
         lastSeenAt: now,
         manufacturerData: _privacySettings.storeManufacturerData
-            ? result.advertisementData.manufacturerData
+            ? _convertManufacturerData(result.advertisementData.manufacturerData)
             : null,
         serviceUuids: result.advertisementData.serviceUuids
             .map((uuid) => uuid.toString())
@@ -507,12 +507,28 @@ class BleScanningService {
     _devicesController.add(devices);
   }
   
+  /// Convert manufacturer data from Map<int, List<int>> to Map<String, dynamic>
+  Map<String, dynamic>? _convertManufacturerData(Map<int, List<int>>? data) {
+    if (data == null) return null;
+    return data.map((key, value) => MapEntry(key.toString(), value));
+  }
+  
   /// Clean up devices not seen recently
   void _cleanupOldDevices() {
     final cutoff = DateTime.now().subtract(const Duration(minutes: 5));
     
     _devicesCache.removeWhere((id, device) => 
       device.lastSeenAt.isBefore(cutoff));
+  }
+  
+  /// Get recent devices
+  List<BleDeviceData> getRecentDevices({
+    Duration recency = const Duration(minutes: 5),
+  }) {
+    final cutoff = DateTime.now().subtract(recency);
+    return _devicesCache.values
+        .where((device) => device.lastSeenAt.isAfter(cutoff))
+        .toList();
   }
   
   /// Get devices in proximity zone

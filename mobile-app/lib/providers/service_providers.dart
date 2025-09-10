@@ -1,0 +1,25 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/data_attribution_service.dart';
+import '../services/calendar_service.dart';
+import '../services/health_service.dart';
+import '../services/ble_scanning_service.dart';
+
+// Data Attribution Service Provider
+final dataAttributionServiceProvider = Provider<DataAttributionService>((ref) {
+  return DataAttributionService();
+});
+
+// Calendar Service Provider
+final calendarServiceProvider = Provider<CalendarService>((ref) {
+  return CalendarService();
+});
+
+// Health Service Provider
+final healthServiceProvider = Provider<HealthService>((ref) {
+  return HealthService();
+});
+
+// BLE Service Provider
+final bleServiceProvider = Provider<BleScanningService>((ref) {
+  return BleScanningService();
+});

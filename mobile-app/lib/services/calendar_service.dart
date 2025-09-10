@@ -48,7 +48,7 @@ class CalendarEventData {
       endDate: event.end?.toLocal(),
       isAllDay: event.allDay ?? false,
       location: event.location,
-      attendees: event.attendees?.map((a) => a.name ?? a.emailAddress ?? '').toList() ?? [],
+      attendees: event.attendees?.map((a) => a?.name ?? a?.emailAddress ?? '').toList() ?? [],
       url: event.url?.toString(),
       recurrenceRule: event.recurrenceRule,
       reminders: event.reminders,
@@ -170,10 +170,13 @@ class CalendarService {
   static final _instance = CalendarService._internal();
   
   factory CalendarService() => _instance;
-  CalendarService._internal();
+  CalendarService._internal() {
+    _checkPermissions();
+  }
   
   final DeviceCalendarPlugin _plugin = DeviceCalendarPlugin();
   CalendarPrivacySettings _privacySettings = const CalendarPrivacySettings();
+  bool _hasPermissions = false;
   
   /// Cache for calendars and events
   final Map<String, CalendarMetadata> _calendarsCache = {};
@@ -189,6 +192,54 @@ class CalendarService {
     _logger.info('Privacy settings updated: syncEnabled=${settings.syncEnabled}');
   }
   
+  /// Get events in a date range
+  Future<List<CalendarEventData>> getEventsInRange(
+    DateTime start,
+    DateTime end, {
+    Set<String>? calendarIds,
+  }) async {
+    if (!_hasPermissions) {
+      _logger.warning('Cannot get events without calendar permissions');
+      return [];
+    }
+    
+    try {
+      final calendars = await _plugin.retrieveCalendars();
+      if (calendars.data == null || calendars.data!.isEmpty) {
+        _logger.warning('No calendars found');
+        return [];
+      }
+      
+      final events = <CalendarEventData>[];
+      final calendarsToQuery = calendarIds != null
+          ? calendars.data!.where((c) => calendarIds.contains(c.id))
+          : calendars.data!;
+      
+      for (final calendar in calendarsToQuery) {
+        if (calendar.id == null) continue;
+        
+        final result = await _plugin.retrieveEvents(
+          calendar.id!,
+          RetrieveEventsParams(
+            startDate: start,
+            endDate: end,
+          ),
+        );
+        
+        if (result.data != null) {
+          events.addAll(
+            result.data!.map((e) => CalendarEventData.fromEvent(e))
+          );
+        }
+      }
+      
+      return events;
+    } catch (e, stack) {
+      _logger.error('Failed to get events in range', error: e, stackTrace: stack);
+      return [];
+    }
+  }
+  
   /// Request calendar permissions
   Future<bool> requestPermissions() async {
     try {
@@ -201,6 +252,7 @@ class CalendarService {
         
         if (status.isGranted) {
           _logger.info('iOS calendar permissions granted');
+          _hasPermissions = true;
           return true;
         } else if (status.isPermanentlyDenied) {
           _logger.warning('iOS calendar permissions permanently denied');
@@ -213,6 +265,7 @@ class CalendarService {
         
         if (readStatus.isGranted) {
           _logger.info('Android calendar permissions granted');
+          _hasPermissions = true;
           return true;
         } else if (readStatus.isPermanentlyDenied) {
           _logger.warning('Android calendar permissions permanently denied');
@@ -227,6 +280,11 @@ class CalendarService {
                    error: e, stackTrace: stack);
       return false;
     }
+  }
+  
+  /// Check permissions on initialization
+  Future<void> _checkPermissions() async {
+    _hasPermissions = await hasPermissions();
   }
   
   /// Check if calendar permissions are granted

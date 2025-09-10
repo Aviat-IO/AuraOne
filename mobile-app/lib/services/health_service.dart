@@ -105,7 +105,7 @@ class HealthService {
   Future<void> configure() async {
     try {
       _logger.info('Configuring Health package');
-      Health().configure(useHealthConnectIfAvailable: true);
+      // Health().configure() no longer takes parameters in newer versions
     } catch (e, stack) {
       _logger.error('Failed to configure Health package', 
                    error: e, stackTrace: stack);
@@ -187,6 +187,19 @@ class HealthService {
     }
   }
   
+  /// Get health data in a date range
+  Future<List<HealthDataPoint>> getHealthDataInRange(
+    DateTime start,
+    DateTime end, {
+    Set<HealthDataType>? types,
+  }) async {
+    return await getHealthData(
+      types: types,
+      startDate: start,
+      endDate: end,
+    );
+  }
+  
   /// Get health data for specified types
   Future<List<HealthDataPoint>> getHealthData({
     Set<HealthDataType>? types,
@@ -233,9 +246,17 @@ class HealthService {
             ? 'Health Source' 
             : point.sourceName;
         
+        // Convert value to double based on type
+        double value = 0.0;
+        if (point.value is num) {
+          value = (point.value as num).toDouble();
+        } else if (point.value.toString() != null) {
+          value = double.tryParse(point.value.toString()) ?? 0.0;
+        }
+        
         points.add(HealthDataPoint(
           type: point.type,
-          value: point.value.toDouble(),
+          value: value,
           dateFrom: point.dateFrom,
           dateTo: point.dateTo,
           sourceName: sourceName,

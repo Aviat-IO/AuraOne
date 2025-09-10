@@ -277,6 +277,51 @@ class PhotoService {
     }
   }
   
+  /// Get recent photos
+  Future<List<AssetEntity>> getRecentPhotos({
+    int limit = 100,
+    DateTime? since,
+  }) async {
+    if (!hasAccess) {
+      _logger.warning('Cannot get recent photos without library access');
+      return [];
+    }
+    
+    try {
+      // Get all photos album
+      final albums = await PhotoManager.getAssetPathList(
+        type: RequestType.image,
+        onlyAll: true,
+      );
+      
+      if (albums.isEmpty) {
+        _logger.warning('No photo albums found');
+        return [];
+      }
+      
+      final allPhotos = albums.first;
+      
+      // Get photos from the album
+      final photos = await allPhotos.getAssetListRange(
+        start: 0,
+        end: limit,
+      );
+      
+      // Filter by date if provided
+      if (since != null) {
+        return photos.where((photo) {
+          final createTime = photo.createDateTime;
+          return createTime.isAfter(since);
+        }).toList();
+      }
+      
+      return photos;
+    } catch (e, stack) {
+      _logger.error('Failed to get recent photos', error: e, stackTrace: stack);
+      return [];
+    }
+  }
+  
   /// Get a specific photo by ID
   Future<AssetEntity?> getPhotoById(String id) async {
     if (!hasAccess) {

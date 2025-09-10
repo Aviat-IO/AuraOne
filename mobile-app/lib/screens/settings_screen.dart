@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../widgets/simple_theme_switcher.dart';
 import '../theme.dart';
 import '../theme/colors.dart';
+import '../providers/settings_providers.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -13,6 +15,8 @@ class SettingsScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final brightness = ref.watch(brightnessProvider);
     final isLight = theme.brightness == Brightness.light;
+    final dailyReminders = ref.watch(dailyRemindersEnabledProvider);
+    final fontSize = ref.watch(fontSizeProvider);
     
     return Scaffold(
       body: Container(
@@ -126,7 +130,7 @@ class SettingsScreen extends ConsumerWidget {
                               _buildSettingsTile(
                                 icon: Icons.text_fields,
                                 title: 'Font Size',
-                                subtitle: 'Adjust text size for better readability',
+                                subtitle: _getFontSizeSubtitle(fontSize),
                                 trailing: Icon(
                                   Icons.arrow_forward_ios,
                                   size: 16,
@@ -134,10 +138,7 @@ class SettingsScreen extends ConsumerWidget {
                                 ),
                                 theme: theme,
                                 onTap: () {
-                                  // TODO: Implement font size settings
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Font size settings coming soon')),
-                                  );
+                                  context.push('/settings/font-size');
                                 },
                               ),
                             ],
@@ -165,9 +166,26 @@ class SettingsScreen extends ConsumerWidget {
                                 title: 'Daily Reminders',
                                 subtitle: 'Get reminded to write in your journal',
                                 trailing: Switch(
-                                  value: false, // TODO: Connect to actual settings
-                                  onChanged: (value) {
-                                    // TODO: Implement reminder settings
+                                  value: dailyReminders,
+                                  onChanged: (value) async {
+                                    if (value) {
+                                      // Request notification permission if enabling
+                                      final status = await Permission.notification.request();
+                                      if (status.isGranted) {
+                                        ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(value);
+                                      } else {
+                                        // Show permission denied message
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Please enable notifications in settings to use daily reminders'),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    } else {
+                                      ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(value);
+                                    }
                                   },
                                 ),
                                 theme: theme,
@@ -324,10 +342,7 @@ class SettingsScreen extends ConsumerWidget {
                                 ),
                                 theme: theme,
                                 onTap: () {
-                                  // TODO: Navigate to about screen
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('About page coming soon')),
-                                  );
+                                  context.push('/settings/about');
                                 },
                               ),
                             ],
@@ -465,5 +480,14 @@ class SettingsScreen extends ConsumerWidget {
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     );
+  }
+
+  String _getFontSizeSubtitle(FontSize size) {
+    return switch (size) {
+      FontSize.small => 'Small text',
+      FontSize.medium => 'Medium text (Default)',
+      FontSize.large => 'Large text',
+      FontSize.extraLarge => 'Extra large text',
+    };
   }
 }

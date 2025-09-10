@@ -10,6 +10,7 @@ import '../services/photo_service.dart';
 import '../services/calendar_service.dart';
 import '../services/health_service.dart';
 import '../services/ble_scanning_service.dart';
+import '../providers/service_providers.dart';
 
 class PrivacyDashboardScreen extends HookConsumerWidget {
   const PrivacyDashboardScreen({super.key});

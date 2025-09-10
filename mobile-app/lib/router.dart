@@ -14,6 +14,8 @@ import 'package:aura_one/screens/backup_settings_screen.dart';
 import 'package:aura_one/screens/app_lock_settings_screen.dart';
 import 'package:aura_one/screens/camera_screen.dart';
 import 'package:aura_one/screens/privacy_dashboard_screen.dart';
+import 'package:aura_one/screens/font_size_settings_screen.dart';
+import 'package:aura_one/screens/about_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -109,6 +111,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/camera',
         builder: (context, state) => const CameraScreen(),
+      ),
+      
+      // Font size settings screen
+      GoRoute(
+        path: '/settings/font-size',
+        builder: (context, state) => const FontSizeSettingsScreen(),
+      ),
+      
+      // About screen
+      GoRoute(
+        path: '/settings/about',
+        builder: (context, state) => const AboutScreen(),
       ),
     ],
   );

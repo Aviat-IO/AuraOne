@@ -29,6 +29,7 @@ class OnboardingScreen extends HookConsumerWidget {
       Permission.photos: false,
       Permission.calendar: false,
       Permission.activityRecognition: false,
+      Permission.notification: false,
     });
     
     // Check initial permission states
@@ -298,6 +299,18 @@ class OnboardingScreen extends HookConsumerWidget {
                   'Track activities and movement patterns',
                   Permission.activityRecognition,
                   permissionsGranted,
+                ),
+                
+                _buildPermissionTile(
+                  context,
+                  theme,
+                  ref,
+                  Icons.notifications,
+                  'Notifications',
+                  'Daily reminders to write in your journal',
+                  Permission.notification,
+                  permissionsGranted,
+                  isRequired: true,
                 ),
               ],
             ),

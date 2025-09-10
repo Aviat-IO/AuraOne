@@ -220,6 +220,14 @@ class LocationDatabase extends _$LocationDatabase {
         .go();
   }
 
+  // Get locations between two dates
+  Future<List<LocationPoint>> getLocationsBetween(DateTime start, DateTime end) async {
+    return await (select(locationPoints)
+          ..where((tbl) => tbl.timestamp.isBetweenValues(start, end))
+          ..orderBy([(tbl) => OrderingTerm.asc(tbl.timestamp)]))
+        .get();
+  }
+  
   // Summary Methods
   Future<void> generateDailySummary(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
