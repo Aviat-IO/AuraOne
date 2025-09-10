@@ -11,6 +11,7 @@ import '../widgets/page_header.dart';
 import '../database/media_database.dart';
 import '../services/simple_location_service.dart';
 import '../providers/media_database_provider.dart';
+import '../services/data_analysis_service.dart';
 
 // Provider to store the current day's journal entry
 final todayJournalEntryProvider = StateProvider<String?>((ref) => null);
@@ -197,6 +198,8 @@ class _OverviewTab extends HookConsumerWidget {
     final isEditing = useState(false);
     final controller = useTextEditingController(text: journalEntry ?? '');
     final isLoading = useState(false);
+    final isGenerating = useState(false);
+    final dataAnalysisService = ref.watch(dataAnalysisServiceProvider);
     
     // Get today's stats
     final mediaDb = ref.watch(mediaDatabaseProvider);
@@ -245,8 +248,52 @@ class _OverviewTab extends HookConsumerWidget {
       activeTime = hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
     }
     
+    // Generate AI summary if we don't have one and there's data
+    useEffect(() {
+      if (journalEntry == null && !isGenerating.value) {
+        // Check if we have any data for today
+        if (photosCount > 0 || locationsCount > 0) {
+          // Automatically generate summary after a short delay
+          Future.delayed(const Duration(seconds: 2), () async {
+            if (!context.mounted) return;
+            if (ref.read(todayJournalEntryProvider) != null) return; // Already generated
+            
+            isGenerating.value = true;
+            try {
+              final summary = await dataAnalysisService.generateDailySummary();
+              if (summary != null && context.mounted) {
+                ref.read(todayJournalEntryProvider.notifier).state = summary;
+                controller.text = summary;
+              }
+            } finally {
+              if (context.mounted) {
+                isGenerating.value = false;
+              }
+            }
+          });
+        }
+      }
+      return null;
+    }, [photosCount, locationsCount]);
+    
+    // Function to manually generate/regenerate summary
+    Future<void> generateSummary() async {
+      isGenerating.value = true;
+      try {
+        final summary = await dataAnalysisService.generateDailySummary();
+        if (summary != null && context.mounted) {
+          ref.read(todayJournalEntryProvider.notifier).state = summary;
+          controller.text = summary;
+        }
+      } finally {
+        if (context.mounted) {
+          isGenerating.value = false;
+        }
+      }
+    }
+    
     return Skeletonizer(
-      enabled: isLoading.value,
+      enabled: isLoading.value || isGenerating.value,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -297,19 +344,46 @@ class _OverviewTab extends HookConsumerWidget {
                             ),
                           ],
                         ),
-                        IconButton(
-                          icon: Icon(
-                            isEditing.value ? Icons.check : Icons.edit,
-                            color: theme.colorScheme.primary,
-                          ),
-                          onPressed: () {
-                            if (isEditing.value) {
-                              // Save the edited text
-                              ref.read(todayJournalEntryProvider.notifier).state = 
-                                controller.text;
-                            }
-                            isEditing.value = !isEditing.value;
-                          },
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Generate/Refresh button
+                            if (!isEditing.value)
+                              IconButton(
+                                icon: isGenerating.value
+                                  ? SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          theme.colorScheme.primary,
+                                        ),
+                                      ),
+                                    )
+                                  : Icon(
+                                      journalEntry != null ? Icons.refresh : Icons.auto_awesome,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                onPressed: isGenerating.value ? null : generateSummary,
+                                tooltip: journalEntry != null ? 'Regenerate Summary' : 'Generate Summary',
+                              ),
+                            // Edit button
+                            IconButton(
+                              icon: Icon(
+                                isEditing.value ? Icons.check : Icons.edit,
+                                color: theme.colorScheme.primary,
+                              ),
+                              onPressed: () {
+                                if (isEditing.value) {
+                                  // Save the edited text
+                                  ref.read(todayJournalEntryProvider.notifier).state = 
+                                    controller.text;
+                                }
+                                isEditing.value = !isEditing.value;
+                              },
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -350,7 +424,7 @@ class _OverviewTab extends HookConsumerWidget {
                                 color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
                               ),
                             )
-                          : _buildSummaryEmptyState(theme),
+                          : _buildSummaryEmptyState(theme, photosCount > 0 || locationsCount > 0),
                     ),
                   ],
                 ),
@@ -424,20 +498,20 @@ class _OverviewTab extends HookConsumerWidget {
   }
   
   // Build empty state for Today's Summary
-  Widget _buildSummaryEmptyState(ThemeData theme) {
+  Widget _buildSummaryEmptyState(ThemeData theme, bool hasData) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.analytics_outlined,
+            hasData ? Icons.auto_awesome_outlined : Icons.analytics_outlined,
             size: 48,
             color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
-            'No data yet today',
+            hasData ? 'Ready to generate summary' : 'No data yet today',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
               color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
@@ -445,7 +519,9 @@ class _OverviewTab extends HookConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Your daily summary will automatically appear\nas you use the app throughout the day',
+            hasData 
+              ? 'Tap the sparkle icon above to generate\nyour AI-powered daily summary'
+              : 'Your daily summary will automatically appear\nas you use the app throughout the day',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
