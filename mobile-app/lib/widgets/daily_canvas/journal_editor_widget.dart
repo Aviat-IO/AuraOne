@@ -5,8 +5,9 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../theme/colors.dart';
 import '../../services/voice_editing_service.dart';
+import '../../services/permission_service.dart';
 import '../../services/nlp_command_parser.dart';
-import 'package:permission_handler/permission_handler.dart';
+import '../voice_permission_fallback.dart';
 
 // Provider for journal entry
 final journalEntryProvider = StateProvider.family<JournalEntry?, DateTime>((ref, date) {
@@ -152,43 +153,36 @@ class JournalEditorWidget extends HookConsumerWidget {
                 
                 // Voice controls (only in edit mode)
                 if (isEditMode) ...[
-                  // Voice input button
-                  IconButton(
-                    icon: Icon(
-                      isListening.value ? Icons.mic : Icons.mic_none,
-                      color: isListening.value 
-                        ? theme.colorScheme.error 
-                        : theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
-                    onPressed: () async {
+                  // Voice input button with permission handling
+                  VoiceInputButton(
+                    isListening: isListening.value,
+                    onTextReceived: (text) {
+                      voiceTranscription.value = text;
+                      _handleVoiceCommand(
+                        context,
+                        contentController,
+                        text,
+                        voiceService,
+                      );
+                    },
+                    onListeningStateChanged: () async {
                       if (isListening.value) {
                         await voiceService.stopListening();
                         // Apply the voice command
                         if (voiceTranscription.value.isNotEmpty) {
                           _handleVoiceCommand(
-                            context, 
-                            contentController, 
+                            context,
+                            contentController,
                             voiceTranscription.value,
                             voiceService,
                           );
                         }
                       } else {
-                        // Check microphone permission
-                        final status = await Permission.microphone.request();
-                        if (status.isGranted) {
-                          await voiceService.startListening();
-                        } else {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Microphone permission required for voice input'),
-                              ),
-                            );
-                          }
+                        if (context.mounted) {
+                          await voiceService.startListening(context: context);
                         }
                       }
                     },
-                    tooltip: isListening.value ? 'Stop recording' : 'Voice command',
                   ),
                   
                   // Text-to-speech button

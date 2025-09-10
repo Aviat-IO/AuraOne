@@ -1,22 +1,27 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'permission_service.dart';
 
 /// Provider for the VoiceEditingService
 final voiceEditingServiceProvider = Provider<VoiceEditingService>((ref) {
-  return VoiceEditingService();
+  final permissionService = ref.watch(permissionServiceProvider);
+  return VoiceEditingService(permissionService);
 });
 
 /// Service for handling voice-to-text and text-to-speech operations
 class VoiceEditingService {
   final SpeechToText _speechToText = SpeechToText();
   final FlutterTts _flutterTts = FlutterTts();
+  final PermissionService _permissionService;
   
   bool _isInitialized = false;
   bool _isListening = false;
   String _currentTranscription = '';
+  bool _hasPermission = false;
   
   /// Callback for when speech is recognized
   Function(String)? onSpeechResult;
@@ -26,8 +31,11 @@ class VoiceEditingService {
   
   /// Callback for errors
   Function(String)? onError;
+  
+  /// Callback for permission denied
+  Function()? onPermissionDenied;
 
-  VoiceEditingService() {
+  VoiceEditingService(this._permissionService) {
     _initializeTts();
   }
 
@@ -81,13 +89,25 @@ class VoiceEditingService {
   }
 
   /// Check if speech recognition is available
-  bool get isAvailable => _isInitialized && _speechToText.isAvailable;
+  bool get isAvailable => _isInitialized && _speechToText.isAvailable && _hasPermission;
   
   /// Check if currently listening
   bool get isListening => _isListening;
   
   /// Get current transcription
   String get currentTranscription => _currentTranscription;
+  
+  /// Check if microphone permission is granted
+  bool get hasPermission => _hasPermission;
+  
+  /// Check and request microphone permission
+  Future<bool> checkAndRequestPermission(BuildContext context) async {
+    _hasPermission = await _permissionService.ensureMicrophonePermission(context);
+    if (!_hasPermission) {
+      onPermissionDenied?.call();
+    }
+    return _hasPermission;
+  }
   
   /// Get available locales for speech recognition
   Future<List<LocaleName>> getAvailableLocales() async {
@@ -99,9 +119,19 @@ class VoiceEditingService {
 
   /// Start listening for speech
   Future<void> startListening({
+    required BuildContext context,
     String? localeId,
     Duration? listenFor,
   }) async {
+    // Check permissions first
+    if (!_hasPermission) {
+      _hasPermission = await checkAndRequestPermission(context);
+      if (!_hasPermission) {
+        onError?.call('Microphone permission is required for voice input');
+        return;
+      }
+    }
+    
     if (!_isInitialized) {
       final initialized = await initialize();
       if (!initialized) {
