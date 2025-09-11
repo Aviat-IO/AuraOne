@@ -32,7 +32,7 @@ class OnboardingScreen extends HookConsumerWidget {
       Permission.activityRecognition: false,
       Permission.notification: false,
     });
-    
+
     // Track location button press count and skip button visibility
     final locationButtonPressCount = useState(0);
     final showSkipButton = useState(false);
@@ -53,7 +53,7 @@ class OnboardingScreen extends HookConsumerWidget {
       });
       return null;
     }, []);
-    
+
     // Timer to show skip button after 20 seconds on permissions page
     useEffect(() {
       if (currentPage.value == 3 && !showSkipButton.value) {
@@ -61,20 +61,20 @@ class OnboardingScreen extends HookConsumerWidget {
         if (skipButtonTimer.value == null) {
           skipButtonTimer.value = DateTime.now();
         }
-        
+
         final timer = Timer.periodic(const Duration(seconds: 1), (timer) {
           if (!context.mounted) {
             timer.cancel();
             return;
           }
-          
+
           final elapsed = DateTime.now().difference(skipButtonTimer.value!);
           if (elapsed.inSeconds >= 20) {
             showSkipButton.value = true;
             timer.cancel();
           }
         });
-        
+
         return timer.cancel;
       } else if (currentPage.value != 3) {
         // Reset when leaving permissions page
@@ -313,7 +313,7 @@ class OnboardingScreen extends HookConsumerWidget {
                   ref,
                   Icons.location_on,
                   'Location',
-                  'Track your journeys and places visited. Tap "Allow While Using App" then change to "Always Allow" in Settings for background tracking.',
+                  'Track your journeys and places visited. Tap "Allow While Using App" then change to "Allow All the Time" in Settings for background tracking.',
                   Permission.locationAlways,
                   permissionsGranted,
                   isRequired: true,
@@ -331,7 +331,7 @@ class OnboardingScreen extends HookConsumerWidget {
                   ref,
                   Icons.photo_library,
                   'Photo Library',
-                  'Include photos in your daily entries',
+                  'Include photos in your daily entries. Please choose "Allow All".',
                   Permission.photos,
                   permissionsGranted,
                 ),
@@ -612,123 +612,143 @@ class OnboardingScreen extends HookConsumerWidget {
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ListTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: isGranted
-                ? theme.colorScheme.primaryContainer
-                : theme.colorScheme.surfaceContainerHighest,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            color: isGranted
-                ? theme.colorScheme.onPrimaryContainer
-                : theme.colorScheme.onSurface.withValues(alpha: 0.5),
-            size: 20,
-          ),
-        ),
-        title: Row(
-          children: [
-            Flexible(
-              child: Text(
-                title,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (isRequired) ...[
-              const SizedBox(width: 8),
+      child: InkWell(
+        onTap: null,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(4),
+                  color: isGranted
+                      ? theme.colorScheme.primaryContainer
+                      : theme.colorScheme.surfaceContainerHighest,
+                  shape: BoxShape.circle,
                 ),
-                child: Text(
-                  'Required',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onErrorContainer,
-                    fontSize: 10,
-                  ),
+                child: Icon(
+                  icon,
+                  color: isGranted
+                      ? theme.colorScheme.onPrimaryContainer
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                  size: 20,
                 ),
               ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            style: theme.textTheme.titleMedium,
+                          ),
+                        ),
+                        if (isRequired) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.errorContainer,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Required',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onErrorContainer,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              isGranted
+                  ? Icon(
+                      Icons.check_circle,
+                      color: theme.colorScheme.primary,
+                    )
+                  : OutlinedButton(
+                      onPressed: () async {
+                        // Call the custom onPressed callback if provided
+                        onPressed?.call();
+
+                        print('Enable button pressed for permission: $permission');
+
+                        // For location permission, handle special Android case
+                        if (permission == Permission.locationAlways) {
+                          // First request location when in use permission
+                          final whenInUseStatus = await Permission.locationWhenInUse.request();
+                          print('Location when in use status: ${whenInUseStatus.toString()}');
+
+                          if (whenInUseStatus.isGranted) {
+                            // Then request always permission
+                            final alwaysStatus = await Permission.locationAlways.request();
+                            print('Location always status: ${alwaysStatus.toString()}');
+
+                            final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
+                            newPermissions[permission] = alwaysStatus.isGranted || alwaysStatus.isLimited || whenInUseStatus.isGranted;
+                            permissionsGranted.value = newPermissions;
+
+                            // Handle location services
+                            final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+                            if (!serviceEnabled) {
+                              print('Location services not enabled, opening settings');
+                              await Geolocator.openLocationSettings();
+                            }
+                          } else {
+                            final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
+                            newPermissions[permission] = false;
+                            permissionsGranted.value = newPermissions;
+                          }
+                        } else {
+                          // For other permissions, use normal flow
+                          final currentStatus = await permission.status;
+                          print('Current permission status: ${currentStatus.toString()}');
+
+                          // If already granted, just update the UI
+                          if (currentStatus.isGranted || currentStatus.isLimited) {
+                            print('Permission already granted, updating UI');
+                            final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
+                            newPermissions[permission] = true;
+                            permissionsGranted.value = newPermissions;
+                            return;
+                          }
+
+                          // Otherwise, request the permission
+                          final status = await permission.request();
+                          print('Permission request result: ${status.toString()}');
+
+                          final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
+                          newPermissions[permission] = status.isGranted || status.isLimited;
+                          permissionsGranted.value = newPermissions;
+                          print('Updated permissions: $newPermissions');
+                        }
+                      },
+                      child: const Text('Enable'),
+                    ),
             ],
-          ],
+          ),
         ),
-        subtitle: Text(
-          description,
-          style: theme.textTheme.bodySmall,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: isGranted
-            ? Icon(
-                Icons.check_circle,
-                color: theme.colorScheme.primary,
-              )
-            : OutlinedButton(
-                onPressed: () async {
-                  // Call the custom onPressed callback if provided
-                  onPressed?.call();
-                  
-                  print('Enable button pressed for permission: $permission');
-
-                  // For location permission, handle special Android case
-                  if (permission == Permission.locationAlways) {
-                    // First request location when in use permission
-                    final whenInUseStatus = await Permission.locationWhenInUse.request();
-                    print('Location when in use status: ${whenInUseStatus.toString()}');
-                    
-                    if (whenInUseStatus.isGranted) {
-                      // Then request always permission
-                      final alwaysStatus = await Permission.locationAlways.request();
-                      print('Location always status: ${alwaysStatus.toString()}');
-                      
-                      final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
-                      newPermissions[permission] = alwaysStatus.isGranted || alwaysStatus.isLimited || whenInUseStatus.isGranted;
-                      permissionsGranted.value = newPermissions;
-                      
-                      // Handle location services
-                      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-                      if (!serviceEnabled) {
-                        print('Location services not enabled, opening settings');
-                        await Geolocator.openLocationSettings();
-                      }
-                    } else {
-                      final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
-                      newPermissions[permission] = false;
-                      permissionsGranted.value = newPermissions;
-                    }
-                  } else {
-                    // For other permissions, use normal flow
-                    final currentStatus = await permission.status;
-                    print('Current permission status: ${currentStatus.toString()}');
-
-                    // If already granted, just update the UI
-                    if (currentStatus.isGranted || currentStatus.isLimited) {
-                      print('Permission already granted, updating UI');
-                      final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
-                      newPermissions[permission] = true;
-                      permissionsGranted.value = newPermissions;
-                      return;
-                    }
-
-                    // Otherwise, request the permission
-                    final status = await permission.request();
-                    print('Permission request result: ${status.toString()}');
-
-                    final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
-                    newPermissions[permission] = status.isGranted || status.isLimited;
-                    permissionsGranted.value = newPermissions;
-                    print('Updated permissions: $newPermissions');
-                  }
-                },
-                child: const Text('Enable'),
-              ),
-        ),
-      );
+      ),
+    );
       },
     );
   }
