@@ -10,7 +10,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Privacy Quick Start'),
@@ -26,15 +26,15 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
               // Welcome section
               _buildWelcomeSection(context),
               const SizedBox(height: 24),
-              
+
               // Step-by-step guide
               _buildStepByStepGuide(context),
               const SizedBox(height: 24),
-              
+
               // Quick setup buttons
               _buildQuickSetupSection(context),
               const SizedBox(height: 24),
-              
+
               // Next steps
               _buildNextStepsSection(context),
             ],
@@ -46,7 +46,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
 
   Widget _buildWelcomeSection(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -102,7 +102,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
 
   Widget _buildStepByStepGuide(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -113,7 +113,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        
+
         _buildStep(
           context,
           1,
@@ -123,7 +123,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
           Colors.blue,
           () => _showLocationSetup(context),
         ),
-        
+
         _buildStep(
           context,
           2,
@@ -133,7 +133,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
           Colors.green,
           () => _showDataRetentionSetup(context),
         ),
-        
+
         _buildStep(
           context,
           3,
@@ -143,7 +143,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
           Colors.orange,
           () => _showPermissionsSetup(context),
         ),
-        
+
         _buildStep(
           context,
           4,
@@ -167,7 +167,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
     VoidCallback onTap,
   ) {
     final theme = Theme.of(context);
-    
+
     return Semantics(
       label: 'Step $stepNumber: $title. $description',
       hint: 'Double tap to configure',
@@ -237,7 +237,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
 
   Widget _buildQuickSetupSection(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -258,7 +258,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             _buildPresetOption(
               context,
               'Maximum Privacy',
@@ -267,7 +267,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
               theme.colorScheme.error,
               () => _applyMaxPrivacyPreset(context),
             ),
-            
+
             _buildPresetOption(
               context,
               'Balanced',
@@ -276,7 +276,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
               theme.colorScheme.primary,
               () => _applyBalancedPreset(context),
             ),
-            
+
             _buildPresetOption(
               context,
               'Full Features',
@@ -300,7 +300,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
     VoidCallback onTap,
   ) {
     final theme = Theme.of(context);
-    
+
     return Semantics(
       label: '$title preset: $description',
       hint: 'Double tap to apply this preset',
@@ -358,7 +358,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
 
   Widget _buildNextStepsSection(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -377,7 +377,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 12),
-            
+
             _buildNextStepItem(
               context,
               Icons.dashboard,
@@ -398,9 +398,9 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
               Icons.delete,
               'Delete specific data or everything with one tap',
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
@@ -417,7 +417,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
 
   Widget _buildNextStepItem(BuildContext context, IconData icon, String text) {
     final theme = Theme.of(context);
-    
+
     return Semantics(
       label: text,
       child: Padding(

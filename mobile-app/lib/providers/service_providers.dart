@@ -4,6 +4,7 @@ import '../services/calendar_service.dart';
 import '../services/health_service.dart';
 import '../services/ble_scanning_service.dart';
 import '../services/ai_service.dart';
+import '../services/background_data_service.dart';
 
 // Data Attribution Service Provider
 final dataAttributionServiceProvider = Provider<DataAttributionService>((ref) {
@@ -28,4 +29,9 @@ final bleServiceProvider = Provider<BleScanningService>((ref) {
 // AI Service Provider
 final aiServiceProvider = Provider<AIService>((ref) {
   return AIService();
+});
+
+// Background Data Service Provider
+final backgroundDataServiceProvider = Provider<BackgroundDataService>((ref) {
+  return BackgroundDataService(ref);
 });

@@ -82,7 +82,7 @@ class MapWidget extends ConsumerWidget {
     final isLight = theme.brightness == Brightness.light;
     final mapData = ref.watch(mapDataProvider(date));
     final isLoading = ref.watch(mapLoadingProvider);
-    
+
     return Skeletonizer(
       enabled: isLoading,
       child: Column(
@@ -123,7 +123,7 @@ class MapWidget extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  
+
                   // Map controls
                   Positioned(
                     top: 16,
@@ -160,7 +160,7 @@ class MapWidget extends ConsumerWidget {
               ),
             ),
           ),
-          
+
           // Location stats
           if (mapData != null) ...[
             const SizedBox(height: 16),
@@ -201,7 +201,7 @@ class MapWidget extends ConsumerWidget {
               ),
             ),
           ],
-          
+
           // Location list
           if (mapData != null && mapData.locations.isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -226,7 +226,7 @@ class MapWidget extends ConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildMapControl({
     required IconData icon,
     required VoidCallback onTap,
@@ -250,7 +250,7 @@ class MapWidget extends ConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildStat({
     required IconData icon,
     required String value,
@@ -280,14 +280,14 @@ class MapWidget extends ConsumerWidget {
       ],
     );
   }
-  
+
   Widget _buildLocationCard({
     required LocationPoint location,
     required ThemeData theme,
     required bool isLight,
   }) {
     final color = _getLocationColor(location.type, theme);
-    
+
     return Container(
       width: 150,
       margin: const EdgeInsets.only(right: 12),
@@ -352,7 +352,7 @@ class MapWidget extends ConsumerWidget {
       ),
     );
   }
-  
+
   IconData _getLocationIcon(LocationType type) {
     switch (type) {
       case LocationType.home:
@@ -371,7 +371,7 @@ class MapWidget extends ConsumerWidget {
         return Icons.place;
     }
   }
-  
+
   Color _getLocationColor(LocationType type, ThemeData theme) {
     switch (type) {
       case LocationType.home:

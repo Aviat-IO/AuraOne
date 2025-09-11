@@ -25,7 +25,7 @@ class PermissionRequestDialog extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
@@ -51,7 +51,7 @@ class PermissionRequestDialog extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Title
             Text(
               title,
@@ -61,7 +61,7 @@ class PermissionRequestDialog extends ConsumerWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            
+
             // Explanation
             Text(
               explanation,
@@ -71,7 +71,7 @@ class PermissionRequestDialog extends ConsumerWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            
+
             // Benefits
             if (benefits.isNotEmpty) ...[
               Container(
@@ -115,7 +115,7 @@ class PermissionRequestDialog extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
             ],
-            
+
             // Actions
             Row(
               children: [
@@ -134,7 +134,7 @@ class PermissionRequestDialog extends ConsumerWidget {
                 ),
               ],
             ),
-            
+
             // Privacy note
             const SizedBox(height: 16),
             Row(
@@ -179,7 +179,7 @@ class PermissionDeniedDialog extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
@@ -205,7 +205,7 @@ class PermissionDeniedDialog extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Title
             Text(
               title,
@@ -215,7 +215,7 @@ class PermissionDeniedDialog extends ConsumerWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            
+
             // Message
             Text(
               message,
@@ -224,7 +224,7 @@ class PermissionDeniedDialog extends ConsumerWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            
+
             // Alternative action
             if (alternativeAction != null) ...[
               const SizedBox(height: 16),
@@ -252,9 +252,9 @@ class PermissionDeniedDialog extends ConsumerWidget {
                 ),
               ),
             ],
-            
+
             const SizedBox(height: 24),
-            
+
             // Actions
             if (onSettingsPressed != null) ...[
               FilledButton.icon(

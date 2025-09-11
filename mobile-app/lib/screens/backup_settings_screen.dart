@@ -466,6 +466,86 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
             ),
             const SizedBox(height: 16),
             
+            // Encryption Settings
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.lock, color: theme.colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Encryption',
+                          style: theme.textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      title: const Text('Enable Encryption'),
+                      subtitle: const Text('Protect backups with AES-256'),
+                      value: _config.enableEncryption,
+                      onChanged: (value) {
+                        setState(() {
+                          _config = BackupConfig(
+                            frequency: _config.frequency,
+                            preferredTime: _config.preferredTime,
+                            includeMedia: _config.includeMedia,
+                            includeLocation: _config.includeLocation,
+                            includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
+                            enableEncryption: value,
+                            encryptionPassword: value ? _passwordController.text : null,
+                            useBlossomStorage: _config.useBlossomStorage,
+                            useSyncthingFolder: _config.useSyncthingFolder,
+                            maxBackupsToKeep: _config.maxBackupsToKeep,
+                            onlyOnWifi: _config.onlyOnWifi,
+                            onlyWhenCharging: _config.onlyWhenCharging,
+                          );
+                        });
+                      },
+                    ),
+                    if (_config.enableEncryption) ...[
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Encryption Password',
+                          border: OutlineInputBorder(),
+                          helperText: 'Required to restore encrypted backups',
+                          prefixIcon: Icon(Icons.vpn_key),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _config = BackupConfig(
+                              frequency: _config.frequency,
+                              preferredTime: _config.preferredTime,
+                              includeMedia: _config.includeMedia,
+                              includeLocation: _config.includeLocation,
+                              includeHealthData: _config.includeHealthData,
+                            includeCalendarData: _config.includeCalendarData,
+                              enableEncryption: _config.enableEncryption,
+                              encryptionPassword: value,
+                              useBlossomStorage: _config.useBlossomStorage,
+                              useSyncthingFolder: _config.useSyncthingFolder,
+                              maxBackupsToKeep: _config.maxBackupsToKeep,
+                              onlyOnWifi: _config.onlyOnWifi,
+                              onlyWhenCharging: _config.onlyWhenCharging,
+                            );
+                          });
+                        },
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            
             // Storage Settings
             Card(
               child: Padding(
@@ -801,86 +881,6 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
                         });
                       },
                     ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Encryption Settings
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.lock, color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Encryption',
-                          style: theme.textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    SwitchListTile(
-                      title: const Text('Enable Encryption'),
-                      subtitle: const Text('Protect backups with AES-256'),
-                      value: _config.enableEncryption,
-                      onChanged: (value) {
-                        setState(() {
-                          _config = BackupConfig(
-                            frequency: _config.frequency,
-                            preferredTime: _config.preferredTime,
-                            includeMedia: _config.includeMedia,
-                            includeLocation: _config.includeLocation,
-                            includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                            enableEncryption: value,
-                            encryptionPassword: value ? _passwordController.text : null,
-                            useBlossomStorage: _config.useBlossomStorage,
-                            useSyncthingFolder: _config.useSyncthingFolder,
-                            maxBackupsToKeep: _config.maxBackupsToKeep,
-                            onlyOnWifi: _config.onlyOnWifi,
-                            onlyWhenCharging: _config.onlyWhenCharging,
-                          );
-                        });
-                      },
-                    ),
-                    if (_config.enableEncryption) ...[
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Encryption Password',
-                          border: OutlineInputBorder(),
-                          helperText: 'Required to restore encrypted backups',
-                          prefixIcon: Icon(Icons.vpn_key),
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            _config = BackupConfig(
-                              frequency: _config.frequency,
-                              preferredTime: _config.preferredTime,
-                              includeMedia: _config.includeMedia,
-                              includeLocation: _config.includeLocation,
-                              includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                              enableEncryption: _config.enableEncryption,
-                              encryptionPassword: value,
-                              useBlossomStorage: _config.useBlossomStorage,
-                              useSyncthingFolder: _config.useSyncthingFolder,
-                              maxBackupsToKeep: _config.maxBackupsToKeep,
-                              onlyOnWifi: _config.onlyOnWifi,
-                              onlyWhenCharging: _config.onlyWhenCharging,
-                            );
-                          });
-                        },
-                      ),
-                    ],
                   ],
                 ),
               ),

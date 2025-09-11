@@ -5,21 +5,33 @@
 		"purplestack": {
 			"type": "stdio",
 			"command": "bash",
-			"args": ["tools/scripts/run-mcp.sh"]
+			"args": [
+				"tools/scripts/run-mcp.sh"
+			]
 		},
 		"nostr": {
 			"type": "stdio",
 			"command": "npx",
-			"args": ["-y", "@nostrbook/mcp@latest"]
+			"args": [
+				"-y",
+				"@nostrbook/mcp@latest"
+			]
 		},
 		"developer": {
 			"type": "stdio",
 			"command": "npx",
-			"args": ["-y", "@soapbox.pub/developer-mcp@latest"]
+			"args": [
+				"-y",
+				"@soapbox.pub/developer-mcp@latest"
+			]
 		},
 		"task-master-ai": {
 			"command": "npx",
-			"args": ["-y", "--package=task-master-ai", "task-master-ai"],
+			"args": [
+				"-y",
+				"--package=task-master-ai",
+				"task-master-ai"
+			],
 			"env": {
 				"ANTHROPIC_API_KEY": "YOUR_ANTHROPIC_API_KEY_HERE",
 				"PERPLEXITY_API_KEY": "YOUR_PERPLEXITY_API_KEY_HERE",

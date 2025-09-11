@@ -32,7 +32,7 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('About Aura One'),
@@ -56,13 +56,13 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
-                          colors: isLight 
+                          colors: isLight
                             ? AuraColors.lightLogoGradient
                             : AuraColors.darkLogoGradient,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: isLight 
+                            color: isLight
                               ? AuraColors.lightPrimary.withValues(alpha: 0.3)
                               : AuraColors.darkPrimary.withValues(alpha: 0.2),
                             blurRadius: 20,
@@ -244,7 +244,7 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
   }) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -252,13 +252,13 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isLight 
+          colors: isLight
             ? AuraColors.lightCardGradient
             : AuraColors.darkCardGradient,
         ),
         boxShadow: [
           BoxShadow(
-            color: isLight 
+            color: isLight
               ? AuraColors.lightPrimary.withValues(alpha: 0.08)
               : Colors.black.withValues(alpha: 0.2),
             blurRadius: 16,
@@ -313,7 +313,7 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
-    
+
     return ListTile(
       leading: Icon(
         icon,

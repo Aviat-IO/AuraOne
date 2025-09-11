@@ -16,23 +16,23 @@ class PermissionService {
   Future<bool> requestMicrophonePermission(BuildContext context) async {
     // Check current status
     final status = await Permission.microphone.status;
-    
+
     if (status.isGranted) {
       return true;
     }
-    
+
     if (status.isDenied) {
       // Show rationale dialog before requesting
       final shouldRequest = await _showRationaleDialog(context);
       if (!shouldRequest || !context.mounted) {
         return false;
       }
-      
+
       // Request permission
       final result = await Permission.microphone.request();
       return result.isGranted;
     }
-    
+
     if (status.isPermanentlyDenied) {
       // Show dialog to open settings
       if (context.mounted) {
@@ -40,7 +40,7 @@ class PermissionService {
       }
       return false;
     }
-    
+
     // Handle other statuses (restricted, limited)
     return false;
   }

@@ -4,12 +4,12 @@ import '../database/location_database.dart';
 // Singleton provider for the location database
 final locationDatabaseProvider = Provider<LocationDatabase>((ref) {
   final database = LocationDatabase();
-  
+
   // Dispose the database when the provider is disposed
   ref.onDispose(() {
     database.close();
   });
-  
+
   return database;
 });
 
@@ -69,7 +69,7 @@ class LocationDataCleanupService {
 
   Future<void> generateDailySummaries() async {
     final db = ref.read(locationDatabaseProvider);
-    
+
     // Generate summaries for the last 7 days
     for (int i = 0; i < 7; i++) {
       final date = DateTime.now().subtract(Duration(days: i));

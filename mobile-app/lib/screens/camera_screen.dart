@@ -111,7 +111,7 @@ class _CameraView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     // This would be replaced with actual camera preview
     return Stack(
       children: [

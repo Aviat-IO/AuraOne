@@ -23,7 +23,7 @@ class HelpTooltip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Row(
       children: [
         Expanded(child: child),
@@ -38,8 +38,8 @@ class HelpTooltip extends StatelessWidget {
               color: Colors.transparent,
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: detailedHelp != null || onHelpPressed != null 
-                    ? () => _showDetailedHelp(context) 
+                onTap: detailedHelp != null || onHelpPressed != null
+                    ? () => _showDetailedHelp(context)
                     : null,
                 child: Padding(
                   padding: padding ?? const EdgeInsets.all(4),
@@ -62,7 +62,7 @@ class HelpTooltip extends StatelessWidget {
       onHelpPressed!();
       return;
     }
-    
+
     if (detailedHelp != null) {
       showDialog(
         context: context,
@@ -110,7 +110,7 @@ class HelpInfoButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Semantics(
       label: 'Help: $message',
       hint: 'Double tap to show help information',
@@ -184,7 +184,7 @@ class HelpSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Semantics(
       header: true,
       child: Column(

@@ -18,64 +18,64 @@ import 'media_cache_service.dart';
 /// Service for managing photo library access and automated scanning
 class PhotoService {
   static final _logger = AppLogger('PhotoService');
-  
+
   /// Reference to Riverpod container for database access
   final Ref? _ref;
-  
+
   /// Media database for storing photo metadata
   MediaDatabase? _mediaDatabase;
-  
+
   /// Media management service
   MediaManagementService? _mediaManagement;
-  
+
   /// Current permission state
   PermissionState? _permissionState;
-  
+
   /// Stream controller for photo discovery events
   final _photoDiscoveryController = StreamController<PhotoDiscoveryEvent>.broadcast();
-  
+
   /// Stream of photo discovery events
   Stream<PhotoDiscoveryEvent> get photoDiscoveryStream => _photoDiscoveryController.stream;
-  
+
   /// Timer for automated scanning
   Timer? _scanTimer;
-  
+
   /// Last scan timestamp
   DateTime? _lastScanTime;
-  
+
   /// Cached photo IDs to detect new items
   final Set<String> _knownPhotoIds = {};
-  
+
   /// Scanning configuration
   Duration _scanInterval = const Duration(minutes: 30);
   bool _isAutomaticScanningEnabled = false;
-  
+
   /// Pagination configuration
   static const int defaultPageSize = 50;
   static const int maxConcurrentProcessing = 3;
-  
+
   /// Background processing pool
   MediaProcessingPool? _processingPool;
   bool _isPoolInitialized = false;
-  
+
   /// Cache service
   final _cacheService = MediaCacheService();
-  
+
   /// Stream controller for new photo events
   final _newPhotoController = StreamController<List<AssetEntity>>.broadcast();
-  
+
   /// Stream of newly discovered photos
   Stream<List<AssetEntity>> get newPhotoStream => _newPhotoController.stream;
-  
+
   /// Check if we have photo library access
   bool get hasAccess => _permissionState?.hasAccess ?? false;
-  
+
   /// Check if we have full photo library access
   bool get hasFullAccess => _permissionState?.isAuth ?? false;
-  
+
   /// Constructor that optionally accepts a Riverpod ref for database access
   PhotoService([this._ref]);
-  
+
   /// Get media database instance
   MediaDatabase get mediaDatabase {
     if (_mediaDatabase == null) {
@@ -87,7 +87,7 @@ class PhotoService {
     }
     return _mediaDatabase!;
   }
-  
+
   /// Get media management service
   MediaManagementService get mediaManagement {
     if (_mediaManagement == null) {
@@ -99,20 +99,20 @@ class PhotoService {
     }
     return _mediaManagement!;
   }
-  
+
   /// Initialize the photo service
   Future<void> initialize() async {
     try {
       _logger.info('Initializing PhotoService...');
-      
+
       // Initialize cache service
       _cacheService.initialize();
-      
+
       // Check current permission state
       _permissionState = await PhotoManager.requestPermissionExtend();
       final isAuth = _permissionState?.isAuth ?? false;
       _logger.info('Photo library permission state: ${isAuth ? "Authorized" : "Limited/Denied"}');
-      
+
       if (_permissionState?.hasAccess ?? false) {
         // Register for photo library changes
         PhotoManager.addChangeCallback(_onPhotoLibraryChanged);
@@ -123,13 +123,13 @@ class PhotoService {
       _logger.error('Failed to initialize PhotoService', error: e, stackTrace: stack);
     }
   }
-  
+
   /// Request photo library permissions
   Future<PermissionState> requestPermissions() async {
     try {
       _logger.info('Requesting photo library permissions...');
       _permissionState = await PhotoManager.requestPermissionExtend();
-      
+
       if (_permissionState!.isAuth) {
         _logger.info('Full photo library access granted');
       } else if (_permissionState!.hasAccess) {
@@ -137,14 +137,14 @@ class PhotoService {
       } else {
         _logger.warning('Photo library access denied');
       }
-      
+
       return _permissionState!;
     } catch (e, stack) {
       _logger.error('Failed to request photo permissions', error: e, stackTrace: stack);
       rethrow;
     }
   }
-  
+
   /// Open system settings for photo permissions
   Future<void> openSettings() async {
     try {
@@ -153,13 +153,13 @@ class PhotoService {
       _logger.error('Failed to open photo settings', error: e, stackTrace: stack);
     }
   }
-  
+
   /// Present limited photo selection UI (iOS 14+)
   Future<void> presentLimitedSelection() async {
     // Check if we have limited access (hasAccess but not isAuth)
-    final hasLimitedAccess = (_permissionState?.hasAccess ?? false) && 
+    final hasLimitedAccess = (_permissionState?.hasAccess ?? false) &&
                              !(_permissionState?.isAuth ?? false);
-    
+
     if (Platform.isIOS && hasLimitedAccess) {
       try {
         await PhotoManager.presentLimited();
@@ -168,7 +168,7 @@ class PhotoService {
       }
     }
   }
-  
+
   /// Get all photo albums/collections
   Future<List<AssetPathEntity>> getAlbums({
     RequestType type = RequestType.common,
@@ -178,7 +178,7 @@ class PhotoService {
       _logger.warning('Cannot get albums without photo library access');
       return [];
     }
-    
+
     try {
       final albums = await PhotoManager.getAssetPathList(
         type: type,
@@ -192,7 +192,7 @@ class PhotoService {
           ],
         ),
       );
-      
+
       _logger.info('Found ${albums.length} photo albums');
       return albums;
     } catch (e, stack) {
@@ -200,7 +200,7 @@ class PhotoService {
       return [];
     }
   }
-  
+
   /// Scan for new photos created within a time range
   Future<List<AssetEntity>> scanNewPhotos({
     required DateTime since,
@@ -211,10 +211,10 @@ class PhotoService {
       _logger.warning('Cannot scan photos without library access');
       return [];
     }
-    
+
     try {
       _logger.info('Scanning for photos since $since');
-      
+
       final filterOption = FilterOptionGroup(
         createTimeCond: DateTimeCond(
           min: since,
@@ -227,30 +227,30 @@ class PhotoService {
           ),
         ],
       );
-      
+
       // Get all photos from the specified time range
       final paths = await PhotoManager.getAssetPathList(
         type: type,
         onlyAll: true,
         filterOption: filterOption,
       );
-      
+
       if (paths.isEmpty) {
         _logger.info('No photo collections found');
         return [];
       }
-      
+
       // Get the "All" album which contains all photos
       final allPhotos = paths.first;
       final assetCount = await allPhotos.assetCountAsync;
-      
+
       _logger.info('Found $assetCount photos/videos in time range');
-      
+
       // Fetch all assets (paginated if needed)
       final assets = <AssetEntity>[];
       const pageSize = 100;
       final pageCount = (assetCount / pageSize).ceil();
-      
+
       for (int page = 0; page < pageCount; page++) {
         final pageAssets = await allPhotos.getAssetListPaged(
           page: page,
@@ -258,25 +258,25 @@ class PhotoService {
         );
         assets.addAll(pageAssets);
       }
-      
+
       // Notify about discovered photos
       _photoDiscoveryController.add(PhotoDiscoveryEvent(
         assets: assets,
         timestamp: DateTime.now(),
       ));
-      
+
       // Store new media items in database if we have database access
       if (_ref != null) {
         await _storeMediaItemsInDatabase(assets);
       }
-      
+
       return assets;
     } catch (e, stack) {
       _logger.error('Failed to scan for new photos', error: e, stackTrace: stack);
       return [];
     }
   }
-  
+
   /// Get recent photos
   Future<List<AssetEntity>> getRecentPhotos({
     int limit = 100,
@@ -286,27 +286,27 @@ class PhotoService {
       _logger.warning('Cannot get recent photos without library access');
       return [];
     }
-    
+
     try {
       // Get all photos album
       final albums = await PhotoManager.getAssetPathList(
         type: RequestType.image,
         onlyAll: true,
       );
-      
+
       if (albums.isEmpty) {
         _logger.warning('No photo albums found');
         return [];
       }
-      
+
       final allPhotos = albums.first;
-      
+
       // Get photos from the album
       final photos = await allPhotos.getAssetListRange(
         start: 0,
         end: limit,
       );
-      
+
       // Filter by date if provided
       if (since != null) {
         return photos.where((photo) {
@@ -314,21 +314,21 @@ class PhotoService {
           return createTime.isAfter(since);
         }).toList();
       }
-      
+
       return photos;
     } catch (e, stack) {
       _logger.error('Failed to get recent photos', error: e, stackTrace: stack);
       return [];
     }
   }
-  
+
   /// Get a specific photo by ID
   Future<AssetEntity?> getPhotoById(String id) async {
     if (!hasAccess) {
       _logger.warning('Cannot get photo without library access');
       return null;
     }
-    
+
     try {
       return await AssetEntity.fromId(id);
     } catch (e, stack) {
@@ -336,7 +336,7 @@ class PhotoService {
       return null;
     }
   }
-  
+
   /// Get thumbnail data for an asset
   Future<Uint8List?> getThumbnail(
     AssetEntity asset, {
@@ -353,7 +353,7 @@ class PhotoService {
       return null;
     }
   }
-  
+
   /// Generate enhanced thumbnail using MediaFormatHandler
   Future<ThumbnailResult?> generateThumbnail(
     AssetEntity asset, {
@@ -366,26 +366,26 @@ class PhotoService {
         _logger.warning('Asset format ${asset.mimeType} is not supported for processing: ${asset.id}');
         return null;
       }
-      
+
       // Use enhanced format handler for thumbnail generation
       final thumbnailResult = await MediaFormatHandler.generateThumbnail(
         asset,
         size: size,
         quality: quality,
       );
-      
+
       if (thumbnailResult != null) {
         final formatInfo = MediaFormatHandler.getFormatInfo(asset.mimeType);
         _logger.debug('Generated ${thumbnailResult.format} thumbnail for ${formatInfo.format.name} asset: ${asset.id}');
       }
-      
+
       return thumbnailResult;
     } catch (e, stack) {
       _logger.error('Failed to generate enhanced thumbnail for asset: ${asset.id}', error: e, stackTrace: stack);
       return null;
     }
   }
-  
+
   /// Get the full file for an asset
   Future<File?> getFile(AssetEntity asset, {bool isOrigin = false}) async {
     try {
@@ -399,14 +399,14 @@ class PhotoService {
       return null;
     }
   }
-  
+
   /// Extract EXIF metadata from a photo asset using enhanced format handler
   Future<ExifData?> extractExifData(AssetEntity asset) async {
     if (asset.type != AssetType.image) {
       _logger.warning('Cannot extract EXIF from non-image asset: ${asset.id}');
       return null;
     }
-    
+
     try {
       // Check cache first
       final cachedData = _cacheService.getCachedExifData(asset.id);
@@ -414,39 +414,39 @@ class PhotoService {
         _logger.debug('EXIF cache hit for asset: ${asset.id}');
         return ExifData.fromJson(cachedData);
       }
-      
+
       // Check if the format supports metadata extraction
       if (!MediaFormatHandler.supportsMetadata(asset.mimeType)) {
         _logger.debug('Format ${asset.mimeType} does not support metadata extraction');
         return null;
       }
-      
+
       // Use enhanced format handler for metadata extraction
       final exifData = await MediaFormatHandler.extractImageMetadata(asset);
-      
+
       if (exifData != null) {
         // Cache the result
         _cacheService.cacheExifData(asset.id, exifData.toJson());
-        
+
         final formatInfo = MediaFormatHandler.getFormatInfo(asset.mimeType);
         _logger.info('Successfully extracted EXIF data from ${formatInfo.format.name} asset: ${asset.id}');
         _logger.debug('GPS: ${exifData.gpsCoordinates}, Camera: ${exifData.make} ${exifData.model}');
       } else {
         _logger.info('No EXIF data found in asset: ${asset.id}');
       }
-      
+
       return exifData;
     } catch (e, stack) {
-      _logger.error('Failed to extract EXIF data from asset: ${asset.id}', 
+      _logger.error('Failed to extract EXIF data from asset: ${asset.id}',
                    error: e, stackTrace: stack);
       return null;
     }
   }
-  
+
   /// Extract EXIF data from multiple photo assets
   Future<Map<String, ExifData>> extractExifDataBatch(List<AssetEntity> assets) async {
     final results = <String, ExifData>{};
-    
+
     for (final asset in assets) {
       if (asset.type == AssetType.image) {
         final exifData = await extractExifData(asset);
@@ -455,22 +455,22 @@ class PhotoService {
         }
       }
     }
-    
+
     _logger.info('Extracted EXIF data from ${results.length}/${assets.length} assets');
     return results;
   }
-  
+
   /// Extract video metadata from a video asset
   Future<VideoMetadata?> extractVideoMetadata(AssetEntity asset) async {
     if (asset.type != AssetType.video) {
       _logger.warning('Cannot extract video metadata from non-video asset: ${asset.id}');
       return null;
     }
-    
+
     try {
       // Use enhanced format handler for video metadata extraction
       final videoMetadata = await MediaFormatHandler.extractVideoMetadata(asset);
-      
+
       if (videoMetadata != null) {
         final formatInfo = MediaFormatHandler.getFormatInfo(asset.mimeType);
         _logger.info('Successfully extracted video metadata from ${formatInfo.format.name} asset: ${asset.id}');
@@ -478,7 +478,7 @@ class PhotoService {
       } else {
         _logger.info('No video metadata found in asset: ${asset.id}');
       }
-      
+
       return videoMetadata;
     } catch (e, stack) {
       _logger.error('Failed to extract video metadata from asset: ${asset.id}',
@@ -486,11 +486,11 @@ class PhotoService {
       return null;
     }
   }
-  
+
   /// Get photos with GPS coordinates from a list of assets
   Future<List<PhotoWithLocation>> getPhotosWithLocation(List<AssetEntity> assets) async {
     final photosWithLocation = <PhotoWithLocation>[];
-    
+
     for (final asset in assets) {
       if (asset.type == AssetType.image) {
         final exifData = await extractExifData(asset);
@@ -504,39 +504,39 @@ class PhotoService {
         }
       }
     }
-    
+
     _logger.info('Found ${photosWithLocation.length} photos with GPS coordinates');
     return photosWithLocation;
   }
-  
+
   /// Handle photo library changes
   void _onPhotoLibraryChanged(MethodCall call) {
     _logger.info('Photo library changed: ${call.method}');
     // Trigger a rescan or update UI as needed
   }
-  
+
   /// Start automated scanning for new photos
   void startAutomaticScanning({Duration? interval}) {
     if (!hasAccess) {
       _logger.warning('Cannot start automatic scanning without photo library access');
       return;
     }
-    
+
     if (interval != null) {
       _scanInterval = interval;
     }
-    
+
     _isAutomaticScanningEnabled = true;
     _logger.info('Starting automatic photo scanning with interval: $_scanInterval');
-    
+
     // Perform initial scan
     _performAutomaticScan();
-    
+
     // Schedule periodic scans
     _scanTimer?.cancel();
     _scanTimer = Timer.periodic(_scanInterval, (_) => _performAutomaticScan());
   }
-  
+
   /// Stop automated scanning
   void stopAutomaticScanning() {
     _isAutomaticScanningEnabled = false;
@@ -544,26 +544,26 @@ class PhotoService {
     _scanTimer = null;
     _logger.info('Stopped automatic photo scanning');
   }
-  
+
   /// Perform an automatic scan for new photos
   Future<void> _performAutomaticScan() async {
     if (!_isAutomaticScanningEnabled || !hasAccess) {
       return;
     }
-    
+
     try {
       _logger.info('Performing automatic photo scan...');
-      
+
       // Determine scan time range
       final now = DateTime.now();
       final scanSince = _lastScanTime ?? now.subtract(const Duration(days: 1));
-      
+
       // Scan for new photos
       final allPhotos = await scanNewPhotos(
         since: scanSince,
         until: now,
       );
-      
+
       // Filter out known photos to find only new ones
       final newPhotos = <AssetEntity>[];
       for (final photo in allPhotos) {
@@ -572,18 +572,18 @@ class PhotoService {
           newPhotos.add(photo);
         }
       }
-      
+
       if (newPhotos.isNotEmpty) {
         _logger.info('Found ${newPhotos.length} new photos');
         _newPhotoController.add(newPhotos);
       }
-      
+
       _lastScanTime = now;
     } catch (e, stack) {
       _logger.error('Automatic scan failed', error: e, stackTrace: stack);
     }
   }
-  
+
   /// Manually trigger a scan for new photos
   Future<List<AssetEntity>> performManualScan({
     DateTime? since,
@@ -593,32 +593,32 @@ class PhotoService {
       _logger.warning('Cannot perform manual scan without photo library access');
       return [];
     }
-    
+
     try {
       final scanSince = since ?? DateTime.now().subtract(lookback);
       _logger.info('Performing manual scan since $scanSince');
-      
+
       final photos = await scanNewPhotos(since: scanSince);
-      
+
       // Update known photos cache
       for (final photo in photos) {
         _knownPhotoIds.add(photo.id);
       }
-      
+
       return photos;
     } catch (e, stack) {
       _logger.error('Manual scan failed', error: e, stackTrace: stack);
       return [];
     }
   }
-  
+
   /// Clear the photo cache (useful for fresh rescans)
   void clearPhotoCache() {
     _knownPhotoIds.clear();
     _lastScanTime = null;
     _logger.info('Cleared photo cache');
   }
-  
+
   /// Get scan statistics
   Map<String, dynamic> getScanStatistics() {
     return {
@@ -629,7 +629,7 @@ class PhotoService {
       'hasAccess': hasAccess,
     };
   }
-  
+
   /// Detect faces in a single photo asset
   Future<FaceDetectionResult?> detectFacesInPhoto(
     AssetEntity asset, {
@@ -639,31 +639,31 @@ class PhotoService {
       _logger.warning('Cannot detect faces in non-image asset: ${asset.id}');
       return null;
     }
-    
+
     try {
       final faceDetector = FaceDetectionService(config: config);
       final result = await faceDetector.detectFacesInAsset(asset);
-      
+
       await faceDetector.dispose();
-      
+
       if (result.faces.isNotEmpty) {
         _logger.info('Detected ${result.faces.length} faces in asset: ${asset.id}');
         _logger.debug('High quality faces: ${result.highQualityFaces.length}');
-        
+
         // Store face detection results in database
         await storeFaceDetectionResults(asset.id, result);
       } else {
         _logger.info('No faces detected in asset: ${asset.id}');
       }
-      
+
       return result;
     } catch (e, stack) {
-      _logger.error('Face detection failed for asset: ${asset.id}', 
+      _logger.error('Face detection failed for asset: ${asset.id}',
                    error: e, stackTrace: stack);
       return null;
     }
   }
-  
+
   /// Detect faces in multiple photo assets
   Future<Map<String, FaceDetectionResult>> detectFacesBatch(
     List<AssetEntity> assets, {
@@ -671,31 +671,31 @@ class PhotoService {
     void Function(int completed, int total)? onProgress,
   }) async {
     final imageAssets = assets.where((asset) => asset.type == AssetType.image).toList();
-    
+
     if (imageAssets.isEmpty) {
       _logger.warning('No image assets provided for face detection');
       return {};
     }
-    
+
     try {
       final faceDetector = FaceDetectionService(config: config);
       final results = await faceDetector.detectFacesBatch(
-        imageAssets, 
+        imageAssets,
         onProgress: onProgress,
       );
-      
+
       await faceDetector.dispose();
-      
+
       final totalFaces = results.values.fold(0, (sum, result) => sum + result.faces.length);
       _logger.info('Batch face detection complete: ${results.length} assets with faces, $totalFaces total faces');
-      
+
       return results;
     } catch (e, stack) {
       _logger.error('Batch face detection failed', error: e, stackTrace: stack);
       return {};
     }
   }
-  
+
   /// Get photos that contain faces with high quality for recognition
   Future<Map<String, FaceDetectionResult>> getPhotosWithFaces(
     List<AssetEntity> assets, {
@@ -704,11 +704,11 @@ class PhotoService {
     void Function(int completed, int total)? onProgress,
   }) async {
     final allResults = await detectFacesBatch(
-      assets, 
-      config: config, 
+      assets,
+      config: config,
       onProgress: onProgress,
     );
-    
+
     if (highQualityOnly) {
       return Map.fromEntries(
         allResults.entries.where(
@@ -716,31 +716,31 @@ class PhotoService {
         ),
       );
     }
-    
+
     return allResults;
   }
-  
+
   /// Stream face detection results for large batches
   Stream<MapEntry<String, FaceDetectionResult>> detectFacesStream(
     List<AssetEntity> assets, {
     FaceDetectionConfig? config,
   }) async* {
     final imageAssets = assets.where((asset) => asset.type == AssetType.image).toList();
-    
+
     if (imageAssets.isEmpty) {
       _logger.warning('No image assets provided for face detection stream');
       return;
     }
-    
+
     FaceDetectionService? faceDetector;
-    
+
     try {
       faceDetector = FaceDetectionService(config: config);
-      
+
       await for (final entry in faceDetector.detectFacesStream(imageAssets)) {
         yield entry;
       }
-      
+
       _logger.info('Face detection stream completed for ${imageAssets.length} assets');
     } catch (e, stack) {
       _logger.error('Face detection stream failed', error: e, stackTrace: stack);
@@ -748,7 +748,7 @@ class PhotoService {
       await faceDetector?.dispose();
     }
   }
-  
+
   /// Get photos with faces detected today
   Future<Map<String, FaceDetectionResult>> getTodayPhotosWithFaces({
     FaceDetectionConfig? config,
@@ -759,12 +759,12 @@ class PhotoService {
       final now = DateTime.now();
       final startOfDay = DateTime(now.year, now.month, now.day);
       final todayPhotos = await scanNewPhotos(since: startOfDay);
-      
+
       if (todayPhotos.isEmpty) {
         _logger.info('No photos found from today for face detection');
         return {};
       }
-      
+
       // Detect faces in today's photos
       return await getPhotosWithFaces(
         todayPhotos,
@@ -776,25 +776,25 @@ class PhotoService {
       return {};
     }
   }
-  
+
   // MARK: - Face Clustering and Person Identification
-  
+
   /// Initialize face clustering and person identification services
   FaceClusteringService? _clusteringService;
   PersonService? _personService;
-  
+
   /// Get or initialize clustering service
   FaceClusteringService get clusteringService {
     _clusteringService ??= FaceClusteringService();
     return _clusteringService!;
   }
-  
+
   /// Get or initialize person service
   PersonService get personService {
     _personService ??= PersonService(clusteringService: clusteringService);
     return _personService!;
   }
-  
+
   /// Initialize person identification service
   Future<void> initializePersonService() async {
     if (_personService == null) {
@@ -803,36 +803,36 @@ class PhotoService {
       _logger.info('Person service initialized');
     }
   }
-  
+
   /// Process photos to identify persons through face clustering
   Future<List<Person>> identifyPersonsInPhotos(List<AssetEntity> photos) async {
     try {
       await initializePersonService();
-      
+
       _logger.info('Starting person identification for ${photos.length} photos');
-      
+
       final persons = await personService.processPhotos(photos);
-      
+
       _logger.info('Person identification complete: found ${persons.length} persons');
-      
+
       // Store person identification results for each photo
       for (final photo in photos) {
         final personsInPhoto = persons.where((person) =>
           person.cluster.photoIds.contains(photo.id)
         ).toList();
-        
+
         if (personsInPhoto.isNotEmpty) {
           await storePersonTags(photo.id, personsInPhoto);
         }
       }
-      
+
       return persons;
     } catch (e, stack) {
       _logger.error('Failed to identify persons in photos', error: e, stackTrace: stack);
       return [];
     }
   }
-  
+
   /// Get all identified persons
   Future<List<Person>> getAllPersons() async {
     try {
@@ -843,7 +843,7 @@ class PhotoService {
       return [];
     }
   }
-  
+
   /// Find persons in a specific photo
   Future<List<Person>> getPersonsInPhoto(String photoId) async {
     try {
@@ -854,7 +854,7 @@ class PhotoService {
       return [];
     }
   }
-  
+
   /// Name a person identified through face clustering
   Future<Person?> namePerson(String personId, String name) async {
     try {
@@ -865,7 +865,7 @@ class PhotoService {
       return null;
     }
   }
-  
+
   /// Merge two persons into one
   Future<Person?> mergePersons(String person1Id, String person2Id, {String? newName}) async {
     try {
@@ -876,7 +876,7 @@ class PhotoService {
       return null;
     }
   }
-  
+
   /// Get person identification statistics
   Future<Map<String, dynamic>> getPersonStatistics() async {
     try {
@@ -887,7 +887,7 @@ class PhotoService {
       return {};
     }
   }
-  
+
   /// Search for persons by name
   Future<List<Person>> searchPersonsByName(String query) async {
     try {
@@ -898,7 +898,7 @@ class PhotoService {
       return [];
     }
   }
-  
+
   /// Process today's photos to identify new persons
   Future<List<Person>> identifyPersonsInTodayPhotos() async {
     try {
@@ -906,40 +906,40 @@ class PhotoService {
       final now = DateTime.now();
       final startOfDay = DateTime(now.year, now.month, now.day);
       final todayPhotos = await scanNewPhotos(since: startOfDay);
-      
+
       if (todayPhotos.isEmpty) {
         _logger.info('No photos found from today for person identification');
         return [];
       }
-      
+
       _logger.info('Processing ${todayPhotos.length} photos from today for person identification');
-      
+
       return await identifyPersonsInPhotos(todayPhotos);
     } catch (e, stack) {
       _logger.error('Failed to identify persons in today\'s photos', error: e, stackTrace: stack);
       return [];
     }
   }
-  
+
   // MARK: - Database Integration Methods
-  
+
   /// Store media items in the database
   Future<void> _storeMediaItemsInDatabase(List<AssetEntity> assets) async {
     if (_ref == null) return;
-    
+
     try {
       _logger.info('Storing ${assets.length} media items in database');
-      
+
       for (final asset in assets) {
         await _storeMediaItem(asset);
       }
-      
+
       _logger.info('Successfully stored ${assets.length} media items in database');
     } catch (e, stack) {
       _logger.error('Failed to store media items in database', error: e, stackTrace: stack);
     }
   }
-  
+
   /// Store a single media item in the database
   Future<void> _storeMediaItem(AssetEntity asset) async {
     try {
@@ -949,11 +949,11 @@ class PhotoService {
         _logger.debug('Media item already exists in database: ${asset.id}');
         return;
       }
-      
+
       // Get file info
       final file = await asset.file;
       final fileSize = file != null ? await file.length() : 0;
-      
+
       // Store basic media item
       await mediaManagement.addMediaItem(
         id: asset.id,
@@ -967,16 +967,16 @@ class PhotoService {
         height: asset.height,
         duration: asset.videoDuration?.inSeconds,
       );
-      
+
       _logger.debug('Stored media item: ${asset.id}');
-      
+
       // Store metadata asynchronously
       _storeMediaMetadata(asset);
     } catch (e, stack) {
       _logger.error('Failed to store media item ${asset.id}', error: e, stackTrace: stack);
     }
   }
-  
+
   /// Store metadata for a media item (runs asynchronously)
   Future<void> _storeMediaMetadata(AssetEntity asset) async {
     try {
@@ -987,7 +987,7 @@ class PhotoService {
         key: 'type',
         value: asset.type.name,
       );
-      
+
       if (asset.orientation != null) {
         await mediaManagement.addMetadata(
           mediaId: asset.id,
@@ -996,7 +996,7 @@ class PhotoService {
           value: asset.orientation.toString(),
         );
       }
-      
+
       // Extract and store metadata based on media type
       if (asset.type == AssetType.image) {
         final exifData = await extractExifData(asset);
@@ -1009,14 +1009,14 @@ class PhotoService {
           await _storeVideoMetadata(asset.id, videoMetadata);
         }
       }
-      
+
       // Mark as processed
       await mediaManagement.markMediaProcessed(asset.id);
     } catch (e, stack) {
       _logger.error('Failed to store metadata for ${asset.id}', error: e, stackTrace: stack);
     }
   }
-  
+
   /// Store EXIF metadata in database
   Future<void> _storeExifMetadata(String mediaId, ExifData exifData) async {
     try {
@@ -1029,7 +1029,7 @@ class PhotoService {
           value: exifData.make!,
         );
       }
-      
+
       if (exifData.model != null) {
         await mediaManagement.addMetadata(
           mediaId: mediaId,
@@ -1038,7 +1038,7 @@ class PhotoService {
           value: exifData.model!,
         );
       }
-      
+
       // Store GPS coordinates
       if (exifData.gpsCoordinates != null) {
         await mediaManagement.addMetadata(
@@ -1047,7 +1047,7 @@ class PhotoService {
           key: 'gps_latitude',
           value: exifData.gpsCoordinates!.latitude.toString(),
         );
-        
+
         await mediaManagement.addMetadata(
           mediaId: mediaId,
           metadataType: 'exif',
@@ -1055,7 +1055,7 @@ class PhotoService {
           value: exifData.gpsCoordinates!.longitude.toString(),
         );
       }
-      
+
       // Store technical details from camera settings
       if (exifData.cameraSettings.aperture != null) {
         await mediaManagement.addMetadata(
@@ -1065,7 +1065,7 @@ class PhotoService {
           value: exifData.cameraSettings.aperture.toString(),
         );
       }
-      
+
       if (exifData.cameraSettings.shutterSpeed != null) {
         await mediaManagement.addMetadata(
           mediaId: mediaId,
@@ -1074,7 +1074,7 @@ class PhotoService {
           value: exifData.cameraSettings.shutterSpeed.toString(),
         );
       }
-      
+
       if (exifData.cameraSettings.iso != null) {
         await mediaManagement.addMetadata(
           mediaId: mediaId,
@@ -1083,13 +1083,13 @@ class PhotoService {
           value: exifData.cameraSettings.iso.toString(),
         );
       }
-      
+
       _logger.debug('Stored EXIF metadata for media: $mediaId');
     } catch (e, stack) {
       _logger.error('Failed to store EXIF metadata for $mediaId', error: e, stackTrace: stack);
     }
   }
-  
+
   /// Store video metadata in database
   Future<void> _storeVideoMetadata(String mediaId, VideoMetadata videoMetadata) async {
     try {
@@ -1102,7 +1102,7 @@ class PhotoService {
           value: '${videoMetadata.width}x${videoMetadata.height}',
         );
       }
-      
+
       // Store duration
       if (videoMetadata.duration != null) {
         await mediaManagement.addMetadata(
@@ -1112,7 +1112,7 @@ class PhotoService {
           value: videoMetadata.duration!.inSeconds.toString(),
         );
       }
-      
+
       // Store frame rate
       if (videoMetadata.frameRate != null) {
         await mediaManagement.addMetadata(
@@ -1122,7 +1122,7 @@ class PhotoService {
           value: videoMetadata.frameRate.toString(),
         );
       }
-      
+
       // Store bitrate
       if (videoMetadata.bitrate != null) {
         await mediaManagement.addMetadata(
@@ -1132,7 +1132,7 @@ class PhotoService {
           value: videoMetadata.bitrate.toString(),
         );
       }
-      
+
       // Store codec
       if (videoMetadata.codec != null) {
         await mediaManagement.addMetadata(
@@ -1142,7 +1142,7 @@ class PhotoService {
           value: videoMetadata.codec!,
         );
       }
-      
+
       // Store GPS coordinates if available
       if (videoMetadata.location != null) {
         await mediaManagement.addMetadata(
@@ -1151,14 +1151,14 @@ class PhotoService {
           key: 'gps_latitude',
           value: videoMetadata.location!.latitude.toString(),
         );
-        
+
         await mediaManagement.addMetadata(
           mediaId: mediaId,
           metadataType: 'video',
           key: 'gps_longitude',
           value: videoMetadata.location!.longitude.toString(),
         );
-        
+
         if (videoMetadata.location!.altitude != null) {
           await mediaManagement.addMetadata(
             mediaId: mediaId,
@@ -1168,17 +1168,17 @@ class PhotoService {
           );
         }
       }
-      
+
       _logger.debug('Stored video metadata for media: $mediaId');
     } catch (e, stack) {
       _logger.error('Failed to store video metadata for $mediaId', error: e, stackTrace: stack);
     }
   }
-  
+
   /// Store face detection results in database
   Future<void> storeFaceDetectionResults(String mediaId, FaceDetectionResult result) async {
     if (_ref == null) return;
-    
+
     try {
       // Store face count metadata
       await mediaManagement.addMetadata(
@@ -1187,18 +1187,18 @@ class PhotoService {
         key: 'face_count',
         value: result.faces.length.toString(),
       );
-      
+
       await mediaManagement.addMetadata(
         mediaId: mediaId,
         metadataType: 'face_detection',
         key: 'high_quality_face_count',
         value: result.highQualityFaces.length.toString(),
       );
-      
+
       // Store individual face data
       for (int i = 0; i < result.faces.length; i++) {
         final face = result.faces[i];
-        
+
         // Store face bounding box and confidence
         final faceData = {
           'bounding_box': {
@@ -1211,7 +1211,7 @@ class PhotoService {
           'confidence': face.confidence,
           'landmarks_count': face.landmarks.length,
         };
-        
+
         await mediaManagement.addMetadata(
           mediaId: mediaId,
           metadataType: 'face_detection',
@@ -1219,22 +1219,22 @@ class PhotoService {
           value: json.encode(faceData),
         );
       }
-      
+
       _logger.info('Stored face detection results for media: $mediaId (${result.faces.length} faces)');
     } catch (e, stack) {
       _logger.error('Failed to store face detection results for $mediaId', error: e, stackTrace: stack);
     }
   }
-  
+
   /// Store person identification results in database
   Future<void> storePersonTags(String mediaId, List<Person> persons) async {
     if (_ref == null) return;
-    
+
     try {
       for (final person in persons) {
         // Get the representative face for this person in this photo
         final facesInPhoto = person.cluster.faces.where((face) => face.photoId == mediaId).toList();
-        
+
         for (final face in facesInPhoto) {
           await mediaManagement.addPersonTag(
             personId: person.personId,
@@ -1250,20 +1250,20 @@ class PhotoService {
           );
         }
       }
-      
+
       _logger.info('Stored person tags for media: $mediaId (${persons.length} persons)');
     } catch (e, stack) {
       _logger.error('Failed to store person tags for $mediaId', error: e, stackTrace: stack);
     }
   }
-  
+
   /// Get media items from database
   Future<List<MediaItem>> getStoredMediaItems({
     bool includeDeleted = false,
     bool processedOnly = false,
   }) async {
     if (_ref == null) return [];
-    
+
     try {
       final items = await _ref!.read(mediaItemsProvider(
         (includeDeleted: includeDeleted, processedOnly: processedOnly)
@@ -1274,11 +1274,11 @@ class PhotoService {
       return [];
     }
   }
-  
+
   /// Get media statistics from database
   Future<Map<String, int>> getStoredMediaStatistics() async {
     if (_ref == null) return {};
-    
+
     try {
       return await _ref!.read(mediaStatisticsProvider.future);
     } catch (e, stack) {
@@ -1286,7 +1286,7 @@ class PhotoService {
       return {};
     }
   }
-  
+
   /// Scan media library with pagination and progress tracking
   Future<void> scanMediaLibraryWithPagination({
     DateTime? since,
@@ -1301,10 +1301,10 @@ class PhotoService {
       _logger.warning('Cannot scan media library without access');
       return;
     }
-    
+
     try {
       _logger.info('Starting paginated media library scan');
-      
+
       final filterOption = FilterOptionGroup(
         createTimeCond: since != null || until != null
             ? DateTimeCond(
@@ -1319,32 +1319,32 @@ class PhotoService {
           ),
         ],
       );
-      
+
       // Get all photo paths
       final paths = await PhotoManager.getAssetPathList(
         type: type,
         onlyAll: true,
         filterOption: filterOption,
       );
-      
+
       if (paths.isEmpty) {
         _logger.info('No media collections found');
         return;
       }
-      
+
       final allPhotos = paths.first;
       final totalAssets = await allPhotos.assetCountAsync;
-      
+
       _logger.info('Found $totalAssets assets to process');
-      
+
       if (totalAssets == 0) {
         return;
       }
-      
+
       // Calculate number of pages
       final pageCount = (totalAssets / pageSize).ceil();
       int processedCount = 0;
-      
+
       // Process pages in batches for better performance
       for (int page = 0; page < pageCount; page++) {
         // Fetch current page of assets
@@ -1352,11 +1352,11 @@ class PhotoService {
           page: page,
           size: pageSize,
         );
-        
+
         if (pageAssets.isEmpty) {
           continue;
         }
-        
+
         // Process batch
         if (processInBackground) {
           // Queue for background processing (will be implemented with isolates)
@@ -1365,28 +1365,28 @@ class PhotoService {
           // Process immediately
           await _processBatch(pageAssets);
         }
-        
+
         processedCount += pageAssets.length;
-        
+
         // Report progress
         onProgress?.call(processedCount, totalAssets);
         onBatchProcessed?.call(pageAssets);
-        
+
         _logger.debug('Processed batch ${page + 1}/$pageCount (${processedCount}/$totalAssets assets)');
-        
+
         // Add small delay between batches to prevent overwhelming the system
         if (page < pageCount - 1) {
           await Future.delayed(const Duration(milliseconds: 100));
         }
       }
-      
+
       _logger.info('Completed paginated scan: processed $processedCount assets');
     } catch (e, stack) {
       _logger.error('Paginated scan failed', error: e, stackTrace: stack);
       rethrow;
     }
   }
-  
+
   /// Process a batch of assets
   Future<void> _processBatch(List<AssetEntity> assets) async {
     try {
@@ -1396,7 +1396,7 @@ class PhotoService {
         if (existing != null && existing.isProcessed) {
           continue;
         }
-        
+
         // Add to database if new
         if (existing == null) {
           await mediaManagement.addMediaItem(
@@ -1411,7 +1411,7 @@ class PhotoService {
             duration: asset.duration,
           );
         }
-        
+
         // Extract metadata based on type
         if (asset.type == AssetType.image) {
           final exifData = await extractExifData(asset);
@@ -1424,10 +1424,10 @@ class PhotoService {
             await _storeVideoMetadata(asset.id, videoMetadata);
           }
         }
-        
+
         // Mark as processed
         await mediaManagement.markMediaProcessed(asset.id);
-        
+
         // Add to known IDs cache
         _knownPhotoIds.add(asset.id);
       }
@@ -1435,7 +1435,7 @@ class PhotoService {
       _logger.error('Failed to process batch', error: e, stackTrace: stack);
     }
   }
-  
+
   /// Queue assets for background processing
   Future<void> _queueForBackgroundProcessing(List<AssetEntity> assets) async {
     try {
@@ -1443,19 +1443,19 @@ class PhotoService {
       if (!_isPoolInitialized) {
         await _initializeProcessingPool();
       }
-      
+
       if (_processingPool == null) {
         // Fallback to inline processing if pool initialization failed
         await _processBatch(assets);
         return;
       }
-      
+
       // Get database path
       final databasePath = 'media_database';
-      
+
       // Convert AssetEntity list to ID list for isolate
       final assetIds = assets.map((asset) => asset.id).toList();
-      
+
       // Process in isolate pool
       final results = await _processingPool!.processAssetsInParallel(
         assetIds,
@@ -1464,12 +1464,12 @@ class PhotoService {
           _logger.debug('Background processing: $processed/$total assets');
         },
       );
-      
+
       // Store results in database
       for (final result in results) {
         if (result.success && result.metadata != null) {
           final metadata = result.metadata!;
-          
+
           if (metadata['type'] == 'exif') {
             // Store EXIF metadata
             await mediaManagement.addMetadata(
@@ -1488,12 +1488,12 @@ class PhotoService {
             );
           }
         }
-        
+
         // Mark as processed
         await mediaManagement.markMediaProcessed(result.assetId);
         _knownPhotoIds.add(result.assetId);
       }
-      
+
       _logger.info('Background processing completed for ${results.length} assets');
     } catch (e, stack) {
       _logger.error('Background processing failed', error: e, stackTrace: stack);
@@ -1501,7 +1501,7 @@ class PhotoService {
       await _processBatch(assets);
     }
   }
-  
+
   /// Initialize background processing pool
   Future<void> _initializeProcessingPool() async {
     try {
@@ -1516,7 +1516,7 @@ class PhotoService {
       _isPoolInitialized = false;
     }
   }
-  
+
   /// Get unprocessed media count
   Future<int> getUnprocessedMediaCount() async {
     try {
@@ -1527,7 +1527,7 @@ class PhotoService {
       return 0;
     }
   }
-  
+
   /// Process unprocessed media in batches
   Future<void> processUnprocessedMedia({
     int batchSize = defaultPageSize,
@@ -1536,19 +1536,19 @@ class PhotoService {
     try {
       final unprocessed = await mediaDatabase.getUnprocessedMedia();
       final total = unprocessed.length;
-      
+
       if (total == 0) {
         _logger.info('No unprocessed media found');
         return;
       }
-      
+
       _logger.info('Processing $total unprocessed media items');
-      
+
       int processed = 0;
       for (int i = 0; i < total; i += batchSize) {
         final end = (i + batchSize < total) ? i + batchSize : total;
         final batch = unprocessed.sublist(i, end);
-        
+
         // Process each item in the batch
         for (final mediaItem in batch) {
           try {
@@ -1568,30 +1568,30 @@ class PhotoService {
                 }
               }
             }
-            
+
             // Mark as processed
             await mediaManagement.markMediaProcessed(mediaItem.id);
             processed++;
-            
+
           } catch (e) {
             _logger.error('Failed to process media item ${mediaItem.id}', error: e);
           }
         }
-        
+
         onProgress?.call(processed, total);
-        
+
         // Small delay between batches
         if (i + batchSize < total) {
           await Future.delayed(const Duration(milliseconds: 50));
         }
       }
-      
+
       _logger.info('Completed processing unprocessed media: $processed/$total items');
     } catch (e, stack) {
       _logger.error('Failed to process unprocessed media', error: e, stackTrace: stack);
     }
   }
-  
+
   /// Clean up resources
   void dispose() async {
     stopAutomaticScanning();
@@ -1600,17 +1600,17 @@ class PhotoService {
     _photoDiscoveryController.close();
     _newPhotoController.close();
     _mediaDatabase?.close();
-    
+
     // Shutdown isolate pool
     if (_processingPool != null) {
       await _processingPool!.shutdown();
       _processingPool = null;
       _isPoolInitialized = false;
     }
-    
+
     // Dispose cache service
     _cacheService.dispose();
-    
+
     _logger.info('PhotoService disposed');
   }
 }
@@ -1619,7 +1619,7 @@ class PhotoService {
 class PhotoDiscoveryEvent {
   final List<AssetEntity> assets;
   final DateTime timestamp;
-  
+
   PhotoDiscoveryEvent({
     required this.assets,
     required this.timestamp,
@@ -1631,13 +1631,13 @@ class PhotoWithLocation {
   final AssetEntity asset;
   final GpsCoordinates coordinates;
   final DateTime timestamp;
-  
+
   PhotoWithLocation({
     required this.asset,
     required this.coordinates,
     required this.timestamp,
   });
-  
+
   Map<String, dynamic> toJson() => {
     'assetId': asset.id,
     'coordinates': coordinates.toJson(),
@@ -1656,11 +1656,11 @@ final photoServiceProvider = Provider<PhotoService>((ref) {
 final photoPermissionStateProvider = FutureProvider<PermissionState>((ref) async {
   final service = ref.watch(photoServiceProvider);
   await service.initialize();
-  
+
   if (!service.hasAccess) {
     return await service.requestPermissions();
   }
-  
+
   return await PhotoManager.requestPermissionExtend();
 });
 
@@ -1673,17 +1673,17 @@ final photoDiscoveryStreamProvider = StreamProvider<PhotoDiscoveryEvent>((ref) {
 /// Provider for scanning today's photos
 final todayPhotosProvider = FutureProvider<List<AssetEntity>>((ref) async {
   final service = ref.watch(photoServiceProvider);
-  
+
   // Ensure permissions are granted
   final permissionState = await ref.watch(photoPermissionStateProvider.future);
   if (!permissionState.hasAccess) {
     return [];
   }
-  
+
   // Scan for photos from today
   final now = DateTime.now();
   final startOfDay = DateTime(now.year, now.month, now.day);
-  
+
   return await service.scanNewPhotos(since: startOfDay);
 });
 
@@ -1705,14 +1705,14 @@ class AutomaticScanningState {
   final Duration interval;
   final DateTime? lastScanTime;
   final int knownPhotosCount;
-  
+
   AutomaticScanningState({
     this.isEnabled = false,
     this.interval = const Duration(minutes: 30),
     this.lastScanTime,
     this.knownPhotosCount = 0,
   });
-  
+
   AutomaticScanningState copyWith({
     bool? isEnabled,
     Duration? interval,
@@ -1731,9 +1731,9 @@ class AutomaticScanningState {
 /// Notifier for automatic scanning state
 class AutomaticScanningNotifier extends StateNotifier<AutomaticScanningState> {
   final PhotoService _service;
-  
+
   AutomaticScanningNotifier(this._service) : super(AutomaticScanningState());
-  
+
   void startScanning({Duration? interval}) {
     _service.startAutomaticScanning(interval: interval);
     state = state.copyWith(
@@ -1742,12 +1742,12 @@ class AutomaticScanningNotifier extends StateNotifier<AutomaticScanningState> {
     );
     updateStatistics();
   }
-  
+
   void stopScanning() {
     _service.stopAutomaticScanning();
     state = state.copyWith(isEnabled: false);
   }
-  
+
   void updateInterval(Duration interval) {
     if (state.isEnabled) {
       _service.stopAutomaticScanning();
@@ -1755,24 +1755,24 @@ class AutomaticScanningNotifier extends StateNotifier<AutomaticScanningState> {
     }
     state = state.copyWith(interval: interval);
   }
-  
+
   void updateStatistics() {
     final stats = _service.getScanStatistics();
     state = state.copyWith(
       isEnabled: stats['isScanning'] as bool,
-      lastScanTime: stats['lastScanTime'] != null 
+      lastScanTime: stats['lastScanTime'] != null
         ? DateTime.parse(stats['lastScanTime'] as String)
         : null,
       knownPhotosCount: stats['knownPhotosCount'] as int,
     );
   }
-  
+
   Future<List<AssetEntity>> performManualScan({Duration lookback = const Duration(hours: 24)}) async {
     final photos = await _service.performManualScan(lookback: lookback);
     updateStatistics();
     return photos;
   }
-  
+
   void clearCache() {
     _service.clearPhotoCache();
     updateStatistics();

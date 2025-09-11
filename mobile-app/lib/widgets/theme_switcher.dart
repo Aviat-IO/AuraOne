@@ -57,12 +57,12 @@ class _ThemeSwitcherState extends ConsumerState<ThemeSwitcher>
   Widget build(BuildContext context) {
     final brightness = ref.watch(brightnessProvider);
     final isDark = brightness == Brightness.dark;
-    
+
     return GestureDetector(
       onTap: () {
         final newBrightness = isDark ? Brightness.light : Brightness.dark;
         ref.read(brightnessProvider.notifier).state = newBrightness;
-        
+
         if (newBrightness == Brightness.dark) {
           _animationController.forward();
         } else {
@@ -98,7 +98,7 @@ class _ThemeSwitcherState extends ConsumerState<ThemeSwitcher>
                 ),
               ),
             ),
-            
+
             // Moving thumb
             AnimatedBuilder(
               animation: _animationController,

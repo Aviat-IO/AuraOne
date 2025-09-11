@@ -41,7 +41,7 @@ class _PermissionGatedFeatureState extends ConsumerState<PermissionGatedFeature>
       setState(() {
         _status = status;
       });
-      
+
       // Update global permission state
       ref.read(permissionStatesProvider.notifier).updateStatus(widget.permission, status);
     }
@@ -49,7 +49,7 @@ class _PermissionGatedFeatureState extends ConsumerState<PermissionGatedFeature>
 
   Future<void> _requestPermission() async {
     if (_isChecking) return;
-    
+
     setState(() {
       _isChecking = true;
     });
@@ -66,10 +66,10 @@ class _PermissionGatedFeatureState extends ConsumerState<PermissionGatedFeature>
         _status = status;
         _isChecking = false;
       });
-      
+
       // Update global permission state
       ref.read(permissionStatesProvider.notifier).updateStatus(widget.permission, status);
-      
+
       if (status.isGranted || status.isLimited) {
         widget.onPermissionGranted?.call();
       } else {
@@ -104,7 +104,7 @@ class _PermissionGatedFeatureState extends ConsumerState<PermissionGatedFeature>
     // Default fallback UI
     final config = ref.read(permissionManagerProvider).getConfig(widget.permission);
     final theme = Theme.of(context);
-    
+
     return GestureDetector(
       onTap: widget.requestOnTap ? _requestPermission : null,
       child: Container(
@@ -211,7 +211,7 @@ class PermissionGate extends ConsumerWidget {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        
+
         return builder(context, snapshot.data!);
       },
     );

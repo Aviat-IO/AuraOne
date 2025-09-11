@@ -9,7 +9,7 @@ class PrivacyHelpGuide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Privacy Guide'),
@@ -25,27 +25,27 @@ class PrivacyHelpGuide extends StatelessWidget {
               // Introduction
               _buildIntroSection(context),
               const SizedBox(height: 24),
-              
+
               // Privacy principles
               _buildPrivacyPrinciplesSection(context),
               const SizedBox(height: 24),
-              
+
               // Location tracking guide
               _buildLocationTrackingGuide(context),
               const SizedBox(height: 24),
-              
+
               // Data retention guide
               _buildDataRetentionGuide(context),
               const SizedBox(height: 24),
-              
+
               // Permissions guide
               _buildPermissionsGuide(context),
               const SizedBox(height: 24),
-              
+
               // Data deletion guide
               _buildDataDeletionGuide(context),
               const SizedBox(height: 24),
-              
+
               // Quick actions
               _buildQuickActionsSection(context),
             ],
@@ -57,7 +57,7 @@ class PrivacyHelpGuide extends StatelessWidget {
 
   Widget _buildIntroSection(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -89,7 +89,7 @@ class PrivacyHelpGuide extends StatelessWidget {
 
   Widget _buildPrivacyPrinciplesSection(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -103,28 +103,28 @@ class PrivacyHelpGuide extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             _buildPrincipleItem(
               context,
               Icons.storage,
               'Local First',
               'All your data is stored locally on your device. No cloud storage by default.',
             ),
-            
+
             _buildPrincipleItem(
               context,
               Icons.security,
               'Encryption',
               'Sensitive data is encrypted using industry-standard encryption methods.',
             ),
-            
+
             _buildPrincipleItem(
               context,
               Icons.visibility_off,
               'No Tracking',
               'We don\'t track your behavior or collect analytics without your explicit consent.',
             ),
-            
+
             _buildPrincipleItem(
               context,
               Icons.control_camera,
@@ -139,7 +139,7 @@ class PrivacyHelpGuide extends StatelessWidget {
 
   Widget _buildPrincipleItem(BuildContext context, IconData icon, String title, String description) {
     final theme = Theme.of(context);
-    
+
     return Semantics(
       label: '$title: $description',
       child: Padding(
@@ -176,7 +176,7 @@ class PrivacyHelpGuide extends StatelessWidget {
 
   Widget _buildLocationTrackingGuide(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -195,28 +195,28 @@ class PrivacyHelpGuide extends StatelessWidget {
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
-            
+
             _buildLocationOption(
               context,
               'Off',
               'No location data collected',
               'Choose this if you want maximum privacy and don\'t need location context.',
             ),
-            
+
             _buildLocationOption(
               context,
               'Approximate',
               'City/neighborhood level (~1km)',
               'Provides general area context while maintaining privacy.',
             ),
-            
+
             _buildLocationOption(
               context,
               'Balanced',
               'Street level (~50m accuracy)',
               'Good balance between context and battery life. Recommended for most users.',
             ),
-            
+
             _buildLocationOption(
               context,
               'Precise',
@@ -231,7 +231,7 @@ class PrivacyHelpGuide extends StatelessWidget {
 
   Widget _buildLocationOption(BuildContext context, String title, String accuracy, String description) {
     final theme = Theme.of(context);
-    
+
     return Semantics(
       label: '$title location tracking: $accuracy. $description',
       child: Container(
@@ -282,7 +282,7 @@ class PrivacyHelpGuide extends StatelessWidget {
 
   Widget _buildDataRetentionGuide(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -301,7 +301,7 @@ class PrivacyHelpGuide extends StatelessWidget {
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
-            
+
             _buildRetentionItem(context, '1 Week', 'For short-term memory tracking'),
             _buildRetentionItem(context, '1 Month', 'Good for monthly patterns'),
             _buildRetentionItem(context, '3 Months', 'Seasonal tracking'),
@@ -316,7 +316,7 @@ class PrivacyHelpGuide extends StatelessWidget {
 
   Widget _buildRetentionItem(BuildContext context, String period, String description) {
     final theme = Theme.of(context);
-    
+
     return Semantics(
       label: 'Retention period $period: $description',
       child: Padding(
@@ -352,7 +352,7 @@ class PrivacyHelpGuide extends StatelessWidget {
 
   Widget _buildPermissionsGuide(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -371,7 +371,7 @@ class PrivacyHelpGuide extends StatelessWidget {
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
-            
+
             _buildPermissionItem(
               context,
               Icons.location_on,
@@ -416,7 +416,7 @@ class PrivacyHelpGuide extends StatelessWidget {
 
   Widget _buildPermissionItem(BuildContext context, IconData icon, String title, String description) {
     final theme = Theme.of(context);
-    
+
     return Semantics(
       label: '$title permission: $description',
       child: Padding(
@@ -453,7 +453,7 @@ class PrivacyHelpGuide extends StatelessWidget {
 
   Widget _buildDataDeletionGuide(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -472,7 +472,7 @@ class PrivacyHelpGuide extends StatelessWidget {
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
-            
+
             _buildDeletionOption(
               context,
               Icons.cleaning_services,
@@ -499,7 +499,7 @@ class PrivacyHelpGuide extends StatelessWidget {
 
   Widget _buildDeletionOption(BuildContext context, IconData icon, String title, String description) {
     final theme = Theme.of(context);
-    
+
     return Semantics(
       label: '$title: $description',
       child: Padding(
@@ -536,7 +536,7 @@ class PrivacyHelpGuide extends StatelessWidget {
 
   Widget _buildQuickActionsSection(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -550,7 +550,7 @@ class PrivacyHelpGuide extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             _buildActionButton(
               context,
               Icons.dashboard,
@@ -558,7 +558,7 @@ class PrivacyHelpGuide extends StatelessWidget {
               'See data collection insights and statistics',
               () => context.push('/privacy/dashboard')
             ),
-            
+
             _buildActionButton(
               context,
               Icons.settings,
@@ -566,7 +566,7 @@ class PrivacyHelpGuide extends StatelessWidget {
               'Configure location tracking, permissions, and data retention',
               () => context.push('/privacy/settings'),
             ),
-            
+
             _buildActionButton(
               context,
               Icons.cleaning_services,

@@ -5,12 +5,12 @@ import '../database/media_database.dart';
 // Singleton provider for the media database
 final mediaDatabaseProvider = Provider<MediaDatabase>((ref) {
   final database = MediaDatabase();
-  
+
   // Dispose the database when the provider is disposed
   ref.onDispose(() {
     database.close();
   });
-  
+
   return database;
 });
 

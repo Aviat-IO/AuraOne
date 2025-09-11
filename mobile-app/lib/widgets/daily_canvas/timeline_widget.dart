@@ -95,7 +95,7 @@ class TimelineWidget extends ConsumerWidget {
     final isLight = theme.brightness == Brightness.light;
     final events = ref.watch(timelineEventsProvider(date));
     final isLoading = ref.watch(timelineLoadingProvider);
-    
+
     return Skeletonizer(
       enabled: isLoading,
       child: events.isEmpty
@@ -107,7 +107,7 @@ class TimelineWidget extends ConsumerWidget {
                 final event = events[index];
                 final isFirst = index == 0;
                 final isLast = index == events.length - 1;
-                
+
                 return _buildTimelineItem(
                   event: event,
                   isFirst: isFirst,
@@ -119,7 +119,7 @@ class TimelineWidget extends ConsumerWidget {
             ),
     );
   }
-  
+
   Widget _buildEmptyState(ThemeData theme) {
     return Center(
       child: Column(
@@ -148,7 +148,7 @@ class TimelineWidget extends ConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildTimelineItem({
     required TimelineEvent event,
     required bool isFirst,
@@ -158,7 +158,7 @@ class TimelineWidget extends ConsumerWidget {
   }) {
     final timeFormat = DateFormat('HH:mm');
     final color = _getEventColor(event.type, theme);
-    
+
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,7 +177,7 @@ class TimelineWidget extends ConsumerWidget {
               ),
             ),
           ),
-          
+
           // Timeline line and dot
           SizedBox(
             width: 40,
@@ -190,7 +190,7 @@ class TimelineWidget extends ConsumerWidget {
                     height: 20,
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                   ),
-                
+
                 // Event dot
                 Container(
                   width: 16,
@@ -211,7 +211,7 @@ class TimelineWidget extends ConsumerWidget {
                     ],
                   ),
                 ),
-                
+
                 // Bottom line
                 if (!isLast)
                   Expanded(
@@ -223,7 +223,7 @@ class TimelineWidget extends ConsumerWidget {
               ],
             ),
           ),
-          
+
           // Event content
           Expanded(
             child: Padding(
@@ -301,7 +301,7 @@ class TimelineWidget extends ConsumerWidget {
       ),
     );
   }
-  
+
   Color _getEventColor(EventType type, ThemeData theme) {
     switch (type) {
       case EventType.routine:

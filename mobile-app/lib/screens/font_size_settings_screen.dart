@@ -34,13 +34,13 @@ class FontSizeSettingsScreen extends ConsumerWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: isLight 
+                    colors: isLight
                       ? AuraColors.lightCardGradient
                       : AuraColors.darkCardGradient,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: isLight 
+                      color: isLight
                         ? AuraColors.lightPrimary.withValues(alpha: 0.08)
                         : Colors.black.withValues(alpha: 0.2),
                       blurRadius: 16,
@@ -98,12 +98,12 @@ class FontSizeSettingsScreen extends ConsumerWidget {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected 
+                          color: isSelected
                             ? theme.colorScheme.primary
                             : theme.colorScheme.outline.withValues(alpha: 0.3),
                           width: isSelected ? 2 : 1,
                         ),
-                        color: isSelected 
+                        color: isSelected
                           ? theme.colorScheme.primaryContainer.withValues(alpha: 0.1)
                           : null,
                       ),

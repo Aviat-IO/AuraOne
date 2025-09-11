@@ -27,7 +27,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   bool _useSyncthingFolder = false;
   double _exportProgress = 0.0;
   final _passwordController = TextEditingController();
-  
+
   @override
   void dispose() {
     _passwordController.dispose();
@@ -37,7 +37,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Export Journal'),
@@ -59,7 +59,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                         style: theme.textTheme.titleLarge,
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Date range selection
                       Row(
                         children: [
@@ -83,7 +83,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Export options
                       SwitchListTile(
                         title: const Text('Include Media'),
@@ -108,7 +108,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Storage settings
               Card(
                 child: Padding(
@@ -170,7 +170,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Encryption settings
               Card(
                 child: Padding(
@@ -215,7 +215,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Export format info
               Card(
                 child: Padding(
@@ -254,7 +254,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Progress indicator
               if (_exportProgress > 0 && _exportProgress < 1)
                 Column(
@@ -265,7 +265,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                     const SizedBox(height: 16),
                   ],
                 ),
-              
+
               // Export button
               SizedBox(
                 width: double.infinity,
@@ -282,7 +282,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Quick export options
               Text(
                 'Quick Export',
@@ -315,7 +315,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       ),
     );
   }
-  
+
   Widget _buildDatePicker(
     BuildContext context, {
     required String label,
@@ -323,7 +323,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
     required ValueChanged<DateTime?> onChanged,
   }) {
     final theme = Theme.of(context);
-    
+
     return InkWell(
       onTap: () async {
         final date = await showDatePicker(
@@ -356,7 +356,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       ),
     );
   }
-  
+
   Widget _buildBulletPoint(String text) {
     return Padding(
       padding: const EdgeInsets.only(left: 16, top: 4),
@@ -369,7 +369,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       ),
     );
   }
-  
+
   Future<void> _quickExport(int? days) async {
     setState(() {
       if (days == null) {
@@ -380,14 +380,14 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         _startDate = DateTime.now().subtract(Duration(days: days));
       }
     });
-    
+
     await _performExport();
   }
-  
+
   Future<void> _performExport() async {
     try {
       setState(() => _exportProgress = 0.1);
-      
+
       // TODO: Fetch actual journal entries from database
       // For now, using sample data
       final List<Map<String, dynamic>> journalEntries = [
@@ -406,7 +406,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
           ) : null,
         ),
       ];
-      
+
       final List<Map<String, dynamic>> mediaReferences = _includeMedia ? [
         ExportSchema.createMediaReference(
           id: 'media-1',
@@ -416,7 +416,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
           capturedAt: DateTime.now().subtract(const Duration(days: 1)),
         ),
       ] : [];
-      
+
       final metadata = ExportSchema.createMetadata(
         exportStartDate: _startDate ?? DateTime(2020),
         exportEndDate: _endDate ?? DateTime.now(),
@@ -430,12 +430,12 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
           'mostActiveDay': 'Monday',
         },
       );
-      
+
       final userData = {
         'exportedAt': DateTime.now().toIso8601String(),
         'appVersion': '0.1.0',
       };
-      
+
       // Perform export
       if (_useSyncthingFolder) {
         // Export to Syncthing folder
@@ -450,7 +450,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
           setState(() => _exportProgress = 0.0);
           return;
         }
-        
+
         final result = await SyncthingService.exportToSyncthingFolder(
           appVersion: '0.1.0',
           userData: userData,
@@ -463,9 +463,9 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             setState(() => _exportProgress = progress);
           },
         );
-        
+
         setState(() => _exportProgress = 0.0);
-        
+
         if (result.success) {
           if (mounted) {
             showDialog(
@@ -538,7 +538,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
           setState(() => _exportProgress = 0.0);
           return;
         }
-        
+
         final result = await ExportService.exportToBlossom(
           appVersion: '0.1.0',
           userData: userData,
@@ -556,9 +556,9 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             }
           },
         );
-        
+
         setState(() => _exportProgress = 0.0);
-        
+
         // Show success with hash and URLs
         if (mounted) {
           showDialog(
@@ -580,7 +580,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                     Text('Uploaded to ${result.successfulServers.length} servers'),
                     if (result.failedServers.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      Text('Failed on ${result.failedServers.length} servers', 
+                      Text('Failed on ${result.failedServers.length} servers',
                         style: TextStyle(color: Theme.of(context).colorScheme.error)),
                     ],
                   ],
@@ -610,7 +610,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
         }
         return;
       }
-      
+
       // Local file export
       final String filePath;
       if (_enableEncryption && _encryptionPassword.isNotEmpty) {
@@ -652,16 +652,16 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
           },
         );
       }
-      
+
       setState(() => _exportProgress = 0.0);
-      
+
       // Show success and share option
       if (mounted) {
         Fluttertoast.showToast(
           msg: 'Export completed successfully!',
           toastLength: Toast.LENGTH_LONG,
         );
-        
+
         // Share the file
         if (Platform.isAndroid || Platform.isIOS) {
           await Share.shareXFiles(
@@ -673,7 +673,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       }
     } catch (e) {
       setState(() => _exportProgress = 0.0);
-      
+
       if (mounted) {
         Fluttertoast.showToast(
           msg: 'Export failed: $e',

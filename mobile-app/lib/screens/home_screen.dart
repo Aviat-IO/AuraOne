@@ -12,6 +12,9 @@ import '../database/media_database.dart';
 import '../services/simple_location_service.dart';
 import '../providers/media_database_provider.dart';
 import '../services/data_analysis_service.dart';
+import '../providers/service_providers.dart';
+import '../providers/location_database_provider.dart';
+import '../database/location_database.dart' as loc_db;
 
 // Provider to store the current day's journal entry
 final todayJournalEntryProvider = StateProvider<String?>((ref) => null);
@@ -210,17 +213,23 @@ class _OverviewTab extends HookConsumerWidget {
     
     // Get photos count - using getRecentMedia for today's photos
     final photosCountAsync = useMemoized(
-      () => mediaDb.getRecentMedia(duration: const Duration(days: 1), limit: 100),
+      () => mediaDb.getRecentMedia(duration: const Duration(days: 2), limit: 500),
       [todayStart],
     );
     final photosFuture = useFuture(photosCountAsync);
-    final todayPhotos = photosFuture.data?.where((item) => 
-      item.createdDate.isAfter(todayStart) && item.createdDate.isBefore(todayEnd)
-    ).toList() ?? [];
+    final todayPhotos = photosFuture.data?.where((item) {
+      return item.createdDate.year == todayStart.year &&
+             item.createdDate.month == todayStart.month &&
+             item.createdDate.day == todayStart.day;
+    }).toList() ?? [];
     final photosCount = todayPhotos.length;
     
-    // Get locations count  
-    final locationHistory = ref.watch(locationHistoryProvider);
+    // Get locations count from database
+    final locationStream = ref.watch(recentLocationPointsProvider(const Duration(hours: 24)));
+    final locationHistory = locationStream.maybeWhen(
+      data: (locations) => locations,
+      orElse: () => <loc_db.LocationPoint>[],
+    );
     final locationsCount = locationHistory
         .where((loc) => loc.timestamp.isAfter(todayStart) && loc.timestamp.isBefore(todayEnd))
         .length;
@@ -328,21 +337,26 @@ class _OverviewTab extends HookConsumerWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.auto_awesome,
-                              color: theme.colorScheme.secondary,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              "Today's Summary",
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.auto_awesome,
+                                color: theme.colorScheme.secondary,
+                                size: 24,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 12),
+                              Flexible(
+                                child: Text(
+                                  "Today's Summary",
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         Row(
                           mainAxisSize: MainAxisSize.min,
@@ -374,11 +388,18 @@ class _OverviewTab extends HookConsumerWidget {
                                 isEditing.value ? Icons.check : Icons.edit,
                                 color: theme.colorScheme.primary,
                               ),
-                              onPressed: () {
+                              onPressed: () async {
                                 if (isEditing.value) {
-                                  // Save the edited text
+                                  // Save the edited text to memory
                                   ref.read(todayJournalEntryProvider.notifier).state = 
                                     controller.text;
+                                  
+                                  // Save to calendar
+                                  await _saveJournalEntryToCalendar(
+                                    ref, 
+                                    controller.text, 
+                                    DateTime.now(),
+                                  );
                                 }
                                 isEditing.value = !isEditing.value;
                               },
@@ -499,36 +520,39 @@ class _OverviewTab extends HookConsumerWidget {
   
   // Build empty state for Today's Summary
   Widget _buildSummaryEmptyState(ThemeData theme, bool hasData) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            hasData ? Icons.auto_awesome_outlined : Icons.analytics_outlined,
-            size: 48,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            hasData ? 'Ready to generate summary' : 'No data yet today',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              hasData ? Icons.auto_awesome_outlined : Icons.analytics_outlined,
+              size: 48,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            hasData 
-              ? 'Tap the sparkle icon above to generate\nyour AI-powered daily summary'
-              : 'Your daily summary will automatically appear\nas you use the app throughout the day',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              height: 1.4,
+            const SizedBox(height: 16),
+            Text(
+              hasData ? 'Ready to generate summary' : 'No data yet today',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              hasData 
+                ? 'Tap the sparkle icon above to generate\nyour AI-powered daily summary'
+                : 'Your daily summary will automatically appear\nas you use the app throughout the day',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -610,6 +634,37 @@ class _OverviewTab extends HookConsumerWidget {
       ),
     );
   }
+  
+  /// Save journal entry to calendar
+  Future<void> _saveJournalEntryToCalendar(
+    WidgetRef ref,
+    String content,
+    DateTime date,
+  ) async {
+    try {
+      final calendarService = ref.read(calendarServiceProvider);
+      
+      final title = "Today's Summary - ${date.day}/${date.month}/${date.year}";
+      
+      // Try to create the calendar entry
+      final eventId = await calendarService.createJournalSummaryEntry(
+        date: date,
+        title: title,
+        content: content,
+      );
+      
+      if (eventId != null) {
+        // Successfully saved to calendar
+        // Could show a success message here
+      } else {
+        // Failed to save to calendar - content is still in memory
+        // Could show a warning that calendar sync failed
+      }
+    } catch (e) {
+      // Error saving to calendar - content is still in memory
+      // Could log this or show user notification
+    }
+  }
 }
 
 // Map Tab
@@ -618,104 +673,131 @@ class _MapTab extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLoading = useState(false);
-    final locationHistory = ref.watch(locationHistoryProvider);
+    
+    // Get locations from database for the last 24 hours
+    final locationStream = ref.watch(recentLocationPointsProvider(const Duration(hours: 24)));
     
     // Get today's locations
     final todayStart = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final todayEnd = todayStart.add(const Duration(days: 1));
-    final todayLocations = locationHistory
-        .where((loc) => loc.timestamp.isAfter(todayStart) && loc.timestamp.isBefore(todayEnd))
-        .toList();
     
-    if (todayLocations.isEmpty) {
-      return Center(
+    return locationStream.when(
+      data: (locationHistory) {
+        final todayLocations = locationHistory
+            .where((loc) => loc.timestamp.isAfter(todayStart) && loc.timestamp.isBefore(todayEnd))
+            .toList();
+        
+        if (todayLocations.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.location_off,
+                  size: 64,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No locations visited today',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Start tracking to see your daily journey',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        // Calculate center point
+        double avgLat = todayLocations.map((l) => l.latitude).reduce((a, b) => a + b) / todayLocations.length;
+        double avgLng = todayLocations.map((l) => l.longitude).reduce((a, b) => a + b) / todayLocations.length;
+        
+        return Skeletonizer(
+          enabled: isLoading.value,
+          child: FlutterMap(
+            options: MapOptions(
+              initialCenter: LatLng(avgLat, avgLng),
+              initialZoom: 13.0,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.auraone.app',
+              ),
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: todayLocations.map((loc) => LatLng(loc.latitude, loc.longitude)).toList(),
+                    color: theme.colorScheme.primary,
+                    strokeWidth: 3.0,
+                  ),
+                ],
+              ),
+              MarkerLayer(
+                markers: [
+                  // Start marker
+                  if (todayLocations.isNotEmpty)
+                    Marker(
+                      point: LatLng(todayLocations.first.latitude, todayLocations.first.longitude),
+                      width: 40,
+                      height: 40,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(Icons.play_arrow, color: Colors.white, size: 20),
+                      ),
+                    ),
+                  // End marker
+                  if (todayLocations.length > 1)
+                    Marker(
+                      point: LatLng(todayLocations.last.latitude, todayLocations.last.longitude),
+                      width: 40,
+                      height: 40,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(Icons.stop, color: Colors.white, size: 20),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.location_off,
+              Icons.error_outline,
               size: 64,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+              color: Theme.of(context).colorScheme.error,
             ),
             const SizedBox(height: 16),
             Text(
-              'No locations visited today',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Start tracking to see your daily journey',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              'Error loading locations',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.error,
               ),
             ),
           ],
         ),
-      );
-    }
-    
-    // Calculate center point
-    double avgLat = todayLocations.map((l) => l.latitude).reduce((a, b) => a + b) / todayLocations.length;
-    double avgLng = todayLocations.map((l) => l.longitude).reduce((a, b) => a + b) / todayLocations.length;
-    
-    return Skeletonizer(
-      enabled: isLoading.value,
-      child: FlutterMap(
-        options: MapOptions(
-          initialCenter: LatLng(avgLat, avgLng),
-          initialZoom: 13.0,
-        ),
-        children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.auraone.app',
-          ),
-          PolylineLayer(
-            polylines: [
-              Polyline(
-                points: todayLocations.map((loc) => LatLng(loc.latitude, loc.longitude)).toList(),
-                color: theme.colorScheme.primary,
-                strokeWidth: 3.0,
-              ),
-            ],
-          ),
-          MarkerLayer(
-            markers: [
-              // Start marker
-              if (todayLocations.isNotEmpty)
-                Marker(
-                  point: LatLng(todayLocations.first.latitude, todayLocations.first.longitude),
-                  width: 40,
-                  height: 40,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: const Icon(Icons.play_arrow, color: Colors.white, size: 20),
-                  ),
-                ),
-              // End marker
-              if (todayLocations.length > 1)
-                Marker(
-                  point: LatLng(todayLocations.last.latitude, todayLocations.last.longitude),
-                  width: 40,
-                  height: 40,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: const Icon(Icons.stop, color: Colors.white, size: 20),
-                  ),
-                ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -733,8 +815,9 @@ class _MediaTab extends HookConsumerWidget {
     final todayStart = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final todayEnd = todayStart.add(const Duration(days: 1));
     
+    // Get media from the last 2 days to ensure we catch all of today's media
     final mediaFuture = useMemoized(
-      () => mediaDb.getRecentMedia(duration: const Duration(days: 1), limit: 100),
+      () => mediaDb.getRecentMedia(duration: const Duration(days: 2), limit: 500),
       [todayStart],
     );
     final mediaSnapshot = useFuture(mediaFuture);
@@ -744,9 +827,13 @@ class _MediaTab extends HookConsumerWidget {
     }
     
     final allMedia = mediaSnapshot.data ?? [];
-    final mediaItems = allMedia.where((item) => 
-      item.createdDate.isAfter(todayStart) && item.createdDate.isBefore(todayEnd)
-    ).toList();
+    // Filter to only today's media
+    final mediaItems = allMedia.where((item) {
+      // Check if the media was created today
+      return item.createdDate.year == todayStart.year &&
+             item.createdDate.month == todayStart.month &&
+             item.createdDate.day == todayStart.day;
+    }).toList();
     
     if (mediaItems.isEmpty) {
       return Center(

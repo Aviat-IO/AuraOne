@@ -17,14 +17,15 @@ import 'package:aura_one/utils/error_handler.dart';
 import 'package:aura_one/utils/logger.dart';
 import 'package:aura_one/services/simple_location_service.dart';
 import 'package:aura_one/services/movement_tracking_service.dart';
+import 'package:aura_one/services/background_data_service.dart';
 
 void main() {
   // Initialize error handling first
   ErrorHandler.initialize();
-  
+
   // Log app startup
   appLogger.info('Aura One starting...');
-  
+
   runZonedGuarded(() {
     runApp(
       ProviderScope(
@@ -109,14 +110,14 @@ class AuraOneSplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isLight = Theme.of(context).brightness == Brightness.light;
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: isLight 
+            colors: isLight
               ? AuraColors.lightBackgroundGradient
               : AuraColors.darkBackgroundGradient,
             stops: const [0.0, 0.5, 1.0],
@@ -146,14 +147,14 @@ class AuraOneSplashScreen extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: isLight 
+                      colors: isLight
                         ? AuraColors.lightLogoGradient
                         : AuraColors.darkLogoGradient,
                       stops: const [0.0, 0.5, 1.0],
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: isLight 
+                        color: isLight
                           ? AuraColors.lightPrimary.withValues(alpha: 0.2)
                           : AuraColors.darkPrimary.withValues(alpha: 0.15),
                         blurRadius: 40,
@@ -255,7 +256,7 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
   try {
     appLogger.info('Initializing app storage...');
     final dir = await getApplicationDocumentsDirectory();
-    
+
     await ref.read(
       initializationProvider(
         StorageConfiguration(
@@ -271,17 +272,31 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
         ),
       ).future,
     );
-    
+
     // Initialize location service
     appLogger.info('Initializing location service...');
     final locationService = ref.read(simpleLocationServiceProvider);
     await locationService.initialize();
-    
+
     // Initialize movement tracking service
     appLogger.info('Initializing movement tracking service...');
     final movementService = ref.read(movementTrackingServiceProvider);
     await movementService.initialize();
+
+    // Initialize background data collection service
+    appLogger.info('Initializing background data collection service...');
+    final backgroundService = ref.read(backgroundDataServiceProvider);
+    await backgroundService.initialize();
     
+    // Start background data collection with optimized battery usage
+    await backgroundService.startBackgroundDataCollection(
+      frequency: const Duration(minutes: 15), // Collect data every 15 minutes
+      includeLocation: true,
+      includeBle: true,
+      includeMovement: true,
+    );
+    appLogger.info('Background data collection started');
+
     appLogger.info('App initialization complete');
   } catch (error, stackTrace) {
     appLogger.error('Failed to initialize app', error: error, stackTrace: stackTrace);

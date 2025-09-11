@@ -89,7 +89,7 @@ class DataDeletionService {
         keepSignificantLocations,
       );
       locationPointCount = locations.length;
-      
+
       if (locations.isNotEmpty) {
         final dates = locations.map((l) => l.timestamp).toList()..sort();
         oldestDate = _updateOldestDate(oldestDate, dates.first);
@@ -101,7 +101,7 @@ class DataDeletionService {
     if (effectiveDataTypes.contains(DataType.photos) ||
         effectiveDataTypes.contains(DataType.videos)) {
       final media = await _getMediaBetween(startDate, endDate);
-      
+
       for (final item in media) {
         if (item.mimeType.startsWith('image/') &&
             effectiveDataTypes.contains(DataType.photos)) {
@@ -112,7 +112,7 @@ class DataDeletionService {
           videoCount++;
           totalSizeMB += (item.fileSize / (1024 * 1024)).round();
         }
-        
+
         oldestDate = _updateOldestDate(oldestDate, item.createdDate);
         newestDate = _updateNewestDate(newestDate, item.createdDate);
       }
@@ -122,7 +122,7 @@ class DataDeletionService {
     if (effectiveDataTypes.contains(DataType.calendar)) {
       final notes = await _getLocationNotesBetween(startDate, endDate);
       calendarEventCount = notes.length;
-      
+
       if (notes.isNotEmpty) {
         final dates = notes.map((n) => n.timestamp).toList()..sort();
         oldestDate = _updateOldestDate(oldestDate, dates.first);
@@ -284,7 +284,7 @@ class DataDeletionService {
     // For date range queries, we'll use a simple approach
     final effectiveStart = startDate ?? DateTime(1970);
     final effectiveEnd = endDate ?? DateTime.now();
-    
+
     // Get recent media and filter by date
     final allMedia = await _mediaDb.getRecentMedia(
       duration: Duration(
@@ -292,9 +292,9 @@ class DataDeletionService {
       ),
       limit: 100000,
     );
-    
-    return allMedia.where((item) => 
-      item.createdDate.isAfter(effectiveStart) && 
+
+    return allMedia.where((item) =>
+      item.createdDate.isAfter(effectiveStart) &&
       item.createdDate.isBefore(effectiveEnd)
     ).toList();
   }
@@ -312,8 +312,8 @@ class DataDeletionService {
 
     // Get all location notes and filter manually
     final allNotes = await _locationDb.select(_locationDb.locationNotes).get();
-    return allNotes.where((note) => 
-      note.timestamp.isAfter(effectiveStart) && 
+    return allNotes.where((note) =>
+      note.timestamp.isAfter(effectiveStart) &&
       note.timestamp.isBefore(effectiveEnd)
     ).toList();
   }
@@ -334,11 +334,11 @@ class DataDeletionService {
     } else {
       // Get locations in range and delete by ID
       final locationsToDelete = await _getLocationsBetween(
-        startDate, 
-        endDate, 
+        startDate,
+        endDate,
         keepSignificantLocations,
       );
-      
+
       for (final location in locationsToDelete) {
         await (_locationDb.delete(_locationDb.locationPoints)
               ..where((tbl) => tbl.id.equals(location.id)))
@@ -399,7 +399,7 @@ class DataDeletionService {
       await _locationDb.delete(_locationDb.locationNotes).go();
     } else {
       final notesToDelete = await _getLocationNotesBetween(startDate, endDate);
-      
+
       for (final note in notesToDelete) {
         await (_locationDb.delete(_locationDb.locationNotes)
               ..where((tbl) => tbl.id.equals(note.id)))
@@ -439,8 +439,8 @@ class DataDeletionService {
     }
 
     // Get media data if requested
-    if (dataTypes.contains(DataType.photos) || 
-        dataTypes.contains(DataType.videos) || 
+    if (dataTypes.contains(DataType.photos) ||
+        dataTypes.contains(DataType.videos) ||
         dataTypes.contains(DataType.all)) {
       final media = await _getMediaBetween(startDate, endDate);
       for (final item in media) {

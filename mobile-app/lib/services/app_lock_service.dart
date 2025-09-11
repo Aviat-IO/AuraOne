@@ -88,21 +88,21 @@ class AppLockService extends StateNotifier<AppLockState> {
   Future<void> _initialize() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Check biometric availability
       final biometricsAvailable = await _localAuth.canCheckBiometrics;
       final availableBiometrics = await _localAuth.getAvailableBiometrics();
       final hasBiometrics = biometricsAvailable && availableBiometrics.isNotEmpty;
-      
+
       // Load settings
       final isEnabled = prefs.getBool(_keyEnabled) ?? false;
       final authMethodIndex = prefs.getInt(_keyAuthMethod) ?? AuthMethod.disabled.index;
       final timeoutIndex = prefs.getInt(_keyTimeout) ?? AutoLockTimeout.fiveMinutes.index;
       final hasPasscode = prefs.getString(_keyPasscode) != null;
-      
+
       final authMethod = AuthMethod.values[authMethodIndex];
       final timeout = AutoLockTimeout.values[timeoutIndex];
-      
+
       state = AppLockState(
         isEnabled: isEnabled,
         isLocked: isEnabled, // Start locked if enabled
@@ -120,7 +120,7 @@ class AppLockService extends StateNotifier<AppLockState> {
   Future<void> setEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyEnabled, enabled);
-    
+
     state = state.copyWith(
       isEnabled: enabled,
       isLocked: enabled, // Lock immediately when enabling
@@ -130,14 +130,14 @@ class AppLockService extends StateNotifier<AppLockState> {
   Future<void> setAuthMethod(AuthMethod method) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyAuthMethod, method.index);
-    
+
     state = state.copyWith(authMethod: method);
   }
 
   Future<void> setTimeout(AutoLockTimeout timeout) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyTimeout, timeout.index);
-    
+
     state = state.copyWith(timeout: timeout);
   }
 
@@ -145,7 +145,7 @@ class AppLockService extends StateNotifier<AppLockState> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keyPasscode, passcode);
-      
+
       state = state.copyWith(hasPasscode: true);
       return true;
     } catch (e) {
@@ -158,16 +158,16 @@ class AppLockService extends StateNotifier<AppLockState> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_keyPasscode);
-      
+
       state = state.copyWith(hasPasscode: false);
-      
+
       // Switch to biometric if available, otherwise disable
       if (state.biometricsAvailable) {
         await setAuthMethod(AuthMethod.biometric);
       } else {
         await setEnabled(false);
       }
-      
+
       return true;
     } catch (e) {
       debugPrint('Failed to remove passcode: $e');
@@ -188,7 +188,7 @@ class AppLockService extends StateNotifier<AppLockState> {
 
   Future<bool> authenticateWithBiometrics({String? reason}) async {
     if (!state.biometricsAvailable) return false;
-    
+
     try {
       final isAuthenticated = await _localAuth.authenticate(
         localizedReason: reason ?? 'Please authenticate to access the app',
@@ -197,11 +197,11 @@ class AppLockService extends StateNotifier<AppLockState> {
           stickyAuth: true,
         ),
       );
-      
+
       if (isAuthenticated) {
         unlock();
       }
-      
+
       return isAuthenticated;
     } on PlatformException catch (e) {
       debugPrint('Biometric authentication error: $e');
@@ -218,7 +218,7 @@ class AppLockService extends StateNotifier<AppLockState> {
 
   void lock() {
     if (!state.isEnabled) return;
-    
+
     state = state.copyWith(
       isLocked: true,
       lastActiveTime: DateTime.now(),
@@ -227,7 +227,7 @@ class AppLockService extends StateNotifier<AppLockState> {
 
   void updateActivity() {
     if (!state.isEnabled) return;
-    
+
     state = state.copyWith(lastActiveTime: DateTime.now());
   }
 
@@ -235,10 +235,10 @@ class AppLockService extends StateNotifier<AppLockState> {
     if (!state.isEnabled || state.isLocked || state.timeout == AutoLockTimeout.never) {
       return;
     }
-    
+
     final lastActive = state.lastActiveTime;
     if (lastActive == null) return;
-    
+
     final timeSinceActive = DateTime.now().difference(lastActive);
     if (timeSinceActive >= state.timeout.duration) {
       lock();
@@ -247,12 +247,12 @@ class AppLockService extends StateNotifier<AppLockState> {
 
   bool get shouldShowLockScreen => state.isEnabled && state.isLocked;
 
-  bool get canUseBiometrics => 
-      state.biometricsAvailable && 
+  bool get canUseBiometrics =>
+      state.biometricsAvailable &&
       (state.authMethod == AuthMethod.biometric || !state.hasPasscode);
 
-  bool get requiresPasscode => 
-      state.authMethod == AuthMethod.passcode || 
+  bool get requiresPasscode =>
+      state.authMethod == AuthMethod.passcode ||
       (!state.biometricsAvailable && state.hasPasscode);
 }
 

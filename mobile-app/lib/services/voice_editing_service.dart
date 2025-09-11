@@ -17,21 +17,21 @@ class VoiceEditingService {
   final SpeechToText _speechToText = SpeechToText();
   final FlutterTts _flutterTts = FlutterTts();
   final PermissionService _permissionService;
-  
+
   bool _isInitialized = false;
   bool _isListening = false;
   String _currentTranscription = '';
   bool _hasPermission = false;
-  
+
   /// Callback for when speech is recognized
   Function(String)? onSpeechResult;
-  
+
   /// Callback for listening state changes
   Function(bool)? onListeningStateChanged;
-  
+
   /// Callback for errors
   Function(String)? onError;
-  
+
   /// Callback for permission denied
   Function()? onPermissionDenied;
 
@@ -45,12 +45,12 @@ class VoiceEditingService {
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
-    
+
     // Set completion handler
     _flutterTts.setCompletionHandler(() {
       debugPrint("TTS completed");
     });
-    
+
     // Set error handler
     _flutterTts.setErrorHandler((msg) {
       debugPrint("TTS error: $msg");
@@ -61,7 +61,7 @@ class VoiceEditingService {
   /// Initialize speech recognition
   Future<bool> initialize() async {
     if (_isInitialized) return true;
-    
+
     try {
       _isInitialized = await _speechToText.initialize(
         onStatus: (status) {
@@ -79,7 +79,7 @@ class VoiceEditingService {
         },
         debugLogging: kDebugMode,
       );
-      
+
       return _isInitialized;
     } catch (e) {
       debugPrint('Failed to initialize speech recognition: $e');
@@ -90,16 +90,16 @@ class VoiceEditingService {
 
   /// Check if speech recognition is available
   bool get isAvailable => _isInitialized && _speechToText.isAvailable && _hasPermission;
-  
+
   /// Check if currently listening
   bool get isListening => _isListening;
-  
+
   /// Get current transcription
   String get currentTranscription => _currentTranscription;
-  
+
   /// Check if microphone permission is granted
   bool get hasPermission => _hasPermission;
-  
+
   /// Check and request microphone permission
   Future<bool> checkAndRequestPermission(BuildContext context) async {
     _hasPermission = await _permissionService.ensureMicrophonePermission(context);
@@ -108,7 +108,7 @@ class VoiceEditingService {
     }
     return _hasPermission;
   }
-  
+
   /// Get available locales for speech recognition
   Future<List<LocaleName>> getAvailableLocales() async {
     if (!_isInitialized) {
@@ -131,7 +131,7 @@ class VoiceEditingService {
         return;
       }
     }
-    
+
     if (!_isInitialized) {
       final initialized = await initialize();
       if (!initialized) {
@@ -139,23 +139,23 @@ class VoiceEditingService {
         return;
       }
     }
-    
+
     if (_isListening) {
       debugPrint('Already listening');
       return;
     }
-    
+
     try {
       _currentTranscription = '';
       _isListening = true;
       onListeningStateChanged?.call(true);
-      
+
       await _speechToText.listen(
         onResult: (result) {
           _currentTranscription = result.recognizedWords;
           debugPrint('Recognized: $_currentTranscription (final: ${result.finalResult})');
           onSpeechResult?.call(_currentTranscription);
-          
+
           if (result.finalResult) {
             _isListening = false;
             onListeningStateChanged?.call(false);
@@ -176,7 +176,7 @@ class VoiceEditingService {
   /// Stop listening for speech
   Future<void> stopListening() async {
     if (!_isListening) return;
-    
+
     try {
       await _speechToText.stop();
       _isListening = false;
@@ -190,7 +190,7 @@ class VoiceEditingService {
   /// Cancel listening without processing results
   Future<void> cancelListening() async {
     if (!_isListening) return;
-    
+
     try {
       await _speechToText.cancel();
       _isListening = false;
@@ -205,7 +205,7 @@ class VoiceEditingService {
   /// Speak text using text-to-speech
   Future<void> speak(String text) async {
     if (text.isEmpty) return;
-    
+
     try {
       await _flutterTts.stop(); // Stop any ongoing speech
       await _flutterTts.speak(text);

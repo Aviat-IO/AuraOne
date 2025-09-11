@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:device_calendar/device_calendar.dart';
+import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../utils/logger.dart';
@@ -20,7 +21,7 @@ class CalendarEventData {
   final RecurrenceRule? recurrenceRule;
   final List<Reminder>? reminders;
   final Map<String, dynamic>? metadata;
-  
+
   CalendarEventData({
     required this.id,
     this.calendarId,
@@ -36,7 +37,7 @@ class CalendarEventData {
     this.reminders,
     this.metadata,
   });
-  
+
   /// Convert from device_calendar Event
   factory CalendarEventData.fromEvent(Event event) {
     return CalendarEventData(
@@ -58,7 +59,7 @@ class CalendarEventData {
       },
     );
   }
-  
+
   /// Convert to device_calendar Event
   Event toEvent() {
     return Event(
@@ -66,8 +67,8 @@ class CalendarEventData {
       eventId: id,
       title: title,
       description: description,
-      start: TZDateTime.from(startDate, local),
-      end: endDate != null ? TZDateTime.from(endDate!, local) : null,
+      start: TZDateTime.from(startDate, tz.local),
+      end: endDate != null ? TZDateTime.from(endDate!, tz.local) : null,
       allDay: isAllDay,
       location: location,
       url: url != null ? Uri.parse(url!) : null,
@@ -87,7 +88,7 @@ class CalendarMetadata {
   final Color? color;
   final String? accountName;
   final String? accountType;
-  
+
   CalendarMetadata({
     required this.id,
     required this.name,
@@ -97,7 +98,7 @@ class CalendarMetadata {
     this.accountName,
     this.accountType,
   });
-  
+
   factory CalendarMetadata.fromCalendar(Calendar calendar) {
     return CalendarMetadata(
       id: calendar.id!,
@@ -123,7 +124,7 @@ class CalendarPrivacySettings {
   final bool anonymizeAttendees;
   final bool stripUrls;
   final bool stripDescriptions;
-  
+
   const CalendarPrivacySettings({
     this.syncEnabled = false,
     this.syncPastEvents = true,
@@ -136,7 +137,7 @@ class CalendarPrivacySettings {
     this.stripUrls = false,
     this.stripDescriptions = false,
   });
-  
+
   CalendarPrivacySettings copyWith({
     bool? syncEnabled,
     bool? syncPastEvents,
@@ -168,30 +169,30 @@ class CalendarPrivacySettings {
 class CalendarService {
   static final _logger = AppLogger('CalendarService');
   static final _instance = CalendarService._internal();
-  
+
   factory CalendarService() => _instance;
   CalendarService._internal() {
     _checkPermissions();
   }
-  
+
   final DeviceCalendarPlugin _plugin = DeviceCalendarPlugin();
   CalendarPrivacySettings _privacySettings = const CalendarPrivacySettings();
   bool _hasPermissions = false;
-  
+
   /// Cache for calendars and events
   final Map<String, CalendarMetadata> _calendarsCache = {};
   final Map<String, List<CalendarEventData>> _eventsCache = {};
   DateTime? _lastSyncTime;
-  
+
   /// Get current privacy settings
   CalendarPrivacySettings get privacySettings => _privacySettings;
-  
+
   /// Update privacy settings
   void updatePrivacySettings(CalendarPrivacySettings settings) {
     _privacySettings = settings;
     _logger.info('Privacy settings updated: syncEnabled=${settings.syncEnabled}');
   }
-  
+
   /// Get events in a date range
   Future<List<CalendarEventData>> getEventsInRange(
     DateTime start,
@@ -202,22 +203,22 @@ class CalendarService {
       _logger.warning('Cannot get events without calendar permissions');
       return [];
     }
-    
+
     try {
       final calendars = await _plugin.retrieveCalendars();
       if (calendars.data == null || calendars.data!.isEmpty) {
         _logger.warning('No calendars found');
         return [];
       }
-      
+
       final events = <CalendarEventData>[];
       final calendarsToQuery = calendarIds != null
           ? calendars.data!.where((c) => calendarIds.contains(c.id))
           : calendars.data!;
-      
+
       for (final calendar in calendarsToQuery) {
         if (calendar.id == null) continue;
-        
+
         final result = await _plugin.retrieveEvents(
           calendar.id!,
           RetrieveEventsParams(
@@ -225,31 +226,31 @@ class CalendarService {
             endDate: end,
           ),
         );
-        
+
         if (result.data != null) {
           events.addAll(
             result.data!.map((e) => CalendarEventData.fromEvent(e))
           );
         }
       }
-      
+
       return events;
     } catch (e, stack) {
       _logger.error('Failed to get events in range', error: e, stackTrace: stack);
       return [];
     }
   }
-  
+
   /// Request calendar permissions
   Future<bool> requestPermissions() async {
     try {
       _logger.info('Requesting calendar permissions');
-      
+
       // Platform-specific permission request
       if (Platform.isIOS) {
         // iOS uses EventKit permissions
         final status = await Permission.calendarFullAccess.request();
-        
+
         if (status.isGranted) {
           _logger.info('iOS calendar permissions granted');
           _hasPermissions = true;
@@ -262,7 +263,7 @@ class CalendarService {
       } else if (Platform.isAndroid) {
         // Android uses Calendar Provider permissions
         final readStatus = await Permission.calendar.request();
-        
+
         if (readStatus.isGranted) {
           _logger.info('Android calendar permissions granted');
           _hasPermissions = true;
@@ -273,20 +274,20 @@ class CalendarService {
           await openAppSettings();
         }
       }
-      
+
       return false;
     } catch (e, stack) {
-      _logger.error('Failed to request calendar permissions', 
+      _logger.error('Failed to request calendar permissions',
                    error: e, stackTrace: stack);
       return false;
     }
   }
-  
+
   /// Check permissions on initialization
   Future<void> _checkPermissions() async {
     _hasPermissions = await hasPermissions();
   }
-  
+
   /// Check if calendar permissions are granted
   Future<bool> hasPermissions() async {
     try {
@@ -303,7 +304,7 @@ class CalendarService {
       return false;
     }
   }
-  
+
   /// Get all calendars on the device
   Future<List<CalendarMetadata>> getCalendars({bool forceRefresh = false}) async {
     try {
@@ -311,30 +312,30 @@ class CalendarService {
         _logger.warning('Calendar permissions not granted');
         return [];
       }
-      
+
       if (!forceRefresh && _calendarsCache.isNotEmpty) {
         return _calendarsCache.values.toList();
       }
-      
+
       _logger.info('Fetching device calendars');
-      
+
       final result = await _plugin.retrieveCalendars();
-      
+
       if (!result.isSuccess || result.data == null) {
         _logger.error('Failed to retrieve calendars: ${result.errors}');
         return [];
       }
-      
+
       // Clear and rebuild cache
       _calendarsCache.clear();
-      
+
       for (final calendar in result.data!) {
         if (calendar.id != null) {
           final metadata = CalendarMetadata.fromCalendar(calendar);
           _calendarsCache[calendar.id!] = metadata;
         }
       }
-      
+
       _logger.info('Found ${_calendarsCache.length} calendars');
       return _calendarsCache.values.toList();
     } catch (e, stack) {
@@ -342,7 +343,7 @@ class CalendarService {
       return [];
     }
   }
-  
+
   /// Get events from specified calendars
   Future<List<CalendarEventData>> getEvents({
     Set<String>? calendarIds,
@@ -355,21 +356,21 @@ class CalendarService {
         _logger.warning('Calendar permissions not granted');
         return [];
       }
-      
+
       if (!_privacySettings.syncEnabled && applyPrivacyFilter) {
         _logger.info('Calendar sync is disabled');
         return [];
       }
-      
+
       // Set date range based on privacy settings
       final now = DateTime.now();
-      startDate ??= _privacySettings.syncPastEvents 
+      startDate ??= _privacySettings.syncPastEvents
           ? now.subtract(Duration(days: _privacySettings.pastEventsDays))
           : now;
       endDate ??= _privacySettings.syncFutureEvents
           ? now.add(Duration(days: _privacySettings.futureEventsDays))
           : now;
-      
+
       // Filter calendars based on privacy settings
       final calendarsToSync = calendarIds ?? _privacySettings.allowedCalendarIds;
       if (calendarsToSync.isEmpty && applyPrivacyFilter) {
@@ -377,54 +378,54 @@ class CalendarService {
         final allCalendars = await getCalendars();
         calendarsToSync.addAll(allCalendars.map((c) => c.id));
       }
-      
+
       final allEvents = <CalendarEventData>[];
-      
+
       for (final calendarId in calendarsToSync) {
-        if (_privacySettings.allowedCalendarIds.isNotEmpty && 
+        if (_privacySettings.allowedCalendarIds.isNotEmpty &&
             !_privacySettings.allowedCalendarIds.contains(calendarId) &&
             applyPrivacyFilter) {
           continue;
         }
-        
+
         _logger.info('Fetching events from calendar: $calendarId');
-        
+
         final params = RetrieveEventsParams(
           startDate: startDate,
           endDate: endDate,
         );
-        
+
         final result = await _plugin.retrieveEvents(calendarId, params);
-        
+
         if (result.isSuccess && result.data != null) {
           for (final event in result.data!) {
             final eventData = CalendarEventData.fromEvent(event);
-            
+
             // Apply privacy filters
             if (applyPrivacyFilter && !_shouldIncludeEvent(eventData)) {
               continue;
             }
-            
+
             // Apply privacy transformations
-            final filteredEvent = applyPrivacyFilter 
+            final filteredEvent = applyPrivacyFilter
                 ? _applyPrivacyTransformations(eventData)
                 : eventData;
-            
+
             allEvents.add(filteredEvent);
           }
         }
       }
-      
+
       _logger.info('Retrieved ${allEvents.length} events');
       _lastSyncTime = DateTime.now();
-      
+
       return allEvents;
     } catch (e, stack) {
       _logger.error('Failed to get events', error: e, stackTrace: stack);
       return [];
     }
   }
-  
+
   /// Create a new event
   Future<String?> createEvent(CalendarEventData eventData) async {
     try {
@@ -432,17 +433,17 @@ class CalendarService {
         _logger.warning('Calendar permissions not granted');
         return null;
       }
-      
+
       if (eventData.calendarId == null) {
         _logger.error('Calendar ID is required to create event');
         return null;
       }
-      
+
       _logger.info('Creating event: ${eventData.title}');
-      
+
       final event = eventData.toEvent();
       final result = await _plugin.createOrUpdateEvent(event);
-      
+
       if (result?.isSuccess == true && result?.data != null) {
         _logger.info('Event created with ID: ${result!.data}');
         return result.data;
@@ -455,7 +456,7 @@ class CalendarService {
       return null;
     }
   }
-  
+
   /// Update an existing event
   Future<bool> updateEvent(CalendarEventData eventData) async {
     try {
@@ -463,12 +464,12 @@ class CalendarService {
         _logger.warning('Calendar permissions not granted');
         return false;
       }
-      
+
       _logger.info('Updating event: ${eventData.id}');
-      
+
       final event = eventData.toEvent();
       final result = await _plugin.createOrUpdateEvent(event);
-      
+
       if (result?.isSuccess == true) {
         _logger.info('Event updated successfully');
         return true;
@@ -481,7 +482,7 @@ class CalendarService {
       return false;
     }
   }
-  
+
   /// Delete an event
   Future<bool> deleteEvent(String calendarId, String eventId) async {
     try {
@@ -489,11 +490,11 @@ class CalendarService {
         _logger.warning('Calendar permissions not granted');
         return false;
       }
-      
+
       _logger.info('Deleting event: $eventId from calendar: $calendarId');
-      
+
       final result = await _plugin.deleteEvent(calendarId, eventId);
-      
+
       if (result.isSuccess) {
         _logger.info('Event deleted successfully');
         return true;
@@ -506,7 +507,7 @@ class CalendarService {
       return false;
     }
   }
-  
+
   /// Sync calendar events to local database
   Future<void> syncToDatabase(MediaDatabase database) async {
     try {
@@ -514,25 +515,25 @@ class CalendarService {
         _logger.info('Calendar sync is disabled');
         return;
       }
-      
+
       _logger.info('Starting calendar sync to database');
-      
+
       final events = await getEvents();
-      
+
       // Store events in database with source attribution
       for (final event in events) {
         // TODO: Store in database with proper source tracking
         // This would integrate with the journal/note system
         _logger.debug('Would store event: ${event.title}');
       }
-      
+
       _logger.info('Calendar sync completed: ${events.length} events');
     } catch (e, stack) {
-      _logger.error('Failed to sync calendar to database', 
+      _logger.error('Failed to sync calendar to database',
                    error: e, stackTrace: stack);
     }
   }
-  
+
   /// Check if event should be included based on privacy settings
   bool _shouldIncludeEvent(CalendarEventData event) {
     // Check blocked keywords
@@ -542,10 +543,10 @@ class CalendarService {
         return false;
       }
     }
-    
+
     return true;
   }
-  
+
   /// Apply privacy transformations to event data
   CalendarEventData _applyPrivacyTransformations(CalendarEventData event) {
     return CalendarEventData(
@@ -557,7 +558,7 @@ class CalendarService {
       endDate: event.endDate,
       isAllDay: event.isAllDay,
       location: event.location,
-      attendees: _privacySettings.anonymizeAttendees 
+      attendees: _privacySettings.anonymizeAttendees
           ? event.attendees.map((a) => 'Attendee').toList()
           : event.attendees,
       url: _privacySettings.stripUrls ? null : event.url,
@@ -566,7 +567,130 @@ class CalendarService {
       metadata: event.metadata,
     );
   }
-  
+
+  /// Create a journal summary entry as a calendar event
+  Future<String?> createJournalSummaryEntry({
+    required DateTime date,
+    required String title,
+    required String content,
+    String? calendarId,
+  }) async {
+    try {
+      if (!await hasPermissions()) {
+        _logger.warning('Calendar permissions not granted');
+        return null;
+      }
+
+      // Use first available calendar if none specified
+      if (calendarId == null) {
+        final calendars = await getCalendars();
+        if (calendars.isEmpty) {
+          _logger.error('No calendars available for journal entries');
+          return null;
+        }
+        calendarId = calendars.first.id;
+      }
+
+      // Create all-day journal entry
+      final journalEvent = CalendarEventData(
+        id: 'journal_${date.millisecondsSinceEpoch}',
+        calendarId: calendarId,
+        title: title,
+        description: content,
+        startDate: DateTime(date.year, date.month, date.day),
+        endDate: DateTime(date.year, date.month, date.day, 23, 59, 59),
+        isAllDay: true,
+        metadata: {
+          'type': 'journal_summary',
+          'created_by': 'aura_one',
+          'version': '1.0',
+        },
+      );
+
+      final eventId = await createEvent(journalEvent);
+
+      if (eventId != null) {
+        _logger.info('Created journal summary entry for ${date.toIso8601String()}');
+        return eventId;
+      } else {
+        _logger.error('Failed to create journal summary entry');
+        return null;
+      }
+    } catch (e, stack) {
+      _logger.error('Failed to create journal summary entry', error: e, stackTrace: stack);
+      return null;
+    }
+  }
+
+  /// Update an existing journal summary entry
+  Future<bool> updateJournalSummaryEntry({
+    required String eventId,
+    required String calendarId,
+    required DateTime date,
+    required String title,
+    required String content,
+  }) async {
+    try {
+      if (!await hasPermissions()) {
+        _logger.warning('Calendar permissions not granted');
+        return false;
+      }
+
+      final updatedEvent = CalendarEventData(
+        id: eventId,
+        calendarId: calendarId,
+        title: title,
+        description: content,
+        startDate: DateTime(date.year, date.month, date.day),
+        endDate: DateTime(date.year, date.month, date.day, 23, 59, 59),
+        isAllDay: true,
+        metadata: {
+          'type': 'journal_summary',
+          'created_by': 'aura_one',
+          'version': '1.0',
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+      );
+
+      final success = await updateEvent(updatedEvent);
+
+      if (success) {
+        _logger.info('Updated journal summary entry: $eventId');
+        return true;
+      } else {
+        _logger.error('Failed to update journal summary entry');
+        return false;
+      }
+    } catch (e, stack) {
+      _logger.error('Failed to update journal summary entry', error: e, stackTrace: stack);
+      return false;
+    }
+  }
+
+  /// Get journal summary entries for a date range
+  Future<List<CalendarEventData>> getJournalSummaryEntries({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    try {
+      final allEvents = await getEventsInRange(startDate, endDate);
+
+      // Filter for journal summary entries
+      final journalEntries = allEvents.where((event) {
+        final metadata = event.metadata;
+        return metadata != null &&
+               metadata['type'] == 'journal_summary' &&
+               metadata['created_by'] == 'aura_one';
+      }).toList();
+
+      _logger.info('Found ${journalEntries.length} journal entries');
+      return journalEntries;
+    } catch (e, stack) {
+      _logger.error('Failed to get journal summary entries', error: e, stackTrace: stack);
+      return [];
+    }
+  }
+
   /// Clear all cached data
   void clearCache() {
     _calendarsCache.clear();

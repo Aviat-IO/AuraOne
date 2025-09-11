@@ -33,7 +33,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
   Widget build(BuildContext context) {
     final photoService = ref.watch(photoServiceProvider);
     final scanningState = ref.watch(automaticScanningProvider);
-    
+
     // Listen to new photo stream
     ref.listen(newPhotoStreamProvider, (previous, next) {
       next.whenData((photos) {
@@ -149,7 +149,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                           _recentPhotos = photos.take(10).toList();
                         });
                         _logger.info('Manual scan found ${photos.length} photos');
-                        
+
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -189,16 +189,16 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                             _logger.info('Face detection progress: $completed/$total');
                           },
                         );
-                        
+
                         setState(() {
                           _faceDetectionResults = results;
                         });
-                        
+
                         final totalFaces = results.values.fold(0, (sum, result) => sum + result.faces.length);
                         final highQualityFaces = results.values.fold(0, (sum, result) => sum + result.highQualityFaces.length);
-                        
+
                         _logger.info('Face detection complete: $totalFaces faces, $highQualityFaces high quality');
-                        
+
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -227,7 +227,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
               label: Text(_isFaceDetecting ? 'Detecting Faces...' : 'Detect Faces'),
             ),
             const SizedBox(height: 16),
-            
+
             // Person Identification Button
             ElevatedButton.icon(
               onPressed: _isIdentifyingPersons || _recentPhotos.isEmpty
@@ -236,20 +236,20 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                       setState(() => _isIdentifyingPersons = true);
                       try {
                         final photoService = ref.read(photoServiceProvider);
-                        
+
                         // Identify persons in recent photos
                         final persons = await photoService.identifyPersonsInPhotos(_recentPhotos);
-                        
+
                         // Get updated statistics
                         final stats = await photoService.getPersonStatistics();
-                        
+
                         setState(() {
                           _identifiedPersons = persons;
                           _personStatistics = stats;
                         });
-                        
+
                         _logger.info('Person identification complete: ${persons.length} persons found');
-                        
+
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -300,7 +300,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                     final result = entry.value;
                     final totalFaces = result.faces.length;
                     final highQualityFaces = result.highQualityFaces.length;
-                    
+
                     return Container(
                       width: 120,
                       margin: const EdgeInsets.all(4),
@@ -310,7 +310,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                           children: [
                             Icon(Icons.face, color: Theme.of(context).primaryColor),
                             Text('$totalFaces faces', style: const TextStyle(fontSize: 12)),
-                            Text('$highQualityFaces HQ', 
+                            Text('$highQualityFaces HQ',
                                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
                           ],
                         ),
@@ -329,7 +329,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
-              
+
               // Person Statistics
               if (_personStatistics.isNotEmpty) ...[
                 Card(
@@ -351,7 +351,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                 ),
                 const SizedBox(height: 8),
               ],
-              
+
               // Person List
               SizedBox(
                 height: 200,
@@ -377,7 +377,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                             Text('Confidence: ${(person.averageConfidence * 100).toStringAsFixed(1)}%'),
                           ],
                         ),
-                        trailing: person.isNamed 
+                        trailing: person.isNamed
                           ? const Icon(Icons.person, color: Colors.green)
                           : IconButton(
                               icon: const Icon(Icons.edit),
@@ -407,7 +407,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                   itemBuilder: (context, index) {
                     final photo = _recentPhotos[index];
                     final isSelected = _selectedPhotoId == photo.id;
-                    
+
                     return Padding(
                       padding: const EdgeInsets.only(right: 8.0),
                       child: GestureDetector(
@@ -453,7 +453,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                 ),
               ),
             ],
-            
+
             // EXIF Data Display
             if (_selectedPhotoExif != null) ...[
               const SizedBox(height: 16),
@@ -539,7 +539,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                         Text('Bounding Box: ${_selectedPhotoFaces!.bestFace!.boundingBox.width.toInt()} x ${_selectedPhotoFaces!.bestFace!.boundingBox.height.toInt()}'),
                         if (_selectedPhotoFaces!.bestFace!.smilingProbability != null)
                           Text('Smiling: ${(_selectedPhotoFaces!.bestFace!.smilingProbability! * 100).toStringAsFixed(1)}%'),
-                        if (_selectedPhotoFaces!.bestFace!.leftEyeOpenProbability != null && 
+                        if (_selectedPhotoFaces!.bestFace!.leftEyeOpenProbability != null &&
                             _selectedPhotoFaces!.bestFace!.rightEyeOpenProbability != null) ...[
                           Text('Left Eye Open: ${(_selectedPhotoFaces!.bestFace!.leftEyeOpenProbability! * 100).toStringAsFixed(1)}%'),
                           Text('Right Eye Open: ${(_selectedPhotoFaces!.bestFace!.rightEyeOpenProbability! * 100).toStringAsFixed(1)}%'),
@@ -556,7 +556,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                               children: [
                                 Text('Face ${index + 1}: '),
                                 Text('${(face.qualityScore * 100).toStringAsFixed(1)}% quality'),
-                                if (face.isHighQuality) 
+                                if (face.isHighQuality)
                                   const Text(' ⭐', style: TextStyle(fontSize: 12)),
                               ],
                             ),
@@ -568,7 +568,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                 ),
               ),
             ],
-            
+
             // Persons in Selected Photo Display
             if (_personsInSelectedPhoto.isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -652,7 +652,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
   /// Show dialog to name a person
   void _showNamePersonDialog(Person person) {
     final TextEditingController nameController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -684,7 +684,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                 try {
                   final photoService = ref.read(photoServiceProvider);
                   final updatedPerson = await photoService.namePerson(person.personId, name);
-                  
+
                   if (updatedPerson != null && mounted) {
                     // Update the person in our list
                     final index = _identifiedPersons.indexWhere((p) => p.personId == person.personId);
@@ -693,7 +693,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                         _identifiedPersons[index] = updatedPerson;
                       });
                     }
-                    
+
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Named person as "$name"')),
                     );
@@ -705,7 +705,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
                     );
                   }
                 }
-                
+
                 if (mounted) {
                   Navigator.of(context).pop();
                 }
@@ -779,7 +779,7 @@ class _PhotoTestScreenState extends ConsumerState<PhotoTestScreen> {
   Future<void> _handlePhotoTap(AssetEntity photo) async {
     try {
       final photoService = ref.read(photoServiceProvider);
-      
+
       // Get face detection results if available, or detect faces
       FaceDetectionResult? faceResult;
       if (_faceDetectionResults.containsKey(photo.id)) {

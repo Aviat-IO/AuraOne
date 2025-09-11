@@ -65,7 +65,7 @@ final permissionStatusProvider = StateProvider<Map<Permission, PermissionStatus>
 enum LocationGranularity {
   off,         // No location tracking
   approximate, // City/neighborhood level
-  balanced,    // Street level (50m accuracy)  
+  balanced,    // Street level (50m accuracy)
   precise,     // GPS precise (10m accuracy)
 }
 
@@ -80,14 +80,14 @@ enum DataRetentionPeriod {
 
 class PrivacySettingsScreen extends HookConsumerWidget {
   const PrivacySettingsScreen({super.key});
-  
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final granularity = ref.watch(locationTrackingGranularityProvider);
     final retention = ref.watch(dataRetentionProvider);
     final autoDelete = ref.watch(automaticDeletionProvider);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Privacy & Location'),
@@ -104,43 +104,43 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               // Privacy overview section
               _buildPrivacyOverview(context),
               const SizedBox(height: 24),
-              
+
               // Location tracking granularity
               _buildLocationGranularitySection(context, ref, granularity),
               const SizedBox(height: 24),
-              
+
               // Movement tracking section
               _buildMovementTrackingSection(context, ref),
               const SizedBox(height: 24),
-              
+
               // Data retention settings
               _buildDataRetentionSection(context, ref, retention, autoDelete),
               const SizedBox(height: 24),
-              
+
               // Data deletion controls
               _buildDataDeletionSection(context),
               const SizedBox(height: 24),
-              
+
               // App lock settings
               _buildAppLockSection(context),
               const SizedBox(height: 24),
-              
+
               // Additional Data Source Controls
               _buildDataSourceControlsSection(context, ref),
               const SizedBox(height: 24),
-              
+
               // Device Permissions
               _buildDevicePermissionsSection(context, ref),
               const SizedBox(height: 24),
-              
+
               // Location history management
               _buildLocationHistorySection(context),
               const SizedBox(height: 24),
-              
+
               // Data export and opt-out
               _buildDataControlSection(context),
               const SizedBox(height: 24),
-              
+
               // Privacy information
               _buildPrivacyInfoSection(context),
             ],
@@ -149,10 +149,10 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildPrivacyOverview(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -218,10 +218,10 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildLocationGranularitySection(BuildContext context, WidgetRef ref, LocationGranularity granularity) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -242,7 +242,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             ...LocationGranularity.values.map((value) {
               final isSelected = granularity == value;
               return Container(
@@ -258,12 +258,12 @@ class PrivacySettingsScreen extends HookConsumerWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: isSelected 
+                        color: isSelected
                           ? theme.colorScheme.primary
                           : theme.colorScheme.outline.withValues(alpha: 0.3),
                         width: isSelected ? 2 : 1,
                       ),
-                      color: isSelected 
+                      color: isSelected
                         ? theme.colorScheme.primaryContainer.withValues(alpha: 0.1)
                         : null,
                     ),
@@ -301,7 +301,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
                         ),
                         Icon(
                           _getGranularityIcon(value),
-                          color: isSelected 
+                          color: isSelected
                             ? theme.colorScheme.primary
                             : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
@@ -316,13 +316,13 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildMovementTrackingSection(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final movementEnabled = ref.watch(movementTrackingEnabledProvider);
     final currentState = ref.watch(currentMovementStateProvider);
     final movementHistory = ref.watch(movementHistoryProvider);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -352,12 +352,12 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Movement tracking toggle
             SwitchListTile(
               title: const Text('Enable Movement Tracking'),
               subtitle: Text(
-                movementEnabled 
+                movementEnabled
                   ? 'Gyroscope and accelerometer data is being collected'
                   : 'Movement tracking is disabled',
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -367,7 +367,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               value: movementEnabled,
               onChanged: (bool value) async {
                 ref.read(movementTrackingEnabledProvider.notifier).state = value;
-                
+
                 final movementService = ref.read(movementTrackingServiceProvider);
                 if (value) {
                   await movementService.startTracking();
@@ -380,10 +380,10 @@ class PrivacySettingsScreen extends HookConsumerWidget {
                 color: theme.colorScheme.primary,
               ),
             ),
-            
+
             if (movementEnabled) ...[
               const Divider(),
-              
+
               // Current movement state display
               ListTile(
                 leading: Icon(
@@ -415,9 +415,9 @@ class PrivacySettingsScreen extends HookConsumerWidget {
                     )
                   : null,
               ),
-              
+
               const SizedBox(height: 8),
-              
+
               // Movement history summary
               Container(
                 padding: const EdgeInsets.all(12),
@@ -466,9 +466,9 @@ class PrivacySettingsScreen extends HookConsumerWidget {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               // View detailed movement data button
               OutlinedButton.icon(
                 onPressed: () {
@@ -481,9 +481,9 @@ class PrivacySettingsScreen extends HookConsumerWidget {
                 ),
               ),
             ],
-            
+
             const SizedBox(height: 12),
-            
+
             // Privacy note
             Container(
               padding: const EdgeInsets.all(12),
@@ -519,7 +519,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildMovementSummaryRow(BuildContext context, String label, String value) {
     final theme = Theme.of(context);
     return Padding(
@@ -543,7 +543,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   IconData _getMovementStateIcon(MovementState state) {
     return switch (state) {
       MovementState.still => Icons.person,
@@ -553,7 +553,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       MovementState.unknown => Icons.help_outline,
     };
   }
-  
+
   Color _getMovementStateColor(MovementState state, ThemeData theme) {
     return switch (state) {
       MovementState.still => theme.colorScheme.secondary,
@@ -563,7 +563,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       MovementState.unknown => theme.colorScheme.onSurface.withValues(alpha: 0.5),
     };
   }
-  
+
   String _getMovementStateText(MovementState state) {
     return switch (state) {
       MovementState.still => 'Still / Resting',
@@ -573,15 +573,15 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       MovementState.unknown => 'Detecting...',
     };
   }
-  
+
   String _getMostFrequentState(List<MovementData> history) {
     if (history.isEmpty) return 'Unknown';
-    
+
     final stateCounts = <MovementState, int>{};
     for (final data in history) {
       stateCounts[data.state] = (stateCounts[data.state] ?? 0) + 1;
     }
-    
+
     MovementState mostFrequent = MovementState.unknown;
     int maxCount = 0;
     stateCounts.forEach((state, count) {
@@ -590,23 +590,23 @@ class PrivacySettingsScreen extends HookConsumerWidget {
         mostFrequent = state;
       }
     });
-    
+
     return _getMovementStateText(mostFrequent);
   }
-  
+
   double _getAverageConfidence(List<MovementData> history) {
     if (history.isEmpty) return 0.0;
-    
+
     double total = 0;
     for (final data in history) {
       total += data.confidence;
     }
     return total / history.length;
   }
-  
+
   Widget _buildDataRetentionSection(BuildContext context, WidgetRef ref, DataRetentionPeriod retention, bool autoDelete) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -627,7 +627,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             DropdownButtonFormField<DataRetentionPeriod>(
               value: retention,
               decoration: InputDecoration(
@@ -649,13 +649,13 @@ class PrivacySettingsScreen extends HookConsumerWidget {
                 }
               },
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             SwitchListTile(
               title: const Text('Automatic cleanup'),
               subtitle: Text(
-                autoDelete 
+                autoDelete
                   ? 'Old location data will be deleted automatically'
                   : 'You will need to manually delete old data',
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -676,10 +676,10 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildLocationHistorySection(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -700,17 +700,17 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             _buildLocationHistoryActions(context),
           ],
         ),
       ),
     );
   }
-  
+
   Widget _buildLocationHistoryActions(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Column(
       children: [
         ListTile(
@@ -725,9 +725,9 @@ class PrivacySettingsScreen extends HookConsumerWidget {
             context.push('/privacy/location-history');
           },
         ),
-        
+
         const Divider(),
-        
+
         ListTile(
           leading: Icon(
             Icons.map,
@@ -740,9 +740,9 @@ class PrivacySettingsScreen extends HookConsumerWidget {
             context.push('/privacy/location-map');
           },
         ),
-        
+
         const Divider(),
-        
+
         ListTile(
           leading: Icon(
             Icons.delete_sweep,
@@ -756,10 +756,10 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       ],
     );
   }
-  
+
   Widget _buildDataControlSection(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -780,7 +780,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Privacy Policy
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -793,9 +793,9 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () => _showDetailedPrivacyInfo(context),
             ),
-            
+
             const Divider(),
-            
+
             // Export Your Data
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -808,9 +808,9 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () => _showExportDialog(context),
             ),
-            
+
             const Divider(),
-            
+
             // Delete All Data
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -824,7 +824,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               ),
               subtitle: const Text('Permanently remove all your data'),
               trailing: Icon(
-                Icons.arrow_forward_ios, 
+                Icons.arrow_forward_ios,
                 size: 16,
                 color: theme.colorScheme.error,
               ),
@@ -835,10 +835,10 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildPrivacyInfoSection(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -861,37 +861,37 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               ],
             ),
             const SizedBox(height: 12),
-            
+
             _buildPrivacyInfoItem(
               context,
               Icons.storage,
               'Local Storage Only',
               'All location data is stored locally on your device and never transmitted to external servers.',
             ),
-            
+
             _buildPrivacyInfoItem(
               context,
               Icons.location_off,
               'No Tracking Without Permission',
               'Location tracking only starts after you explicitly grant permission.',
             ),
-            
+
             _buildPrivacyInfoItem(
               context,
               Icons.security,
               'Your Control',
               'You can view, export, or delete your location data at any time.',
             ),
-            
+
             _buildPrivacyInfoItem(
               context,
               Icons.visibility_off,
               'Background Processing',
               'Location data is processed locally to enhance your journal entries with contextual information.',
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             TextButton.icon(
               onPressed: () => _showDetailedPrivacyInfo(context),
               icon: const Icon(Icons.read_more),
@@ -902,10 +902,10 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildPrivacyInfoItem(BuildContext context, IconData icon, String title, String description) {
     final theme = Theme.of(context);
-    
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -941,7 +941,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   // Helper methods for granularity settings
   String _getGranularityTitle(LocationGranularity granularity) {
     return switch (granularity) {
@@ -951,7 +951,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       LocationGranularity.precise => 'Precise Location',
     };
   }
-  
+
   String _getGranularityDescription(LocationGranularity granularity) {
     return switch (granularity) {
       LocationGranularity.off => 'No location data will be collected',
@@ -960,7 +960,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       LocationGranularity.precise => 'GPS precise tracking (~10m accuracy)',
     };
   }
-  
+
   IconData _getGranularityIcon(LocationGranularity granularity) {
     return switch (granularity) {
       LocationGranularity.off => Icons.location_disabled,
@@ -969,7 +969,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       LocationGranularity.precise => Icons.my_location,
     };
   }
-  
+
   String _getRetentionPeriodName(DataRetentionPeriod period) {
     return switch (period) {
       DataRetentionPeriod.oneWeek => '1 Week',
@@ -980,7 +980,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       DataRetentionPeriod.forever => 'Forever',
     };
   }
-  
+
   // Action methods
   void _updateLocationSettings(WidgetRef ref, LocationGranularity granularity) async {
     // Update battery optimization based on granularity
@@ -990,11 +990,11 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       LocationGranularity.balanced => BatteryOptimization.balanced,
       LocationGranularity.precise => BatteryOptimization.performance,
     };
-    
+
     ref.read(batteryOptimizationProvider.notifier).state = batteryMode;
-    
+
     final locationService = ref.read(simpleLocationServiceProvider);
-    
+
     // Handle location tracking based on granularity
     if (granularity == LocationGranularity.off) {
       // If location is turned off, stop tracking
@@ -1010,7 +1010,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       }
     }
   }
-  
+
   void _showSelectiveDeleteDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -1035,14 +1035,14 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   void _showExportDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => const LocationDataExportDialog(),
     );
   }
-  
+
   void _showDeleteAllDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -1070,14 +1070,14 @@ class PrivacySettingsScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   void _showDetailedPrivacyInfo(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => const DetailedPrivacyInfoDialog(),
     );
   }
-  
+
   Future<void> _deleteAllLocationData(BuildContext context) async {
     // Show progress indicator
     showDialog(
@@ -1094,14 +1094,14 @@ class PrivacySettingsScreen extends HookConsumerWidget {
         ),
       ),
     );
-    
+
     try {
       // Implement deletion logic here
       await Future.delayed(const Duration(seconds: 2)); // Simulate deletion
-      
+
       if (context.mounted) {
         Navigator.of(context).pop(); // Close progress dialog
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('All location data has been deleted'),
@@ -1112,7 +1112,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         Navigator.of(context).pop(); // Close progress dialog
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error deleting data: $e'),
@@ -1130,7 +1130,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
     final calendarAccess = ref.watch(calendarAccessProvider);
     final healthData = ref.watch(healthDataProvider);
     final bluetoothScanning = ref.watch(bluetoothScanningProvider);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -1160,10 +1160,10 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Photo Library Access Toggle
             _buildDataSourceToggle(
-              context, 
+              context,
               ref,
               icon: Icons.photo_library,
               title: 'Photo Library Access',
@@ -1202,8 +1202,8 @@ class PrivacySettingsScreen extends HookConsumerWidget {
                 }
               },
             ),
-            
-            // Calendar Access Toggle  
+
+            // Calendar Access Toggle
             _buildDataSourceToggle(
               context,
               ref,
@@ -1222,7 +1222,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
                 }
               },
             ),
-            
+
             // Health Data Toggle
             _buildDataSourceToggle(
               context,
@@ -1242,7 +1242,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
                 }
               },
             ),
-            
+
             // Bluetooth Scanning Toggle
             _buildDataSourceToggle(
               context,
@@ -1270,7 +1270,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
 
   Widget _buildDataDeletionSection(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -1300,7 +1300,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             ListTile(
               leading: Icon(
                 Icons.cleaning_services,
@@ -1311,9 +1311,9 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/privacy/data-deletion'),
             ),
-            
+
             const Divider(height: 32),
-            
+
             Row(
               children: [
                 Icon(
@@ -1340,7 +1340,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
   // Device Permissions Section
   Widget _buildAppLockSection(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -1370,7 +1370,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Container(
@@ -1405,7 +1405,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
     final cameraAccess = ref.watch(cameraAccessProvider);
     final contactsAccess = ref.watch(contactsAccessProvider);
     final notificationAccess = ref.watch(notificationAccessProvider);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -1435,7 +1435,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Microphone Toggle
             _buildDataSourceToggle(
               context,
@@ -1455,7 +1455,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
                 }
               },
             ),
-            
+
             // Camera Toggle
             _buildDataSourceToggle(
               context,
@@ -1475,7 +1475,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
                 }
               },
             ),
-            
+
             // Contacts Toggle
             _buildDataSourceToggle(
               context,
@@ -1495,7 +1495,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
                 }
               },
             ),
-            
+
             // Notifications Toggle
             _buildDataSourceToggle(
               context,
@@ -1532,7 +1532,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
     required Function(bool) onChanged,
   }) {
     final theme = Theme.of(context);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -1540,19 +1540,19 @@ class PrivacySettingsScreen extends HookConsumerWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: value 
+              color: value
                 ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
                 : theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: value 
+                color: value
                   ? theme.colorScheme.primary
                   : theme.colorScheme.outline.withValues(alpha: 0.3),
               ),
             ),
             child: Icon(
               icon,
-              color: value 
+              color: value
                 ? theme.colorScheme.primary
                 : theme.colorScheme.onSurface.withValues(alpha: 0.6),
               size: 20,
@@ -1626,7 +1626,7 @@ class PrivacySettingsScreen extends HookConsumerWidget {
 // Export dialog widget
 class LocationDataExportDialog extends StatefulWidget {
   const LocationDataExportDialog({super.key});
-  
+
   @override
   State<LocationDataExportDialog> createState() => _LocationDataExportDialogState();
 }
@@ -1635,7 +1635,7 @@ class _LocationDataExportDialogState extends State<LocationDataExportDialog> {
   String _selectedFormat = 'JSON';
   bool _includeMetadata = true;
   bool _includeAccuracy = true;
-  
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -1646,7 +1646,7 @@ class _LocationDataExportDialogState extends State<LocationDataExportDialog> {
         children: [
           const Text('Choose export format and options:'),
           const SizedBox(height: 16),
-          
+
           DropdownButtonFormField<String>(
             value: _selectedFormat,
             decoration: const InputDecoration(
@@ -1665,9 +1665,9 @@ class _LocationDataExportDialogState extends State<LocationDataExportDialog> {
               }
             },
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           CheckboxListTile(
             title: const Text('Include metadata'),
             subtitle: const Text('Timestamps, accuracy, and source info'),
@@ -1679,7 +1679,7 @@ class _LocationDataExportDialogState extends State<LocationDataExportDialog> {
             },
             contentPadding: EdgeInsets.zero,
           ),
-          
+
           CheckboxListTile(
             title: const Text('Include accuracy data'),
             subtitle: const Text('GPS accuracy and confidence levels'),
@@ -1708,7 +1708,7 @@ class _LocationDataExportDialogState extends State<LocationDataExportDialog> {
       ],
     );
   }
-  
+
   Future<void> _exportLocationData() async {
     // Show progress
     showDialog(
@@ -1725,14 +1725,14 @@ class _LocationDataExportDialogState extends State<LocationDataExportDialog> {
         ),
       ),
     );
-    
+
     try {
       // Simulate export process
       await Future.delayed(const Duration(seconds: 3));
-      
+
       if (mounted) {
         Navigator.of(context).pop(); // Close progress dialog
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Location data exported to Downloads folder ($_selectedFormat format)'),
@@ -1743,7 +1743,7 @@ class _LocationDataExportDialogState extends State<LocationDataExportDialog> {
     } catch (e) {
       if (mounted) {
         Navigator.of(context).pop();
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Export failed: $e'),
@@ -1758,11 +1758,11 @@ class _LocationDataExportDialogState extends State<LocationDataExportDialog> {
 // Detailed privacy info dialog
 class DetailedPrivacyInfoDialog extends StatelessWidget {
   const DetailedPrivacyInfoDialog({super.key});
-  
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return AlertDialog(
       title: const Text('Privacy Policy'),
       content: SizedBox(

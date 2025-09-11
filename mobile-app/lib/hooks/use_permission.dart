@@ -38,9 +38,9 @@ PermissionState usePermission(
   // Request function
   Future<PermissionStatus> request() async {
     if (isRequesting.value) return status.value;
-    
+
     isRequesting.value = true;
-    
+
     try {
       final manager = ref.read(permissionManagerProvider);
       final newStatus = await manager.requestPermission(
@@ -48,12 +48,12 @@ PermissionState usePermission(
         permission,
         showEducationalUI: showEducationalUI,
       );
-      
+
       status.value = newStatus;
-      
+
       // Update global state
       ref.read(permissionStatesProvider.notifier).updateStatus(permission, newStatus);
-      
+
       return newStatus;
     } finally {
       isRequesting.value = false;
@@ -74,19 +74,19 @@ PermissionState usePermission(
     Future<void> checkStatus() async {
       final currentStatus = await permission.status;
       status.value = currentStatus;
-      
+
       // Update global state
       ref.read(permissionStatesProvider.notifier).updateStatus(permission, currentStatus);
-      
+
       // Auto-request if enabled and not already granted
       if (autoRequest && !hasAutoRequested.value && !currentStatus.isGranted) {
         hasAutoRequested.value = true;
         await request();
       }
     }
-    
+
     checkStatus();
-    
+
     return null;
   }, [permission]);
 
@@ -133,9 +133,9 @@ MultiplePermissionsState useMultiplePermissions(
   // Request all permissions
   Future<Map<Permission, PermissionStatus>> requestAll() async {
     if (isRequesting.value) return statuses.value;
-    
+
     isRequesting.value = true;
-    
+
     try {
       final manager = ref.read(permissionManagerProvider);
       final newStatuses = await manager.requestMultiplePermissions(
@@ -143,15 +143,15 @@ MultiplePermissionsState useMultiplePermissions(
         permissions,
         showEducationalUI: showEducationalUI,
       );
-      
+
       statuses.value = newStatuses;
-      
+
       // Update global state
       final notifier = ref.read(permissionStatesProvider.notifier);
       for (final entry in newStatuses.entries) {
         notifier.updateStatus(entry.key, entry.value);
       }
-      
+
       return newStatuses;
     } finally {
       isRequesting.value = false;
@@ -163,11 +163,11 @@ MultiplePermissionsState useMultiplePermissions(
     if (!permissions.contains(permission)) {
       throw ArgumentError('Permission not in the list of managed permissions');
     }
-    
+
     if (isRequesting.value) return statuses.value[permission] ?? PermissionStatus.denied;
-    
+
     isRequesting.value = true;
-    
+
     try {
       final manager = ref.read(permissionManagerProvider);
       final newStatus = await manager.requestPermission(
@@ -175,12 +175,12 @@ MultiplePermissionsState useMultiplePermissions(
         permission,
         showEducationalUI: showEducationalUI,
       );
-      
+
       statuses.value = {...statuses.value, permission: newStatus};
-      
+
       // Update global state
       ref.read(permissionStatesProvider.notifier).updateStatus(permission, newStatus);
-      
+
       return newStatus;
     } finally {
       isRequesting.value = false;
@@ -192,13 +192,13 @@ MultiplePermissionsState useMultiplePermissions(
     await openAppSettings();
     // Re-check all permissions when returning
     final Map<Permission, PermissionStatus> newStatuses = {};
-    
+
     for (final permission in permissions) {
       newStatuses[permission] = await permission.status;
     }
-    
+
     statuses.value = newStatuses;
-    
+
     // Update global state
     final notifier = ref.read(permissionStatesProvider.notifier);
     for (final entry in newStatuses.entries) {
@@ -210,19 +210,19 @@ MultiplePermissionsState useMultiplePermissions(
   useEffect(() {
     Future<void> checkStatuses() async {
       final Map<Permission, PermissionStatus> currentStatuses = {};
-      
+
       for (final permission in permissions) {
         currentStatuses[permission] = await permission.status;
       }
-      
+
       statuses.value = currentStatuses;
-      
+
       // Update global state
       final notifier = ref.read(permissionStatesProvider.notifier);
       for (final entry in currentStatuses.entries) {
         notifier.updateStatus(entry.key, entry.value);
       }
-      
+
       // Auto-request if enabled and not all granted
       if (autoRequest && !hasAutoRequested.value) {
         hasAutoRequested.value = true;
@@ -230,15 +230,15 @@ MultiplePermissionsState useMultiplePermissions(
             .where((e) => !e.value.isGranted && !e.value.isLimited)
             .map((e) => e.key)
             .toList();
-        
+
         if (notGranted.isNotEmpty) {
           await requestAll();
         }
       }
     }
-    
+
     checkStatuses();
-    
+
     return null;
   }, permissions);
 

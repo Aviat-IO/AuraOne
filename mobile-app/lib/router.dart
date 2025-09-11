@@ -25,17 +25,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Check if onboarding has been completed
       final prefs = await SharedPreferences.getInstance();
       final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
-      
+
       // If we're already on the onboarding screen, don't redirect
       if (state.matchedLocation == '/onboarding') {
         return null;
       }
-      
+
       // If onboarding not completed and not already going there, redirect to onboarding
       if (!onboardingCompleted) {
         return '/onboarding';
       }
-      
+
       return null;
     },
     routes: [
@@ -43,43 +43,43 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/',
         builder: (context, state) => const MainLayoutScreen(),
       ),
-      
+
       // Onboarding screen
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),
       ),
-      
+
       // Privacy and location settings
       GoRoute(
         path: '/privacy',
         builder: (context, state) => const PrivacySettingsScreen(),
       ),
-      
+
       // Privacy dashboard
       GoRoute(
         path: '/privacy/dashboard',
         builder: (context, state) => const PrivacyDashboardScreen(),
       ),
-      
+
       // Location history management
       GoRoute(
         path: '/privacy/location-history',
         builder: (context, state) => const LocationHistoryScreen(),
       ),
-      
+
       // Data deletion screen
       GoRoute(
         path: '/privacy/data-deletion',
         builder: (context, state) => const DataDeletionScreen(),
       ),
-      
+
       // Photo service test screen (for development)
       GoRoute(
         path: '/test/photos',
         builder: (context, state) => const PhotoTestScreen(),
       ),
-      
+
       // Debug screens
       GoRoute(
         path: '/debug/data-viewer',
@@ -89,43 +89,43 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/debug/database-viewer',
         builder: (context, state) => const DatabaseViewerScreen(),
       ),
-      
+
       // Export screen
       GoRoute(
         path: '/export',
         builder: (context, state) => const ExportScreen(),
       ),
-      
+
       // Import screen
       GoRoute(
         path: '/import',
         builder: (context, state) => const ImportScreen(),
       ),
-      
+
       // Backup settings screen
       GoRoute(
         path: '/settings/backup',
         builder: (context, state) => const BackupSettingsScreen(),
       ),
-      
+
       // App lock settings screen
       GoRoute(
         path: '/privacy/app-lock',
         builder: (context, state) => const AppLockSettingsScreen(),
       ),
-      
+
       // Camera screen
       GoRoute(
         path: '/camera',
         builder: (context, state) => const CameraScreen(),
       ),
-      
+
       // Font size settings screen
       GoRoute(
         path: '/settings/font-size',
         builder: (context, state) => const FontSizeSettingsScreen(),
       ),
-      
+
       // About screen
       GoRoute(
         path: '/settings/about',

@@ -33,7 +33,7 @@ class MediaFormatInfo {
   final bool supportsMetadata;
   final bool isVideo;
   final bool isImage;
-  
+
   const MediaFormatInfo({
     required this.format,
     required this.mimeType,
@@ -55,7 +55,7 @@ class VideoMetadata {
   final DateTime? creationDate;
   final GpsCoordinates? location;
   final Map<String, dynamic> rawMetadata;
-  
+
   const VideoMetadata({
     this.width,
     this.height,
@@ -67,7 +67,7 @@ class VideoMetadata {
     this.location,
     required this.rawMetadata,
   });
-  
+
   Map<String, dynamic> toJson() => {
     if (width != null) 'width': width,
     if (height != null) 'height': height,
@@ -87,7 +87,7 @@ class ThumbnailResult {
   final int width;
   final int height;
   final String format; // 'jpeg', 'png'
-  
+
   const ThumbnailResult({
     required this.thumbnailData,
     required this.width,
@@ -99,7 +99,7 @@ class ThumbnailResult {
 /// Service for handling various media formats and extracting metadata
 class MediaFormatHandler {
   static final _logger = AppLogger('MediaFormatHandler');
-  
+
   /// Media format mappings
   static const Map<String, MediaFormatInfo> _formatMap = {
     // Image formats
@@ -225,7 +225,7 @@ class MediaFormatHandler {
       isImage: false,
     ),
   };
-  
+
   /// Get media format information from MIME type
   static MediaFormatInfo getFormatInfo(String? mimeType) {
     if (mimeType == null) {
@@ -238,7 +238,7 @@ class MediaFormatHandler {
         isImage: false,
       );
     }
-    
+
     return _formatMap[mimeType.toLowerCase()] ?? const MediaFormatInfo(
       format: MediaFormat.unknown,
       mimeType: 'unknown',
@@ -248,65 +248,65 @@ class MediaFormatHandler {
       isImage: false,
     );
   }
-  
+
   /// Check if the format is supported for processing
   static bool isSupportedFormat(String? mimeType) {
     if (mimeType == null) return false;
     return _formatMap.containsKey(mimeType.toLowerCase());
   }
-  
+
   /// Check if format supports metadata extraction
   static bool supportsMetadata(String? mimeType) {
     final format = getFormatInfo(mimeType);
     return format.supportsMetadata;
   }
-  
+
   /// Extract metadata from image asset
   static Future<ExifData?> extractImageMetadata(AssetEntity asset) async {
     try {
       final formatInfo = getFormatInfo(asset.mimeType);
-      
+
       if (!formatInfo.isImage || !formatInfo.supportsMetadata) {
         _logger.debug('Format ${asset.mimeType} does not support metadata extraction');
         return null;
       }
-      
+
       final file = await asset.file;
       if (file == null) {
         _logger.warning('Could not get file for asset ${asset.id}');
         return null;
       }
-      
+
       // Handle HEIC/HEIF formats differently if needed
       if (formatInfo.format == MediaFormat.heic || formatInfo.format == MediaFormat.heif) {
         return await _extractHeicMetadata(file);
       }
-      
+
       // Use standard EXIF extraction for other formats
       return await ExifExtractor.extractFromFile(file.path);
     } catch (e, stack) {
-      _logger.error('Failed to extract image metadata for ${asset.id}', 
+      _logger.error('Failed to extract image metadata for ${asset.id}',
                    error: e, stackTrace: stack);
       return null;
     }
   }
-  
+
   /// Extract metadata from video asset
   static Future<VideoMetadata?> extractVideoMetadata(AssetEntity asset) async {
     try {
       final formatInfo = getFormatInfo(asset.mimeType);
-      
+
       if (!formatInfo.isVideo) {
         _logger.debug('Asset ${asset.id} is not a video format');
         return null;
       }
-      
+
       final file = await asset.file;
       if (file == null) {
         _logger.warning('Could not get file for video asset ${asset.id}');
         return null;
       }
-      
+
       // Extract basic video metadata from AssetEntity
       return VideoMetadata(
         width: asset.width,
@@ -320,14 +320,14 @@ class MediaFormatHandler {
           'fileSize': await file.length(),
         },
       );
-      
+
     } catch (e, stack) {
-      _logger.error('Failed to extract video metadata for ${asset.id}', 
+      _logger.error('Failed to extract video metadata for ${asset.id}',
                    error: e, stackTrace: stack);
       return null;
     }
   }
-  
+
   /// Generate thumbnail for any media type
   static Future<ThumbnailResult?> generateThumbnail(
     AssetEntity asset, {
@@ -339,26 +339,26 @@ class MediaFormatHandler {
         ThumbnailSize(size, size),
         quality: quality,
       );
-      
+
       if (thumbnailData == null) {
         _logger.warning('Could not generate thumbnail for asset ${asset.id}');
         return null;
       }
-      
+
       return ThumbnailResult(
         thumbnailData: thumbnailData,
         width: size,
         height: size,
         format: 'jpeg', // PhotoManager generates JPEG thumbnails
       );
-      
+
     } catch (e, stack) {
-      _logger.error('Failed to generate thumbnail for ${asset.id}', 
+      _logger.error('Failed to generate thumbnail for ${asset.id}',
                    error: e, stackTrace: stack);
       return null;
     }
   }
-  
+
   /// Extract HEIC metadata (placeholder for future HEIC support)
   static Future<ExifData?> _extractHeicMetadata(File file) async {
     try {
@@ -372,7 +372,7 @@ class MediaFormatHandler {
       return null;
     }
   }
-  
+
   /// Get all supported image formats
   static List<MediaFormat> getSupportedImageFormats() {
     return _formatMap.values
@@ -380,7 +380,7 @@ class MediaFormatHandler {
         .map((format) => format.format)
         .toList();
   }
-  
+
   /// Get all supported video formats
   static List<MediaFormat> getSupportedVideoFormats() {
     return _formatMap.values
@@ -388,7 +388,7 @@ class MediaFormatHandler {
         .map((format) => format.format)
         .toList();
   }
-  
+
   /// Check if asset is processable based on its format
   static bool isProcessableAsset(AssetEntity asset) {
     final formatInfo = getFormatInfo(asset.mimeType);

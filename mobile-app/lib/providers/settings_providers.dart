@@ -13,13 +13,13 @@ final fontSizeProvider = StateNotifierProvider<FontSizeNotifier, FontSize>((ref)
 });
 
 class FontSizeNotifier extends StateNotifier<FontSize> {
-  FontSizeNotifier() : super(FontSize.small) {
+  FontSizeNotifier() : super(FontSize.medium) {
     _loadFontSize();
   }
 
   Future<void> _loadFontSize() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedValue = prefs.getInt('fontSize') ?? 0; // Default to small (which is now the middle option)
+    final savedValue = prefs.getInt('fontSize') ?? 1; // Default to medium
     state = FontSize.values[savedValue];
   }
 

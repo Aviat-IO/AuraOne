@@ -8,27 +8,27 @@ class LocationPermissionFlow extends HookConsumerWidget {
   final VoidCallback? onPermissionGranted;
   final VoidCallback? onPermissionDenied;
   final bool showCompactView;
-  
+
   const LocationPermissionFlow({
     super.key,
     this.onPermissionGranted,
     this.onPermissionDenied,
     this.showCompactView = false,
   });
-  
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isRequestingPermission = useState(false);
     final currentStep = useState(0);
-    
+
     if (showCompactView) {
       return _buildCompactView(context, theme, isRequestingPermission);
     }
-    
+
     return _buildFullView(context, theme, isRequestingPermission, currentStep);
   }
-  
+
   Widget _buildCompactView(BuildContext context, ThemeData theme, ValueNotifier<bool> isRequestingPermission) {
     return Card(
       child: Padding(
@@ -78,7 +78,7 @@ class LocationPermissionFlow extends HookConsumerWidget {
                     onPressed: isRequestingPermission.value ? null : () {
                       _requestLocationPermission(context, isRequestingPermission);
                     },
-                    child: isRequestingPermission.value 
+                    child: isRequestingPermission.value
                       ? const SizedBox(
                           width: 16,
                           height: 16,
@@ -94,10 +94,10 @@ class LocationPermissionFlow extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildFullView(
-    BuildContext context, 
-    ThemeData theme, 
+    BuildContext context,
+    ThemeData theme,
     ValueNotifier<bool> isRequestingPermission,
     ValueNotifier<int> currentStep,
   ) {
@@ -109,30 +109,30 @@ class LocationPermissionFlow extends HookConsumerWidget {
           // Header
           _buildHeader(context, theme),
           const SizedBox(height: 32),
-          
+
           // Benefits explanation
           _buildBenefitsSection(context, theme),
           const SizedBox(height: 32),
-          
+
           // Platform-specific guidance
           _buildPlatformGuidance(context, theme),
           const SizedBox(height: 32),
-          
+
           // Privacy assurance
           _buildPrivacyAssurance(context, theme),
           const SizedBox(height: 32),
-          
+
           // Permission steps
           _buildPermissionSteps(context, theme, currentStep.value),
           const SizedBox(height: 32),
-          
+
           // Action buttons
           _buildActionButtons(context, theme, isRequestingPermission, currentStep),
         ],
       ),
     );
   }
-  
+
   Widget _buildHeader(BuildContext context, ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,7 +167,7 @@ class LocationPermissionFlow extends HookConsumerWidget {
       ],
     );
   }
-  
+
   Widget _buildBenefitsSection(BuildContext context, ThemeData theme) {
     final benefits = [
       {
@@ -191,7 +191,7 @@ class LocationPermissionFlow extends HookConsumerWidget {
         'description': 'See your life journey on interactive maps and timelines that tell your unique story.',
       },
     ];
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -247,7 +247,7 @@ class LocationPermissionFlow extends HookConsumerWidget {
       ],
     );
   }
-  
+
   Widget _buildPlatformGuidance(BuildContext context, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -322,7 +322,7 @@ class LocationPermissionFlow extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildGuidanceStep(ThemeData theme, String step, String title, String description) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -370,7 +370,7 @@ class LocationPermissionFlow extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildPrivacyAssurance(BuildContext context, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -416,14 +416,14 @@ class LocationPermissionFlow extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildPermissionSteps(BuildContext context, ThemeData theme, int currentStep) {
     final steps = [
       'Request location permission',
       'Configure tracking settings',
       'Start automatic journey mapping',
     ];
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -439,7 +439,7 @@ class LocationPermissionFlow extends HookConsumerWidget {
           final step = entry.value;
           final isActive = index == currentStep;
           final isCompleted = index < currentStep;
-          
+
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
@@ -448,7 +448,7 @@ class LocationPermissionFlow extends HookConsumerWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: isCompleted 
+                    color: isCompleted
                       ? theme.colorScheme.primary
                       : isActive
                         ? theme.colorScheme.primaryContainer
@@ -492,10 +492,10 @@ class LocationPermissionFlow extends HookConsumerWidget {
       ],
     );
   }
-  
+
   Widget _buildActionButtons(
-    BuildContext context, 
-    ThemeData theme, 
+    BuildContext context,
+    ThemeData theme,
     ValueNotifier<bool> isRequestingPermission,
     ValueNotifier<int> currentStep,
   ) {
@@ -506,7 +506,7 @@ class LocationPermissionFlow extends HookConsumerWidget {
           onPressed: isRequestingPermission.value ? null : () {
             _requestLocationPermission(context, isRequestingPermission, currentStep: currentStep);
           },
-          icon: isRequestingPermission.value 
+          icon: isRequestingPermission.value
             ? const SizedBox(
                 width: 16,
                 height: 16,
@@ -534,33 +534,33 @@ class LocationPermissionFlow extends HookConsumerWidget {
       ],
     );
   }
-  
+
   Future<void> _requestLocationPermission(
-    BuildContext context, 
+    BuildContext context,
     ValueNotifier<bool> isRequestingPermission,
     {ValueNotifier<int>? currentStep}
   ) async {
     isRequestingPermission.value = true;
     currentStep?.value = 0;
-    
+
     try {
       // Check current permission
       LocationPermission permission = await Geolocator.checkPermission();
-      
+
       if (permission == LocationPermission.denied) {
         currentStep?.value = 0;
         permission = await Geolocator.requestPermission();
       }
-      
+
       if (permission == LocationPermission.deniedForever) {
         isRequestingPermission.value = false;
         _showPermissionDeniedDialog(context);
         return;
       }
-      
+
       if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
         currentStep?.value = 1;
-        
+
         // Check if location service is enabled
         final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
         if (!serviceEnabled) {
@@ -568,13 +568,13 @@ class LocationPermissionFlow extends HookConsumerWidget {
           _showLocationServiceDisabledDialog(context);
           return;
         }
-        
+
         currentStep?.value = 2;
-        
+
         // Success
         isRequestingPermission.value = false;
         onPermissionGranted?.call();
-        
+
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -606,7 +606,7 @@ class LocationPermissionFlow extends HookConsumerWidget {
       }
     }
   }
-  
+
   void _showPermissionDeniedDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -631,7 +631,7 @@ class LocationPermissionFlow extends HookConsumerWidget {
       ),
     );
   }
-  
+
   void _showLocationServiceDisabledDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -656,7 +656,7 @@ class LocationPermissionFlow extends HookConsumerWidget {
       ),
     );
   }
-  
+
   void _showWhyLocationDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -669,19 +669,19 @@ class LocationPermissionFlow extends HookConsumerWidget {
             children: [
               Text(
                 'Aura One uses your location to create a richer journaling experience:\n\n'
-                
+
                 '🗺️ Automatic Journey Mapping\n'
                 'We track your daily movements to create beautiful timeline visualizations of where you\'ve been.\n\n'
-                
+
                 '📝 Enhanced Journal Entries\n'
                 'Location context is automatically added to your journal entries, helping you remember the full story.\n\n'
-                
+
                 '🔔 Location-Based Reminders\n'
                 'Get gentle nudges to journal when you arrive at meaningful places or return home.\n\n'
-                
+
                 '🏠 Place Recognition\n'
                 'The app learns your frequent locations (home, work, favorite spots) and can suggest tags and memories.\n\n'
-                
+
                 '🔒 Privacy First\n'
                 'All location data stays on your device and is never shared with external servers.',
               ),
@@ -702,7 +702,7 @@ class LocationPermissionFlow extends HookConsumerWidget {
 // Permission status widget for showing current state
 class LocationPermissionStatus extends ConsumerWidget {
   const LocationPermissionStatus({super.key});
-  
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return FutureBuilder<LocationPermission>(
@@ -711,10 +711,10 @@ class LocationPermissionStatus extends ConsumerWidget {
         if (!snapshot.hasData) {
           return const CircularProgressIndicator();
         }
-        
+
         final permission = snapshot.data!;
         final theme = Theme.of(context);
-        
+
         final (icon, text, color) = switch (permission) {
           LocationPermission.always => (
             Icons.location_on,
@@ -742,7 +742,7 @@ class LocationPermissionStatus extends ConsumerWidget {
             Colors.grey
           ),
         };
-        
+
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(

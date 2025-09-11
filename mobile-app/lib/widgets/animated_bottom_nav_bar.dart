@@ -21,7 +21,7 @@ class AnimatedBottomNavBar extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -55,7 +55,7 @@ class AnimatedBottomNavBar extends HookWidget {
             children: items.asMap().entries.map((entry) {
               final index = entry.key;
               final item = entry.value;
-              
+
               return AnimatedTabBarItem(
                 index: index,
                 selectedIndex: selectedIndex,
@@ -102,12 +102,12 @@ class AnimatedTabBarItem extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final isSelected = selectedIndex == index;
-    
+
     // Animation controller for smooth transitions
     final animationController = useAnimationController(
       duration: const Duration(milliseconds: 300),
     );
-    
+
     // Icon scale animation (zoom effect when selected)
     final iconScaleAnimation = useMemoized(
       () => Tween<double>(
@@ -119,7 +119,7 @@ class AnimatedTabBarItem extends HookWidget {
       )),
       [animationController],
     );
-    
+
     // Title scale animation for emphasis when selected
     final titleScaleAnimation = useMemoized(
       () => Tween<double>(
@@ -131,7 +131,7 @@ class AnimatedTabBarItem extends HookWidget {
       )),
       [animationController],
     );
-    
+
     // Title color animation for smooth color transition
     final titleColorAnimation = useMemoized(
       () => ColorTween(
@@ -143,7 +143,7 @@ class AnimatedTabBarItem extends HookWidget {
       )),
       [animationController, theme],
     );
-    
+
     // Background color animation
     final backgroundColorAnimation = useMemoized(
       () => ColorTween(
@@ -155,7 +155,7 @@ class AnimatedTabBarItem extends HookWidget {
       )),
       [animationController, theme],
     );
-    
+
     // Control animation based on selection state
     useEffect(() {
       if (isSelected) {
@@ -165,7 +165,7 @@ class AnimatedTabBarItem extends HookWidget {
       }
       return null;
     }, [isSelected, animationController]);
-    
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedBuilder(
@@ -191,7 +191,7 @@ class AnimatedTabBarItem extends HookWidget {
                     size: 24,
                   ),
                 ),
-                
+
                 const SizedBox(height: 4),
                 // Animated title (always visible with color and scale animation)
                 Transform.scale(

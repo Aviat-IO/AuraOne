@@ -23,7 +23,7 @@ class WarningDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return AlertDialog(
       title: Row(
         children: [
@@ -54,8 +54,8 @@ class WarningDialog extends StatelessWidget {
           onPressed: onConfirm,
           style: FilledButton.styleFrom(
             backgroundColor: confirmColor ?? theme.colorScheme.error,
-            foregroundColor: confirmColor != null 
-                ? theme.colorScheme.onError 
+            foregroundColor: confirmColor != null
+                ? theme.colorScheme.onError
                 : null,
           ),
           child: Text(confirmText),

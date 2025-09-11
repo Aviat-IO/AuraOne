@@ -122,8 +122,8 @@ class _VoiceInputButtonState extends ConsumerState<VoiceInputButton> {
     return IconButton(
       icon: Icon(
         widget.isListening ? Icons.stop : Icons.mic,
-        color: widget.isListening 
-          ? theme.colorScheme.error 
+        color: widget.isListening
+          ? theme.colorScheme.error
           : (_hasPermission ? theme.colorScheme.primary : theme.colorScheme.onSurface.withValues(alpha: 0.5)),
       ),
       onPressed: () async {
@@ -141,8 +141,8 @@ class _VoiceInputButtonState extends ConsumerState<VoiceInputButton> {
           widget.onListeningStateChanged?.call();
         }
       },
-      tooltip: !_hasPermission 
-        ? 'Enable microphone access' 
+      tooltip: !_hasPermission
+        ? 'Enable microphone access'
         : (widget.isListening ? 'Stop recording' : 'Start voice input'),
     );
   }

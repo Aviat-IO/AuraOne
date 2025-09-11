@@ -26,32 +26,32 @@ class FaceEmbedding {
   /// Calculate cosine similarity with another embedding
   double similarity(FaceEmbedding other) {
     if (vector.length != other.vector.length) return 0.0;
-    
+
     double dotProduct = 0.0;
     double normA = 0.0;
     double normB = 0.0;
-    
+
     for (int i = 0; i < vector.length; i++) {
       dotProduct += vector[i] * other.vector[i];
       normA += vector[i] * vector[i];
       normB += other.vector[i] * other.vector[i];
     }
-    
+
     if (normA == 0.0 || normB == 0.0) return 0.0;
-    
+
     return dotProduct / (math.sqrt(normA) * math.sqrt(normB));
   }
 
   /// Calculate Euclidean distance to another embedding
   double distance(FaceEmbedding other) {
     if (vector.length != other.vector.length) return double.infinity;
-    
+
     double sum = 0.0;
     for (int i = 0; i < vector.length; i++) {
       final diff = vector[i] - other.vector[i];
       sum += diff * diff;
     }
-    
+
     return math.sqrt(sum);
   }
 
@@ -108,8 +108,8 @@ class FaceCluster {
   /// Get the representative face (highest quality)
   FaceEmbedding get representativeFace {
     if (faces.isEmpty) return centroid;
-    
-    return faces.reduce((a, b) => 
+
+    return faces.reduce((a, b) =>
       a.confidence > b.confidence ? a : b
     );
   }
@@ -131,7 +131,7 @@ class FaceCluster {
     final allFaces = [...faces, ...newFaces];
     final newCentroid = _calculateCentroid(allFaces);
     final newConfidence = _calculateClusterConfidence(allFaces);
-    
+
     return FaceCluster(
       clusterId: clusterId,
       faces: allFaces,
@@ -158,23 +158,23 @@ class FaceCluster {
 
   static FaceEmbedding _calculateCentroid(List<FaceEmbedding> faces) {
     if (faces.isEmpty) throw ArgumentError('Cannot calculate centroid of empty face list');
-    
+
     final vectorLength = faces.first.vector.length;
     final centroidVector = List<double>.filled(vectorLength, 0.0);
-    
+
     for (final face in faces) {
       for (int i = 0; i < vectorLength; i++) {
         centroidVector[i] += face.vector[i];
       }
     }
-    
+
     for (int i = 0; i < vectorLength; i++) {
       centroidVector[i] /= faces.length;
     }
-    
+
     // Use representative face metadata for centroid
     final representative = faces.reduce((a, b) => a.confidence > b.confidence ? a : b);
-    
+
     return FaceEmbedding(
       faceId: 'centroid_${representative.faceId}',
       photoId: representative.photoId,
@@ -188,19 +188,19 @@ class FaceCluster {
   static double _calculateClusterConfidence(List<FaceEmbedding> faces) {
     if (faces.isEmpty) return 0.0;
     if (faces.length == 1) return faces.first.confidence;
-    
+
     // Calculate confidence based on:
     // 1. Average face confidence (40%)
     // 2. Cluster cohesion - how similar faces are to centroid (40%)
     // 3. Cluster size bonus - more faces = higher confidence (20%)
-    
+
     final averageConfidence = faces.map((f) => f.confidence).reduce((a, b) => a + b) / faces.length;
-    
+
     final centroid = _calculateCentroid(faces);
     final cohesion = faces.map((f) => f.similarity(centroid)).reduce((a, b) => a + b) / faces.length;
-    
+
     final sizeBonus = math.min(faces.length / 10.0, 1.0); // Cap at 10 faces for full bonus
-    
+
     return (averageConfidence * 0.4) + (cohesion * 0.4) + (sizeBonus * 0.2);
   }
 
@@ -233,7 +233,7 @@ class ClusteringConfig {
   final double dbscanEps;
   final int dbscanMinSamples;
   final bool useDBSCAN;
-  
+
   const ClusteringConfig({
     this.similarityThreshold = 0.7,
     this.minClusterSize = 2,
@@ -266,15 +266,15 @@ class ClusteringConfig {
 /// Service for clustering faces by person using machine learning
 class FaceClusteringService {
   final ClusteringConfig _config;
-  
-  FaceClusteringService({ClusteringConfig? config}) 
+
+  FaceClusteringService({ClusteringConfig? config})
     : _config = config ?? const ClusteringConfig();
 
   /// Generate face embedding from detected face landmarks and features
   FaceEmbedding generateEmbedding(DetectedFace face, String photoId, String faceId) {
     // Create feature vector from available face data
     final features = <double>[];
-    
+
     // Add bounding box features (normalized)
     features.addAll([
       face.boundingBox.left / 1000.0,
@@ -282,21 +282,21 @@ class FaceClusteringService {
       face.boundingBox.width / 1000.0,
       face.boundingBox.height / 1000.0,
     ]);
-    
+
     // Add head pose features (normalized to -1 to 1 range)
     features.addAll([
       (face.headEulerAngleX ?? 0.0) / 180.0,
       (face.headEulerAngleY ?? 0.0) / 180.0,
       (face.headEulerAngleZ ?? 0.0) / 180.0,
     ]);
-    
+
     // Add facial expression features
     features.addAll([
       face.leftEyeOpenProbability ?? 0.5,
       face.rightEyeOpenProbability ?? 0.5,
       face.smilingProbability ?? 0.5,
     ]);
-    
+
     // Add landmark-based features
     if (face.landmarks.isNotEmpty) {
       // Group landmarks by type for consistent feature extraction
@@ -306,10 +306,10 @@ class FaceClusteringService {
       // Add zero padding if no landmarks available
       features.addAll(List<double>.filled(20, 0.0));
     }
-    
+
     // Normalize the feature vector
     final normalizedFeatures = _normalizeVector(features);
-    
+
     return FaceEmbedding(
       faceId: faceId,
       photoId: photoId,
@@ -323,14 +323,14 @@ class FaceClusteringService {
   /// Extract features from face landmarks
   List<double> _extractLandmarkFeatures(List<FaceLandmark> landmarks) {
     final features = <double>[];
-    
+
     // Extract landmark positions relative to face bounds
     final Map<FaceLandmarkType, List<FaceLandmark>> groupedLandmarks = {};
-    
+
     for (final landmark in landmarks) {
       groupedLandmarks.putIfAbsent(landmark.type, () => []).add(landmark);
     }
-    
+
     // Define key landmark types for feature extraction
     const keyTypes = [
       FaceLandmarkType.leftEye,
@@ -340,7 +340,7 @@ class FaceClusteringService {
       FaceLandmarkType.leftCheek,
       FaceLandmarkType.rightCheek,
     ];
-    
+
     for (final type in keyTypes) {
       final landmarks = groupedLandmarks[type];
       if (landmarks != null && landmarks.isNotEmpty) {
@@ -355,21 +355,21 @@ class FaceClusteringService {
         features.addAll([0.0, 0.0]);
       }
     }
-    
+
     // Calculate relative distances between key landmarks
     final leftEye = groupedLandmarks[FaceLandmarkType.leftEye]?.first.position;
     final rightEye = groupedLandmarks[FaceLandmarkType.rightEye]?.first.position;
     final nose = groupedLandmarks[FaceLandmarkType.noseBase]?.first.position;
     final mouth = groupedLandmarks[FaceLandmarkType.bottomMouth]?.first.position;
-    
+
     if (leftEye != null && rightEye != null) {
       final eyeDistance = (leftEye.x.toDouble() - rightEye.x.toDouble()).abs() / 1000.0;
       features.add(eyeDistance);
-      
+
       if (nose != null) {
         final eyeNoseRatio = ((leftEye.y.toDouble() + rightEye.y.toDouble()) / 2.0 - nose.y.toDouble()).abs() / 1000.0;
         features.add(eyeNoseRatio);
-        
+
         if (mouth != null) {
           final noseMouthRatio = (nose.y.toDouble() - mouth.y.toDouble()).abs() / 1000.0;
           features.add(noseMouthRatio);
@@ -382,12 +382,12 @@ class FaceClusteringService {
     } else {
       features.addAll([0.0, 0.0, 0.0]);
     }
-    
+
     // Pad to consistent length
     while (features.length < 20) {
       features.add(0.0);
     }
-    
+
     return features.take(20).toList();
   }
 
@@ -398,16 +398,16 @@ class FaceClusteringService {
       magnitude += value * value;
     }
     magnitude = math.sqrt(magnitude);
-    
+
     if (magnitude == 0.0) return vector;
-    
+
     return vector.map((v) => v / magnitude).toList();
   }
 
   /// Cluster faces using DBSCAN algorithm
   Future<List<FaceCluster>> clusterFaces(List<FaceEmbedding> embeddings) async {
     if (embeddings.isEmpty) return [];
-    
+
     if (_config.useDBSCAN) {
       return await _dbscanClustering(embeddings);
     } else {
@@ -420,49 +420,49 @@ class FaceClusteringService {
     final clusters = <List<FaceEmbedding>>[];
     final visited = List<bool>.filled(embeddings.length, false);
     final clustered = List<bool>.filled(embeddings.length, false);
-    
+
     for (int i = 0; i < embeddings.length; i++) {
       if (visited[i]) continue;
-      
+
       visited[i] = true;
       final neighbors = _getNeighbors(embeddings, i, _config.dbscanEps);
-      
+
       if (neighbors.length < _config.dbscanMinSamples) {
         continue; // Mark as noise
       }
-      
+
       // Create new cluster
       final cluster = <FaceEmbedding>[embeddings[i]];
       clustered[i] = true;
-      
+
       // Expand cluster
       final neighborQueue = [...neighbors];
       int queueIndex = 0;
-      
+
       while (queueIndex < neighborQueue.length) {
         final neighborIdx = neighborQueue[queueIndex];
         queueIndex++;
-        
+
         if (!visited[neighborIdx]) {
           visited[neighborIdx] = true;
           final newNeighbors = _getNeighbors(embeddings, neighborIdx, _config.dbscanEps);
-          
+
           if (newNeighbors.length >= _config.dbscanMinSamples) {
             neighborQueue.addAll(newNeighbors.where((n) => !neighborQueue.contains(n)));
           }
         }
-        
+
         if (!clustered[neighborIdx]) {
           cluster.add(embeddings[neighborIdx]);
           clustered[neighborIdx] = true;
         }
       }
-      
+
       if (cluster.length >= _config.minClusterSize) {
         clusters.add(cluster);
       }
     }
-    
+
     // Convert to FaceCluster objects
     final faceClusters = <FaceCluster>[];
     for (int i = 0; i < clusters.length; i++) {
@@ -476,7 +476,7 @@ class FaceClusteringService {
         ));
       }
     }
-    
+
     return faceClusters;
   }
 
@@ -484,27 +484,27 @@ class FaceClusteringService {
   List<int> _getNeighbors(List<FaceEmbedding> embeddings, int pointIndex, double eps) {
     final neighbors = <int>[];
     final point = embeddings[pointIndex];
-    
+
     for (int i = 0; i < embeddings.length; i++) {
       if (i != pointIndex && point.distance(embeddings[i]) <= eps) {
         neighbors.add(i);
       }
     }
-    
+
     return neighbors;
   }
 
   /// Simple hierarchical clustering as fallback
   Future<List<FaceCluster>> _hierarchicalClustering(List<FaceEmbedding> embeddings) async {
     if (embeddings.isEmpty) return [];
-    
+
     final clusters = <FaceCluster>[];
     final remaining = List<FaceEmbedding>.from(embeddings);
-    
+
     while (remaining.isNotEmpty && clusters.length < _config.maxClusters) {
       final seed = remaining.removeAt(0);
       final clusterFaces = [seed];
-      
+
       // Find similar faces
       final toRemove = <FaceEmbedding>[];
       for (final face in remaining) {
@@ -513,12 +513,12 @@ class FaceClusteringService {
           toRemove.add(face);
         }
       }
-      
+
       // Remove clustered faces from remaining
       for (final face in toRemove) {
         remaining.remove(face);
       }
-      
+
       // Create cluster if it meets minimum size
       if (clusterFaces.length >= _config.minClusterSize) {
         clusters.add(FaceCluster(
@@ -529,7 +529,7 @@ class FaceClusteringService {
         ));
       }
     }
-    
+
     return clusters;
   }
 
@@ -537,7 +537,7 @@ class FaceClusteringService {
   FaceCluster? findBestMatch(FaceEmbedding embedding, List<FaceCluster> clusters) {
     FaceCluster? bestMatch;
     double bestSimilarity = 0.0;
-    
+
     for (final cluster in clusters) {
       final similarity = embedding.similarity(cluster.centroid);
       if (similarity >= _config.similarityThreshold && similarity > bestSimilarity) {
@@ -545,14 +545,14 @@ class FaceClusteringService {
         bestSimilarity = similarity;
       }
     }
-    
+
     return bestMatch;
   }
 
   /// Merge two clusters if they are similar enough
   FaceCluster? mergeClusters(FaceCluster cluster1, FaceCluster cluster2) {
     final similarity = cluster1.centroid.similarity(cluster2.centroid);
-    
+
     if (similarity >= _config.similarityThreshold) {
       final allFaces = [...cluster1.faces, ...cluster2.faces];
       return FaceCluster(
@@ -561,27 +561,27 @@ class FaceClusteringService {
         centroid: FaceCluster._calculateCentroid(allFaces),
         confidence: FaceCluster._calculateClusterConfidence(allFaces),
         personName: cluster1.personName ?? cluster2.personName,
-        createdAt: cluster1.createdAt.isBefore(cluster2.createdAt) 
-          ? cluster1.createdAt 
+        createdAt: cluster1.createdAt.isBefore(cluster2.createdAt)
+          ? cluster1.createdAt
           : cluster2.createdAt,
       );
     }
-    
+
     return null;
   }
 
   /// Update existing clusters with new faces
   Future<List<FaceCluster>> updateClusters(
-    List<FaceCluster> existingClusters, 
+    List<FaceCluster> existingClusters,
     List<FaceEmbedding> newEmbeddings,
   ) async {
     final updatedClusters = <FaceCluster>[];
     final unclusteredFaces = <FaceEmbedding>[];
-    
+
     // Try to assign new faces to existing clusters
     for (final embedding in newEmbeddings) {
       final bestMatch = findBestMatch(embedding, existingClusters);
-      
+
       if (bestMatch != null) {
         // Find and update the cluster
         bool updated = false;
@@ -592,7 +592,7 @@ class FaceClusteringService {
             break;
           }
         }
-        
+
         if (!updated) {
           // First update to this cluster
           final existingIndex = existingClusters.indexWhere(
@@ -606,20 +606,20 @@ class FaceClusteringService {
         unclusteredFaces.add(embedding);
       }
     }
-    
+
     // Add existing clusters that weren't updated
     for (final cluster in existingClusters) {
       if (!updatedClusters.any((c) => c.clusterId == cluster.clusterId)) {
         updatedClusters.add(cluster);
       }
     }
-    
+
     // Create new clusters from unclustered faces
     if (unclusteredFaces.isNotEmpty) {
       final newClusters = await clusterFaces(unclusteredFaces);
       updatedClusters.addAll(newClusters);
     }
-    
+
     return updatedClusters;
   }
 }
@@ -633,18 +633,18 @@ extension AssetEntityClustering on AssetEntity {
   ]) async {
     final detector = faceDetector ?? FaceDetectionService();
     final clustering = clusteringService ?? FaceClusteringService();
-    
+
     try {
       final result = await detector.detectFacesInAsset(this);
       final embeddings = <FaceEmbedding>[];
-      
+
       for (int i = 0; i < result.faces.length; i++) {
         final face = result.faces[i];
         final faceId = '${id}_face_$i';
         final embedding = clustering.generateEmbedding(face, id, faceId);
         embeddings.add(embedding);
       }
-      
+
       return embeddings;
     } catch (e) {
       return [];

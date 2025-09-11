@@ -12,7 +12,7 @@ class HealthDataPoint {
   final String? sourceName;
   final String? sourceId;
   final Map<String, dynamic>? metadata;
-  
+
   HealthDataPoint({
     required this.type,
     required this.value,
@@ -22,7 +22,7 @@ class HealthDataPoint {
     this.sourceId,
     this.metadata,
   });
-  
+
   /// Convert from Health package data point
   factory HealthDataPoint.fromHealthPoint(HealthDataPoint point) {
     return HealthDataPoint(
@@ -43,7 +43,7 @@ class HealthPrivacySettings {
   final int historyDays;
   final bool aggregateOnly;
   final bool anonymizeSources;
-  
+
   const HealthPrivacySettings({
     this.syncEnabled = false,
     this.allowedTypes = const {},
@@ -51,7 +51,7 @@ class HealthPrivacySettings {
     this.aggregateOnly = false,
     this.anonymizeSources = false,
   });
-  
+
   HealthPrivacySettings copyWith({
     bool? syncEnabled,
     Set<HealthDataType>? allowedTypes,
@@ -73,12 +73,12 @@ class HealthPrivacySettings {
 class HealthService {
   static final _logger = AppLogger('HealthService');
   static final _instance = HealthService._internal();
-  
+
   factory HealthService() => _instance;
   HealthService._internal();
-  
+
   HealthPrivacySettings _privacySettings = const HealthPrivacySettings();
-  
+
   /// Default health data types to request
   static const defaultHealthTypes = {
     HealthDataType.STEPS,
@@ -91,35 +91,35 @@ class HealthService {
     HealthDataType.BLOOD_OXYGEN,
     HealthDataType.BODY_TEMPERATURE,
   };
-  
+
   /// Get current privacy settings
   HealthPrivacySettings get privacySettings => _privacySettings;
-  
+
   /// Update privacy settings
   void updatePrivacySettings(HealthPrivacySettings settings) {
     _privacySettings = settings;
     _logger.info('Health privacy settings updated: syncEnabled=${settings.syncEnabled}');
   }
-  
+
   /// Configure Health package
   Future<void> configure() async {
     try {
       _logger.info('Configuring Health package');
       // Health().configure() no longer takes parameters in newer versions
     } catch (e, stack) {
-      _logger.error('Failed to configure Health package', 
+      _logger.error('Failed to configure Health package',
                    error: e, stackTrace: stack);
     }
   }
-  
+
   /// Request health permissions
   Future<bool> requestPermissions({Set<HealthDataType>? types}) async {
     try {
       _logger.info('Requesting health permissions');
-      
+
       // Use provided types or default types
       final requestTypes = types ?? defaultHealthTypes;
-      
+
       // Platform-specific permission handling
       if (Platform.isIOS) {
         // iOS uses HealthKit
@@ -127,7 +127,7 @@ class HealthService {
           requestTypes.toList(),
           permissions: requestTypes.map((t) => HealthDataAccess.READ).toList(),
         );
-        
+
         if (authorized) {
           _logger.info('iOS HealthKit permissions granted');
           return true;
@@ -137,21 +137,21 @@ class HealthService {
         }
       } else if (Platform.isAndroid) {
         // Android uses Health Connect (Android 14+) or Google Fit
-        
+
         // First check activity recognition permission for Google Fit
         final activityStatus = await Permission.activityRecognition.request();
-        
+
         if (!activityStatus.isGranted) {
           _logger.warning('Android activity recognition permission denied');
           return false;
         }
-        
+
         // Then request health data permissions
         final authorized = await Health().requestAuthorization(
           requestTypes.toList(),
           permissions: requestTypes.map((t) => HealthDataAccess.READ).toList(),
         );
-        
+
         if (authorized) {
           _logger.info('Android Health permissions granted');
           return true;
@@ -160,33 +160,33 @@ class HealthService {
           return false;
         }
       }
-      
+
       return false;
     } catch (e, stack) {
-      _logger.error('Failed to request health permissions', 
+      _logger.error('Failed to request health permissions',
                    error: e, stackTrace: stack);
       return false;
     }
   }
-  
+
   /// Check if health permissions are granted
   Future<bool> hasPermissions({Set<HealthDataType>? types}) async {
     try {
       final checkTypes = types ?? defaultHealthTypes;
-      
+
       // Check if we have permissions for all requested types
       final permissions = await Health().hasPermissions(
         checkTypes.toList(),
         permissions: checkTypes.map((t) => HealthDataAccess.READ).toList(),
       );
-      
+
       return permissions ?? false;
     } catch (e) {
       _logger.error('Failed to check health permissions', error: e);
       return false;
     }
   }
-  
+
   /// Get health data in a date range
   Future<List<HealthDataPoint>> getHealthDataInRange(
     DateTime start,
@@ -199,7 +199,7 @@ class HealthService {
       endDate: end,
     );
   }
-  
+
   /// Get health data for specified types
   Future<List<HealthDataPoint>> getHealthData({
     Set<HealthDataType>? types,
@@ -212,40 +212,40 @@ class HealthService {
         _logger.info('Health sync is disabled');
         return [];
       }
-      
+
       // Set date range based on privacy settings
       final now = DateTime.now();
       startDate ??= now.subtract(Duration(days: _privacySettings.historyDays));
       endDate ??= now;
-      
+
       // Filter types based on privacy settings
-      final requestTypes = applyPrivacyFilter 
+      final requestTypes = applyPrivacyFilter
           ? (types ?? defaultHealthTypes).intersection(_privacySettings.allowedTypes)
           : (types ?? defaultHealthTypes);
-      
+
       if (requestTypes.isEmpty && applyPrivacyFilter) {
         _logger.info('No allowed health data types');
         return [];
       }
-      
+
       _logger.info('Fetching health data: ${requestTypes.length} types');
-      
+
       // Request health data
       final healthData = await Health().getHealthDataFromTypes(
         types: requestTypes.toList(),
         startTime: startDate,
         endTime: endDate,
       );
-      
+
       // Convert to our wrapper type
       final points = <HealthDataPoint>[];
-      
+
       for (final point in healthData) {
         // Apply privacy transformations
-        final sourceName = _privacySettings.anonymizeSources 
-            ? 'Health Source' 
+        final sourceName = _privacySettings.anonymizeSources
+            ? 'Health Source'
             : point.sourceName;
-        
+
         // Convert value to double based on type
         double value = 0.0;
         if (point.value is num) {
@@ -253,7 +253,7 @@ class HealthService {
         } else if (point.value.toString() != null) {
           value = double.tryParse(point.value.toString()) ?? 0.0;
         }
-        
+
         points.add(HealthDataPoint(
           type: point.type,
           value: value,
@@ -263,21 +263,21 @@ class HealthService {
           sourceId: point.sourceId,
         ));
       }
-      
+
       _logger.info('Retrieved ${points.length} health data points');
-      
+
       // Aggregate if requested
       if (_privacySettings.aggregateOnly && applyPrivacyFilter) {
         return _aggregateHealthData(points);
       }
-      
+
       return points;
     } catch (e, stack) {
       _logger.error('Failed to get health data', error: e, stackTrace: stack);
       return [];
     }
   }
-  
+
   /// Get daily summary of health data
   Future<Map<String, dynamic>> getDailySummary({
     DateTime? date,
@@ -287,13 +287,13 @@ class HealthService {
       date ??= DateTime.now();
       final startOfDay = DateTime(date.year, date.month, date.day);
       final endOfDay = startOfDay.add(const Duration(days: 1));
-      
+
       final healthData = await getHealthData(
         types: types,
         startDate: startOfDay,
         endDate: endOfDay,
       );
-      
+
       final summary = <String, dynamic>{
         'date': date.toIso8601String(),
         'steps': 0,
@@ -304,7 +304,7 @@ class HealthService {
         'sleep': <String, dynamic>{},
         'workouts': [],
       };
-      
+
       // Process health data into summary
       for (final point in healthData) {
         switch (point.type) {
@@ -329,7 +329,7 @@ class HealthService {
             break;
           case HealthDataType.SLEEP_SESSION:
             final sleep = summary['sleep'] as Map<String, dynamic>;
-            sleep['duration'] = ((sleep['duration'] ?? 0) as num) + 
+            sleep['duration'] = ((sleep['duration'] ?? 0) as num) +
                 point.dateTo.difference(point.dateFrom).inMinutes;
             break;
           case HealthDataType.WORKOUT:
@@ -343,7 +343,7 @@ class HealthService {
             break;
         }
       }
-      
+
       _logger.info('Generated daily summary for $date');
       return summary;
     } catch (e, stack) {
@@ -351,7 +351,7 @@ class HealthService {
       return {};
     }
   }
-  
+
   /// Write health data (for mindfulness/mental health tracking)
   Future<bool> writeHealthData({
     required HealthDataType type,
@@ -361,51 +361,51 @@ class HealthService {
   }) async {
     try {
       endTime ??= startTime;
-      
+
       _logger.info('Writing health data: $type = $value');
-      
+
       final success = await Health().writeHealthData(
         value: value,
         type: type,
         startTime: startTime,
         endTime: endTime,
       );
-      
+
       if (success) {
         _logger.info('Health data written successfully');
       } else {
         _logger.warning('Failed to write health data');
       }
-      
+
       return success;
     } catch (e, stack) {
       _logger.error('Failed to write health data', error: e, stackTrace: stack);
       return false;
     }
   }
-  
+
   /// Aggregate health data for privacy
   List<HealthDataPoint> _aggregateHealthData(List<HealthDataPoint> points) {
     final aggregated = <HealthDataPoint>[];
     final typeGroups = <HealthDataType, List<HealthDataPoint>>{};
-    
+
     // Group by type
     for (final point in points) {
       typeGroups.putIfAbsent(point.type, () => []).add(point);
     }
-    
+
     // Aggregate each type
     for (final entry in typeGroups.entries) {
       final type = entry.key;
       final typePoints = entry.value;
-      
+
       if (typePoints.isEmpty) continue;
-      
+
       // Calculate aggregate values
       double totalValue = 0;
       DateTime earliestDate = typePoints.first.dateFrom;
       DateTime latestDate = typePoints.first.dateTo;
-      
+
       for (final point in typePoints) {
         totalValue += point.value;
         if (point.dateFrom.isBefore(earliestDate)) {
@@ -415,7 +415,7 @@ class HealthService {
           latestDate = point.dateTo;
         }
       }
-      
+
       // Create aggregated point
       aggregated.add(HealthDataPoint(
         type: type,
@@ -425,7 +425,7 @@ class HealthService {
         sourceName: 'Aggregated',
       ));
     }
-    
+
     return aggregated;
   }
 }

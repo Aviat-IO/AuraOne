@@ -163,7 +163,7 @@ class AppLockSettingsScreen extends HookConsumerWidget {
             ],
 
             const SizedBox(height: 24),
-            
+
             // Information Card
             Card(
               color: Theme.of(context).colorScheme.surfaceContainerHighest,

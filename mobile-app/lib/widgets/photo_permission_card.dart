@@ -5,12 +5,12 @@ import '../services/photo_service.dart';
 
 class PhotoPermissionCard extends ConsumerWidget {
   const PhotoPermissionCard({super.key});
-  
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final permissionAsync = ref.watch(photoPermissionStateProvider);
-    
+
     return Card(
       elevation: 2,
       child: Padding(
@@ -51,15 +51,15 @@ class PhotoPermissionCard extends ConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildPermissionContent(BuildContext context, WidgetRef ref, PermissionState permission) {
     final theme = Theme.of(context);
     final service = ref.read(photoServiceProvider);
-    
+
     final hasFullAccess = permission.isAuth;
     final hasLimitedAccess = permission.hasAccess && !permission.isAuth;
     final noAccess = !permission.hasAccess;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -67,10 +67,10 @@ class PhotoPermissionCard extends ConsumerWidget {
           children: [
             Icon(
               Icons.photo_library,
-              color: hasFullAccess 
-                ? Colors.green 
-                : hasLimitedAccess 
-                  ? Colors.orange 
+              color: hasFullAccess
+                ? Colors.green
+                : hasLimitedAccess
+                  ? Colors.orange
                   : Colors.grey,
             ),
             const SizedBox(width: 8),
@@ -83,22 +83,22 @@ class PhotoPermissionCard extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 16),
-        
+
         // Status indicator
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: (hasFullAccess 
-              ? Colors.green 
-              : hasLimitedAccess 
-                ? Colors.orange 
+            color: (hasFullAccess
+              ? Colors.green
+              : hasLimitedAccess
+                ? Colors.orange
                 : Colors.grey).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: (hasFullAccess 
-                ? Colors.green 
-                : hasLimitedAccess 
-                  ? Colors.orange 
+              color: (hasFullAccess
+                ? Colors.green
+                : hasLimitedAccess
+                  ? Colors.orange
                   : Colors.grey).withValues(alpha: 0.3),
             ),
           ),
@@ -108,10 +108,10 @@ class PhotoPermissionCard extends ConsumerWidget {
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: hasFullAccess 
-                    ? Colors.green 
-                    : hasLimitedAccess 
-                      ? Colors.orange 
+                  color: hasFullAccess
+                    ? Colors.green
+                    : hasLimitedAccess
+                      ? Colors.orange
                       : Colors.grey,
                   shape: BoxShape.circle,
                 ),
@@ -119,16 +119,16 @@ class PhotoPermissionCard extends ConsumerWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  hasFullAccess 
-                    ? 'Full Access Granted' 
-                    : hasLimitedAccess 
-                      ? 'Limited Access' 
+                  hasFullAccess
+                    ? 'Full Access Granted'
+                    : hasLimitedAccess
+                      ? 'Limited Access'
                       : 'Access Denied',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: hasFullAccess 
-                      ? Colors.green 
-                      : hasLimitedAccess 
-                        ? Colors.orange 
+                    color: hasFullAccess
+                      ? Colors.green
+                      : hasLimitedAccess
+                        ? Colors.orange
                         : Colors.grey,
                     fontWeight: FontWeight.w500,
                   ),
@@ -138,12 +138,12 @@ class PhotoPermissionCard extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        
+
         // Description
         Text(
-          hasFullAccess 
+          hasFullAccess
             ? 'Aura One can discover photos and videos from your day to enrich your journal entries.'
-            : hasLimitedAccess 
+            : hasLimitedAccess
               ? 'You\'ve granted limited access. Tap "Select More Photos" to choose additional photos.'
               : 'Grant access to let Aura One discover photos from your day.',
           style: theme.textTheme.bodySmall?.copyWith(
@@ -151,7 +151,7 @@ class PhotoPermissionCard extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        
+
         // Action buttons
         if (noAccess) ...[
           Row(
@@ -200,7 +200,7 @@ class PhotoPermissionCard extends ConsumerWidget {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const LinearProgressIndicator();
               }
-              
+
               final photoCount = snapshot.data?.length ?? 0;
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -218,7 +218,7 @@ class PhotoPermissionCard extends ConsumerWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      photoCount > 0 
+                      photoCount > 0
                         ? 'Found $photoCount photos from today'
                         : 'No photos from today yet',
                       style: theme.textTheme.bodySmall?.copyWith(

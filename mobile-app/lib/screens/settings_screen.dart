@@ -18,7 +18,7 @@ class SettingsScreen extends ConsumerWidget {
     final isLight = theme.brightness == Brightness.light;
     final dailyReminders = ref.watch(dailyRemindersEnabledProvider);
     final fontSize = ref.watch(fontSizeProvider);
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -50,7 +50,7 @@ class SettingsScreen extends ConsumerWidget {
                   subtitle: 'Customize your wellness experience',
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Settings sections
                         // Appearance section
                         Text(
@@ -60,7 +60,7 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         _buildSettingsCard(
                           context: context,
                           theme: theme,
@@ -96,7 +96,7 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        
+
                         // Journal section
                         Text(
                           'Journal',
@@ -105,7 +105,7 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         _buildSettingsCard(
                           context: context,
                           theme: theme,
@@ -179,7 +179,7 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        
+
                         // Wellness section
                         Text(
                           'Wellness',
@@ -188,7 +188,7 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         _buildSettingsCard(
                           context: context,
                           theme: theme,
@@ -245,7 +245,7 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        
+
                         // Support section
                         Text(
                           'Support',
@@ -254,7 +254,7 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         _buildSettingsCard(
                           context: context,
                           theme: theme,
@@ -300,7 +300,7 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        
+
                         // Debug section
                         Text(
                           'Debug',
@@ -309,7 +309,7 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         _buildSettingsCard(
                           context: context,
                           theme: theme,
@@ -372,13 +372,13 @@ class SettingsScreen extends ConsumerWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isLight 
+          colors: isLight
             ? AuraColors.lightCardGradient
             : AuraColors.darkCardGradient,
         ),
         boxShadow: [
           BoxShadow(
-            color: isLight 
+            color: isLight
               ? AuraColors.lightPrimary.withValues(alpha: 0.08)
               : Colors.black.withValues(alpha: 0.2),
             blurRadius: 16,

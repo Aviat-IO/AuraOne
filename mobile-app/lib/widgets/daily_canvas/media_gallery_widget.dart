@@ -105,7 +105,7 @@ class MediaGalleryWidget extends ConsumerWidget {
     final mediaItems = ref.watch(mediaItemsProvider(date));
     final isLoading = ref.watch(mediaLoadingProvider);
     final viewMode = ref.watch(galleryViewModeProvider);
-    
+
     return Skeletonizer(
       enabled: isLoading,
       child: Column(
@@ -152,7 +152,7 @@ class MediaGalleryWidget extends ConsumerWidget {
               ],
             ),
           ),
-          
+
           // Gallery content
           Expanded(
             child: mediaItems.isEmpty
@@ -169,7 +169,7 @@ class MediaGalleryWidget extends ConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildEmptyState(ThemeData theme) {
     return Center(
       child: Column(
@@ -206,7 +206,7 @@ class MediaGalleryWidget extends ConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildGalleryContent({
     required List<MediaItem> mediaItems,
     required GalleryViewMode viewMode,
@@ -223,7 +223,7 @@ class MediaGalleryWidget extends ConsumerWidget {
         return _buildCarouselView(mediaItems, theme, isLight, context);
     }
   }
-  
+
   Widget _buildGridView(
     List<MediaItem> mediaItems,
     ThemeData theme,
@@ -249,7 +249,7 @@ class MediaGalleryWidget extends ConsumerWidget {
       },
     );
   }
-  
+
   Widget _buildListView(
     List<MediaItem> mediaItems,
     ThemeData theme,
@@ -273,7 +273,7 @@ class MediaGalleryWidget extends ConsumerWidget {
       },
     );
   }
-  
+
   Widget _buildCarouselView(
     List<MediaItem> mediaItems,
     ThemeData theme,
@@ -298,7 +298,7 @@ class MediaGalleryWidget extends ConsumerWidget {
       },
     );
   }
-  
+
   Widget _buildMediaThumbnail({
     required MediaItem item,
     required VoidCallback onTap,
@@ -373,7 +373,7 @@ class MediaGalleryWidget extends ConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildMediaListItem({
     required MediaItem item,
     required VoidCallback onTap,
@@ -468,7 +468,7 @@ class MediaGalleryWidget extends ConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildMediaCarouselItem({
     required MediaItem item,
     required VoidCallback onTap,
@@ -571,7 +571,7 @@ class MediaGalleryWidget extends ConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildViewModeButton({
     required IconData icon,
     required GalleryViewMode mode,
@@ -580,7 +580,7 @@ class MediaGalleryWidget extends ConsumerWidget {
     required ThemeData theme,
   }) {
     final isActive = mode == currentMode;
-    
+
     return Material(
       color: isActive
           ? theme.colorScheme.primary.withValues(alpha: 0.15)
@@ -602,13 +602,13 @@ class MediaGalleryWidget extends ConsumerWidget {
       ),
     );
   }
-  
+
   void _openImageViewer(BuildContext context, List<MediaItem> mediaItems, int initialIndex) {
     final imageProviders = mediaItems
         .where((item) => item.type == MediaType.photo)
         .map((item) => CachedNetworkImageProvider(item.url))
         .toList();
-    
+
     if (imageProviders.isNotEmpty) {
       final imageProvider = MultiImageProvider(imageProviders);
       showImageViewerPager(
@@ -620,7 +620,7 @@ class MediaGalleryWidget extends ConsumerWidget {
       );
     }
   }
-  
+
   String _formatDuration(Duration duration) {
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;

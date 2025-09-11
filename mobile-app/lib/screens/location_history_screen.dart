@@ -17,7 +17,7 @@ class LocationEntry {
   final String? placeName;
   final String? address;
   final Duration? durationAtLocation;
-  
+
   LocationEntry({
     required this.id,
     required this.timestamp,
@@ -28,7 +28,7 @@ class LocationEntry {
     this.address,
     this.durationAtLocation,
   });
-  
+
   factory LocationEntry.fromLocationPoint(LocationPoint point, {String? placeName, String? address, Duration? duration}) {
     return LocationEntry(
       id: point.id.toString(),
@@ -46,17 +46,17 @@ class LocationEntry {
 // Real location data provider from database
 final locationHistoryProvider = StreamProvider<List<LocationEntry>>((ref) async* {
   final database = ref.watch(locationDatabaseProvider);
-  
+
   // Stream recent location points from database (last 7 days)
   final stream = database.watchRecentLocationPoints(duration: const Duration(days: 7));
-  
+
   await for (final points in stream) {
     // Convert LocationPoint to LocationEntry
     final entries = <LocationEntry>[];
-    
+
     for (int i = 0; i < points.length; i++) {
       final point = points[i];
-      
+
       // Calculate duration at location (if stayed at same spot)
       Duration? duration;
       if (i < points.length - 1) {
@@ -72,13 +72,13 @@ final locationHistoryProvider = StreamProvider<List<LocationEntry>>((ref) async*
           duration = nextPoint.timestamp.difference(point.timestamp);
         }
       }
-      
+
       // For now, we don't have a places table, so we'll use activity type as place name
       String? placeName = point.activityType;
       String? address;
-      
+
       // You could add reverse geocoding here later to get actual addresses
-      
+
       entries.add(LocationEntry.fromLocationPoint(
         point,
         placeName: placeName,
@@ -86,7 +86,7 @@ final locationHistoryProvider = StreamProvider<List<LocationEntry>>((ref) async*
         duration: duration,
       ));
     }
-    
+
     yield entries;
   }
 });
@@ -96,13 +96,13 @@ double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
   const double earthRadius = 6371000; // meters
   final double dLat = (lat2 - lat1) * (math.pi / 180);
   final double dLon = (lon2 - lon1) * (math.pi / 180);
-  
-  final double a = 
+
+  final double a =
     math.sin(dLat / 2) * math.sin(dLat / 2) +
-    math.cos(lat1 * math.pi / 180) * 
+    math.cos(lat1 * math.pi / 180) *
     math.cos(lat2 * math.pi / 180) *
     math.sin(dLon / 2) * math.sin(dLon / 2);
-  
+
   final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
   return earthRadius * c;
 }
@@ -112,7 +112,7 @@ final selectedLocationIdsProvider = StateProvider<Set<String>>((ref) => {});
 
 class LocationHistoryScreen extends HookConsumerWidget {
   const LocationHistoryScreen({super.key});
-  
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -120,7 +120,7 @@ class LocationHistoryScreen extends HookConsumerWidget {
     final locationEntriesAsync = ref.watch(locationHistoryProvider);
     final selectedDateRange = ref.watch(selectedDateRangeProvider);
     final selectedIds = ref.watch(selectedLocationIdsProvider);
-    
+
     // Handle async state
     final locationEntries = locationEntriesAsync.when(
       data: (entries) => entries,
@@ -130,14 +130,14 @@ class LocationHistoryScreen extends HookConsumerWidget {
         return <LocationEntry>[];
       },
     );
-    
+
     final filteredEntries = selectedDateRange != null
         ? locationEntries.where((entry) {
             return entry.timestamp.isAfter(selectedDateRange.start) &&
                    entry.timestamp.isBefore(selectedDateRange.end.add(const Duration(days: 1)));
           }).toList()
         : locationEntries;
-    
+
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 0,
@@ -210,7 +210,7 @@ class LocationHistoryScreen extends HookConsumerWidget {
             ),
             // Filter controls
             _buildFilterControls(context, ref, theme, filteredEntries.length),
-            
+
             // Tab views
             Expanded(
               child: TabBarView(
@@ -226,10 +226,10 @@ class LocationHistoryScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildFilterControls(BuildContext context, WidgetRef ref, ThemeData theme, int totalEntries) {
     final selectedDateRange = ref.watch(selectedDateRangeProvider);
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -288,45 +288,45 @@ class LocationHistoryScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildTimelineView(BuildContext context, WidgetRef ref, ThemeData theme, List<LocationEntry> entries) {
     final selectedIds = ref.watch(selectedLocationIdsProvider);
     final locationEntriesAsync = ref.watch(locationHistoryProvider);
-    
+
     // Show loading state
     if (locationEntriesAsync.isLoading) {
       return const Center(
         child: CircularProgressIndicator(),
       );
     }
-    
+
     // Show error state
     if (locationEntriesAsync.hasError) {
       return _buildEmptyState(
-        context, 
-        theme, 
+        context,
+        theme,
         'Error loading location data. Please check location permissions.',
       );
     }
-    
+
     if (entries.isEmpty) {
       return _buildEmptyState(context, theme, 'No location data found for the selected period.');
     }
-    
+
     // Group entries by date
     final groupedEntries = <String, List<LocationEntry>>{};
     for (final entry in entries) {
       final dateKey = _formatDate(entry.timestamp);
       groupedEntries.putIfAbsent(dateKey, () => []).add(entry);
     }
-    
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: groupedEntries.length,
       itemBuilder: (context, index) {
         final dateKey = groupedEntries.keys.elementAt(index);
         final dayEntries = groupedEntries[dateKey]!;
-        
+
         return Card(
           margin: const EdgeInsets.only(bottom: 16),
           child: Column(
@@ -373,7 +373,7 @@ class LocationHistoryScreen extends HookConsumerWidget {
                   ],
                 ),
               ),
-              
+
               // Location entries
               ...dayEntries.map((entry) => _buildLocationEntryTile(context, ref, theme, entry, selectedIds)),
             ],
@@ -382,23 +382,23 @@ class LocationHistoryScreen extends HookConsumerWidget {
       },
     );
   }
-  
+
   Widget _buildLocationEntryTile(
-    BuildContext context, 
-    WidgetRef ref, 
-    ThemeData theme, 
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
     LocationEntry entry,
     Set<String> selectedIds,
   ) {
     final isSelected = selectedIds.contains(entry.id);
-    
+
     return Container(
       decoration: BoxDecoration(
         color: isSelected ? theme.colorScheme.primaryContainer.withValues(alpha: 0.1) : null,
         border: Border(
           left: BorderSide(
-            color: isSelected 
-              ? theme.colorScheme.primary 
+            color: isSelected
+              ? theme.colorScheme.primary
               : theme.colorScheme.outline.withValues(alpha: 0.2),
             width: isSelected ? 3 : 1,
           ),
@@ -411,9 +411,9 @@ class LocationHistoryScreen extends HookConsumerWidget {
           children: [
             Icon(
               entry.placeName != null ? Icons.place : Icons.location_on,
-              color: isSelected 
+              color: isSelected
                 ? theme.colorScheme.primary
-                : entry.placeName != null 
+                : entry.placeName != null
                   ? theme.colorScheme.secondary
                   : theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
@@ -492,10 +492,10 @@ class LocationHistoryScreen extends HookConsumerWidget {
               onChanged: (bool? value) {
                 final currentSelection = ref.read(selectedLocationIdsProvider);
                 if (value == true) {
-                  ref.read(selectedLocationIdsProvider.notifier).state = 
+                  ref.read(selectedLocationIdsProvider.notifier).state =
                     {...currentSelection, entry.id};
                 } else {
-                  ref.read(selectedLocationIdsProvider.notifier).state = 
+                  ref.read(selectedLocationIdsProvider.notifier).state =
                     currentSelection.where((id) => id != entry.id).toSet();
                 }
               },
@@ -555,7 +555,7 @@ class LocationHistoryScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildMapView(BuildContext context, ThemeData theme, List<LocationEntry> entries) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -599,7 +599,7 @@ class LocationHistoryScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildEmptyState(BuildContext context, ThemeData theme, String message) {
     return Center(
       child: Padding(
@@ -632,18 +632,18 @@ class LocationHistoryScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   // Helper methods
   String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
-  
+
   String _formatDateWithWeekday(DateTime date) {
     final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return '${weekdays[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}';
   }
-  
+
   String _formatDuration(Duration duration) {
     if (duration.inHours > 0) {
       return '${duration.inHours}h ${duration.inMinutes % 60}m';
@@ -651,7 +651,7 @@ class LocationHistoryScreen extends HookConsumerWidget {
       return '${duration.inMinutes}m';
     }
   }
-  
+
   // Action methods
   Future<void> _selectDateRange(BuildContext context, WidgetRef ref) async {
     final DateTimeRange? picked = await showDateRangePicker(
@@ -660,19 +660,19 @@ class LocationHistoryScreen extends HookConsumerWidget {
       lastDate: DateTime.now(),
       initialDateRange: ref.read(selectedDateRangeProvider),
     );
-    
+
     if (picked != null) {
       ref.read(selectedDateRangeProvider.notifier).state = picked;
     }
   }
-  
+
   void _showLocationDetails(BuildContext context, LocationEntry entry) {
     showDialog(
       context: context,
       builder: (context) => LocationDetailsDialog(entry: entry),
     );
   }
-  
+
   void _viewLocationOnMap(BuildContext context, LocationEntry entry) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -680,7 +680,7 @@ class LocationHistoryScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   void _deleteLocationEntry(BuildContext context, WidgetRef ref, LocationEntry entry) {
     showDialog(
       context: context,
@@ -708,25 +708,25 @@ class LocationHistoryScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   void _performDeleteEntry(BuildContext context, WidgetRef ref, LocationEntry entry) async {
     // For now, just show a message since we can't modify the stream
     // In a real implementation, you would delete from the database
     final database = ref.read(locationDatabaseProvider);
-    
+
     // TODO: Add a delete method in LocationDatabase if needed
     // await database.deleteLocationPoint(entry.id);
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Delete functionality not yet implemented'),
       ),
     );
   }
-  
+
   void _showDeleteSelectedDialog(BuildContext context, WidgetRef ref) {
     final selectedIds = ref.read(selectedLocationIdsProvider);
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -753,40 +753,40 @@ class LocationHistoryScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   void _performDeleteSelected(BuildContext context, WidgetRef ref) async {
     final selectedIds = ref.read(selectedLocationIdsProvider);
-    
+
     // For now, just show a message since we can't modify the stream
     // In a real implementation, you would delete from the database
     final database = ref.read(locationDatabaseProvider);
-    
+
     // TODO: Add batch delete method in LocationDatabase if needed
     // for (final id in selectedIds) {
     //   await database.deleteLocationPoint(id);
     // }
-    
+
     ref.read(selectedLocationIdsProvider.notifier).state = {};
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Delete functionality not yet implemented'),
       ),
     );
   }
-  
+
   void _showExportDialog(BuildContext context, List<LocationEntry> entries) {
     showDialog(
       context: context,
       builder: (context) => LocationHistoryExportDialog(entries: entries),
     );
   }
-  
+
   void _showLocationsSummary(BuildContext context, List<LocationEntry> entries) {
     final totalLocations = entries.length;
     final namedLocations = entries.where((e) => e.placeName != null).length;
     final averageAccuracy = entries.map((e) => e.accuracy).reduce((a, b) => a + b) / entries.length;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -818,13 +818,13 @@ class LocationHistoryScreen extends HookConsumerWidget {
 // Location details dialog
 class LocationDetailsDialog extends StatelessWidget {
   final LocationEntry entry;
-  
+
   const LocationDetailsDialog({super.key, required this.entry});
-  
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return AlertDialog(
       title: Text(entry.placeName ?? 'Location Details'),
       content: SingleChildScrollView(
@@ -861,7 +861,7 @@ class LocationDetailsDialog extends StatelessWidget {
       ],
     );
   }
-  
+
   Widget _buildDetailRow(ThemeData theme, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -888,7 +888,7 @@ class LocationDetailsDialog extends StatelessWidget {
       ),
     );
   }
-  
+
   String _formatDuration(Duration duration) {
     if (duration.inHours > 0) {
       return '${duration.inHours}h ${duration.inMinutes % 60}m';
@@ -901,9 +901,9 @@ class LocationDetailsDialog extends StatelessWidget {
 // Export dialog for location history
 class LocationHistoryExportDialog extends StatefulWidget {
   final List<LocationEntry> entries;
-  
+
   const LocationHistoryExportDialog({super.key, required this.entries});
-  
+
   @override
   State<LocationHistoryExportDialog> createState() => _LocationHistoryExportDialogState();
 }
@@ -913,7 +913,7 @@ class _LocationHistoryExportDialogState extends State<LocationHistoryExportDialo
   bool _includeAddress = true;
   bool _includeAccuracy = true;
   bool _includeDuration = true;
-  
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -925,7 +925,7 @@ class _LocationHistoryExportDialogState extends State<LocationHistoryExportDialo
           children: [
             Text('Exporting ${widget.entries.length} location entries'),
             const SizedBox(height: 16),
-            
+
             DropdownButtonFormField<String>(
               value: _selectedFormat,
               decoration: const InputDecoration(
@@ -945,9 +945,9 @@ class _LocationHistoryExportDialogState extends State<LocationHistoryExportDialo
                 }
               },
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             const Text('Include in export:'),
             CheckboxListTile(
               title: const Text('Address information'),
@@ -995,10 +995,10 @@ class _LocationHistoryExportDialogState extends State<LocationHistoryExportDialo
       ],
     );
   }
-  
+
   Future<void> _performExport() async {
     Navigator.of(context).pop();
-    
+
     // Show progress
     showDialog(
       context: context,
@@ -1014,13 +1014,13 @@ class _LocationHistoryExportDialogState extends State<LocationHistoryExportDialo
         ),
       ),
     );
-    
+
     // Simulate export process
     await Future.delayed(const Duration(seconds: 2));
-    
+
     if (mounted) {
       Navigator.of(context).pop();
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${widget.entries.length} entries exported to Downloads ($_selectedFormat)'),

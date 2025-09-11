@@ -401,7 +401,9 @@ Summary:
       );
       
       // Run inference
+      final runOptions = OrtRunOptions();
       final outputs = _onnxSession!.run(
+        runOptions,
         {'input': inputTensor},
       );
       

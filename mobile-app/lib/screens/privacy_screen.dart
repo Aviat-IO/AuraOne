@@ -494,68 +494,41 @@ class PrivacyScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Quick access to help and guides
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        HelpSectionHeader(
-                          title: 'Privacy Help & Guides',
-                          subtitle: 'Learn more about privacy controls and features',
-                          icon: Icons.help_outline,
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        // Privacy guide button
-                        Semantics(
-                          label: 'Open comprehensive privacy guide',
-                          hint: 'Double tap to learn about all privacy features',
-                          button: true,
-                          child: ListTile(
-                            leading: Icon(
-                              Icons.school,
-                              color: theme.colorScheme.primary,
-                            ),
-                            title: const Text('Privacy Guide'),
-                            subtitle: const Text('Complete guide to privacy controls and settings'),
-                            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const PrivacyHelpGuide(),
-                              ),
-                            ),
-                          ),
-                        ),
-                        
-                        const Divider(),
-                        
-                        // Quick start guide button
-                        Semantics(
-                          label: 'Open privacy quick start guide',
-                          hint: 'Double tap to configure privacy settings with guided setup',
-                          button: true,
-                          child: ListTile(
-                            leading: Icon(
-                              Icons.rocket_launch,
-                              color: theme.colorScheme.secondary,
-                            ),
-                            title: const Text('Quick Start Guide'),
-                            subtitle: const Text('Guided setup for new users'),
-                            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const PrivacyQuickStartGuide(),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                // Privacy Guide option
+                _buildPrivacyOptionWithTooltip(
+                  context: context,
+                  theme: theme,
+                  isLight: isLight,
+                  icon: Icons.school,
+                  title: 'Privacy Guide',
+                  subtitle: 'Complete guide to privacy controls and settings',
+                  helpMessage: 'Learn about all privacy features',
+                  detailedHelp: 'A comprehensive guide explaining all privacy features, settings, and best practices for protecting your personal data.',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const PrivacyHelpGuide(),
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
+
+                // Quick Start Guide option
+                _buildPrivacyOptionWithTooltip(
+                  context: context,
+                  theme: theme,
+                  isLight: isLight,
+                  icon: Icons.rocket_launch,
+                  title: 'Quick Start Guide',
+                  subtitle: 'Guided setup for new users',
+                  helpMessage: 'Configure privacy settings with guided setup',
+                  detailedHelp: 'A step-by-step guide to help you configure your privacy settings quickly and easily.',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const PrivacyQuickStartGuide(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
 
                 _buildPrivacyOptionWithTooltip(
                   context: context,

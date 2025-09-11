@@ -21,7 +21,7 @@ class MediaItems extends Table {
   IntColumn get width => integer().nullable()();
   IntColumn get height => integer().nullable()();
   IntColumn get duration => integer().nullable()(); // For videos, in seconds
-  
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -35,7 +35,7 @@ class MediaMetadata extends Table {
   TextColumn get value => text()(); // Metadata value (JSON string for complex data)
   RealColumn get confidence => real().nullable()(); // Confidence score for ML-detected metadata
   DateTimeColumn get extractedAt => dateTime().withDefault(currentDateAndTime)();
-  
+
   @override
   List<Set<Column>> get uniqueKeys => [
     {mediaId, metadataType, key}, // Prevent duplicate metadata entries
@@ -59,7 +59,7 @@ class PersonTags extends Table {
   BoolColumn get isRejected => boolean().withDefault(const Constant(false))(); // User rejected identity
   DateTimeColumn get detectedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get confirmedAt => dateTime().nullable()(); // When user confirmed/rejected
-  
+
   @override
   List<Set<Column>> get uniqueKeys => [
     {mediaId, boundingBoxX, boundingBoxY, boundingBoxWidth, boundingBoxHeight}, // Prevent duplicate face regions
@@ -76,7 +76,7 @@ class FaceClusters extends Table {
   RealColumn get cohesion => real()(); // Cluster cohesion score (how similar faces are)
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
-  
+
   @override
   Set<Column> get primaryKey => {clusterId};
 }
@@ -94,7 +94,7 @@ class FaceEmbeddings extends Table {
   RealColumn get boundingBoxWidth => real()();
   RealColumn get boundingBoxHeight => real()();
   DateTimeColumn get extractedAt => dateTime().withDefault(currentDateAndTime)();
-  
+
   @override
   List<Set<Column>> get uniqueKeys => [
     {faceId}, // Each face should be unique
@@ -112,7 +112,7 @@ class MediaCollections extends Table {
   BoolColumn get isSystemCollection => boolean().withDefault(const Constant(false))(); // e.g., "Favorites", "Recently Added"
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
-  
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -124,7 +124,7 @@ class MediaCollectionItems extends Table {
   TextColumn get mediaId => text().references(MediaItems, #id, onDelete: KeyAction.cascade)();
   IntColumn get sortOrder => integer().nullable()(); // Order within collection
   DateTimeColumn get addedAt => dateTime().withDefault(currentDateAndTime)();
-  
+
   @override
   List<Set<Column>> get uniqueKeys => [
     {collectionId, mediaId}, // Media can only be in collection once
@@ -142,7 +142,7 @@ class MediaCollectionItems extends Table {
 ])
 class MediaDatabase extends _$MediaDatabase {
   MediaDatabase() : super(_openConnection());
-  
+
   MediaDatabase.withPath(String path) : super(_openConnectionWithPath(path));
 
   @override
@@ -151,7 +151,7 @@ class MediaDatabase extends _$MediaDatabase {
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'media_database');
   }
-  
+
   static QueryExecutor _openConnectionWithPath(String path) {
     return driftDatabase(name: path);
   }
@@ -194,25 +194,25 @@ class MediaDatabase extends _$MediaDatabase {
   }) {
     final cutoff = DateTime.now().subtract(duration);
     return (select(mediaItems)
-          ..where((tbl) => 
+          ..where((tbl) =>
               tbl.createdDate.isBiggerOrEqualValue(cutoff) &
               tbl.isDeleted.equals(false))
           ..orderBy([(tbl) => OrderingTerm.desc(tbl.createdDate)])
           ..limit(limit))
         .get();
   }
-  
+
   Future<List<MediaItem>> getUnprocessedMedia({int? limit}) {
     final query = select(mediaItems)
-      ..where((tbl) => 
+      ..where((tbl) =>
           tbl.isProcessed.equals(false) &
           tbl.isDeleted.equals(false))
       ..orderBy([(tbl) => OrderingTerm.asc(tbl.createdDate)]);
-    
+
     if (limit != null) {
       query.limit(limit);
     }
-    
+
     return query.get();
   }
 
@@ -240,11 +240,11 @@ class MediaDatabase extends _$MediaDatabase {
 
   Future<Map<String, dynamic>> getMetadataMap(String mediaId, String metadataType) async {
     final metadata = await (select(mediaMetadata)
-          ..where((tbl) => 
-              tbl.mediaId.equals(mediaId) & 
+          ..where((tbl) =>
+              tbl.mediaId.equals(mediaId) &
               tbl.metadataType.equals(metadataType)))
         .get();
-    
+
     final Map<String, dynamic> result = {};
     for (final item in metadata) {
       try {
@@ -345,7 +345,7 @@ class MediaDatabase extends _$MediaDatabase {
 
   Future<List<MediaItem>> getMediaInCollection(String collectionId) async {
     final query = select(mediaItems).join([
-      innerJoin(mediaCollectionItems, 
+      innerJoin(mediaCollectionItems,
         mediaCollectionItems.mediaId.equalsExp(mediaItems.id))
     ])..where(mediaCollectionItems.collectionId.equals(collectionId))
      ..orderBy([OrderingTerm.asc(mediaCollectionItems.sortOrder)]);
@@ -391,11 +391,11 @@ class MediaDatabase extends _$MediaDatabase {
   // Data Cleanup Methods
   Future<void> cleanupDeletedMedia({Duration retentionPeriod = const Duration(days: 30)}) async {
     final cutoff = DateTime.now().subtract(retentionPeriod);
-    
+
     // Get deleted media items older than retention period
     final deletedItems = await (select(mediaItems)
-          ..where((tbl) => 
-              tbl.isDeleted.equals(true) & 
+          ..where((tbl) =>
+              tbl.isDeleted.equals(true) &
               tbl.addedDate.isSmallerThanValue(cutoff)))
         .get();
 
@@ -411,7 +411,7 @@ class MediaDatabase extends _$MediaDatabase {
   Future<void> optimizeDatabase() async {
     // Run VACUUM to reclaim space
     await customStatement('VACUUM;');
-    
+
     // Update statistics
     await customStatement('ANALYZE;');
   }
@@ -421,7 +421,7 @@ class MediaDatabase extends _$MediaDatabase {
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (Migrator m) async {
           await m.createAll();
-          
+
           // Create indices for better performance
           await customStatement('''
             CREATE INDEX idx_media_items_created_date ON media_items(created_date DESC);

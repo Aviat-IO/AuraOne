@@ -86,44 +86,44 @@ class JournalEditorWidget extends HookConsumerWidget {
     final journalEntry = ref.watch(journalEntryProvider(date));
     final isEditMode = ref.watch(journalEditModeProvider);
     final isLoading = ref.watch(journalLoadingProvider);
-    
+
     // Text controllers
     final titleController = useTextEditingController(text: journalEntry?.title ?? '');
     final contentController = useTextEditingController(text: journalEntry?.content ?? '');
-    
+
     // Focus nodes
     final titleFocusNode = useFocusNode();
     final contentFocusNode = useFocusNode();
-    
+
     // Voice editing states
     final voiceService = ref.read(voiceEditingServiceProvider);
     final isListening = useState(false);
     final voiceTranscription = useState('');
     final voiceCommand = useState('');
     final isSpeaking = useState(false);
-    
+
     // Initialize voice service
     useEffect(() {
       voiceService.onSpeechResult = (result) {
         voiceTranscription.value = result;
       };
-      
+
       voiceService.onListeningStateChanged = (listening) {
         isListening.value = listening;
       };
-      
+
       voiceService.onError = (error) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(error)),
         );
       };
-      
+
       return () {
         voiceService.stopListening();
         voiceService.stopSpeaking();
       };
     }, []);
-    
+
     return Skeletonizer(
       enabled: isLoading,
       child: Column(
@@ -150,7 +150,7 @@ class JournalEditorWidget extends HookConsumerWidget {
                     ),
                   ),
                 const Spacer(),
-                
+
                 // Voice controls (only in edit mode)
                 if (isEditMode) ...[
                   // Voice input button with permission handling
@@ -184,7 +184,7 @@ class JournalEditorWidget extends HookConsumerWidget {
                       }
                     },
                   ),
-                  
+
                   // Text-to-speech button
                   IconButton(
                     icon: Icon(
@@ -196,8 +196,8 @@ class JournalEditorWidget extends HookConsumerWidget {
                         await voiceService.stopSpeaking();
                         isSpeaking.value = false;
                       } else {
-                        final textToRead = contentController.text.isEmpty 
-                          ? 'No content to read' 
+                        final textToRead = contentController.text.isEmpty
+                          ? 'No content to read'
                           : contentController.text;
                         isSpeaking.value = true;
                         await voiceService.speak(textToRead);
@@ -206,12 +206,12 @@ class JournalEditorWidget extends HookConsumerWidget {
                     },
                     tooltip: isSpeaking.value ? 'Stop reading' : 'Read content',
                   ),
-                  
+
                   const SizedBox(width: 8),
                   const VerticalDivider(width: 1),
                   const SizedBox(width: 8),
                 ],
-                
+
                 // Formatting buttons (only in edit mode)
                 if (isEditMode) ...[
                   _buildFormatButton(
@@ -243,7 +243,7 @@ class JournalEditorWidget extends HookConsumerWidget {
                   ),
                   const SizedBox(width: 12),
                 ],
-                
+
                 // Edit/Save button
                 IconButton(
                   icon: Icon(isEditMode ? Icons.check : Icons.edit),
@@ -269,7 +269,7 @@ class JournalEditorWidget extends HookConsumerWidget {
               ],
             ),
           ),
-          
+
           // Voice transcription indicator
           if (isListening.value && voiceTranscription.value.isNotEmpty)
             Container(
@@ -301,7 +301,7 @@ class JournalEditorWidget extends HookConsumerWidget {
                 ],
               ),
             ),
-          
+
           // Journal content
           Expanded(
             child: journalEntry == null && !isEditMode
@@ -334,9 +334,9 @@ class JournalEditorWidget extends HookConsumerWidget {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                        
+
                         const SizedBox(height: 8),
-                        
+
                         // Metadata (mood and tags)
                         if (journalEntry != null) ...[
                           Wrap(
@@ -374,7 +374,7 @@ class JournalEditorWidget extends HookConsumerWidget {
                           ),
                           const SizedBox(height: 16),
                         ],
-                        
+
                         // Content
                         if (isEditMode)
                           TextField(
@@ -426,7 +426,7 @@ class JournalEditorWidget extends HookConsumerWidget {
                               blockquotePadding: const EdgeInsets.only(left: 16),
                             ),
                           ),
-                        
+
                         // Last edited info
                         if (journalEntry != null && !isEditMode) ...[
                           const SizedBox(height: 24),
@@ -446,7 +446,7 @@ class JournalEditorWidget extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildEmptyState(ThemeData theme, WidgetRef ref) {
     return Center(
       child: Column(
@@ -483,7 +483,7 @@ class JournalEditorWidget extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildFormatButton({
     required IconData icon,
     required VoidCallback onPressed,
@@ -503,11 +503,11 @@ class JournalEditorWidget extends HookConsumerWidget {
       color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
     );
   }
-  
+
   void _insertMarkdown(TextEditingController controller, String prefix, String suffix) {
     final text = controller.text;
     final selection = controller.selection;
-    
+
     if (selection.start == selection.end) {
       // No selection, just insert at cursor
       final newText = text.substring(0, selection.start) +
@@ -533,7 +533,7 @@ class JournalEditorWidget extends HookConsumerWidget {
       );
     }
   }
-  
+
   IconData _getMoodIcon(String mood) {
     switch (mood.toLowerCase()) {
       case 'happy':
@@ -552,7 +552,7 @@ class JournalEditorWidget extends HookConsumerWidget {
         return Icons.sentiment_neutral;
     }
   }
-  
+
   Color _getMoodColor(String mood) {
     switch (mood.toLowerCase()) {
       case 'happy':
@@ -571,11 +571,11 @@ class JournalEditorWidget extends HookConsumerWidget {
         return Colors.blue;
     }
   }
-  
+
   String _formatLastEdited(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-    
+
     if (difference.inMinutes < 1) {
       return 'just now';
     } else if (difference.inMinutes < 60) {
@@ -588,7 +588,7 @@ class JournalEditorWidget extends HookConsumerWidget {
       return 'on ${dateTime.day}/${dateTime.month}/${dateTime.year}';
     }
   }
-  
+
   void _handleVoiceCommand(
     BuildContext context,
     TextEditingController controller,
@@ -597,15 +597,15 @@ class JournalEditorWidget extends HookConsumerWidget {
   ) {
     // Parse the voice command
     final command = NLPCommandParser.parse(voiceInput);
-    
+
     // Apply the command to the text
     final currentText = controller.text;
     final updatedText = NLPCommandParser.applyCommand(currentText, command);
-    
+
     // Update the controller if text changed
     if (updatedText != currentText) {
       controller.text = updatedText;
-      
+
       // Provide feedback
       String feedback = '';
       switch (command.type) {
@@ -637,12 +637,12 @@ class JournalEditorWidget extends HookConsumerWidget {
           feedback = 'Command not recognized: $voiceInput';
           break;
       }
-      
+
       // Show feedback and optionally speak it
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(feedback)),
       );
-      
+
       // Speak the feedback
       voiceService.speak(feedback);
     } else {

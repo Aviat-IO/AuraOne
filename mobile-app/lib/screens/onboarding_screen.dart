@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -17,7 +18,7 @@ final onboardingCompletedProvider = FutureProvider<bool>((ref) async {
 
 class OnboardingScreen extends HookConsumerWidget {
   const OnboardingScreen({super.key});
-  
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -32,6 +33,11 @@ class OnboardingScreen extends HookConsumerWidget {
       Permission.notification: false,
     });
     
+    // Track location button press count and skip button visibility
+    final locationButtonPressCount = useState(0);
+    final showSkipButton = useState(false);
+    final skipButtonTimer = useRef<DateTime?>(null);
+
     // Check initial permission states
     useEffect(() {
       Future.microtask(() async {
@@ -48,6 +54,37 @@ class OnboardingScreen extends HookConsumerWidget {
       return null;
     }, []);
     
+    // Timer to show skip button after 20 seconds on permissions page
+    useEffect(() {
+      if (currentPage.value == 3 && !showSkipButton.value) {
+        // We're on the permissions page and skip button is not shown
+        if (skipButtonTimer.value == null) {
+          skipButtonTimer.value = DateTime.now();
+        }
+        
+        final timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (!context.mounted) {
+            timer.cancel();
+            return;
+          }
+          
+          final elapsed = DateTime.now().difference(skipButtonTimer.value!);
+          if (elapsed.inSeconds >= 20) {
+            showSkipButton.value = true;
+            timer.cancel();
+          }
+        });
+        
+        return timer.cancel;
+      } else if (currentPage.value != 3) {
+        // Reset when leaving permissions page
+        skipButtonTimer.value = null;
+        locationButtonPressCount.value = 0;
+        showSkipButton.value = false;
+      }
+      return null;
+    }, [currentPage.value]);
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -58,7 +95,7 @@ class OnboardingScreen extends HookConsumerWidget {
               backgroundColor: theme.colorScheme.surfaceContainerHighest,
               valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
             ),
-            
+
             Expanded(
               child: PageView(
                 controller: pageController,
@@ -67,13 +104,12 @@ class OnboardingScreen extends HookConsumerWidget {
                   _buildWelcomePage(context, theme),
                   _buildValuePropositionPage(context, theme),
                   _buildPrivacyExplanationPage(context, theme),
-                  _buildPermissionsPage(context, theme, ref, permissionsGranted),
+                  _buildPermissionsPage(context, theme, ref, permissionsGranted, locationButtonPressCount, showSkipButton),
                   _buildSetupCompletePage(context, theme),
-                  _buildGetStartedPage(context, theme, ref),
                 ],
               ),
             ),
-            
+
             // Navigation buttons
             _buildNavigationButtons(
               context,
@@ -82,13 +118,14 @@ class OnboardingScreen extends HookConsumerWidget {
               currentPage.value,
               permissionsGranted.value,
               ref,
+              showSkipButton.value,
             ),
           ],
         ),
       ),
     );
   }
-  
+
   Widget _buildWelcomePage(BuildContext context, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -126,7 +163,7 @@ class OnboardingScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildValuePropositionPage(BuildContext context, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -141,28 +178,28 @@ class OnboardingScreen extends HookConsumerWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
-          
+
           _buildFeatureItem(
             theme,
             Icons.location_on,
             'Automatic Journey Mapping',
             'Tracks your daily movements to create a visual story of your day',
           ),
-          
+
           _buildFeatureItem(
             theme,
             Icons.photo_library,
             'Photo Memory Integration',
             'Automatically includes photos from your day in your journal entries',
           ),
-          
+
           _buildFeatureItem(
             theme,
             Icons.psychology,
             'AI-Generated Narratives',
             'Creates beautiful prose summaries of your day using on-device AI',
           ),
-          
+
           _buildFeatureItem(
             theme,
             Icons.insights,
@@ -173,7 +210,7 @@ class OnboardingScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildPrivacyExplanationPage(BuildContext context, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -194,28 +231,28 @@ class OnboardingScreen extends HookConsumerWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
-          
+
           _buildPrivacyPoint(
             theme,
             Icons.phone_android,
             'Everything Stays on Your Device',
             'All your data is stored locally. Nothing is sent to the cloud.',
           ),
-          
+
           _buildPrivacyPoint(
             theme,
             Icons.visibility_off,
             'No Tracking, No Analytics',
             'We don\'t collect any usage data or analytics. Your life is yours alone.',
           ),
-          
+
           _buildPrivacyPoint(
             theme,
             Icons.download,
             'Complete Data Ownership',
             'Export your entire journal anytime. Your memories belong to you.',
           ),
-          
+
           _buildPrivacyPoint(
             theme,
             Icons.code,
@@ -226,12 +263,14 @@ class OnboardingScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildPermissionsPage(
     BuildContext context,
     ThemeData theme,
     WidgetRef ref,
     ValueNotifier<Map<Permission, bool>> permissionsGranted,
+    ValueNotifier<int> locationButtonPressCount,
+    ValueNotifier<bool> showSkipButton,
   ) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -252,7 +291,7 @@ class OnboardingScreen extends HookConsumerWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
-          
+
           Expanded(
             child: ListView(
               children: [
@@ -266,8 +305,14 @@ class OnboardingScreen extends HookConsumerWidget {
                   Permission.locationAlways,
                   permissionsGranted,
                   isRequired: true,
+                  onPressed: () {
+                    locationButtonPressCount.value++;
+                    if (locationButtonPressCount.value >= 3) {
+                      showSkipButton.value = true;
+                    }
+                  },
                 ),
-                
+
                 _buildPermissionTile(
                   context,
                   theme,
@@ -278,7 +323,7 @@ class OnboardingScreen extends HookConsumerWidget {
                   Permission.photos,
                   permissionsGranted,
                 ),
-                
+
                 _buildPermissionTile(
                   context,
                   theme,
@@ -289,7 +334,7 @@ class OnboardingScreen extends HookConsumerWidget {
                   Permission.calendar,
                   permissionsGranted,
                 ),
-                
+
                 _buildPermissionTile(
                   context,
                   theme,
@@ -300,7 +345,7 @@ class OnboardingScreen extends HookConsumerWidget {
                   Permission.activityRecognition,
                   permissionsGranted,
                 ),
-                
+
                 _buildPermissionTile(
                   context,
                   theme,
@@ -319,7 +364,7 @@ class OnboardingScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildSetupCompletePage(BuildContext context, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -354,7 +399,7 @@ class OnboardingScreen extends HookConsumerWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
-          
+
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -392,7 +437,7 @@ class OnboardingScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildGetStartedPage(BuildContext context, ThemeData theme, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -419,20 +464,20 @@ class OnboardingScreen extends HookConsumerWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 48),
-          
+
           FilledButton.icon(
             onPressed: () async {
               // Mark onboarding as complete
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool('onboarding_completed', true);
-              
+
               // Start services
               final locationService = ref.read(simpleLocationServiceProvider);
               await locationService.startTracking();
-              
+
               final movementService = ref.read(movementTrackingServiceProvider);
               await movementService.startTracking();
-              
+
               // Navigate to main app
               if (context.mounted) {
                 context.go('/');
@@ -449,7 +494,7 @@ class OnboardingScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildFeatureItem(
     ThemeData theme,
     IconData icon,
@@ -499,7 +544,7 @@ class OnboardingScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildPrivacyPoint(
     ThemeData theme,
     IconData icon,
@@ -547,7 +592,7 @@ class OnboardingScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildPermissionTile(
     BuildContext context,
     ThemeData theme,
@@ -558,12 +603,13 @@ class OnboardingScreen extends HookConsumerWidget {
     Permission permission,
     ValueNotifier<Map<Permission, bool>> permissionsGranted, {
     bool isRequired = false,
+    VoidCallback? onPressed,
   }) {
     return ValueListenableBuilder<Map<Permission, bool>>(
       valueListenable: permissionsGranted,
       builder: (context, permissions, child) {
         final isGranted = permissions[permission] ?? false;
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: ListTile(
@@ -624,37 +670,59 @@ class OnboardingScreen extends HookConsumerWidget {
               )
             : OutlinedButton(
                 onPressed: () async {
+                  // Call the custom onPressed callback if provided
+                  onPressed?.call();
+                  
                   print('Enable button pressed for permission: $permission');
-                  
-                  // Check current status before requesting
-                  final currentStatus = await permission.status;
-                  print('Current permission status: ${currentStatus.toString()}');
-                  
-                  // If already granted, just update the UI
-                  if (currentStatus.isGranted || currentStatus.isLimited) {
-                    print('Permission already granted, updating UI');
-                    final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
-                    newPermissions[permission] = true;
-                    permissionsGranted.value = newPermissions;
-                    return;
-                  }
-                  
-                  // Otherwise, request the permission
-                  final status = await permission.request();
-                  print('Permission request result: ${status.toString()}');
-                  
-                  final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
-                  newPermissions[permission] = status.isGranted || status.isLimited;
-                  permissionsGranted.value = newPermissions;
-                  print('Updated permissions: $newPermissions');
-                  
-                  // For location, also handle location services
-                  if (permission == Permission.locationAlways && (status.isGranted || status.isLimited)) {
-                    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-                    if (!serviceEnabled) {
-                      print('Location services not enabled, opening settings');
-                      await Geolocator.openLocationSettings();
+
+                  // For location permission, handle special Android case
+                  if (permission == Permission.locationAlways) {
+                    // First request location when in use permission
+                    final whenInUseStatus = await Permission.locationWhenInUse.request();
+                    print('Location when in use status: ${whenInUseStatus.toString()}');
+                    
+                    if (whenInUseStatus.isGranted) {
+                      // Then request always permission
+                      final alwaysStatus = await Permission.locationAlways.request();
+                      print('Location always status: ${alwaysStatus.toString()}');
+                      
+                      final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
+                      newPermissions[permission] = alwaysStatus.isGranted || alwaysStatus.isLimited || whenInUseStatus.isGranted;
+                      permissionsGranted.value = newPermissions;
+                      
+                      // Handle location services
+                      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+                      if (!serviceEnabled) {
+                        print('Location services not enabled, opening settings');
+                        await Geolocator.openLocationSettings();
+                      }
+                    } else {
+                      final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
+                      newPermissions[permission] = false;
+                      permissionsGranted.value = newPermissions;
                     }
+                  } else {
+                    // For other permissions, use normal flow
+                    final currentStatus = await permission.status;
+                    print('Current permission status: ${currentStatus.toString()}');
+
+                    // If already granted, just update the UI
+                    if (currentStatus.isGranted || currentStatus.isLimited) {
+                      print('Permission already granted, updating UI');
+                      final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
+                      newPermissions[permission] = true;
+                      permissionsGranted.value = newPermissions;
+                      return;
+                    }
+
+                    // Otherwise, request the permission
+                    final status = await permission.request();
+                    print('Permission request result: ${status.toString()}');
+
+                    final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
+                    newPermissions[permission] = status.isGranted || status.isLimited;
+                    permissionsGranted.value = newPermissions;
+                    print('Updated permissions: $newPermissions');
                   }
                 },
                 child: const Text('Enable'),
@@ -664,7 +732,7 @@ class OnboardingScreen extends HookConsumerWidget {
       },
     );
   }
-  
+
   Widget _buildNavigationButtons(
     BuildContext context,
     ThemeData theme,
@@ -672,11 +740,12 @@ class OnboardingScreen extends HookConsumerWidget {
     int currentPage,
     Map<Permission, bool> permissions,
     WidgetRef ref,
+    bool showSkipButton,
   ) {
-    final isLastPage = currentPage == 5;
+    final isLastPage = currentPage == 4;
     final isPermissionsPage = currentPage == 3;
     final hasRequiredPermissions = permissions[Permission.locationAlways] ?? false;
-    
+
     return Container(
       padding: const EdgeInsets.all(24.0),
       child: Row(
@@ -695,14 +764,14 @@ class OnboardingScreen extends HookConsumerWidget {
             )
           else
             const SizedBox(width: 80),
-          
+
           // Skip/Next button
           if (!isLastPage)
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Add Skip button for permissions page
-                if (isPermissionsPage && !hasRequiredPermissions)
+                // Add Skip button for permissions page (only show after conditions are met)
+                if (isPermissionsPage && !hasRequiredPermissions && showSkipButton)
                   TextButton(
                     onPressed: () {
                       pageController.nextPage(
@@ -712,7 +781,7 @@ class OnboardingScreen extends HookConsumerWidget {
                     },
                     child: const Text('Skip for now'),
                   ),
-                if (isPermissionsPage && !hasRequiredPermissions)
+                if (isPermissionsPage && !hasRequiredPermissions && showSkipButton)
                   const SizedBox(width: 12),
                 FilledButton(
                   onPressed: (isPermissionsPage && !hasRequiredPermissions)
@@ -735,17 +804,17 @@ class OnboardingScreen extends HookConsumerWidget {
                 // Complete onboarding
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.setBool('onboarding_completed', true);
-                
+
                 // Start services
                 final locationService = ref.read(simpleLocationServiceProvider);
                 await locationService.startTracking();
-                
+
                 final movementService = ref.read(movementTrackingServiceProvider);
                 await movementService.startTracking();
-                
+
                 // Navigate to main app
                 if (context.mounted) {
-                  context.go('/home');
+                  context.go('/');
                 }
               },
               child: const Text('Get Started'),

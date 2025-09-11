@@ -113,21 +113,21 @@ class NLPCommandParser {
   /// Parse a natural language command into an EditingCommand
   static EditingCommand parse(String input) {
     final normalizedInput = input.toLowerCase().trim();
-    
+
     // Detect command type
     final commandType = _detectCommandType(normalizedInput);
-    
+
     // Extract target section
     final target = _extractTarget(normalizedInput);
-    
+
     // Extract content for commands that need it
     final content = _extractContent(normalizedInput, commandType);
-    
+
     // Extract additional metadata
     final metadata = _extractMetadata(normalizedInput);
-    
+
     debugPrint('Parsed command: type=$commandType, target=$target, content=$content');
-    
+
     return EditingCommand(
       type: commandType,
       target: target,
@@ -146,7 +146,7 @@ class NLPCommandParser {
         }
       }
     }
-    
+
     // Default to unknown if no match
     return EditingCommandType.unknown;
   }
@@ -156,7 +156,7 @@ class NLPCommandParser {
     // Look for section keywords
     String? bestMatch;
     int bestMatchLength = 0;
-    
+
     for (final section in _sectionKeywords) {
       if (input.contains(section)) {
         // Try to extract a phrase around the section keyword
@@ -171,7 +171,7 @@ class NLPCommandParser {
         }
       }
     }
-    
+
     // If no section found, look for quoted text
     if (bestMatch == null) {
       final quotedPattern = RegExp(r'"([^"]+)"|' + r"'([^']+)'");
@@ -180,7 +180,7 @@ class NLPCommandParser {
         bestMatch = match.group(1) ?? match.group(2);
       }
     }
-    
+
     // If still no match, look for "the ... part/section"
     if (bestMatch == null) {
       final thePattern = RegExp(r'the\s+(\w+(?:\s+\w+)?)\s+(?:part|section|paragraph)', caseSensitive: false);
@@ -189,14 +189,14 @@ class NLPCommandParser {
         bestMatch = match.group(1);
       }
     }
-    
+
     return bestMatch;
   }
 
   /// Extract content for commands that need new text
   static String? _extractContent(String input, EditingCommandType type) {
     String? content;
-    
+
     // For commands that typically have content after certain phrases
     final contentPhrases = [
       'to say',
@@ -212,7 +212,7 @@ class NLPCommandParser {
       'instead',
       'to be',
     ];
-    
+
     for (final phrase in contentPhrases) {
       final index = input.indexOf(phrase);
       if (index != -1) {
@@ -225,7 +225,7 @@ class NLPCommandParser {
         }
       }
     }
-    
+
     // For quoted content
     if (content == null) {
       final quotedPattern = RegExp(r'"([^"]+)"|' + r"'([^']+)'");
@@ -236,7 +236,7 @@ class NLPCommandParser {
         content = lastMatch.group(1) ?? lastMatch.group(2);
       }
     }
-    
+
     // For replace commands, extract "X with Y" pattern
     if (type == EditingCommandType.replaceText) {
       final replacePattern = RegExp(r'replace\s+(.+?)\s+with\s+(.+)', caseSensitive: false);
@@ -245,14 +245,14 @@ class NLPCommandParser {
         content = match.group(2)?.trim();
       }
     }
-    
+
     return content;
   }
 
   /// Extract additional metadata from the command
   static Map<String, dynamic> _extractMetadata(String input) {
     final metadata = <String, dynamic>{};
-    
+
     // Check for position indicators
     if (input.contains('beginning') || input.contains('start') || input.contains('first')) {
       metadata['position'] = 'beginning';
@@ -261,26 +261,26 @@ class NLPCommandParser {
     } else if (input.contains('middle') || input.contains('center')) {
       metadata['position'] = 'middle';
     }
-    
+
     // Check for relative positions
     if (input.contains('before')) {
       metadata['relative'] = 'before';
     } else if (input.contains('after')) {
       metadata['relative'] = 'after';
     }
-    
+
     // Check for emphasis or importance
     if (input.contains('important') || input.contains('emphasis') || input.contains('highlight')) {
       metadata['emphasis'] = true;
     }
-    
+
     // Check for formatting preferences
     if (input.contains('bullet') || input.contains('list')) {
       metadata['format'] = 'list';
     } else if (input.contains('paragraph')) {
       metadata['format'] = 'paragraph';
     }
-    
+
     return metadata;
   }
 
@@ -318,7 +318,7 @@ class NLPCommandParser {
   static String _applyAddDetail(String text, EditingCommand command) {
     final content = command.content ?? '[additional details]';
     final position = command.metadata['position'] ?? 'end';
-    
+
     if (position == 'beginning') {
       return '$content\n\n$text';
     } else {
@@ -328,19 +328,19 @@ class NLPCommandParser {
 
   static String _applyRemoveSection(String text, EditingCommand command) {
     if (command.target == null) return text;
-    
+
     // Simple removal - in production, would be more sophisticated
     final lines = text.split('\n');
     final filteredLines = lines.where((line) {
       return !line.toLowerCase().contains(command.target!.toLowerCase());
     }).toList();
-    
+
     return filteredLines.join('\n');
   }
 
   static String _applyReplaceText(String text, EditingCommand command) {
     if (command.target == null || command.content == null) return text;
-    
+
     return text.replaceAll(
       RegExp(command.target!, caseSensitive: false),
       command.content!,
@@ -349,9 +349,9 @@ class NLPCommandParser {
 
   static String _applyInsertText(String text, EditingCommand command) {
     if (command.content == null) return text;
-    
+
     final position = command.metadata['position'] ?? 'end';
-    
+
     if (position == 'beginning') {
       return '${command.content}\n\n$text';
     } else if (position == 'middle') {

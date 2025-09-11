@@ -31,7 +31,7 @@ class GeofenceAreas extends Table {
   TextColumn get metadata => text().nullable()(); // JSON string for extra data
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().nullable()();
-  
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -73,7 +73,7 @@ class LocationSummaries extends Table {
   TextColumn get mainLocations => text()(); // JSON array of top locations
   IntColumn get activeMinutes => integer().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
-  
+
   @override
   List<Set<Column>> get uniqueKeys => [
     {date},
@@ -202,7 +202,7 @@ class LocationDatabase extends _$LocationDatabase {
     bool keepSignificantPoints = true,
   }) async {
     final cutoff = DateTime.now().subtract(retentionPeriod);
-    
+
     // Delete old location points (except significant ones if specified)
     await (delete(locationPoints)
           ..where((tbl) {
@@ -227,16 +227,16 @@ class LocationDatabase extends _$LocationDatabase {
           ..orderBy([(tbl) => OrderingTerm.asc(tbl.timestamp)]))
         .get();
   }
-  
+
   // Summary Methods
   Future<void> generateDailySummary(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
-    
+
     final points = await getLocationPointsBetween(startOfDay, endOfDay);
-    
+
     if (points.isEmpty) return;
-    
+
     // Calculate statistics
     double totalDistance = 0;
     for (int i = 1; i < points.length; i++) {
@@ -247,18 +247,18 @@ class LocationDatabase extends _$LocationDatabase {
         points[i].longitude,
       );
     }
-    
+
     // Get unique geofence visits
     final geofenceVisits = await (select(geofenceEvents)
           ..where((tbl) => tbl.timestamp.isBetweenValues(startOfDay, endOfDay))
           ..orderBy([(tbl) => OrderingTerm.asc(tbl.timestamp)]))
         .get();
-    
+
     final uniquePlaces = geofenceVisits
         .map((e) => e.geofenceId)
         .toSet()
         .length;
-    
+
     // Insert summary
     await into(locationSummaries).insertOnConflictUpdate(
       LocationSummariesCompanion(
@@ -276,14 +276,14 @@ class LocationDatabase extends _$LocationDatabase {
     const double earthRadius = 6371000; // meters
     final double dLat = _toRadians(lat2 - lat1);
     final double dLon = _toRadians(lon2 - lon1);
-    
-    final double a = 
+
+    final double a =
         math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_toRadians(lat1)) * 
+        math.cos(_toRadians(lat1)) *
         math.cos(_toRadians(lat2)) *
-        math.sin(dLon / 2) * 
+        math.sin(dLon / 2) *
         math.sin(dLon / 2);
-    
+
     final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return earthRadius * c;
   }
@@ -338,7 +338,7 @@ class LocationDatabase extends _$LocationDatabase {
           if (from < 2) {
             await m.createTable(movementData);
           }
-          
+
           // Migration from version 2 to 3: Ensure MovementData table exists
           // This handles cases where the table wasn't created properly
           if (from < 3) {

@@ -20,7 +20,7 @@ class ModelMetadata {
   final DateTime releaseDate;
   final double accuracy;
   final int inferenceTimeMs;
-  
+
   ModelMetadata({
     required this.id,
     required this.name,
@@ -34,7 +34,7 @@ class ModelMetadata {
     this.accuracy = 0.0,
     this.inferenceTimeMs = 0,
   });
-  
+
   factory ModelMetadata.fromJson(Map<String, dynamic> json) {
     return ModelMetadata(
       id: json['id'] as String,
@@ -53,7 +53,7 @@ class ModelMetadata {
       inferenceTimeMs: json['inferenceTimeMs'] as int? ?? 0,
     );
   }
-  
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
@@ -76,10 +76,10 @@ typedef DownloadProgressCallback = void Function(double progress, int bytesRecei
 class ModelManager {
   static final _logger = AppLogger('ModelManager');
   static final _instance = ModelManager._internal();
-  
+
   factory ModelManager() => _instance;
   ModelManager._internal();
-  
+
   // Available models (in production, this would come from a server)
   static final List<ModelMetadata> availableModels = [
     ModelMetadata(
@@ -134,45 +134,45 @@ class ModelManager {
       inferenceTimeMs: 500,
     ),
   ];
-  
+
   /// Get models directory
   Future<Directory> getModelsDirectory() async {
     final appDir = await getApplicationDocumentsDirectory();
     final modelsDir = Directory(path.join(appDir.path, 'models'));
-    
+
     if (!await modelsDir.exists()) {
       await modelsDir.create(recursive: true);
     }
-    
+
     return modelsDir;
   }
-  
+
   /// Get installed models
   Future<List<ModelMetadata>> getInstalledModels() async {
     try {
       final modelsDir = await getModelsDirectory();
       final metadataFile = File(path.join(modelsDir.path, 'models.json'));
-      
+
       if (!await metadataFile.exists()) {
         return [];
       }
-      
+
       final content = await metadataFile.readAsString();
       final List<dynamic> json = jsonDecode(content);
-      
+
       return json.map((m) => ModelMetadata.fromJson(m as Map<String, dynamic>)).toList();
     } catch (e) {
       _logger.error('Failed to get installed models', error: e);
       return [];
     }
   }
-  
+
   /// Check if model is installed
   Future<bool> isModelInstalled(String modelId) async {
     final installedModels = await getInstalledModels();
     return installedModels.any((m) => m.id == modelId);
   }
-  
+
   /// Download model
   Future<void> downloadModel(
     ModelMetadata model, {
@@ -180,38 +180,38 @@ class ModelManager {
   }) async {
     try {
       _logger.info('Downloading model: ${model.name}');
-      
+
       // Check if already installed
       if (await isModelInstalled(model.id)) {
         _logger.info('Model already installed: ${model.name}');
         return;
       }
-      
+
       // Get models directory
       final modelsDir = await getModelsDirectory();
       final modelFile = File(path.join(modelsDir.path, '${model.id}.${model.format.name}'));
-      
+
       // Download model
       final request = http.Request('GET', Uri.parse(model.downloadUrl));
       final response = await request.send();
-      
+
       if (response.statusCode != 200) {
         throw Exception('Failed to download model: ${response.statusCode}');
       }
-      
+
       // Get total size
       final totalBytes = response.contentLength ?? model.sizeBytes;
       var bytesReceived = 0;
-      
+
       // Create file sink
       final sink = modelFile.openWrite();
-      
+
       // Download with progress
       await response.stream.listen(
         (chunk) {
           sink.add(chunk);
           bytesReceived += chunk.length;
-          
+
           if (onProgress != null) {
             final progress = bytesReceived / totalBytes;
             onProgress(progress, bytesReceived, totalBytes);
@@ -227,98 +227,98 @@ class ModelManager {
           throw error;
         },
       ).asFuture();
-      
+
       // Save metadata
       await _saveModelMetadata(model);
-      
+
       _logger.info('Model installed successfully: ${model.name}');
     } catch (e, stack) {
       _logger.error('Failed to download model', error: e, stackTrace: stack);
       throw Exception('Failed to download model: $e');
     }
   }
-  
+
   /// Delete model
   Future<void> deleteModel(String modelId) async {
     try {
       final modelsDir = await getModelsDirectory();
       final installedModels = await getInstalledModels();
-      
+
       final model = installedModels.firstWhere(
         (m) => m.id == modelId,
         orElse: () => throw Exception('Model not found'),
       );
-      
+
       // Delete model file
       final modelFile = File(path.join(modelsDir.path, '${model.id}.${model.format.name}'));
       if (await modelFile.exists()) {
         await modelFile.delete();
       }
-      
+
       // Update metadata
       installedModels.removeWhere((m) => m.id == modelId);
       await _saveInstalledModels(installedModels);
-      
+
       _logger.info('Model deleted: $modelId');
     } catch (e) {
       _logger.error('Failed to delete model', error: e);
       throw Exception('Failed to delete model: $e');
     }
   }
-  
+
   /// Get model path
   Future<String> getModelPath(String modelId) async {
     final modelsDir = await getModelsDirectory();
     final installedModels = await getInstalledModels();
-    
+
     final model = installedModels.firstWhere(
       (m) => m.id == modelId,
       orElse: () => throw Exception('Model not found'),
     );
-    
+
     return path.join(modelsDir.path, '${model.id}.${model.format.name}');
   }
-  
+
   /// Get recommended model based on device capabilities
   Future<ModelMetadata?> getRecommendedModel() async {
     try {
       // Get device info
       final freeMemory = await _getAvailableMemory();
       final isHighPerformance = await _isHighPerformanceDevice();
-      
+
       // Filter models based on device capabilities
       final suitableModels = availableModels.where((model) {
         // Check size constraints
         if (model.sizeBytes > freeMemory * 0.1) {
           return false; // Model too large (>10% of free memory)
         }
-        
+
         // Check performance requirements
         if (!isHighPerformance && model.inferenceTimeMs > 300) {
           return false; // Model too slow for device
         }
-        
+
         return true;
       }).toList();
-      
+
       if (suitableModels.isEmpty) {
         return null;
       }
-      
+
       // Sort by accuracy and performance balance
       suitableModels.sort((a, b) {
         final scoreA = a.accuracy - (a.inferenceTimeMs / 1000);
         final scoreB = b.accuracy - (b.inferenceTimeMs / 1000);
         return scoreB.compareTo(scoreA);
       });
-      
+
       return suitableModels.first;
     } catch (e) {
       _logger.error('Failed to get recommended model', error: e);
       return availableModels.first; // Return default model
     }
   }
-  
+
   /// Create AI model configuration from metadata
   AIModelConfig createModelConfig(ModelMetadata model) {
     return AIModelConfig(
@@ -330,54 +330,54 @@ class ModelManager {
       metadata: model.config,
     );
   }
-  
+
   /// Optimize model for device
   Future<void> optimizeModel(String modelId) async {
     try {
       _logger.info('Optimizing model: $modelId');
-      
+
       // Get model path
       final modelPath = await getModelPath(modelId);
-      
+
       // In a real implementation, this would:
       // 1. Quantize the model (int8, int16)
       // 2. Prune unnecessary layers
       // 3. Apply device-specific optimizations
       // 4. Cache optimized version
-      
+
       _logger.info('Model optimization complete: $modelId');
     } catch (e) {
       _logger.error('Failed to optimize model', error: e);
     }
   }
-  
+
   /// Benchmark model performance
   Future<Map<String, dynamic>> benchmarkModel(String modelId) async {
     try {
       _logger.info('Benchmarking model: $modelId');
-      
+
       final results = <String, dynamic>{};
       final modelPath = await getModelPath(modelId);
-      
+
       // Load model
       final startLoad = DateTime.now();
       // Model loading logic here
       final loadTime = DateTime.now().difference(startLoad).inMilliseconds;
       results['loadTimeMs'] = loadTime;
-      
+
       // Run inference benchmark
       const testPrompt = 'Hello, this is a test prompt for benchmarking.';
       final startInference = DateTime.now();
       // Inference logic here
       final inferenceTime = DateTime.now().difference(startInference).inMilliseconds;
       results['inferenceTimeMs'] = inferenceTime;
-      
+
       // Memory usage
       results['memoryUsageMB'] = await _getModelMemoryUsage(modelPath);
-      
+
       // Accuracy test (would need test dataset)
       results['accuracy'] = 0.85; // Placeholder
-      
+
       _logger.info('Benchmark complete: $results');
       return results;
     } catch (e) {
@@ -385,30 +385,30 @@ class ModelManager {
       return {};
     }
   }
-  
+
   /// Save model metadata
   Future<void> _saveModelMetadata(ModelMetadata model) async {
     final installedModels = await getInstalledModels();
     installedModels.add(model);
     await _saveInstalledModels(installedModels);
   }
-  
+
   /// Save installed models list
   Future<void> _saveInstalledModels(List<ModelMetadata> models) async {
     final modelsDir = await getModelsDirectory();
     final metadataFile = File(path.join(modelsDir.path, 'models.json'));
-    
+
     final json = models.map((m) => m.toJson()).toList();
     await metadataFile.writeAsString(jsonEncode(json));
   }
-  
+
   /// Get available memory
   Future<int> _getAvailableMemory() async {
     // Platform-specific implementation would go here
     // For now, return a reasonable default (1GB)
     return 1024 * 1024 * 1024;
   }
-  
+
   /// Check if device is high performance
   Future<bool> _isHighPerformanceDevice() async {
     // Platform-specific implementation would check:
@@ -418,7 +418,7 @@ class ModelManager {
     // For now, return true for development
     return true;
   }
-  
+
   /// Get model memory usage
   Future<int> _getModelMemoryUsage(String modelPath) async {
     final file = File(modelPath);

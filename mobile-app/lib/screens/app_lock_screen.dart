@@ -13,7 +13,7 @@ class AppLockScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final appLockService = ref.read(appLockServiceProvider.notifier);
     final appLockState = ref.watch(appLockServiceProvider);
-    
+
     useEffect(() {
       // Attempt biometric authentication immediately if available
       if (appLockService.canUseBiometrics) {
@@ -171,7 +171,7 @@ class AppLockScreen extends HookConsumerWidget {
     final authenticated = await appLockService.authenticateWithBiometrics(
       reason: 'Authenticate to unlock AuraOne',
     );
-    
+
     if (!authenticated && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

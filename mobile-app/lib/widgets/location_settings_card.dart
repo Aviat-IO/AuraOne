@@ -5,14 +5,14 @@ import '../services/simple_location_service.dart';
 
 class LocationSettingsCard extends ConsumerWidget {
   const LocationSettingsCard({super.key});
-  
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isTracking = ref.watch(isTrackingProvider);
     final locationService = ref.read(simpleLocationServiceProvider);
     final currentLocation = ref.watch(currentLocationProvider);
-    
+
     return Card(
       elevation: 2,
       child: Padding(
@@ -36,7 +36,7 @@ class LocationSettingsCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Status indicator
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -78,7 +78,7 @@ class LocationSettingsCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Platform-specific info
             if (Platform.isAndroid) ...[
               _buildPlatformInfo(
@@ -99,16 +99,16 @@ class LocationSettingsCard extends ConsumerWidget {
                   : '• Requires "Always Allow" permission\n• Background App Refresh must be enabled',
               ),
             ],
-            
+
             const SizedBox(height: 16),
-            
+
             // Action buttons
             Row(
               children: [
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: isTracking 
-                      ? null 
+                    onPressed: isTracking
+                      ? null
                       : () async {
                           final success = await locationService.startTracking();
                           if (!success && context.mounted) {
@@ -126,8 +126,8 @@ class LocationSettingsCard extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: !isTracking 
-                      ? null 
+                    onPressed: !isTracking
+                      ? null
                       : () async {
                           await locationService.stopTracking();
                         },
@@ -142,7 +142,7 @@ class LocationSettingsCard extends ConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildPlatformInfo(
     BuildContext context,
     IconData icon,
@@ -150,7 +150,7 @@ class LocationSettingsCard extends ConsumerWidget {
     String info,
   ) {
     final theme = Theme.of(context);
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

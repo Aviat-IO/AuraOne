@@ -8,12 +8,12 @@ import '../services/photo_service.dart';
 // Singleton provider for the PhotoService with database integration
 final photoServiceProvider = Provider<PhotoService>((ref) {
   final service = PhotoService(ref);
-  
+
   // Dispose the service when the provider is disposed
   ref.onDispose(() {
     service.dispose();
   });
-  
+
   return service;
 });
 
@@ -133,4 +133,3 @@ final todayPersonIdentificationProvider = FutureProvider<List<Person>>((ref) asy
   final service = ref.watch(photoServiceProvider);
   return await service.identifyPersonsInTodayPhotos();
 });
-

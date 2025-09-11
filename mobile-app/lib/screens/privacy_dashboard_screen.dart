@@ -18,22 +18,22 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final scrollController = useScrollController();
-    
+
     // Get data from various services
     final locationDb = ref.watch(locationDatabaseProvider);
     final photoService = ref.watch(photoServiceProvider);
     final calendarService = ref.watch(calendarServiceProvider);
     final healthService = ref.watch(healthServiceProvider);
     final bleService = ref.watch(bleServiceProvider);
-    
+
     // Calculate statistics
     final stats = useState<Map<String, dynamic>>({});
-    
+
     useEffect(() {
       Future<void> calculateStats() async {
         final now = DateTime.now();
         final weekAgo = now.subtract(const Duration(days: 7));
-        
+
         // Get location count
         int locationCount = 0;
         try {
@@ -42,7 +42,7 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
         } catch (e) {
           // Handle error
         }
-        
+
         // Get photo count
         int photoCount = 0;
         try {
@@ -51,7 +51,7 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
         } catch (e) {
           // Handle error
         }
-        
+
         // Get calendar event count
         int calendarCount = 0;
         try {
@@ -60,7 +60,7 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
         } catch (e) {
           // Handle error
         }
-        
+
         // Get health data count
         int healthCount = 0;
         try {
@@ -69,7 +69,7 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
         } catch (e) {
           // Handle error
         }
-        
+
         // Get BLE device count
         int bleCount = 0;
         try {
@@ -78,7 +78,7 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
         } catch (e) {
           // Handle error
         }
-        
+
         stats.value = {
           'location': locationCount,
           'photos': photoCount,
@@ -88,7 +88,7 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
           'total': locationCount + photoCount + calendarCount + healthCount + bleCount,
         };
       }
-      
+
       calculateStats();
       return null;
     }, []);
@@ -140,23 +140,23 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
                     // Overview Card
                     _buildOverviewCard(context, theme, stats.value),
                     const SizedBox(height: 16),
-                    
+
                     // Data Collection Chart
                     _buildDataCollectionChart(context, theme, stats.value),
                     const SizedBox(height: 16),
-                    
+
                     // Storage Status
                     _buildStorageStatusCard(context, theme, stats.value),
                     const SizedBox(height: 16),
-                    
+
                     // Data Sources Breakdown
                     _buildDataSourcesBreakdown(context, theme, stats.value),
                     const SizedBox(height: 16),
-                    
+
                     // Recent Activities
                     _buildRecentActivities(context, theme),
                     const SizedBox(height: 16),
-                    
+
                     // Data Retention Settings
                     _buildDataRetentionCard(context, theme),
                   ]),
@@ -171,7 +171,7 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
 
   Widget _buildOverviewCard(BuildContext context, ThemeData theme, Map<String, dynamic> stats) {
     final total = stats['total'] ?? 0;
-    
+
     return Card(
       elevation: 0,
       color: theme.colorScheme.surfaceContainer,
@@ -217,7 +217,7 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
               ],
             ),
             const SizedBox(height: 24),
-            
+
             // Total data points
             Center(
               child: Column(
@@ -238,9 +238,9 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Quick stats
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -421,7 +421,7 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
   Widget _buildStorageStatusCard(BuildContext context, ThemeData theme, Map<String, dynamic> stats) {
     final total = stats['total'] ?? 0;
     final storageUsedMB = (total * 0.001).toStringAsFixed(2); // Rough estimate
-    
+
     return Card(
       elevation: 0,
       color: theme.colorScheme.surfaceContainer,
@@ -446,7 +446,7 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
               ],
             ),
             const SizedBox(height: 20),
-            
+
             // Storage bar
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
@@ -458,7 +458,7 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
-            
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -474,9 +474,9 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Storage breakdown
             Column(
               children: [
@@ -564,7 +564,7 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // Pie chart
             SizedBox(
               height: 200,
@@ -573,7 +573,7 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
                   sections: dataMap.entries.map((entry) {
                     final index = dataMap.keys.toList().indexOf(entry.key);
                     final percentage = (entry.value / total * 100).toStringAsFixed(1);
-                    
+
                     return PieChartSectionData(
                       color: colorList[index],
                       value: entry.value,
@@ -591,9 +591,9 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Legend
             Wrap(
               spacing: 16,
@@ -661,7 +661,7 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             ...activities.map((activity) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Row(
@@ -730,7 +730,7 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
               ],
             ),
             const SizedBox(height: 20),
-            
+
             _buildRetentionItem(theme, 'Location History', '30 days'),
             const SizedBox(height: 12),
             _buildRetentionItem(theme, 'Photo Metadata', 'Until manually deleted'),
@@ -740,9 +740,9 @@ class PrivacyDashboardScreen extends HookConsumerWidget {
             _buildRetentionItem(theme, 'Health Records', '1 year'),
             const SizedBox(height: 12),
             _buildRetentionItem(theme, 'Bluetooth Contacts', '14 days'),
-            
+
             const SizedBox(height: 20),
-            
+
             FilledButton.tonal(
               onPressed: () => context.push('/privacy'),
               child: const Text('Manage Retention Settings'),

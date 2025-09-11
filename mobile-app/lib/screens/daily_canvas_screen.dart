@@ -32,11 +32,11 @@ class DailyCanvasScreen extends HookConsumerWidget {
     final selectedDate = ref.watch(selectedDateProvider);
     final viewMode = ref.watch(viewModeProvider);
     final activeSection = ref.watch(activeSectionProvider);
-    
+
     // Animation controllers for smooth transitions
     final scrollController = useScrollController();
     final tabController = useTabController(initialLength: 4);
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -61,7 +61,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
             children: [
               // Header with date navigation
               _buildHeader(context, theme, isLight, selectedDate, ref),
-              
+
               // Main content area with responsive layout
               Expanded(
                 child: LayoutBuilder(
@@ -69,7 +69,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
                     // Responsive breakpoints
                     final isTablet = constraints.maxWidth > 600;
                     final isDesktop = constraints.maxWidth > 900;
-                    
+
                     if (isDesktop) {
                       return _buildDesktopLayout(
                         context,
@@ -109,12 +109,12 @@ class DailyCanvasScreen extends HookConsumerWidget {
           ),
         ),
       ),
-      
+
       // Floating action button for quick actions
       floatingActionButton: _buildFloatingActionButton(context, theme, isLight, ref),
     );
   }
-  
+
   Widget _buildHeader(
     BuildContext context,
     ThemeData theme,
@@ -123,7 +123,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
     WidgetRef ref,
   ) {
     final dateFormat = DateFormat('EEEE, MMMM d, yyyy');
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -144,12 +144,12 @@ class DailyCanvasScreen extends HookConsumerWidget {
           IconButton(
             icon: const Icon(Icons.chevron_left),
             onPressed: () {
-              ref.read(selectedDateProvider.notifier).state = 
+              ref.read(selectedDateProvider.notifier).state =
                 selectedDate.subtract(const Duration(days: 1));
             },
             tooltip: 'Previous day',
           ),
-          
+
           Expanded(
             child: GestureDetector(
               onTap: () => _showCalendarPicker(context, ref),
@@ -180,20 +180,20 @@ class DailyCanvasScreen extends HookConsumerWidget {
               ),
             ),
           ),
-          
+
           IconButton(
             icon: const Icon(Icons.chevron_right),
             onPressed: selectedDate.isBefore(
               DateTime.now().subtract(const Duration(hours: 23)),
             )
                 ? () {
-                    ref.read(selectedDateProvider.notifier).state = 
+                    ref.read(selectedDateProvider.notifier).state =
                       selectedDate.add(const Duration(days: 1));
                   }
                 : null,
             tooltip: 'Next day',
           ),
-          
+
           // View mode toggle
           IconButton(
             icon: Icon(
@@ -203,7 +203,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
             ),
             onPressed: () {
               final current = ref.read(viewModeProvider);
-              ref.read(viewModeProvider.notifier).state = 
+              ref.read(viewModeProvider.notifier).state =
                 current == ViewMode.compact ? ViewMode.expanded : ViewMode.compact;
             },
             tooltip: 'Toggle view mode',
@@ -212,7 +212,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildMobileLayout(
     BuildContext context,
     ThemeData theme,
@@ -241,7 +241,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
               theme: theme,
               isLight: isLight,
               isActive: activeSection == JournalSection.timeline,
-              onTap: () => ref.read(activeSectionProvider.notifier).state = 
+              onTap: () => ref.read(activeSectionProvider.notifier).state =
                 activeSection == JournalSection.timeline ? null : JournalSection.timeline,
             ),
             const SizedBox(height: 16),
@@ -255,7 +255,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
               theme: theme,
               isLight: isLight,
               isActive: activeSection == JournalSection.map,
-              onTap: () => ref.read(activeSectionProvider.notifier).state = 
+              onTap: () => ref.read(activeSectionProvider.notifier).state =
                 activeSection == JournalSection.map ? null : JournalSection.map,
             ),
             const SizedBox(height: 16),
@@ -269,7 +269,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
               theme: theme,
               isLight: isLight,
               isActive: activeSection == JournalSection.media,
-              onTap: () => ref.read(activeSectionProvider.notifier).state = 
+              onTap: () => ref.read(activeSectionProvider.notifier).state =
                 activeSection == JournalSection.media ? null : JournalSection.media,
             ),
             const SizedBox(height: 16),
@@ -283,7 +283,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
               theme: theme,
               isLight: isLight,
               isActive: activeSection == JournalSection.journal,
-              onTap: () => ref.read(activeSectionProvider.notifier).state = 
+              onTap: () => ref.read(activeSectionProvider.notifier).state =
                 activeSection == JournalSection.journal ? null : JournalSection.journal,
             ),
           ],
@@ -342,7 +342,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
       );
     }
   }
-  
+
   Widget _buildTabletLayout(
     BuildContext context,
     ThemeData theme,
@@ -370,7 +370,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
                     theme: theme,
                     isLight: isLight,
                     isActive: activeSection == JournalSection.timeline,
-                    onTap: () => ref.read(activeSectionProvider.notifier).state = 
+                    onTap: () => ref.read(activeSectionProvider.notifier).state =
                       activeSection == JournalSection.timeline ? null : JournalSection.timeline,
                   ),
                 ),
@@ -383,7 +383,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
                     theme: theme,
                     isLight: isLight,
                     isActive: activeSection == JournalSection.map,
-                    onTap: () => ref.read(activeSectionProvider.notifier).state = 
+                    onTap: () => ref.read(activeSectionProvider.notifier).state =
                       activeSection == JournalSection.map ? null : JournalSection.map,
                   ),
                 ),
@@ -404,7 +404,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
                     theme: theme,
                     isLight: isLight,
                     isActive: activeSection == JournalSection.media,
-                    onTap: () => ref.read(activeSectionProvider.notifier).state = 
+                    onTap: () => ref.read(activeSectionProvider.notifier).state =
                       activeSection == JournalSection.media ? null : JournalSection.media,
                   ),
                 ),
@@ -418,7 +418,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
                     theme: theme,
                     isLight: isLight,
                     isActive: activeSection == JournalSection.journal,
-                    onTap: () => ref.read(activeSectionProvider.notifier).state = 
+                    onTap: () => ref.read(activeSectionProvider.notifier).state =
                       activeSection == JournalSection.journal ? null : JournalSection.journal,
                   ),
                 ),
@@ -429,7 +429,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildDesktopLayout(
     BuildContext context,
     ThemeData theme,
@@ -454,7 +454,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
               theme: theme,
               isLight: isLight,
               isActive: activeSection == JournalSection.timeline,
-              onTap: () => ref.read(activeSectionProvider.notifier).state = 
+              onTap: () => ref.read(activeSectionProvider.notifier).state =
                 activeSection == JournalSection.timeline ? null : JournalSection.timeline,
             ),
           ),
@@ -472,7 +472,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
                     theme: theme,
                     isLight: isLight,
                     isActive: activeSection == JournalSection.map,
-                    onTap: () => ref.read(activeSectionProvider.notifier).state = 
+                    onTap: () => ref.read(activeSectionProvider.notifier).state =
                       activeSection == JournalSection.map ? null : JournalSection.map,
                   ),
                 ),
@@ -485,7 +485,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
                     theme: theme,
                     isLight: isLight,
                     isActive: activeSection == JournalSection.media,
-                    onTap: () => ref.read(activeSectionProvider.notifier).state = 
+                    onTap: () => ref.read(activeSectionProvider.notifier).state =
                       activeSection == JournalSection.media ? null : JournalSection.media,
                   ),
                 ),
@@ -503,7 +503,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
               theme: theme,
               isLight: isLight,
               isActive: activeSection == JournalSection.journal,
-              onTap: () => ref.read(activeSectionProvider.notifier).state = 
+              onTap: () => ref.read(activeSectionProvider.notifier).state =
                 activeSection == JournalSection.journal ? null : JournalSection.journal,
             ),
           ),
@@ -511,7 +511,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildSectionCard({
     required String title,
     required IconData icon,
@@ -529,7 +529,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isLight
-              ? (isActive 
+              ? (isActive
                   ? [
                       theme.colorScheme.primary.withValues(alpha: 0.15),
                       theme.colorScheme.primary.withValues(alpha: 0.08),
@@ -611,7 +611,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildFloatingActionButton(
     BuildContext context,
     ThemeData theme,
@@ -625,7 +625,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
       tooltip: 'Add content',
     );
   }
-  
+
   void _showCalendarPicker(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
@@ -634,7 +634,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
       builder: (context) {
         final theme = Theme.of(context);
         final selectedDate = ref.watch(selectedDateProvider);
-        
+
         return Container(
           height: MediaQuery.of(context).size.height * 0.6,
           decoration: BoxDecoration(
@@ -686,7 +686,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
       },
     );
   }
-  
+
   void _showQuickAddMenu(BuildContext context, ThemeData theme, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
@@ -765,7 +765,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
       },
     );
   }
-  
+
   Widget _buildQuickAddButton({
     required IconData icon,
     required String label,

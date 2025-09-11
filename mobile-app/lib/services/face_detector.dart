@@ -48,36 +48,36 @@ class DetectedFace {
   /// Higher scores indicate better quality faces for recognition
   double get qualityScore {
     double score = 0.0;
-    
+
     // Confidence contributes heavily to quality
     if (confidence != null) {
       score += confidence! * 0.4;
     } else {
       score += 0.2; // Default moderate confidence
     }
-    
+
     // Face size (larger faces are generally better quality)
     final faceSize = boundingBox.width * boundingBox.height;
     final sizeScore = (faceSize / (400 * 400)).clamp(0.0, 1.0); // Normalize to 400x400 reference
     score += sizeScore * 0.3;
-    
+
     // Eye openness (open eyes are better for recognition)
     double eyeScore = 0.5; // Default neutral
     if (leftEyeOpenProbability != null && rightEyeOpenProbability != null) {
       eyeScore = (leftEyeOpenProbability! + rightEyeOpenProbability!) / 2.0;
     }
     score += eyeScore * 0.2;
-    
+
     // Head pose (frontal faces are better)
     double poseScore = 0.5; // Default neutral
     if (headEulerAngleX != null && headEulerAngleY != null && headEulerAngleZ != null) {
       // Calculate how close to frontal the face is (lower angles = more frontal)
-      final totalAngleDeviation = 
+      final totalAngleDeviation =
         (headEulerAngleX!.abs() + headEulerAngleY!.abs() + headEulerAngleZ!.abs()) / 3.0;
       poseScore = (1.0 - (totalAngleDeviation / 45.0)).clamp(0.0, 1.0);
     }
     score += poseScore * 0.1;
-    
+
     return score.clamp(0.0, 1.0);
   }
 
@@ -102,7 +102,7 @@ class FaceDetectionResult {
   });
 
   /// Get only high-quality faces from the detection result
-  List<DetectedFace> get highQualityFaces => 
+  List<DetectedFace> get highQualityFaces =>
     faces.where((face) => face.isHighQuality).toList();
 
   /// Get the best quality face from the detection result
@@ -166,8 +166,8 @@ class FaceDetectionConfig {
 class FaceDetectionService {
   final FaceDetectionConfig _config;
   late final FaceDetector _detector;
-  
-  FaceDetectionService({FaceDetectionConfig? config}) 
+
+  FaceDetectionService({FaceDetectionConfig? config})
     : _config = config ?? FaceDetectionConfig() {
     _detector = FaceDetector(options: _config.options);
   }
@@ -182,9 +182,9 @@ class FaceDetectionService {
     try {
       final inputImage = InputImage.fromFile(file);
       final faces = await _detector.processImage(inputImage);
-      
+
       final detectedFaces = faces.map(DetectedFace.fromMlKitFace).toList();
-      
+
       // Filter faces by minimum size
       final filteredFaces = detectedFaces.where((face) {
         final faceSize = (face.boundingBox.width + face.boundingBox.height) / 2;
@@ -209,7 +209,7 @@ class FaceDetectionService {
     void Function(int completed, int total)? onProgress,
   }) async {
     final results = <String, FaceDetectionResult>{};
-    
+
     for (int i = 0; i < assets.length; i++) {
       final asset = assets[i];
       try {
@@ -224,7 +224,7 @@ class FaceDetectionService {
         onProgress?.call(i + 1, assets.length);
       }
     }
-    
+
     return results;
   }
 
@@ -234,7 +234,7 @@ class FaceDetectionService {
     void Function(int completed, int total)? onProgress,
   }) async {
     final allResults = await detectFacesBatch(assets, onProgress: onProgress);
-    
+
     return Map.fromEntries(
       allResults.entries.where(
         (entry) => entry.value.highQualityFaces.isNotEmpty,
@@ -255,7 +255,7 @@ class FaceDetectionService {
       } catch (e) {
         // Log error silently during stream processing
       }
-      
+
       // Yield control to prevent blocking UI
       await Future.delayed(Duration.zero);
     }

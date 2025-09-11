@@ -21,9 +21,9 @@ class PageHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    
+
     // Use provided gradient colors or default to logo gradient
-    final gradient = gradientColors ?? (isLight 
+    final gradient = gradientColors ?? (isLight
       ? AuraColors.lightLogoGradient
       : AuraColors.darkLogoGradient);
 
@@ -38,7 +38,7 @@ class PageHeader extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: isLight 
+                color: isLight
                   ? AuraColors.lightPrimary.withValues(alpha: 0.2)
                   : AuraColors.darkPrimary.withValues(alpha: 0.15),
                 blurRadius: 12,

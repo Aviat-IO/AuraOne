@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../theme/colors.dart';
 import '../widgets/page_header.dart';
+import '../services/calendar_service.dart';
+import '../providers/service_providers.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
@@ -15,36 +18,92 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   final CalendarFormat _calendarFormat = CalendarFormat.month; // Fixed to month view
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-
-  // Mock data for dates with entries - in a real app, this would come from storage
-  final Map<DateTime, List<String>> _journalEntries = {
-    DateTime(2025, 1, 5): ['Morning reflection', 'Evening gratitude'],
-    DateTime(2025, 1, 7): ['Daily thoughts'],
-    DateTime(2025, 1, 9): ['Mindfulness session'],
-    DateTime(2025, 1, 12): ['Weekly review'],
-    DateTime(2025, 1, 15): ['Goal setting'],
-  };
+  Map<DateTime, List<CalendarEventData>> _journalEntries = {};
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
+    _loadCalendarEntries();
   }
 
-
-  List<String> _getEntriesForDay(DateTime day) {
-    for (final entryDate in _journalEntries.keys) {
-      if (isSameDay(entryDate, day)) {
-        return _journalEntries[entryDate] ?? [];
+  Future<void> _loadCalendarEntries() async {
+    try {
+      final calendarService = ref.read(calendarServiceProvider);
+      
+      // Load entries for the current month and surrounding months
+      final startDate = DateTime(_focusedDay.year, _focusedDay.month - 1, 1);
+      final endDate = DateTime(_focusedDay.year, _focusedDay.month + 2, 0);
+      
+      final entries = await calendarService.getJournalSummaryEntries(
+        startDate: startDate,
+        endDate: endDate,
+      );
+      
+      // Group entries by date
+      final Map<DateTime, List<CalendarEventData>> groupedEntries = {};
+      for (final entry in entries) {
+        final dateKey = DateTime(
+          entry.startDate.year,
+          entry.startDate.month,
+          entry.startDate.day,
+        );
+        if (!groupedEntries.containsKey(dateKey)) {
+          groupedEntries[dateKey] = [];
+        }
+        groupedEntries[dateKey]!.add(entry);
       }
+      
+      setState(() {
+        _journalEntries = groupedEntries;
+        _isLoading = false;
+      });
+    } catch (e) {
+      // Handle error
+      setState(() {
+        _isLoading = false;
+      });
     }
-    return [];
+  }
+
+  List<CalendarEventData> _getEntriesForDay(DateTime day) {
+    final dateKey = DateTime(day.year, day.month, day.day);
+    return _journalEntries[dateKey] ?? [];
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
+
+    if (_isLoading) {
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: isLight ? [
+                AuraColors.lightSurface,
+                AuraColors.lightSurface.withValues(alpha: 0.95),
+                AuraColors.lightSurfaceContainerLow.withValues(alpha: 0.9),
+              ] : [
+                AuraColors.darkSurface,
+                AuraColors.darkSurface.withValues(alpha: 0.98),
+                AuraColors.darkSurfaceContainerLow.withValues(alpha: 0.95),
+              ],
+              stops: const [0.0, 0.3, 1.0],
+            ),
+          ),
+          child: const SafeArea(
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       body: Container(
@@ -106,7 +165,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     focusedDay: _focusedDay,
                     calendarFormat: _calendarFormat,
                     selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                    eventLoader: _getEntriesForDay,
+                    eventLoader: (day) {
+                      // Convert CalendarEventData to List<String> for the calendar widget
+                      final events = _getEntriesForDay(day);
+                      return events.map((e) => e.title).toList();
+                    },
                     startingDayOfWeek: StartingDayOfWeek.sunday,
                     calendarStyle: CalendarStyle(
                       outsideDaysVisible: false,
@@ -148,16 +211,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         color: theme.colorScheme.primary,
                       ),
                     ),
-                    onDaySelected: (selectedDay, focusedDay) {
+                    onDaySelected: (selected, focused) {
                       setState(() {
-                        _selectedDay = selectedDay;
-                        _focusedDay = focusedDay;
+                        _selectedDay = selected;
+                        _focusedDay = focused;
                       });
                     },
-                    onPageChanged: (focusedDay) {
+                    onPageChanged: (focused) {
                       setState(() {
-                        _focusedDay = focusedDay;
+                        _focusedDay = focused;
                       });
+                      // Load more entries if needed
+                      _loadCalendarEntries();
                     },
                   ),
                 ),
@@ -166,7 +231,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 // Selected day entries
                 Expanded(
                   child: _selectedDay != null
-                      ? _buildSelectedDayEntries(theme, isLight)
+                      ? _buildSelectedDayEntries(theme, isLight, _selectedDay!, _getEntriesForDay(_selectedDay!))
                       : _buildNoSelectionPlaceholder(theme, isLight),
                 ),
               ],
@@ -177,9 +242,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Widget _buildSelectedDayEntries(ThemeData theme, bool isLight) {
-    final entries = _getEntriesForDay(_selectedDay!);
-    final selectedDate = _selectedDay!;
+  Widget _buildSelectedDayEntries(ThemeData theme, bool isLight, DateTime selectedDate, List<CalendarEventData> entries) {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,7 +333,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       ),
                     ],
                   ),
-                  child: ListTile(
+                  child: ExpansionTile(
                     leading: Container(
                       width: 8,
                       height: 8,
@@ -280,19 +343,29 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       ),
                     ),
                     title: Text(
-                      entry,
+                      entry.title,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    trailing: Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    subtitle: Text(
+                      'Created: ${entry.startDate.day}/${entry.startDate.month}/${entry.startDate.year}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
                     ),
-                    onTap: () {
-                      // TODO: Navigate to detailed entry view
-                    },
+                    children: [
+                      if (entry.description != null)
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            entry.description!,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 );
               },

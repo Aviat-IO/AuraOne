@@ -58,7 +58,7 @@ class PermissionManager {
       deniedMessage: 'Without location access, Aura One cannot provide location-based aura insights.',
       alternativeAction: 'You can still manually log your locations in the app.',
     ),
-    
+
     Permission.locationAlways: PermissionConfig(
       permission: Permission.locationAlways,
       title: 'Background Location',
@@ -72,7 +72,7 @@ class PermissionManager {
       deniedMessage: 'Background location helps provide comprehensive aura insights.',
       alternativeAction: 'The app will only track when open without this permission.',
     ),
-    
+
     Permission.photos: PermissionConfig(
       permission: Permission.photos,
       title: 'Photo Library Access',
@@ -86,7 +86,7 @@ class PermissionManager {
       deniedMessage: 'Without photo access, you cannot save or share aura visualizations.',
       alternativeAction: 'You can still view visualizations within the app.',
     ),
-    
+
     Permission.camera: PermissionConfig(
       permission: Permission.camera,
       title: 'Camera Access',
@@ -100,7 +100,7 @@ class PermissionManager {
       deniedMessage: 'Camera access is needed for aura photography features.',
       alternativeAction: 'You can import existing photos instead.',
     ),
-    
+
     Permission.contacts: PermissionConfig(
       permission: Permission.contacts,
       title: 'Contacts Access',
@@ -114,7 +114,7 @@ class PermissionManager {
       deniedMessage: 'Without contacts access, you cannot easily connect with friends.',
       alternativeAction: 'You can manually search for friends by username.',
     ),
-    
+
     Permission.calendar: PermissionConfig(
       permission: Permission.calendar,
       title: 'Calendar Access',
@@ -128,7 +128,7 @@ class PermissionManager {
       deniedMessage: 'Calendar access helps understand how events affect your aura.',
       alternativeAction: 'You can manually log important events.',
     ),
-    
+
     Permission.microphone: PermissionConfig(
       permission: Permission.microphone,
       title: 'Microphone Access',
@@ -142,7 +142,7 @@ class PermissionManager {
       deniedMessage: 'Microphone access enables voice-based aura features.',
       alternativeAction: 'You can use other input methods for aura tracking.',
     ),
-    
+
     Permission.notification: PermissionConfig(
       permission: Permission.notification,
       title: 'Notification Access',
@@ -193,12 +193,12 @@ class PermissionManager {
 
     // Check current status
     PermissionStatus status = await permission.status;
-    
+
     // If already granted, return
     if (status.isGranted || status.isLimited) {
       return status;
     }
-    
+
     // If permanently denied, show settings dialog
     if (status.isPermanentlyDenied) {
       if (showEducationalUI && context.mounted) {
@@ -217,14 +217,14 @@ class PermissionManager {
       }
       return status;
     }
-    
+
     // Show educational UI if needed
     bool shouldRequest = forceRequest;
-    
+
     if (showEducationalUI && !forceRequest) {
       final hasRequested = await hasRequestedBefore(permission);
       final deniedCount = await getDeniedCount(permission);
-      
+
       // Show educational UI if first time or denied less than 3 times
       if (!hasRequested || deniedCount < 3) {
         if (context.mounted) {
@@ -239,22 +239,22 @@ class PermissionManager {
               benefits: config.benefits,
             ),
           );
-          
+
           shouldRequest = result ?? false;
         }
       } else {
         shouldRequest = true;
       }
     }
-    
+
     // Request permission if user agreed
     if (shouldRequest) {
       await markAsRequested(permission);
       status = await permission.request();
-      
+
       if (status.isDenied) {
         await incrementDeniedCount(permission);
-        
+
         // Show denied dialog if educational UI was shown
         if (showEducationalUI && context.mounted) {
           final deniedCount = await getDeniedCount(permission);
@@ -275,7 +275,7 @@ class PermissionManager {
         }
       }
     }
-    
+
     return status;
   }
 
@@ -285,7 +285,7 @@ class PermissionManager {
     bool showEducationalUI = true,
   }) async {
     final Map<Permission, PermissionStatus> results = {};
-    
+
     for (final permission in permissions) {
       if (context.mounted) {
         results[permission] = await requestPermission(
@@ -295,7 +295,7 @@ class PermissionManager {
         );
       }
     }
-    
+
     return results;
   }
 

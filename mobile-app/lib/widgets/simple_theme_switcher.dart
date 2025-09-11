@@ -10,7 +10,7 @@ class SimpleThemeSwitcher extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final brightness = ref.watch(brightnessProvider);
     final isDark = brightness == Brightness.dark;
-    
+
     return GestureDetector(
       onTap: () {
         final newBrightness = isDark ? Brightness.light : Brightness.dark;
@@ -22,11 +22,11 @@ class SimpleThemeSwitcher extends ConsumerWidget {
         height: 32,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          color: isDark 
+          color: isDark
             ? AuraColors.darkPrimary.withValues(alpha: 0.15)
             : AuraColors.lightPrimary.withValues(alpha: 0.15),
           border: Border.all(
-            color: isDark 
+            color: isDark
               ? AuraColors.darkPrimary.withValues(alpha: 0.3)
               : AuraColors.lightPrimary.withValues(alpha: 0.3),
             width: 1,
@@ -48,7 +48,7 @@ class SimpleThemeSwitcher extends ConsumerWidget {
                   color: isDark ? AuraColors.darkPrimary : AuraColors.lightPrimary,
                   boxShadow: [
                     BoxShadow(
-                      color: isDark 
+                      color: isDark
                         ? AuraColors.darkPrimary.withValues(alpha: 0.3)
                         : AuraColors.lightPrimary.withValues(alpha: 0.3),
                       blurRadius: 4,

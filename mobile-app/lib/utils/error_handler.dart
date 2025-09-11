@@ -9,7 +9,7 @@ class ErrorHandler {
   static final ErrorHandler _instance = ErrorHandler._internal();
   factory ErrorHandler() => _instance;
   ErrorHandler._internal();
-  
+
   /// Initialize global error handling
   static void initialize() {
     // Handle Flutter framework errors
@@ -25,11 +25,11 @@ class ErrorHandler {
           stackTrace: details.stack,
         );
       }
-      
+
       // Report to crash analytics (if configured)
       _reportToCrashlytics(details.exception, details.stack);
     };
-    
+
     // Handle platform errors
     PlatformDispatcher.instance.onError = (error, stack) {
       appLogger.error(
@@ -37,14 +37,14 @@ class ErrorHandler {
         error: error,
         stackTrace: stack,
       );
-      
+
       // Report to crash analytics (if configured)
       _reportToCrashlytics(error, stack);
-      
+
       // Return true to prevent the app from crashing
       return true;
     };
-    
+
     // Set custom error widget for production
     if (!kDebugMode) {
       ErrorWidget.builder = (FlutterErrorDetails details) {
@@ -52,7 +52,7 @@ class ErrorHandler {
       };
     }
   }
-  
+
   /// Handle async errors
   static void handleError(dynamic error, StackTrace? stackTrace) {
     appLogger.error(
@@ -60,11 +60,11 @@ class ErrorHandler {
       error: error,
       stackTrace: stackTrace,
     );
-    
+
     // Report to crash analytics (if configured)
     _reportToCrashlytics(error, stackTrace);
   }
-  
+
   /// Report error to crash analytics service
   static void _reportToCrashlytics(dynamic error, StackTrace? stackTrace) {
     // TODO: Integrate with crash reporting service like Sentry or Firebase Crashlytics
@@ -73,7 +73,7 @@ class ErrorHandler {
       appLogger.info('Would report to crash analytics: $error');
     }
   }
-  
+
   /// Build a user-friendly error widget
   static Widget _buildErrorWidget(FlutterErrorDetails details) {
     return Material(
@@ -131,7 +131,7 @@ class ErrorHandler {
       ),
     );
   }
-  
+
   /// Run a function with error handling
   static Future<T?> runWithErrorHandling<T>(
     Future<T> Function() function, {
@@ -146,12 +146,12 @@ class ErrorHandler {
         error: error,
         stackTrace: stackTrace,
       );
-      
+
       if (showError && kDebugMode) {
         // Show error in debug mode
         debugPrint('Error: $error');
       }
-      
+
       return null;
     }
   }
@@ -166,7 +166,7 @@ final errorNotifierProvider = StateNotifierProvider<ErrorNotifier, ErrorState>((
 class ErrorState {
   final String? message;
   final bool hasError;
-  
+
   const ErrorState({
     this.message,
     this.hasError = false,
@@ -176,19 +176,19 @@ class ErrorState {
 /// Error notifier for UI error handling
 class ErrorNotifier extends StateNotifier<ErrorState> {
   ErrorNotifier() : super(const ErrorState());
-  
+
   void setError(String message) {
     state = ErrorState(
       message: message,
       hasError: true,
     );
-    
+
     // Auto-clear error after 5 seconds
     Future.delayed(const Duration(seconds: 5), () {
       clearError();
     });
   }
-  
+
   void clearError() {
     state = const ErrorState();
   }

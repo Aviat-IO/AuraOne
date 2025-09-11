@@ -10,10 +10,10 @@ final themeProvider = Provider<ThemeData>((ref) {
   final brightness = ref.watch(brightnessProvider);
   ref.watch(fontSizeProvider); // Watch for font size changes
   final fontSizeNotifier = ref.read(fontSizeProvider.notifier);
-  
+
   // Get base theme
   final baseTheme = brightness == Brightness.light ? lightTheme : darkTheme;
-  
+
   // Apply font size scaling to the text theme
   return baseTheme.copyWith(
     textTheme: _scaleTextTheme(baseTheme.textTheme, fontSizeNotifier.scaleFactor),
