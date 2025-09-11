@@ -1,6 +1,6 @@
 # Task ID: 16
 # Title: Replace Today's Summary placeholder with empty state
-# Status: pending
+# Status: done
 # Dependencies: 8
 # Priority: medium
 # Description: Remove all fake/placeholder data from Today's Summary section and implement an empty state message that informs users that data will be automatically collected.

@@ -1,6 +1,6 @@
 # Task ID: 17
 # Title: Integrate on-device AI for Today's Summary generation
-# Status: pending
+# Status: done
 # Dependencies: 6, 16, 3, 5
 # Priority: medium
 # Description: Implement local AI model integration to analyze collected sensor data and generate personalized daily summary text for users.

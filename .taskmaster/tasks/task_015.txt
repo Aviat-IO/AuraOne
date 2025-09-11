@@ -1,6 +1,6 @@
 # Task ID: 15
 # Title: Implement Sticky Tab Navigation for Home Screen Sub-tabs
-# Status: pending
+# Status: done
 # Dependencies: 11, 14
 # Priority: medium
 # Description: Create a sticky tab selector for Overview, Map, and Media tabs that remains fixed at the bottom of the home screen above the global navigation bar, preventing it from scrolling with content.

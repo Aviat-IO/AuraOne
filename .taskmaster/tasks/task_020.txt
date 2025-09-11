@@ -1,0 +1,11 @@
+# Task ID: 20
+# Title: Media Linking Feature - Make Home > Media Tab Photos Clickable and Linkable
+# Status: pending
+# Dependencies: 8, 4
+# Priority: high
+# Description: Implement functionality to make photos in the Home > Media tab clickable and linkable to the corresponding day's journal entry.
+# Details:
+Modify the Media tab in the Home screen to make all displayed photos interactive elements that link to their corresponding journal entries. Implement photo tap handling that navigates users to the specific day's journal entry where the photo was taken. Add visual feedback (such as subtle overlay or border highlighting) to indicate photos are tappable. Use proper gesture detection with InkWell or GestureDetector to handle tap events. Implement navigation logic that determines the correct journal entry date based on photo metadata (EXIF timestamp or database entry date) and routes to the appropriate journal entry screen. Add smooth transition animations when navigating from photo grid to journal entry. Consider implementing a hero animation for seamless photo transition if viewing the same photo in the journal entry. Ensure proper error handling for cases where journal entries might not exist for specific photos. Update the MediaItem database model if needed to store proper journal entry relationships for efficient querying.
+
+# Test Strategy:
+Test photo tap detection and navigation across different photo grid layouts and screen sizes. Verify correct journal entry navigation based on photo timestamps and metadata. Test visual feedback indicators and ensure they follow Material 3 design guidelines. Validate smooth transition animations and hero animations if implemented. Test error scenarios where photos exist without corresponding journal entries. Verify that photo linking works correctly with various photo formats and dates.

@@ -1,6 +1,6 @@
 # Task ID: 10
 # Title: Privacy Controls and Permissions Management
-# Status: pending
+# Status: done
 # Dependencies: 9
 # Priority: high
 # Description: Build comprehensive privacy settings and transparent permission management interface
@@ -11,37 +11,37 @@ Create granular privacy settings screen where users can control each data source
 Test all permission request flows and user experience. Verify data collection controls work correctly. Test privacy dashboard accuracy and data visualization. Validate data deletion functionality. Test security features like app lock across different devices.
 
 # Subtasks:
-## 1. Design granular privacy settings UI [pending]
+## 1. Design granular privacy settings UI [done]
 ### Dependencies: None
 ### Description: Create comprehensive privacy settings interface with granular controls for each data source
 ### Details:
 Design and implement privacy settings screen with toggle controls for location tracking, photo access, calendar integration, health data, and BLE scanning. Create categorized sections for different privacy aspects (data collection, storage, sharing). Implement clear labeling and explanations for each setting. Add visual indicators showing current privacy status and data collection activity.
 
-## 2. Implement just-in-time permission request flows [pending]
+## 2. Implement just-in-time permission request flows [done]
 ### Dependencies: 10.1
 ### Description: Build contextual permission request system with clear explanations
 ### Details:
 Implement permission request dialogs that appear when users first attempt to use features requiring permissions. Create clear explanations for why each permission is needed and how data will be used. Build permission state management to track granted/denied permissions. Implement graceful degradation when permissions are denied. Add settings shortcuts to easily modify permissions later.
 
-## 3. Create privacy dashboard with data visualization [pending]
+## 3. Create privacy dashboard with data visualization [done]
 ### Dependencies: 10.1
 ### Description: Build comprehensive dashboard showing data collection and local storage status
 ### Details:
 Create privacy dashboard that visualizes what data is being collected, how much is stored locally, and when it was last accessed. Implement charts showing data collection patterns over time. Add breakdown by data source (photos, location, calendar, etc.). Show storage usage statistics and data retention policies. Include timeline of recent data collection activities.
 
-## 4. Add selective data deletion tools [pending]
+## 4. Add selective data deletion tools [done]
 ### Dependencies: 10.3
 ### Description: Implement tools for selective or complete journal history removal
 ### Details:
 Build data deletion interface allowing users to selectively remove journal entries by date range, data type, or source. Implement complete data wipe functionality with confirmation dialogs. Add preview of what will be deleted before confirmation. Ensure proper deletion from database and file system including media files. Implement secure deletion that prevents data recovery. Add export option before deletion.
 
-## 5. Implement app lock with biometric authentication [pending]
+## 5. Implement app lock with biometric authentication [done]
 ### Dependencies: None
 ### Description: Add security layer with biometric authentication and app lock functionality
 ### Details:
 Integrate local_auth package for biometric authentication (fingerprint, face ID, etc.). Implement app lock screen that appears on app launch or after inactivity timeout. Add fallback PIN/password authentication when biometrics unavailable. Implement timeout settings for auto-lock (immediate, 1 min, 5 min, etc.). Add privacy screen overlay when app goes to background to hide sensitive content.
 
-## 6. Ensure privacy controls accessibility and documentation [pending]
+## 6. Ensure privacy controls accessibility and documentation [done]
 ### Dependencies: 10.1, 10.2, 10.3, 10.4, 10.5
 ### Description: Make privacy controls easily discoverable with comprehensive help documentation
 ### Details:

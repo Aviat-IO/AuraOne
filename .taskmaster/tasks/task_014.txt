@@ -1,6 +1,6 @@
 # Task ID: 14
 # Title: Fix Home Screen Banner Scroll Behavior
-# Status: pending
+# Status: done
 # Dependencies: 8, 11
 # Priority: medium
 # Description: Convert the fixed 'Good Morning/Evening' banner to a scrollable element that moves naturally with the content instead of remaining sticky at the top of the screen.

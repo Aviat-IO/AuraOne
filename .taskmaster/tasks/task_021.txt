@@ -1,0 +1,55 @@
+# Task ID: 21
+# Title: Local AI Models for Daily Summary Generation (KEY FEATURE)
+# Status: pending
+# Dependencies: 6, 17, 3, 4, 5
+# Priority: critical
+# Description: Implement comprehensive on-device AI system using optimized local models to generate intelligent daily summaries from collected sensor and activity data.
+# Details:
+Build upon existing AI infrastructure from Task 6 and 17 to create a production-ready local AI system for daily summary generation. Research and implement state-of-the-art mobile-optimized language models (quantized Gemma 2B, TinyLLaMA, or Phi-3 Mini) that can run efficiently on mobile devices. Enhance the existing AIService to handle complex data synthesis from multiple sources: location tracking data, photo metadata and analysis, calendar events, health data, and user activity patterns. Implement advanced prompt engineering with dynamic context building that adapts summaries based on data richness - create detailed narratives for data-rich days and meaningful insights for minimal-data days. Add personality and tone customization allowing users to choose summary styles (professional, casual, reflective, detailed, brief). Implement intelligent data filtering that identifies significant events, removes noise, and focuses on meaningful activities. Create a sophisticated caching system for model inference to improve performance and battery life. Add background processing capabilities for generating summaries during optimal device conditions (charging, WiFi, idle). Implement fallback strategies with progressive degradation - from full AI generation to template-based summaries to simple activity lists. Add summary quality scoring and user feedback mechanisms to improve generation over time. Ensure all processing remains completely local with no data leaving the device.
+
+# Test Strategy:
+Test AI model performance across various mobile devices with different specifications. Benchmark memory usage, inference time, and battery impact during summary generation. Validate summary quality across diverse user activity patterns and data scenarios. Test personality and tone customization options produce appropriate stylistic differences. Verify background processing works correctly without impacting device performance. Test fallback systems handle edge cases and model failures gracefully. Validate that all AI processing remains local and no data is transmitted externally.
+
+# Subtasks:
+## 1. Project Setup and Core Dependencies [pending]
+### Dependencies: None
+### Description: Add tflite_flutter package, configure native projects (Android/iOS), and set up assets folder for models
+### Details:
+Install tflite_flutter package providing Dart bindings for TensorFlow Lite native library. Configure native build files for Android (modify build.gradle to include TensorFlow Lite library) and iOS (update Podfile, ensure minimum deployment target compatibility, adjust Strip Style setting in Xcode to Non-Global Symbols for release builds). Create assets folder in project root for storing .tflite model files and declare it in pubspec.yaml.
+
+## 2. Spatiotemporal Data Processing - Location Clustering [pending]
+### Dependencies: 21.1
+### Description: Implement DBSCAN algorithm to identify significant stay points from GPS coordinates
+### Details:
+Process time-series GPS coordinates to identify significant locations where user spent time. Implement custom DBSCAN (Density-Based Spatial Clustering) algorithm in Dart to cluster GPS points into stay points and journeys. Configure parameters: eps (distance in meters for neighborhood radius), MinPts (minimum GPS points within eps radius to define core point). Output list of GPS points labeled with cluster ID (significant place) or noise (journey). Use existing location data from Task 3.
+
+## 3. Spatiotemporal Data Processing - Human Activity Recognition [pending]
+### Dependencies: 21.1, 21.2
+### Description: Implement CNN-LSTM model for classifying physical activity using IMU data
+### Details:
+Classify user's physical activity (stationary, walking, running) using accelerometer and gyroscope data. Obtain/train lightweight CNN-LSTM model optimized for time-series classification, convert to TensorFlow Lite format with post-training quantization. Load har_model.tflite using tflite_flutter. Collect IMU data using sensors_plus plugin. Preprocess sensor data into fixed-length windows of 3-axis readings. Run inference using IsolateInterpreter to avoid blocking UI thread. Output stream of activity labels with timestamps.
+
+## 4. Visual Context Extraction [pending]
+### Dependencies: 21.1
+### Description: Implement image captioning with LightCap or similar lightweight model to process photos and generate descriptions
+### Details:
+Generate descriptive sentences for relevant photos using pre-trained lightweight image captioning model (LightCap or similar). Acquire quantized .tflite version of captioning model and add to assets folder. Load caption_model.tflite using tflite_flutter. Access photos from gallery using existing photo_manager integration from Task 4, filtering by day's timestamps. Preprocess images to required tensor format (resizing, normalizing pixel values). Run captioning model using IsolateInterpreter. Output descriptive strings for each processed image. Alternative: Use google_ml_kit_image_labeling for simpler prototyping.
+
+## 5. Multi-modal Fusion and Event Correlation [pending]
+### Dependencies: 21.2, 21.3, 21.4
+### Description: Combine location, activity, and photo data into unified timeline structure
+### Details:
+Combine outputs from spatiotemporal processing and visual extraction into chronologically ordered, contextually aware data structure. Create temporal correlation function to build unified timeline: iterate through day's timestamps, use DBSCAN output to segment into Stay and Journey events, associate HAR labels for each event, attach image captions from photos taken during time windows. Define DailyEvent Dart class with EventType (Stay/Journey), start/end times, locationId, activities list, and photo captions list. Optional advanced: implement Transformer-based fusion model for deeper context learning.
+
+## 6. Narrative Generation [pending]
+### Dependencies: 21.5
+### Description: Integrate Small Language Model (Phi-3 Mini or TinyLlama) for generating human-readable summaries
+### Details:
+Convert fused daily events into human-readable paragraph using Small Language Model optimized for on-device use (Microsoft Phi-3 Mini or TinyLlama). Download 4-bit quantized .tflite version of chosen SLM and add to assets folder. Load SLM using tflite_flutter. Create prompt engineering system from DailyEvent objects with instructions for summary writing. Implement tokenization and inference processing. CRITICALLY IMPORTANT: Use IsolateInterpreter for SLM inference to prevent app crashes. Decode output tokens back into narrative string. Output final daily summary text.
+
+## 7. Final Optimizations [pending]
+### Dependencies: 21.1, 21.2, 21.3, 21.4, 21.5, 21.6
+### Description: Implement hardware acceleration, model quantization, and comprehensive permission handling
+### Details:
+Enable hardware acceleration using delegates (NnApiDelegate for Android, GpuDelegate for iOS) when creating Interpreter to offload computation from CPU. Ensure all .tflite models are quantized (4-bit or 8-bit integer) to minimize memory footprint. Implement comprehensive permission handling logic for location access (always), motion sensors, and photo gallery access. Add error handling and graceful degradation for hardware acceleration failures. Implement model loading optimization and caching strategies. Add performance monitoring and battery usage optimization.
+

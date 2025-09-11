@@ -1000,11 +1000,158 @@
         ],
         "priority": "medium",
         "subtasks": []
+      },
+      {
+        "id": 20,
+        "title": "Media Linking Feature - Make Home > Media Tab Photos Clickable and Linkable",
+        "description": "Implement functionality to make photos in the Home > Media tab clickable and linkable to the corresponding day's journal entry.",
+        "details": "Modify the Media tab in the Home screen to make all displayed photos interactive elements that link to their corresponding journal entries. Implement photo tap handling that navigates users to the specific day's journal entry where the photo was taken. Add visual feedback (such as subtle overlay or border highlighting) to indicate photos are tappable. Use proper gesture detection with InkWell or GestureDetector to handle tap events. Implement navigation logic that determines the correct journal entry date based on photo metadata (EXIF timestamp or database entry date) and routes to the appropriate journal entry screen. Add smooth transition animations when navigating from photo grid to journal entry. Consider implementing a hero animation for seamless photo transition if viewing the same photo in the journal entry. Ensure proper error handling for cases where journal entries might not exist for specific photos. Update the MediaItem database model if needed to store proper journal entry relationships for efficient querying.",
+        "testStrategy": "Test photo tap detection and navigation across different photo grid layouts and screen sizes. Verify correct journal entry navigation based on photo timestamps and metadata. Test visual feedback indicators and ensure they follow Material 3 design guidelines. Validate smooth transition animations and hero animations if implemented. Test error scenarios where photos exist without corresponding journal entries. Verify that photo linking works correctly with various photo formats and dates.",
+        "priority": "high",
+        "dependencies": [
+          8,
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 21,
+        "title": "Local AI Models for Daily Summary Generation (KEY FEATURE)",
+        "description": "Implement comprehensive on-device AI system using optimized local models to generate intelligent daily summaries from collected sensor and activity data.",
+        "details": "Build upon existing AI infrastructure from Task 6 and 17 to create a production-ready local AI system for daily summary generation. Research and implement state-of-the-art mobile-optimized language models (quantized Gemma 2B, TinyLLaMA, or Phi-3 Mini) that can run efficiently on mobile devices. Enhance the existing AIService to handle complex data synthesis from multiple sources: location tracking data, photo metadata and analysis, calendar events, health data, and user activity patterns. Implement advanced prompt engineering with dynamic context building that adapts summaries based on data richness - create detailed narratives for data-rich days and meaningful insights for minimal-data days. Add personality and tone customization allowing users to choose summary styles (professional, casual, reflective, detailed, brief). Implement intelligent data filtering that identifies significant events, removes noise, and focuses on meaningful activities. Create a sophisticated caching system for model inference to improve performance and battery life. Add background processing capabilities for generating summaries during optimal device conditions (charging, WiFi, idle). Implement fallback strategies with progressive degradation - from full AI generation to template-based summaries to simple activity lists. Add summary quality scoring and user feedback mechanisms to improve generation over time. Ensure all processing remains completely local with no data leaving the device.",
+        "testStrategy": "Test AI model performance across various mobile devices with different specifications. Benchmark memory usage, inference time, and battery impact during summary generation. Validate summary quality across diverse user activity patterns and data scenarios. Test personality and tone customization options produce appropriate stylistic differences. Verify background processing works correctly without impacting device performance. Test fallback systems handle edge cases and model failures gracefully. Validate that all AI processing remains local and no data is transmitted externally.",
+        "priority": "critical",
+        "dependencies": [
+          6,
+          17,
+          3,
+          4,
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Project Setup and Core Dependencies",
+            "description": "Add tflite_flutter package, configure native projects (Android/iOS), and set up assets folder for models",
+            "dependencies": [],
+            "details": "Install tflite_flutter package providing Dart bindings for TensorFlow Lite native library. Configure native build files for Android (modify build.gradle to include TensorFlow Lite library) and iOS (update Podfile, ensure minimum deployment target compatibility, adjust Strip Style setting in Xcode to Non-Global Symbols for release builds). Create assets folder in project root for storing .tflite model files and declare it in pubspec.yaml.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Spatiotemporal Data Processing - Location Clustering",
+            "description": "Implement DBSCAN algorithm to identify significant stay points from GPS coordinates",
+            "dependencies": [
+              "21.1"
+            ],
+            "details": "Process time-series GPS coordinates to identify significant locations where user spent time. Implement custom DBSCAN (Density-Based Spatial Clustering) algorithm in Dart to cluster GPS points into stay points and journeys. Configure parameters: eps (distance in meters for neighborhood radius), MinPts (minimum GPS points within eps radius to define core point). Output list of GPS points labeled with cluster ID (significant place) or noise (journey). Use existing location data from Task 3.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Spatiotemporal Data Processing - Human Activity Recognition",
+            "description": "Implement CNN-LSTM model for classifying physical activity using IMU data",
+            "dependencies": [
+              "21.1",
+              "21.2"
+            ],
+            "details": "Classify user's physical activity (stationary, walking, running) using accelerometer and gyroscope data. Obtain/train lightweight CNN-LSTM model optimized for time-series classification, convert to TensorFlow Lite format with post-training quantization. Load har_model.tflite using tflite_flutter. Collect IMU data using sensors_plus plugin. Preprocess sensor data into fixed-length windows of 3-axis readings. Run inference using IsolateInterpreter to avoid blocking UI thread. Output stream of activity labels with timestamps.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Visual Context Extraction",
+            "description": "Implement image captioning with LightCap or similar lightweight model to process photos and generate descriptions",
+            "dependencies": [
+              "21.1"
+            ],
+            "details": "Generate descriptive sentences for relevant photos using pre-trained lightweight image captioning model (LightCap or similar). Acquire quantized .tflite version of captioning model and add to assets folder. Load caption_model.tflite using tflite_flutter. Access photos from gallery using existing photo_manager integration from Task 4, filtering by day's timestamps. Preprocess images to required tensor format (resizing, normalizing pixel values). Run captioning model using IsolateInterpreter. Output descriptive strings for each processed image. Alternative: Use google_ml_kit_image_labeling for simpler prototyping.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Multi-modal Fusion and Event Correlation",
+            "description": "Combine location, activity, and photo data into unified timeline structure",
+            "dependencies": [
+              "21.2",
+              "21.3",
+              "21.4"
+            ],
+            "details": "Combine outputs from spatiotemporal processing and visual extraction into chronologically ordered, contextually aware data structure. Create temporal correlation function to build unified timeline: iterate through day's timestamps, use DBSCAN output to segment into Stay and Journey events, associate HAR labels for each event, attach image captions from photos taken during time windows. Define DailyEvent Dart class with EventType (Stay/Journey), start/end times, locationId, activities list, and photo captions list. Optional advanced: implement Transformer-based fusion model for deeper context learning.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Narrative Generation",
+            "description": "Integrate Small Language Model (Phi-3 Mini or TinyLlama) for generating human-readable summaries",
+            "dependencies": [
+              "21.5"
+            ],
+            "details": "Convert fused daily events into human-readable paragraph using Small Language Model optimized for on-device use (Microsoft Phi-3 Mini or TinyLlama). Download 4-bit quantized .tflite version of chosen SLM and add to assets folder. Load SLM using tflite_flutter. Create prompt engineering system from DailyEvent objects with instructions for summary writing. Implement tokenization and inference processing. CRITICALLY IMPORTANT: Use IsolateInterpreter for SLM inference to prevent app crashes. Decode output tokens back into narrative string. Output final daily summary text.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Final Optimizations",
+            "description": "Implement hardware acceleration, model quantization, and comprehensive permission handling",
+            "dependencies": [
+              "21.1",
+              "21.2",
+              "21.3",
+              "21.4",
+              "21.5",
+              "21.6"
+            ],
+            "details": "Enable hardware acceleration using delegates (NnApiDelegate for Android, GpuDelegate for iOS) when creating Interpreter to offload computation from CPU. Ensure all .tflite models are quantized (4-bit or 8-bit integer) to minimize memory footprint. Implement comprehensive permission handling logic for location access (always), motion sensors, and photo gallery access. Add error handling and graceful degradation for hardware acceleration failures. Implement model loading optimization and caching strategies. Add performance monitoring and battery usage optimization.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 22,
+        "title": "UI Fix - Remove Duplicate Sparkle Icons from Today's Summary",
+        "description": "Fix the UI issue where multiple sparkle icons appear on the Today's Summary page when only one should be displayed.",
+        "details": "Investigate and fix the bug causing multiple sparkle icons to appear in the Today's Summary section of the Overview tab. Locate all instances where sparkle icons (likely Icons.auto_awesome, Icons.stars, or similar) are being rendered in the summary UI components. Review the widget tree and component hierarchy to identify where duplicate icon widgets are being instantiated. This could be caused by: 1) Multiple widgets each adding their own sparkle icon, 2) Icon being added both at parent and child widget levels, 3) Conditional rendering logic creating multiple instances, 4) State management issues causing icons to persist when they should be replaced, or 5) Animation or transition effects creating overlapping icon instances. Implement proper conditional rendering to ensure only one sparkle icon appears in the appropriate location within the summary header or title area. Consider the icon's semantic purpose and ensure it's positioned logically with respect to the 'Today's Summary' text or generated AI content. Update the component architecture to prevent this issue from recurring and add safeguards against duplicate icon rendering in the summary UI.",
+        "testStrategy": "Verify that only one sparkle icon appears in the Today's Summary section across all UI states (loading, empty, populated with content). Test various screen sizes and orientations to ensure the fix works consistently. Validate the icon's positioning and alignment with surrounding text and UI elements. Test state transitions (empty to populated summary, loading states) to ensure the icon displays correctly during all phases. Verify that the remaining single icon maintains proper styling, animation, and accessibility attributes as intended in the original design.",
+        "priority": "high",
+        "dependencies": [
+          8,
+          16,
+          17
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 23,
+        "title": "Data Persistence - Implement Backup System for App Data Survival",
+        "description": "Implement comprehensive data backup and restoration system to ensure user journal data survives app reinstallation and device changes.",
+        "details": "Enhance the existing data export system from Task 9 to create a robust backup solution that preserves all user data across app reinstalls and device transfers. Implement automatic cloud backup integration with multiple provider options: Google Drive, iCloud, Dropbox, or user's preferred cloud storage service. Create a BackupManager service that handles automatic periodic backups (daily/weekly configurable) with incremental backup support to minimize storage usage and transfer time. Implement secure backup encryption using device keychain/keystore for backup passwords to ensure user privacy. Build backup verification system that validates backup integrity and completeness. Create restoration flow during app first-run that detects existing backups and offers seamless data restoration. Implement conflict resolution for scenarios where local data exists alongside available backups. Add backup status monitoring with user-visible indicators showing last backup date, backup size, and sync status. Create backup management UI allowing users to manually trigger backups, view backup history, manage storage locations, and restore from specific backup points. Implement cross-platform compatibility ensuring backups created on Android can be restored on iOS and vice versa. Add selective restore options allowing users to choose specific data types (journal entries, photos, settings, location data) to restore. Consider implementing local network backup options for users preferring local-only solutions using Syncthing or similar peer-to-peer sync.",
+        "testStrategy": "Test backup creation and restoration across app reinstallation scenarios. Verify data integrity after backup and restore operations including journal entries, media files, location data, and user settings. Test incremental backup functionality reduces transfer times and storage usage. Validate backup encryption and security measures protect user privacy. Test cloud storage integration with multiple providers and handle authentication/permission flows. Verify cross-platform backup compatibility between Android and iOS. Test conflict resolution when both local data and backups exist. Validate backup status monitoring provides accurate information to users.",
+        "priority": "high",
+        "dependencies": [
+          9,
+          2,
+          3,
+          4,
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-10T15:31:07.194Z",
+      "updated": "2025-09-11T15:45:00.000Z",
       "description": "Tasks for master context"
     }
   }

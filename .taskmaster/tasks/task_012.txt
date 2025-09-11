@@ -1,6 +1,6 @@
 # Task ID: 12
 # Title: Android Microphone Permission Integration
-# Status: pending
+# Status: done
 # Dependencies: 7
 # Priority: medium
 # Description: Implement proper Android system microphone permission integration for voice-to-text features with runtime permission requests and graceful handling

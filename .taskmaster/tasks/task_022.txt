@@ -1,0 +1,11 @@
+# Task ID: 22
+# Title: UI Fix - Remove Duplicate Sparkle Icons from Today's Summary
+# Status: pending
+# Dependencies: 8, 16, 17
+# Priority: high
+# Description: Fix the UI issue where multiple sparkle icons appear on the Today's Summary page when only one should be displayed.
+# Details:
+Investigate and fix the bug causing multiple sparkle icons to appear in the Today's Summary section of the Overview tab. Locate all instances where sparkle icons (likely Icons.auto_awesome, Icons.stars, or similar) are being rendered in the summary UI components. Review the widget tree and component hierarchy to identify where duplicate icon widgets are being instantiated. This could be caused by: 1) Multiple widgets each adding their own sparkle icon, 2) Icon being added both at parent and child widget levels, 3) Conditional rendering logic creating multiple instances, 4) State management issues causing icons to persist when they should be replaced, or 5) Animation or transition effects creating overlapping icon instances. Implement proper conditional rendering to ensure only one sparkle icon appears in the appropriate location within the summary header or title area. Consider the icon's semantic purpose and ensure it's positioned logically with respect to the 'Today's Summary' text or generated AI content. Update the component architecture to prevent this issue from recurring and add safeguards against duplicate icon rendering in the summary UI.
+
+# Test Strategy:
+Verify that only one sparkle icon appears in the Today's Summary section across all UI states (loading, empty, populated with content). Test various screen sizes and orientations to ensure the fix works consistently. Validate the icon's positioning and alignment with surrounding text and UI elements. Test state transitions (empty to populated summary, loading states) to ensure the icon displays correctly during all phases. Verify that the remaining single icon maintains proper styling, animation, and accessibility attributes as intended in the original design.
