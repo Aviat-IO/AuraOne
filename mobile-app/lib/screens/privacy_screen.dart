@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../services/simple_location_service.dart';
 import '../theme/colors.dart';
 import '../widgets/common/help_tooltip.dart';
@@ -9,7 +10,36 @@ import '../widgets/privacy/privacy_quick_start.dart';
 
 // Providers for privacy settings
 final locationTrackingEnabledProvider = StateProvider<bool>((ref) => true);
-final photoAccessEnabledProvider = StateProvider<bool>((ref) => false);
+
+// Photo access provider that checks actual permission state
+final photoAccessEnabledProvider = StateNotifierProvider<PhotoAccessNotifier, bool>((ref) {
+  return PhotoAccessNotifier();
+});
+
+class PhotoAccessNotifier extends StateNotifier<bool> {
+  PhotoAccessNotifier() : super(false) {
+    _checkInitialState();
+  }
+
+  Future<void> _checkInitialState() async {
+    final status = await Permission.photos.status;
+    state = status.isGranted || status.isLimited;
+  }
+
+  Future<void> toggle(bool value) async {
+    if (value) {
+      final status = await Permission.photos.request();
+      state = status.isGranted || status.isLimited;
+    } else {
+      // Can't programmatically revoke permission, just update state
+      state = false;
+    }
+  }
+
+  Future<void> refresh() async {
+    await _checkInitialState();
+  }
+}
 
 class PrivacyScreen extends ConsumerWidget {
   const PrivacyScreen({super.key});
@@ -413,14 +443,10 @@ class PrivacyScreen extends ConsumerWidget {
                     ),
                     trailing: Switch(
                       value: photoAccessEnabled,
-                      onChanged: (value) {
-                        ref.read(photoAccessEnabledProvider.notifier).state = value;
-                        // TODO: Request photo library permission when enabled
-                        if (value) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Photo library access enabled')),
-                          );
-                        }
+                      onChanged: (value) async {
+                        await ref.read(photoAccessEnabledProvider.notifier).toggle(value);
+                        // Refresh to check actual permission state
+                        await ref.read(photoAccessEnabledProvider.notifier).refresh();
                       },
                     ),
                   ),

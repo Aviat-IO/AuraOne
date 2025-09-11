@@ -15,6 +15,8 @@ import '../services/data_analysis_service.dart';
 import '../providers/service_providers.dart';
 import '../providers/location_database_provider.dart';
 import '../database/location_database.dart' as loc_db;
+import '../providers/photo_service_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 // Provider to store the current day's journal entry
 final todayJournalEntryProvider = StateProvider<String?>((ref) => null);
@@ -31,7 +33,7 @@ class HomeScreen extends HookConsumerWidget {
     final isLight = theme.brightness == Brightness.light;
     final tabController = useTabController(initialLength: 3);
     final currentSubTab = ref.watch(homeSubTabIndexProvider);
-    
+
     // Sync tab controller with provider
     useEffect(() {
       tabController.index = currentSubTab;
@@ -42,7 +44,7 @@ class HomeScreen extends HookConsumerWidget {
       });
       return null;
     }, [currentSubTab]);
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -84,7 +86,7 @@ class HomeScreen extends HookConsumerWidget {
                   ],
                 ),
               ),
-              
+
               // Sub-tabs at bottom (sticky) - matching main nav bar colors
               Container(
                 decoration: BoxDecoration(
@@ -103,7 +105,7 @@ class HomeScreen extends HookConsumerWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: isLight 
+                      color: isLight
                         ? Colors.black.withValues(alpha: 0.05)
                         : Colors.black.withValues(alpha: 0.3),
                       blurRadius: 8,
@@ -112,24 +114,25 @@ class HomeScreen extends HookConsumerWidget {
                   ],
                 ),
                 child: Container(
-                  margin: const EdgeInsets.fromLTRB(12, 8, 12, 12), // More bottom padding to push separator down
+                  margin: const EdgeInsets.fromLTRB(12, 0, 12, 0), // Removed bottom margin to connect with main nav bar
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surface.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: TabBar(
-                    controller: tabController,
-                    indicator: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: theme.colorScheme.primaryContainer,
-                    ),
+                      controller: tabController,
+                      indicator: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: theme.colorScheme.primaryContainer,
+                      ),
                     indicatorSize: TabBarIndicatorSize.tab,
+                    indicatorPadding: const EdgeInsets.symmetric(vertical: 6), // Add padding around indicator
                     labelColor: theme.colorScheme.onPrimaryContainer,
                     unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    labelPadding: const EdgeInsets.symmetric(vertical: 8), // Add vertical padding to tabs
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12), // Add padding to tabs
                     tabs: [
                       Tab(
-                        height: 48, // Fixed height for consistent sizing
+                        height: 48, // Standard height with container padding
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -171,7 +174,7 @@ class HomeScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) {
@@ -203,14 +206,14 @@ class _OverviewTab extends HookConsumerWidget {
     final isLoading = useState(false);
     final isGenerating = useState(false);
     final dataAnalysisService = ref.watch(dataAnalysisServiceProvider);
-    
+
     // Get today's stats
     final mediaDb = ref.watch(mediaDatabaseProvider);
-    
+
     // Calculate stats
     final todayStart = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final todayEnd = todayStart.add(const Duration(days: 1));
-    
+
     // Get photos count - using getRecentMedia for today's photos
     final photosCountAsync = useMemoized(
       () => mediaDb.getRecentMedia(duration: const Duration(days: 2), limit: 500),
@@ -223,7 +226,7 @@ class _OverviewTab extends HookConsumerWidget {
              item.createdDate.day == todayStart.day;
     }).toList() ?? [];
     final photosCount = todayPhotos.length;
-    
+
     // Get locations count from database
     final locationStream = ref.watch(recentLocationPointsProvider(const Duration(hours: 24)));
     final locationHistory = locationStream.maybeWhen(
@@ -233,7 +236,7 @@ class _OverviewTab extends HookConsumerWidget {
     final locationsCount = locationHistory
         .where((loc) => loc.timestamp.isAfter(todayStart) && loc.timestamp.isBefore(todayEnd))
         .length;
-    
+
     // Calculate distance traveled
     double distanceTraveled = 0;
     final todayLocations = locationHistory
@@ -247,7 +250,7 @@ class _OverviewTab extends HookConsumerWidget {
         todayLocations[i].longitude,
       );
     }
-    
+
     // Calculate active time (simplified - time between first and last location)
     String activeTime = '0h';
     if (todayLocations.length >= 2) {
@@ -256,7 +259,7 @@ class _OverviewTab extends HookConsumerWidget {
       final minutes = duration.inMinutes % 60;
       activeTime = hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
     }
-    
+
     // Generate AI summary if we don't have one and there's data
     useEffect(() {
       if (journalEntry == null && !isGenerating.value) {
@@ -266,7 +269,7 @@ class _OverviewTab extends HookConsumerWidget {
           Future.delayed(const Duration(seconds: 2), () async {
             if (!context.mounted) return;
             if (ref.read(todayJournalEntryProvider) != null) return; // Already generated
-            
+
             isGenerating.value = true;
             try {
               final summary = await dataAnalysisService.generateDailySummary();
@@ -284,7 +287,7 @@ class _OverviewTab extends HookConsumerWidget {
       }
       return null;
     }, [photosCount, locationsCount]);
-    
+
     // Function to manually generate/regenerate summary
     Future<void> generateSummary() async {
       isGenerating.value = true;
@@ -300,7 +303,7 @@ class _OverviewTab extends HookConsumerWidget {
         }
       }
     }
-    
+
     return Skeletonizer(
       enabled: isLoading.value || isGenerating.value,
       child: SingleChildScrollView(
@@ -315,13 +318,13 @@ class _OverviewTab extends HookConsumerWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: isLight 
+                  colors: isLight
                     ? AuraColors.lightCardGradient
                     : AuraColors.darkCardGradient,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: isLight 
+                    color: isLight
                       ? AuraColors.lightPrimary.withValues(alpha: 0.08)
                       : Colors.black.withValues(alpha: 0.2),
                     blurRadius: 16,
@@ -391,13 +394,13 @@ class _OverviewTab extends HookConsumerWidget {
                               onPressed: () async {
                                 if (isEditing.value) {
                                   // Save the edited text to memory
-                                  ref.read(todayJournalEntryProvider.notifier).state = 
+                                  ref.read(todayJournalEntryProvider.notifier).state =
                                     controller.text;
-                                  
+
                                   // Save to calendar
                                   await _saveJournalEntryToCalendar(
-                                    ref, 
-                                    controller.text, 
+                                    ref,
+                                    controller.text,
                                     DateTime.now(),
                                   );
                                 }
@@ -452,7 +455,7 @@ class _OverviewTab extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Stats Grid
             Text(
               'Daily Stats',
@@ -517,7 +520,7 @@ class _OverviewTab extends HookConsumerWidget {
       ),
     );
   }
-  
+
   // Build empty state for Today's Summary
   Widget _buildSummaryEmptyState(ThemeData theme, bool hasData) {
     return Center(
@@ -542,7 +545,7 @@ class _OverviewTab extends HookConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              hasData 
+              hasData
                 ? 'Tap the sparkle icon above to generate\nyour AI-powered daily summary'
                 : 'Your daily summary will automatically appear\nas you use the app throughout the day',
               textAlign: TextAlign.center,
@@ -556,25 +559,25 @@ class _OverviewTab extends HookConsumerWidget {
       ),
     );
   }
-  
+
   // Calculate distance between two points using Haversine formula
   double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
     const double earthRadius = 6371000; // meters
     final double dLat = _toRadians(lat2 - lat1);
     final double dLon = _toRadians(lon2 - lon1);
-    
+
     final double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_toRadians(lat1)) * math.cos(_toRadians(lat2)) *
         math.sin(dLon / 2) * math.sin(dLon / 2);
-    
+
     final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return earthRadius * c;
   }
-  
+
   double _toRadians(double degrees) {
     return degrees * (math.pi / 180);
   }
-  
+
   Widget _buildStatCard({
     required IconData icon,
     required String value,
@@ -591,13 +594,13 @@ class _OverviewTab extends HookConsumerWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: isLight 
+            colors: isLight
               ? AuraColors.lightCardGradient
               : AuraColors.darkCardGradient,
           ),
           boxShadow: [
             BoxShadow(
-              color: isLight 
+              color: isLight
                 ? AuraColors.lightPrimary.withValues(alpha: 0.05)
                 : Colors.black.withValues(alpha: 0.15),
               blurRadius: 8,
@@ -634,7 +637,7 @@ class _OverviewTab extends HookConsumerWidget {
       ),
     );
   }
-  
+
   /// Save journal entry to calendar
   Future<void> _saveJournalEntryToCalendar(
     WidgetRef ref,
@@ -643,16 +646,16 @@ class _OverviewTab extends HookConsumerWidget {
   ) async {
     try {
       final calendarService = ref.read(calendarServiceProvider);
-      
+
       final title = "Today's Summary - ${date.day}/${date.month}/${date.year}";
-      
+
       // Try to create the calendar entry
       final eventId = await calendarService.createJournalSummaryEntry(
         date: date,
         title: title,
         content: content,
       );
-      
+
       if (eventId != null) {
         // Successfully saved to calendar
         // Could show a success message here
@@ -673,20 +676,20 @@ class _MapTab extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLoading = useState(false);
-    
+
     // Get locations from database for the last 24 hours
     final locationStream = ref.watch(recentLocationPointsProvider(const Duration(hours: 24)));
-    
+
     // Get today's locations
     final todayStart = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final todayEnd = todayStart.add(const Duration(days: 1));
-    
+
     return locationStream.when(
       data: (locationHistory) {
         final todayLocations = locationHistory
             .where((loc) => loc.timestamp.isAfter(todayStart) && loc.timestamp.isBefore(todayEnd))
             .toList();
-        
+
         if (todayLocations.isEmpty) {
           return Center(
             child: Column(
@@ -715,11 +718,11 @@ class _MapTab extends HookConsumerWidget {
             ),
           );
         }
-        
+
         // Calculate center point
         double avgLat = todayLocations.map((l) => l.latitude).reduce((a, b) => a + b) / todayLocations.length;
         double avgLng = todayLocations.map((l) => l.longitude).reduce((a, b) => a + b) / todayLocations.length;
-        
+
         return Skeletonizer(
           enabled: isLoading.value,
           child: FlutterMap(
@@ -809,23 +812,51 @@ class _MediaTab extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final mediaDb = ref.watch(mediaDatabaseProvider);
+    final photoService = ref.watch(photoServiceProvider);
     final isLoading = useState(false);
-    
+    final hasScanned = useState(false);
+
     // Get today's media
     final todayStart = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final todayEnd = todayStart.add(const Duration(days: 1));
-    
+
+    // Scan and index photos on first mount
+    useEffect(() {
+      if (!hasScanned.value) {
+        Future<void> scanPhotos() async {
+          hasScanned.value = true;
+          isLoading.value = true;
+          try {
+            // Request permission if needed
+            final permission = await Permission.photos.request();
+            if (permission.isGranted || permission.isLimited) {
+              // Scan and index today's photos
+              await photoService.scanAndIndexTodayPhotos();
+            }
+          } catch (e) {
+            // Handle error silently
+          } finally {
+            if (context.mounted) {
+              isLoading.value = false;
+            }
+          }
+        }
+        scanPhotos();
+      }
+      return null;
+    }, []);
+
     // Get media from the last 2 days to ensure we catch all of today's media
     final mediaFuture = useMemoized(
       () => mediaDb.getRecentMedia(duration: const Duration(days: 2), limit: 500),
-      [todayStart],
+      [todayStart, hasScanned.value], // Re-fetch when scanning completes
     );
     final mediaSnapshot = useFuture(mediaFuture);
-    
+
     if (mediaSnapshot.connectionState == ConnectionState.waiting) {
       return const Center(child: CircularProgressIndicator());
     }
-    
+
     final allMedia = mediaSnapshot.data ?? [];
     // Filter to only today's media
     final mediaItems = allMedia.where((item) {
@@ -834,7 +865,7 @@ class _MediaTab extends HookConsumerWidget {
              item.createdDate.month == todayStart.month &&
              item.createdDate.day == todayStart.day;
     }).toList();
-    
+
     if (mediaItems.isEmpty) {
       return Center(
         child: Column(
@@ -863,7 +894,7 @@ class _MediaTab extends HookConsumerWidget {
         ),
       );
     }
-    
+
     return Skeletonizer(
       enabled: isLoading.value,
       child: GridView.builder(
@@ -891,7 +922,7 @@ class _MediaTab extends HookConsumerWidget {
                   ? Image.file(
                       File(media.filePath!),
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => 
+                      errorBuilder: (context, error, stackTrace) =>
                         _buildMediaPlaceholder(media, theme),
                     )
                   : _buildMediaPlaceholder(media, theme),
@@ -902,7 +933,7 @@ class _MediaTab extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildMediaPlaceholder(MediaItem media, ThemeData theme) {
     IconData icon;
     if (media.mimeType.startsWith('image/')) {
@@ -914,7 +945,7 @@ class _MediaTab extends HookConsumerWidget {
     } else {
       icon = Icons.file_present;
     }
-    
+
     return Container(
       color: theme.colorScheme.surfaceContainerHighest,
       child: Icon(

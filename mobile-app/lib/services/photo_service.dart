@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:drift/drift.dart' show Value;
 import '../utils/logger.dart';
 import '../database/media_database.dart';
 import '../providers/media_database_provider.dart';
@@ -609,6 +610,76 @@ class PhotoService {
     } catch (e, stack) {
       _logger.error('Manual scan failed', error: e, stackTrace: stack);
       return [];
+    }
+  }
+
+  /// Scan and index today's photos into the database
+  Future<void> scanAndIndexTodayPhotos() async {
+    try {
+      // Check permission first
+      final permission = await PhotoManager.requestPermissionExtend();
+      if (permission != PermissionState.authorized && permission != PermissionState.limited) {
+        _logger.warning('No photo library access');
+        return;
+      }
+
+      // Get today's date range
+      final now = DateTime.now();
+      final todayStart = DateTime(now.year, now.month, now.day);
+      final todayEnd = todayStart.add(const Duration(days: 1));
+
+      // Fetch photos from today
+      final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
+        type: RequestType.image,
+        hasAll: true,
+      );
+
+      if (albums.isEmpty) return;
+
+      // Get the "Recent" or "All" album
+      final recentAlbum = albums.firstWhere(
+        (album) => album.isAll,
+        orElse: () => albums.first,
+      );
+
+      // Get photos from today
+      final photos = await recentAlbum.getAssetListRange(
+        start: 0,
+        end: 1000, // Get up to 1000 photos
+      );
+
+      // Filter to today's photos and index them
+      for (final photo in photos) {
+        final createDate = photo.createDateTime;
+        if (createDate.isAfter(todayStart) && createDate.isBefore(todayEnd)) {
+          // Check if already indexed
+          final existing = await mediaDatabase.getMediaItem(photo.id);
+          if (existing == null) {
+            // Index this photo
+            final file = await photo.file;
+            if (file != null) {
+              final fileName = file.path.split('/').last;
+              await mediaDatabase.insertMediaItem(
+                MediaItemsCompanion.insert(
+                  id: photo.id,
+                  filePath: Value(file.path),
+                  fileName: fileName,
+                  mimeType: photo.mimeType ?? 'image/jpeg',
+                  createdDate: createDate,
+                  modifiedDate: createDate,
+                  fileSize: await file.length(),
+                  width: Value(photo.width),
+                  height: Value(photo.height),
+                ),
+              );
+            }
+          }
+        }
+      }
+
+      _logger.info('Indexed photos for today');
+    } catch (e, stack) {
+      _logger.error('Failed to scan and index today\'s photos', error: e, stackTrace: stack);
     }
   }
 
