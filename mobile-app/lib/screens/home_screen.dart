@@ -17,12 +17,16 @@ import '../providers/location_database_provider.dart';
 import '../database/location_database.dart' as loc_db;
 import '../providers/photo_service_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'main_layout_screen.dart'; // Import for selectedTabIndexProvider
 
 // Provider to store the current day's journal entry
 final todayJournalEntryProvider = StateProvider<String?>((ref) => null);
 
 // Provider for sub-tab index
 final homeSubTabIndexProvider = StateProvider<int>((ref) => 0);
+
+// Provider for history screen selected date (used when navigating from media)
+final historySelectedDateProvider = StateProvider<DateTime?>((ref) => null);
 
 class HomeScreen extends HookConsumerWidget {
   const HomeScreen({super.key});
@@ -907,25 +911,76 @@ class _MediaTab extends HookConsumerWidget {
         itemCount: mediaItems.length,
         itemBuilder: (context, index) {
           final media = mediaItems[index];
-          return GestureDetector(
-            onTap: () {
-              // TODO: Open media viewer
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: theme.colorScheme.surfaceContainerHighest,
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: media.filePath != null
-                  ? Image.file(
-                      File(media.filePath!),
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                        _buildMediaPlaceholder(media, theme),
-                    )
-                  : _buildMediaPlaceholder(media, theme),
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                // Navigate to History screen and select the photo's date
+                // First, switch to the History tab (index 1)
+                ref.read(selectedTabIndexProvider.notifier).state = 1;
+                
+                // Then update the selected date in the history screen
+                // This will be picked up by the HistoryScreen when it rebuilds
+                final photoDate = media.createdDate;
+                
+                // Store the selected date for the history screen to use
+                // We'll create a provider for this purpose
+                ref.read(historySelectedDateProvider.notifier).state = photoDate;
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: theme.colorScheme.surfaceContainerHighest,
+                ),
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: media.filePath != null
+                        ? Image.file(
+                            File(media.filePath!),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                              _buildMediaPlaceholder(media, theme),
+                          )
+                        : _buildMediaPlaceholder(media, theme),
+                    ),
+                    // Add a subtle overlay to indicate it's tappable
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.1),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Add a small link icon in the corner
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.calendar_today,
+                          size: 12,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );

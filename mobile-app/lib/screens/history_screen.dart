@@ -6,6 +6,7 @@ import '../theme/colors.dart';
 import '../widgets/page_header.dart';
 import '../services/calendar_service.dart';
 import '../providers/service_providers.dart';
+import 'home_screen.dart'; // Import for historySelectedDateProvider
 
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
@@ -24,7 +25,20 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedDay = _focusedDay;
+    
+    // Check if we have a date from media navigation
+    final dateFromMedia = ref.read(historySelectedDateProvider);
+    if (dateFromMedia != null) {
+      _selectedDay = dateFromMedia;
+      _focusedDay = dateFromMedia;
+      // Clear the provider after consuming it
+      Future.microtask(() {
+        ref.read(historySelectedDateProvider.notifier).state = null;
+      });
+    } else {
+      _selectedDay = _focusedDay;
+    }
+    
     _loadCalendarEntries();
   }
 
@@ -76,6 +90,22 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
+    
+    // Listen to navigation from media tab
+    ref.listen<DateTime?>(historySelectedDateProvider, (previous, next) {
+      if (next != null && mounted) {
+        setState(() {
+          _selectedDay = next;
+          _focusedDay = next;
+        });
+        // Clear the provider after consuming it
+        Future.microtask(() {
+          ref.read(historySelectedDateProvider.notifier).state = null;
+        });
+        // Reload entries if needed for the new month
+        _loadCalendarEntries();
+      }
+    });
 
     if (_isLoading) {
       return Scaffold(
