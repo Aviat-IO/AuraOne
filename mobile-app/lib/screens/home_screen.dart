@@ -393,7 +393,7 @@ class _OverviewTab extends HookConsumerWidget {
                                       ),
                                     )
                                   : Icon(
-                                      journalEntry != null ? Icons.refresh : Icons.auto_awesome,
+                                      journalEntry != null ? Icons.refresh : Icons.add_circle_outline,
                                       color: theme.colorScheme.primary,
                                     ),
                                 onPressed: isGenerating.value ? null : generateSummary,
