@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
 import '../export/export_schema.dart';
-import '../export/encryption_service.dart';
+import '../export/encryption_service.dart' as legacy_encryption;
+import '../export/enhanced_encryption_service.dart';
 import 'backup_manager.dart';
 
 /// Backup restoration strategies
@@ -206,7 +209,14 @@ class BackupRestorationService {
       
       // Decrypt if needed
       if (encryptionPassword != null) {
-        bytes = await EncryptionService.decrypt(bytes, encryptionPassword);
+        // Get backup key info for decryption
+        final keyInfo = await EnhancedEncryptionService.getStoredBackupKey();
+        if (keyInfo != null) {
+          bytes = await EnhancedEncryptionService.decryptLargeFile(bytes, keyInfo);
+        } else {
+          // Fallback to legacy encryption
+          bytes = await legacy_encryption.EncryptionService.decryptFile(bytes, password: encryptionPassword);
+        }
       } else if (_isEncrypted(bytes)) {
         return BackupRestoreResult(
           success: false,
@@ -257,7 +267,7 @@ class BackupRestorationService {
       
       final entries = backupData['journal']?['entries'] as List<dynamic>? ?? [];
       final media = backupData['media']?['references'] as List<dynamic>? ?? [];
-      final metadata = backupData['metadata'] as Map<String, dynamic>? ?? {};
+      final backupMetadata = backupData['metadata'] as Map<String, dynamic>? ?? {};
       
       // Get date range
       DateTime? startDate;
@@ -287,7 +297,7 @@ class BackupRestorationService {
             ? DateTimeRange(start: startDate, end: endDate)
             : null,
         tags: tags.toList()..sort(),
-        totalSizeMB: (metadata['total_size_bytes'] ?? 0) / (1024 * 1024),
+        totalSizeMB: (backupMetadata['total_size_bytes'] ?? 0) / (1024 * 1024),
         schemaVersion: backupData['schema']?['version'] ?? 'unknown',
         exportDate: DateTime.tryParse(backupData['schema']?['exported'] ?? ''),
       );
@@ -303,17 +313,33 @@ class BackupRestorationService {
     BackupMetadata metadata,
     String? encryptionPassword,
   ) async {
-    final backupManager = BackupManager();
-    Map<String, dynamic> data = await backupManager._downloadBackup(metadata);
+    // Download backup data based on provider
+    Map<String, dynamic> data;
+    
+    if (metadata.provider == BackupProvider.local) {
+      final file = File(metadata.location!);
+      final content = await file.readAsString();
+      data = json.decode(content);
+    } else if (metadata.provider == BackupProvider.blossom) {
+      // Download from Blossom using HTTP
+      final response = await http.get(Uri.parse(metadata.location!));
+      if (response.statusCode != 200) {
+        throw Exception('Failed to download backup: HTTP ${response.statusCode}');
+      }
+      data = json.decode(response.body);
+    } else {
+      throw UnsupportedError('Provider ${metadata.provider} not supported for restoration');
+    }
     
     // Handle encrypted data
     if (encryptionPassword != null) {
       final jsonStr = json.encode(data);
       final encrypted = utf8.encode(jsonStr);
-      final decrypted = await EncryptionService.decrypt(
-        Uint8List.fromList(encrypted),
-        encryptionPassword,
-      );
+      // Try enhanced encryption first
+      final keyInfo = await EnhancedEncryptionService.getStoredBackupKey();
+      final decrypted = keyInfo != null
+          ? await EnhancedEncryptionService.decryptLargeFile(Uint8List.fromList(encrypted), keyInfo)
+          : await legacy_encryption.EncryptionService.decryptFile(Uint8List.fromList(encrypted), password: encryptionPassword);
       data = json.decode(utf8.decode(decrypted));
     }
     

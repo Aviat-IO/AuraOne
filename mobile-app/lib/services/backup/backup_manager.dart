@@ -1,15 +1,19 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:crypto/crypto.dart';
+import 'package:http/http.dart' as http;
 import '../export/backup_scheduler.dart';
 import '../export/export_service.dart';
 import '../export/export_schema.dart';
-import '../export/encryption_service.dart';
+import '../export/encryption_service.dart' as legacy_encryption;
+import '../export/enhanced_encryption_service.dart';
 import '../export/syncthing_service.dart';
 import '../export/blossom_storage_service.dart';
 import 'backup_restoration_service.dart';
@@ -121,6 +125,37 @@ class BackupManager {
   Future<void> initialize() async {
     await _loadBackupHistory();
     await BackupScheduler.initialize();
+    
+    // Initialize secure backup encryption in background (non-blocking)
+    _initializeSecureEncryption().catchError((e) {
+      debugPrint('Background encryption initialization failed: $e');
+    });
+  }
+
+  /// Initialize secure backup encryption
+  Future<void> _initializeSecureEncryption() async {
+    if (!await EnhancedEncryptionService.isBackupEncryptionConfigured()) {
+      // Generate and store secure backup encryption key automatically
+      await EnhancedEncryptionService.generateSecureBackupPassword();
+      debugPrint('Secure backup encryption configured automatically');
+    }
+  }
+
+  /// Get secure backup encryption information
+  Future<BackupKeyInfo?> getBackupEncryptionInfo() async {
+    return await EnhancedEncryptionService.getStoredBackupKey();
+  }
+
+  /// Regenerate backup encryption keys (for security refresh)
+  Future<BackupKeyInfo> regenerateBackupEncryption() async {
+    // Clear existing keys
+    await EnhancedEncryptionService.clearAllBackupKeys();
+    
+    // Generate new secure backup password
+    final keyInfo = await EnhancedEncryptionService.generateSecureBackupPassword();
+    debugPrint('Backup encryption keys regenerated');
+    
+    return keyInfo;
   }
   
   /// Perform a backup to specified providers
@@ -400,25 +435,47 @@ class BackupManager {
     
     final backupFile = File(path.join(
       backupDir.path,
-      'backup_${timestamp.millisecondsSinceEpoch}.json',
+      'backup_${timestamp.millisecondsSinceEpoch}.aura',
     ));
     
-    final backupContent = json.encode(data);
-    var backupBytes = utf8.encode(backupContent);
+    onProgress?.call(0.2);
     
-    // Encrypt if password provided
-    if (encryptionPassword != null && encryptionPassword.isNotEmpty) {
-      backupBytes = await EncryptionService.encrypt(
-        backupBytes,
-        encryptionPassword,
-      );
-    }
+    // Get or create backup encryption key
+    final keyInfo = await EnhancedEncryptionService.getStoredBackupKey() 
+        ?? await EnhancedEncryptionService.generateSecureBackupPassword();
     
-    final checksum = sha256.convert(backupBytes).toString();
+    onProgress?.call(0.4);
     
-    onProgress?.call(0.5);
+    // Encrypt backup metadata with enhanced security
+    final encryptedMetadata = await EnhancedEncryptionService.encryptBackupMetadata(
+      data['metadata'] ?? {},
+      customKey: keyInfo,
+    );
     
-    await backupFile.writeAsBytes(backupBytes);
+    // Prepare full backup data
+    final fullBackupData = Map<String, dynamic>.from(data);
+    fullBackupData['encryptedMetadata'] = {
+      'ciphertext': base64.encode(encryptedMetadata.encryptedData.ciphertext),
+      'iv': base64.encode(encryptedMetadata.encryptedData.iv),
+    };
+    
+    final backupContent = json.encode(fullBackupData);
+    final backupBytes = utf8.encode(backupContent);
+    
+    onProgress?.call(0.6);
+    
+    // Use enhanced encryption for large file optimization
+    final encryptedBytes = await EnhancedEncryptionService.encryptLargeFile(
+      backupBytes,
+      customKey: keyInfo,
+      onProgress: (progress) {
+        onProgress?.call(0.6 + progress * 0.3);
+      },
+    );
+    
+    final checksum = sha256.convert(encryptedBytes).toString();
+    
+    await backupFile.writeAsBytes(encryptedBytes);
     
     onProgress?.call(1.0);
     
@@ -428,7 +485,7 @@ class BackupManager {
       checksum: checksum,
       entryCount: (data['journalEntries'] as List).length,
       mediaCount: (data['mediaReferences'] as List).length,
-      sizeMB: backupBytes.length / 1024 / 1024,
+      sizeMB: encryptedBytes.length / 1024 / 1024,
       provider: BackupProvider.local,
       location: backupFile.path,
       isFullBackup: !incremental,
@@ -566,15 +623,60 @@ class BackupManager {
     
     var bytes = await file.readAsBytes();
     
-    // Check if encrypted (simple heuristic - JSON should start with '{')
-    if (bytes.isNotEmpty && bytes[0] != 123) { // 123 is '{'
-      // Prompt for password and decrypt
-      // TODO: Implement password prompt UI
-      throw Exception('Encrypted backup - password required');
+    // Check if this is an enhanced encrypted backup (.aura file)
+    if (metadata.location!.endsWith('.aura') || 
+        (bytes.isNotEmpty && (bytes[0] == 2 || bytes[0] == 3))) {
+      // Enhanced encryption format
+      final keyInfo = await EnhancedEncryptionService.getStoredBackupKey();
+      
+      if (keyInfo == null) {
+        throw Exception('Backup encryption key not available');
+      }
+      
+      // Decrypt using enhanced service
+      final decryptedBytes = await EnhancedEncryptionService.decryptLargeFile(
+        bytes,
+        keyInfo,
+      );
+      
+      final content = utf8.decode(decryptedBytes);
+      final data = Map<String, dynamic>.from(json.decode(content));
+      
+      // Decrypt metadata if present
+      if (data.containsKey('encryptedMetadata')) {
+        try {
+          final encryptedMeta = data['encryptedMetadata'];
+          final encryptedData = EncryptedData(
+            ciphertext: base64.decode(encryptedMeta['ciphertext']),
+            iv: base64.decode(encryptedMeta['iv']),
+          );
+          
+          final encryptedMetadata = EncryptedBackupMetadata(
+            encryptedData: encryptedData,
+            keyInfo: keyInfo,
+          );
+          
+          final decryptedMetadata = await EnhancedEncryptionService
+              .decryptBackupMetadata(encryptedMetadata);
+          
+          data['metadata'] = decryptedMetadata;
+        } catch (e) {
+          debugPrint('Failed to decrypt backup metadata: $e');
+          // Continue without decrypted metadata
+        }
+      }
+      
+      return data;
+      
+    } else if (bytes.isNotEmpty && bytes[0] != 123) { // 123 is '{'
+      // Legacy encrypted format - fall back to old encryption
+      throw Exception('Legacy encrypted backup - please upgrade encryption');
+      
+    } else {
+      // Unencrypted backup
+      final content = utf8.decode(bytes);
+      return json.decode(content);
     }
-    
-    final content = utf8.decode(bytes);
-    return json.decode(content);
   }
   
   Future<Map<String, dynamic>> _downloadFromSyncthing(
@@ -609,16 +711,18 @@ class BackupManager {
       throw Exception('No Blossom URL for backup');
     }
     
-    // Download from Blossom URL
-    final tempFile = await BlossomStorageService.downloadFile(
-      url: metadata.location!,
-    );
-    
-    if (tempFile == null) {
-      throw Exception('Failed to download from Blossom');
+    // Download from Blossom URL using HTTP GET
+    final response = await http.get(Uri.parse(metadata.location!));
+    if (response.statusCode != 200) {
+      throw Exception('Failed to download backup: HTTP ${response.statusCode}');
     }
     
-    final content = await File(tempFile).readAsString();
+    // Create temporary file
+    final tempDir = await getTemporaryDirectory();
+    final tempFile = File(path.join(tempDir.path, 'backup_${DateTime.now().millisecondsSinceEpoch}.backup'));
+    await tempFile.writeAsBytes(response.bodyBytes);
+    
+    final content = await tempFile.readAsString();
     return json.decode(content);
   }
   

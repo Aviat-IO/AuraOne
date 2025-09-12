@@ -7,7 +7,7 @@ import '../services/backup/backup_restoration_service.dart';
 import '../services/export/backup_scheduler.dart';
 
 /// Provider for BackupManager instance
-final backupManagerProvider = Provider((ref) => BackupManager());
+final backupManagerProvider = Provider((ref) => BackupManager.instance);
 
 /// Provider for BackupRestorationService instance  
 final backupRestorationProvider = Provider((ref) => BackupRestorationService());
@@ -16,14 +16,14 @@ final backupRestorationProvider = Provider((ref) => BackupRestorationService());
 final backupHistoryProvider = FutureProvider.family<List<BackupMetadata>, BackupProvider?>(
   (ref, provider) async {
     final backupManager = ref.watch(backupManagerProvider);
-    await backupManager.initialize();
+    // Load backup history without full initialization to avoid blocking UI
     return backupManager.getBackupHistory(provider: provider);
   },
 );
 
 /// Provider for current backup configuration
 final backupConfigProvider = FutureProvider<BackupConfig?>(
-  (ref) async => await BackupScheduler.loadConfig(),
+  (ref) async => await BackupScheduler.getConfig(),
 );
 
 class BackupSettingsScreen extends ConsumerStatefulWidget {
@@ -66,12 +66,12 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
   }
   
   Future<void> _loadBackupSettings() async {
-    final config = await BackupScheduler.loadConfig();
+    final config = await BackupScheduler.getConfig();
     if (config != null) {
       setState(() {
-        _enableAutoBackup = config.enabled;
+        _enableAutoBackup = config.frequency != BackupFrequency.disabled;
         _backupFrequency = config.frequency;
-        _enableEncryption = config.encryptionEnabled;
+        _enableEncryption = config.enableEncryption;
         _includeMedia = config.includeMedia;
       });
     }
@@ -574,6 +574,10 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
     
     try {
       final backupManager = ref.read(backupManagerProvider);
+      
+      // Initialize only when actually performing backup
+      await backupManager.initialize();
+      
       String? encryptionPassword;
       
       if (_enableEncryption) {
@@ -585,7 +589,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
       }
       
       final result = await backupManager.performBackup(
-        provider: _selectedProvider,
+        providers: [_selectedProvider],
         incremental: _useIncremental,
         encryptionPassword: encryptionPassword,
         onProgress: (progress) {
@@ -602,10 +606,18 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
       });
       
       if (mounted) {
+        // Calculate totals from all providers
+        int totalEntries = 0;
+        int totalMedia = 0;
+        for (final metadata in result.values) {
+          totalEntries += metadata.entryCount;
+          totalMedia += metadata.mediaCount;
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Backup completed: ${result.entryCount} entries, ${result.mediaCount} media files',
+              'Backup completed: $totalEntries entries, $totalMedia media files',
             ),
             backgroundColor: Colors.green,
           ),
@@ -853,7 +865,6 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
   
   Future<double> _calculateBackupSize() async {
     final backupManager = ref.read(backupManagerProvider);
-    await backupManager.initialize();
     final backups = backupManager.getBackupHistory();
     
     double totalSize = 0;
@@ -866,13 +877,12 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
   
   Future<void> _saveSettings() async {
     final config = BackupConfig(
-      enabled: _enableAutoBackup,
       frequency: _backupFrequency,
-      provider: _selectedProvider.name,
-      encryptionEnabled: _enableEncryption,
       includeMedia: _includeMedia,
-      retentionDays: 30,
-      maxBackupCount: 10,
+      enableEncryption: _enableEncryption,
+      maxBackupsToKeep: 10,
+      useSyncthingFolder: _selectedProvider == BackupProvider.syncthing,
+      useBlossomStorage: _selectedProvider == BackupProvider.blossom,
     );
     
     await BackupScheduler.saveConfig(config);
@@ -880,7 +890,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
     if (_enableAutoBackup) {
       await BackupScheduler.scheduleBackup(config);
     } else {
-      await BackupScheduler.cancelBackup();
+      await BackupScheduler.cancelScheduledBackup();
     }
     
     if (mounted) {

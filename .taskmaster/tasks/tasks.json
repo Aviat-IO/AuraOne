@@ -1164,7 +1164,7 @@
         "id": 23,
         "title": "Data Persistence - Implement Backup System for App Data Survival",
         "description": "Implement comprehensive data backup and restoration system using decentralized and privacy-preserving methods to ensure user journal data survives app reinstallation and device changes.",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           9,
           2,
@@ -1180,7 +1180,7 @@
             "id": 2,
             "title": "Enhance Syncthing Integration",
             "description": "Improve and expand Syncthing integration for robust peer-to-peer backup synchronization across user's devices.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1
             ],
@@ -1215,7 +1215,7 @@
             "id": 5,
             "title": "Implement Secure Backup Encryption",
             "description": "Enhance backup encryption system with device keychain/keystore integration for secure password management and privacy protection.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1
             ],
@@ -1236,7 +1236,7 @@
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-12T09:31:45.611Z",
+      "updated": "2025-09-12T10:20:32.242Z",
       "description": "Tasks for master context"
     }
   }
