@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../services/backup/backup_manager.dart';
 import '../services/backup/backup_restoration_service.dart';
@@ -424,6 +425,14 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
                         return const Text('Calculating...');
                       },
                     ),
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.sync),
+                    title: const Text('Syncthing Settings'),
+                    subtitle: const Text('Configure peer-to-peer synchronization'),
+                    trailing: const Icon(Icons.arrow_forward_ios),
+                    onTap: () => context.push('/settings/syncthing'),
                   ),
                 ],
               ),

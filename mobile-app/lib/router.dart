@@ -11,6 +11,7 @@ import 'package:aura_one/screens/debug/database_viewer_screen.dart';
 import 'package:aura_one/screens/export_screen.dart';
 import 'package:aura_one/screens/import_screen.dart';
 import 'package:aura_one/screens/backup_settings_screen.dart';
+import 'package:aura_one/screens/syncthing_settings_screen.dart';
 import 'package:aura_one/screens/app_lock_settings_screen.dart';
 import 'package:aura_one/screens/camera_screen.dart';
 import 'package:aura_one/screens/privacy_dashboard_screen.dart';
@@ -106,6 +107,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/backup',
         builder: (context, state) => const BackupSettingsScreen(),
+      ),
+
+      // Syncthing settings screen
+      GoRoute(
+        path: '/settings/syncthing',
+        builder: (context, state) => const SyncthingSettingsScreen(),
       ),
 
       // App lock settings screen
