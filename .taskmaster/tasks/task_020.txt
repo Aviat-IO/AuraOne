@@ -1,6 +1,6 @@
 # Task ID: 20
 # Title: Media Linking Feature - Make Home > Media Tab Photos Clickable and Linkable
-# Status: pending
+# Status: done
 # Dependencies: 8, 4
 # Priority: high
 # Description: Implement functionality to make photos in the Home > Media tab clickable and linkable to the corresponding day's journal entry.

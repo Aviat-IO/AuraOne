@@ -1018,10 +1018,8 @@
       {
         "id": 21,
         "title": "Local AI Models for Daily Summary Generation (KEY FEATURE)",
-        "description": "Implement comprehensive on-device AI system using optimized local models to generate intelligent daily summaries from collected sensor and activity data.",
-        "details": "Build upon existing AI infrastructure from Task 6 and 17 to create a production-ready local AI system for daily summary generation. Research and implement state-of-the-art mobile-optimized language models (quantized Gemma 2B, TinyLLaMA, or Phi-3 Mini) that can run efficiently on mobile devices. Enhance the existing AIService to handle complex data synthesis from multiple sources: location tracking data, photo metadata and analysis, calendar events, health data, and user activity patterns. Implement advanced prompt engineering with dynamic context building that adapts summaries based on data richness - create detailed narratives for data-rich days and meaningful insights for minimal-data days. Add personality and tone customization allowing users to choose summary styles (professional, casual, reflective, detailed, brief). Implement intelligent data filtering that identifies significant events, removes noise, and focuses on meaningful activities. Create a sophisticated caching system for model inference to improve performance and battery life. Add background processing capabilities for generating summaries during optimal device conditions (charging, WiFi, idle). Implement fallback strategies with progressive degradation - from full AI generation to template-based summaries to simple activity lists. Add summary quality scoring and user feedback mechanisms to improve generation over time. Ensure all processing remains completely local with no data leaving the device.",
-        "testStrategy": "Test AI model performance across various mobile devices with different specifications. Benchmark memory usage, inference time, and battery impact during summary generation. Validate summary quality across diverse user activity patterns and data scenarios. Test personality and tone customization options produce appropriate stylistic differences. Verify background processing works correctly without impacting device performance. Test fallback systems handle edge cases and model failures gracefully. Validate that all AI processing remains local and no data is transmitted externally.",
-        "priority": "critical",
+        "description": "Implement comprehensive 4-stage on-device AI pipeline using AI-SPEC.md specifications for generating intelligent daily summaries from multimodal sensor, location, and photo data using Google Gemma 3 Nano.",
+        "status": "in-progress",
         "dependencies": [
           6,
           17,
@@ -1029,89 +1027,92 @@
           4,
           5
         ],
-        "status": "pending",
+        "priority": "critical",
+        "details": "Build upon existing AI infrastructure from Task 6 and 17 to create a production-ready 4-stage AI pipeline following AI-SPEC.md specifications. Stage 1 (Spatiotemporal Analysis): Implement DBSCAN with grid-based optimization for location clustering and CNN-LSTM models for Human Activity Recognition, creating structured Stay/Journey events. Stage 2 (Visual Context): Deploy MobileNet/EfficientNet for scene recognition and object detection, plus LightCap model for image captioning. Stage 3&4 (Unified Multimodal Summarization): Use Google Gemma 3 Nano (2B/4B parameters) via flutter_gemma package for native multimodal processing of text, image, and audio inputs. Handle model download on first launch (not bundled) and implement Gemma Terms of Use licensing requirements. Use tflite_flutter for preprocessing models (HAR, vision) and flutter_gemma for narrative generation. Enable hardware acceleration (NNAPI on Android, Core ML on iOS). Implement model quantization, run inference in isolates to prevent UI blocking, add progressive fallback strategies, and consider optional differential privacy for GPS data. All processing remains strictly on-device with no external data transmission.",
+        "testStrategy": "Test 4-stage AI pipeline performance across various mobile devices with different specifications. Benchmark each stage individually: spatiotemporal processing (DBSCAN clustering accuracy, HAR model precision/recall), visual context extraction (scene recognition accuracy, caption quality), and multimodal summarization (Gemma 3 Nano inference time, memory usage). Validate model download and licensing compliance on first launch. Test hardware acceleration on both Android (NNAPI) and iOS (Core ML). Verify all processing remains local with network monitoring. Test progressive fallback strategies under resource constraints. Validate summary quality across diverse multimodal scenarios combining location, activity, and photo data.",
         "subtasks": [
           {
             "id": 1,
             "title": "Project Setup and Core Dependencies",
-            "description": "Add tflite_flutter package, configure native projects (Android/iOS), and set up assets folder for models",
+            "description": "Add tflite_flutter and flutter_gemma packages, configure native projects for hardware acceleration",
+            "status": "done",
             "dependencies": [],
-            "details": "Install tflite_flutter package providing Dart bindings for TensorFlow Lite native library. Configure native build files for Android (modify build.gradle to include TensorFlow Lite library) and iOS (update Podfile, ensure minimum deployment target compatibility, adjust Strip Style setting in Xcode to Non-Global Symbols for release builds). Create assets folder in project root for storing .tflite model files and declare it in pubspec.yaml.",
-            "status": "pending",
+            "details": "Install tflite_flutter package for preprocessing models (HAR, vision) and flutter_gemma package for Gemma 3 Nano integration. Configure native build files for Android (modify build.gradle to include TensorFlow Lite library and NNAPI delegate) and iOS (update Podfile for Core ML delegate, ensure minimum deployment target compatibility, adjust Strip Style setting). Create assets folder for preprocessing .tflite models only (Gemma models downloaded on first launch). Configure hardware acceleration delegates for optimal performance.\n<info added on 2025-09-12T07:39:38.614Z>\nAdd google_ml_kit packages (google_mlkit_commons, google_mlkit_face_detection, google_mlkit_image_labeling, google_mlkit_text_recognition) for rapid prototyping of vision tasks during development. Create ModelFileManager class to handle Gemma 3 Nano model downloading on first app launch with progress tracking and error handling (models ~2GB, not bundled with app). Implement basic AIService architecture with modular pipeline stages: SpatiotemporalProcessor, VisualContextProcessor, and SummaryGenerator for clean separation of concerns. Set up model storage directory structure with assets/models/preprocessing/ for bundled TFLite models and app_documents/models/ for downloaded Gemma models. Configure permissions in AndroidManifest.xml (CAMERA, WRITE_EXTERNAL_STORAGE, ACCESS_FINE_LOCATION) and Info.plist (NSCameraUsageDescription, NSLocationWhenInUseUsageDescription, NSPhotoLibraryUsageDescription) for required sensor data access.\n</info added on 2025-09-12T07:39:38.614Z>",
             "testStrategy": ""
           },
           {
             "id": 2,
-            "title": "Spatiotemporal Data Processing - Location Clustering",
-            "description": "Implement DBSCAN algorithm to identify significant stay points from GPS coordinates",
-            "dependencies": [
-              "21.1"
-            ],
-            "details": "Process time-series GPS coordinates to identify significant locations where user spent time. Implement custom DBSCAN (Density-Based Spatial Clustering) algorithm in Dart to cluster GPS points into stay points and journeys. Configure parameters: eps (distance in meters for neighborhood radius), MinPts (minimum GPS points within eps radius to define core point). Output list of GPS points labeled with cluster ID (significant place) or noise (journey). Use existing location data from Task 3.",
+            "title": "Stage 1: Spatiotemporal Data Processing - Location Clustering with DBSCAN",
+            "description": "Implement grid-based optimized DBSCAN algorithm to identify significant stay points from GPS coordinates",
             "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "Process time-series GPS coordinates following AI-SPEC.md specifications to identify significant locations where user spent time. Implement grid-based optimized DBSCAN (Density-Based Spatial Clustering) algorithm in Dart to cluster GPS points into stay points and journeys with improved performance. Configure parameters: eps (distance in meters for neighborhood radius), MinPts (minimum GPS points within eps radius to define core point). Apply grid-based spatial indexing for O(n log n) complexity improvement. Output list of GPS points labeled with cluster ID (significant place) or noise (journey). Implement optional differential privacy for GPS data protection. Use existing location data from Task 3.\n<info added on 2025-09-12T07:40:17.643Z>\nDBSCAN implementation should output structured Event objects with type field set to either 'Stay' or 'Journey'. For Stay events: include precise location coordinates, start_time when user arrived, and end_time when user left the significant location. For Journey events: capture movement trajectory with start/end coordinates and timestamps representing travel between stay points. Grid-based preprocessing optimization must divide geographical coverage area into uniform cells, map each GPS point to its corresponding grid cell, calculate point density per cell, then apply DBSCAN algorithm only to high-density cells and their immediate neighbors. This reduces computational complexity from O(n²) to approximately O(n log n) making it feasible for processing 5-10K daily GPS points on mobile devices. Memory-efficient implementation should process GPS data in streaming fashion rather than loading entire dataset into memory simultaneously. Reference AI-SPEC Section 2.1 for specific parameter tuning guidelines and performance benchmarks.\n</info added on 2025-09-12T07:40:17.643Z>",
             "testStrategy": ""
           },
           {
             "id": 3,
-            "title": "Spatiotemporal Data Processing - Human Activity Recognition",
-            "description": "Implement CNN-LSTM model for classifying physical activity using IMU data",
-            "dependencies": [
-              "21.1",
-              "21.2"
-            ],
-            "details": "Classify user's physical activity (stationary, walking, running) using accelerometer and gyroscope data. Obtain/train lightweight CNN-LSTM model optimized for time-series classification, convert to TensorFlow Lite format with post-training quantization. Load har_model.tflite using tflite_flutter. Collect IMU data using sensors_plus plugin. Preprocess sensor data into fixed-length windows of 3-axis readings. Run inference using IsolateInterpreter to avoid blocking UI thread. Output stream of activity labels with timestamps.",
+            "title": "Stage 1: Human Activity Recognition using CNN-LSTM",
+            "description": "Implement CNN-LSTM model for classifying physical activity using IMU data with tflite_flutter",
             "status": "pending",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Classify user's physical activity (stationary, walking, running) using accelerometer and gyroscope data following AI-SPEC.md HAR specifications. Obtain/train lightweight CNN-LSTM model optimized for time-series classification, convert to TensorFlow Lite format with post-training quantization. Load har_model.tflite using tflite_flutter with hardware acceleration delegates. Collect IMU data using sensors_plus plugin. Preprocess sensor data into fixed-length windows of 3-axis readings. Run inference using IsolateInterpreter to avoid blocking UI thread. Correlate with location clustering to create structured Stay and Journey events. Output stream of activity-enriched spatiotemporal events.\n<info added on 2025-09-12T07:40:55.385Z>\nCNN-LSTM architecture details: Design multi-layer CNN for spatial feature extraction from 3-axis sensor data (accelerometer X/Y/Z, gyroscope X/Y/Z), followed by LSTM layers for temporal sequence modeling. Target expanded activity classes: Stationary, Walking, Running, Driving, Cycling per AI-SPEC Table 1. Model optimization: Achieve 27KB quantized model size through INT8 post-training quantization and pruning techniques. Implement 128-sample sliding window (2.56 seconds at 50Hz sampling rate) with 50% overlap for continuous classification. Performance benchmarks: Target 92-97% accuracy with <50ms inference latency on mobile devices. Integration workflow: Correlate HAR classifications with DBSCAN location clusters to distinguish between stationary stays and mobile journeys. Use IsolateInterpreter for background inference processing to maintain UI responsiveness during real-time activity recognition.\n</info added on 2025-09-12T07:40:55.385Z>",
             "testStrategy": ""
           },
           {
             "id": 4,
-            "title": "Visual Context Extraction",
-            "description": "Implement image captioning with LightCap or similar lightweight model to process photos and generate descriptions",
-            "dependencies": [
-              "21.1"
-            ],
-            "details": "Generate descriptive sentences for relevant photos using pre-trained lightweight image captioning model (LightCap or similar). Acquire quantized .tflite version of captioning model and add to assets folder. Load caption_model.tflite using tflite_flutter. Access photos from gallery using existing photo_manager integration from Task 4, filtering by day's timestamps. Preprocess images to required tensor format (resizing, normalizing pixel values). Run captioning model using IsolateInterpreter. Output descriptive strings for each processed image. Alternative: Use google_ml_kit_image_labeling for simpler prototyping.",
+            "title": "Stage 2: Visual Context Extraction - Scene Recognition and Object Detection",
+            "description": "Implement MobileNet/EfficientNet models for scene recognition and object detection using tflite_flutter",
             "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "Deploy lightweight MobileNet or EfficientNet models for scene recognition and object detection following AI-SPEC.md vision specifications. Acquire quantized .tflite versions of scene classification and object detection models, add to assets folder. Load models using tflite_flutter with hardware acceleration. Access photos from gallery using existing photo_manager integration from Task 4, filtering by day's timestamps. Preprocess images to required tensor format (resizing, normalizing pixel values). Run inference using IsolateInterpreter for both scene recognition and object detection. Output structured visual context data including scene types and detected objects with confidence scores. Alternative rapid prototyping: Use Google ML Kit for initial implementation.\n<info added on 2025-09-12T07:41:34.248Z>\nComplete implementation of specialized MobileNet V3 and EfficientNet-Lite models following the model optimization requirements. Focus on depth-wise separable convolutions architecture to achieve computational efficiency. Apply INT8 quantization to reduce model size by 4x while maintaining accuracy thresholds. Ensure combined vision models stay under 50MB total size limit. Implement domain-specific OOI detection for daily life objects including food items, technology devices, people, and pets with high confidence scoring. Integrate EXIF metadata extraction from photos to capture precise timestamp and location data. Create correlation engine that matches photo timestamps with spatiotemporal events from Stage 1 HAR analysis. Output enriched event structures combining location clusters, activity recognition, and visual context labels for comprehensive daily life documentation. Performance target: Real-time inference on mid-range mobile devices with <200ms processing time per image.\n</info added on 2025-09-12T07:41:34.248Z>",
             "testStrategy": ""
           },
           {
             "id": 5,
-            "title": "Multi-modal Fusion and Event Correlation",
-            "description": "Combine location, activity, and photo data into unified timeline structure",
-            "dependencies": [
-              "21.2",
-              "21.3",
-              "21.4"
-            ],
-            "details": "Combine outputs from spatiotemporal processing and visual extraction into chronologically ordered, contextually aware data structure. Create temporal correlation function to build unified timeline: iterate through day's timestamps, use DBSCAN output to segment into Stay and Journey events, associate HAR labels for each event, attach image captions from photos taken during time windows. Define DailyEvent Dart class with EventType (Stay/Journey), start/end times, locationId, activities list, and photo captions list. Optional advanced: implement Transformer-based fusion model for deeper context learning.",
+            "title": "Stage 2: Lightweight Image Captioning with LightCap Integration",
+            "description": "Implement LightCap model for generating natural language descriptions of photos",
             "status": "pending",
+            "dependencies": [
+              1,
+              4
+            ],
+            "details": "Generate descriptive sentences for relevant photos using LightCap lightweight image captioning model as specified in AI-SPEC.md. Acquire quantized .tflite version of LightCap model and add to assets folder. Load caption_model.tflite using tflite_flutter with hardware acceleration. Integrate with scene recognition and object detection outputs from previous subtask. Preprocess images to LightCap's required tensor format. Run captioning model using IsolateInterpreter. Combine scene recognition, object detection, and natural language captions into rich visual context data. Correlate with spatiotemporal events from Stage 1 to create multimodal event representations.\n<info added on 2025-09-12T07:42:12.129Z>\nArchitecture specifications: CLIP visual encoder + TinyBERT cross-modal fusion architecture with 40M parameters, 9.8G FLOPs, ~112MB model size. Performance target: CIDEr score 136.6 with 188ms inference speed on mobile CPU. Convert LightCap model to quantized TensorFlow Lite format for on-device deployment. Integration workflow: process photos from Stage 2.4 scene recognition, transform spatiotemporal events with enriched captions (e.g., 'Stay at Cluster_D' becomes 'Had lunch at Italian restaurant'). Generate full descriptive sentences as ready-made narrative content for daily summaries. Execute inference using IsolateInterpreter to maintain UI responsiveness during caption generation.\n</info added on 2025-09-12T07:42:12.129Z>",
             "testStrategy": ""
           },
           {
             "id": 6,
-            "title": "Narrative Generation",
-            "description": "Integrate Small Language Model (Phi-3 Mini or TinyLlama) for generating human-readable summaries",
-            "dependencies": [
-              "21.5"
-            ],
-            "details": "Convert fused daily events into human-readable paragraph using Small Language Model optimized for on-device use (Microsoft Phi-3 Mini or TinyLlama). Download 4-bit quantized .tflite version of chosen SLM and add to assets folder. Load SLM using tflite_flutter. Create prompt engineering system from DailyEvent objects with instructions for summary writing. Implement tokenization and inference processing. CRITICALLY IMPORTANT: Use IsolateInterpreter for SLM inference to prevent app crashes. Decode output tokens back into narrative string. Output final daily summary text.",
+            "title": "Stage 3&4: Multimodal Fusion and Narrative Generation with Gemma 3 Nano",
+            "description": "Integrate Google Gemma 3 Nano for unified multimodal processing and daily summary generation",
             "status": "pending",
+            "dependencies": [
+              2,
+              3,
+              5
+            ],
+            "details": "Implement unified multimodal summarization using Google Gemma 3 Nano (2B or 4B parameters) following AI-SPEC.md Stage 3&4 specifications. Use flutter_gemma package for native multimodal support processing text, image, and audio inputs. Handle model download on first launch (models not bundled in app). Implement Gemma Terms of Use licensing requirements and user acceptance flow. Combine spatiotemporal events (Stay/Journey with HAR data) and visual context (scene recognition, object detection, captions) into structured prompts for Gemma. Create sophisticated prompt engineering system that adapts to data richness - detailed narratives for data-rich days, meaningful insights for minimal-data days. Run Gemma inference in isolates to prevent UI blocking. Implement progressive fallback strategies if Gemma fails. Output human-readable daily summary paragraphs with personality and tone customization options.\n<info added on 2025-09-12T07:42:55.757Z>\nCreate ModelFileManager class that handles Gemma 3 Nano model download and caching in app_documents/models/ directory. Implement download progress UI with percentage and cancellation options. Add model version checking and automatic updates. Handle network interruptions with resume capability. Implement proper error handling for download failures with retry logic. Create GemmaLicenseManager to display Gemma Terms of Use acceptance dialog on first use. Update app Terms of Use to include Gemma usage restrictions and content generation disclaimers. Initialize flutter_gemma with multimodal configuration enabling text, image, and audio input processing. Create structured prompt templates that combine spatiotemporal data from DBSCAN clustering and HAR models with visual context from scene recognition and image captions. Implement adaptive prompting that adjusts detail level based on available data richness. Run all Gemma inference operations in dedicated compute isolates with proper memory management and cleanup. Add fallback mechanisms if model fails to load or generate output. Output structured daily narratives in Markdown format with customizable tone and personality settings.\n</info added on 2025-09-12T07:42:55.757Z>",
             "testStrategy": ""
           },
           {
             "id": 7,
-            "title": "Final Optimizations",
-            "description": "Implement hardware acceleration, model quantization, and comprehensive permission handling",
-            "dependencies": [
-              "21.1",
-              "21.2",
-              "21.3",
-              "21.4",
-              "21.5",
-              "21.6"
-            ],
-            "details": "Enable hardware acceleration using delegates (NnApiDelegate for Android, GpuDelegate for iOS) when creating Interpreter to offload computation from CPU. Ensure all .tflite models are quantized (4-bit or 8-bit integer) to minimize memory footprint. Implement comprehensive permission handling logic for location access (always), motion sensors, and photo gallery access. Add error handling and graceful degradation for hardware acceleration failures. Implement model loading optimization and caching strategies. Add performance monitoring and battery usage optimization.",
+            "title": "Final Optimizations and Production Readiness",
+            "description": "Implement hardware acceleration, model optimization, comprehensive error handling, and privacy features",
             "status": "pending",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "details": "Enable hardware acceleration using delegates (NnApiDelegate for Android, CoreMLDelegate for iOS) when creating interpreters to offload computation from CPU. Ensure all preprocessing .tflite models are quantized (4-bit or 8-bit integer) to minimize memory footprint. Implement comprehensive permission handling logic for location access (always), motion sensors, and photo gallery access. Add robust error handling and graceful degradation for hardware acceleration failures, model loading issues, and inference errors. Implement model loading optimization and caching strategies. Add performance monitoring, memory usage tracking, and battery usage optimization. Implement differential privacy options for GPS data. Add comprehensive logging for debugging while ensuring no sensitive data is logged. Create fallback strategies: full AI generation → template-based summaries → simple activity lists.\n<info added on 2025-09-12T07:44:07.740Z>\nPerformance benchmarking suite implementation targeting different device tiers (flagship, mid-range, budget) with detailed metrics collection for NPU/GPU/DSP utilization rates. Post-training quantization pipeline using TensorFlow Lite's optimization toolkit to achieve target model sizes while maintaining accuracy thresholds. Model pruning implementation using structured pruning techniques to reduce parameter count by 30-50% without significant accuracy loss. Isolate lifecycle management with proper dispose patterns and memory cleanup schedules. Memory pressure monitoring integration with Android's ComponentCallbacks2 and iOS memory warning notifications to trigger adaptive processing mode. Tensor memory management with explicit deallocation after inference cycles. Differential privacy implementation using calibrated Laplacian noise injection for GPS coordinates with configurable epsilon values. Data obfuscation layer for temporal patterns and location clustering to prevent re-identification attacks. Federated Learning framework foundation with secure aggregation protocols for future privacy-preserving model updates. Progressive degradation hierarchy: Full AI pipeline → Reduced model complexity → Template-based generation → Simple activity logging. Exponential backoff retry mechanism with jitter for model loading failures and network-dependent operations. Adaptive quality scaling based on battery percentage thresholds (100-80% full quality, 80-50% medium quality, below 50% minimal processing). Charging state detection integration with scheduled heavy processing during power connection periods. Power consumption profiling using native battery statistics APIs for continuous optimization feedback.\n</info added on 2025-09-12T07:44:07.740Z>",
             "testStrategy": ""
           }
         ]
@@ -1151,7 +1152,7 @@
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-11T16:28:44.861Z",
+      "updated": "2025-09-12T07:56:40.330Z",
       "description": "Tasks for master context"
     }
   }

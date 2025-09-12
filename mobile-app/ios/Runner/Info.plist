@@ -80,5 +80,11 @@
 	<string>Aura One uses Bluetooth to detect nearby devices and locations to add context to your journal entries.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>Aura One uses Bluetooth to connect with wearable devices for health tracking.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Aura One needs camera access to capture photos for your journal entries and memories.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Aura One needs microphone access for voice notes and voice-to-text features in your journal.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Aura One uses motion data to track your physical activities and add context to your daily summaries.</string>
 </dict>
 </plist>

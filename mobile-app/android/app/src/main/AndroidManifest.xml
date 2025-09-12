@@ -43,6 +43,9 @@
     <!-- Microphone permission for voice-to-text features -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     
+    <!-- Camera permission for taking photos -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    
     <application
         android:label="Aura One"
         android:name="${applicationName}"
