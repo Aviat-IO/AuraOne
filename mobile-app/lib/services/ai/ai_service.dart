@@ -4,6 +4,8 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
+import 'optimization_manager.dart';
+import 'privacy_manager.dart';
 
 // AI Service Configuration
 class AIServiceConfig {
@@ -43,6 +45,10 @@ class AIService {
   final VisualContextProcessor visualContextProcessor;
   final MultimodalFusionProcessor multimodalFusionProcessor;
   final SummaryGenerator summaryGenerator;
+  
+  // Optimization and privacy managers
+  late final OptimizationManager _optimizationManager;
+  late final PrivacyManager _privacyManager;
 
   bool _isInitialized = false;
   Isolate? _inferenceIsolate;
@@ -57,8 +63,26 @@ class AIService {
 
   Future<void> initialize() async {
     if (_isInitialized) return;
+    
+    // Initialize optimization and privacy managers
+    _optimizationManager = OptimizationManager.instance;
+    _privacyManager = PrivacyManager.instance;
+    
+    await _optimizationManager.initialize();
+    
+    // Configure privacy based on config
+    _privacyManager.configure(
+      privacyEpsilon: config.privacyEpsilon,
+      enableDifferentialPrivacy: config.enableDifferentialPrivacy,
+    );
+    
+    // Request necessary permissions
+    final permissionStatus = await _optimizationManager.requestPermissions();
+    if (permissionStatus != PermissionStatus.granted) {
+      debugPrint('WARNING: Not all permissions granted. Some features may be limited.');
+    }
 
-    // Initialize all pipeline stages
+    // Initialize all pipeline stages with optimization support
     await spatiotemporalProcessor.initialize();
     await visualContextProcessor.initialize();
     await multimodalFusionProcessor.initialize();
@@ -68,6 +92,7 @@ class AIService {
     await _setupInferenceIsolate();
 
     _isInitialized = true;
+    debugPrint('AIService initialized with optimizations');
   }
 
   Future<void> _setupInferenceIsolate() async {
@@ -88,15 +113,29 @@ class AIService {
     if (!_isInitialized) {
       throw StateError('AIService not initialized');
     }
+    
+    // Check battery and memory conditions
+    final quality = _optimizationManager.getRecommendedQuality();
+    debugPrint('Processing with quality level: $quality');
+    
+    if (_optimizationManager.isUnderMemoryPressure) {
+      debugPrint('WARNING: Memory pressure detected - using minimal processing');
+    }
 
     try {
-      // Stage 1: Spatiotemporal Analysis
+      // Stage 1: Spatiotemporal Analysis with privacy
       final spatiotemporalData = await spatiotemporalProcessor.process(date);
+      
+      // Apply privacy to location data if enabled
+      if (config.enableDifferentialPrivacy) {
+        spatiotemporalData.applyPrivacy(_privacyManager);
+      }
 
-      // Stage 2: Visual Context Extraction
+      // Stage 2: Visual Context Extraction with adaptive quality
       final visualContext = await visualContextProcessor.process(
         date,
         spatiotemporalData.events,
+        quality: quality,
       );
 
       // Stage 3&4: Multimodal Fusion and Narrative Generation

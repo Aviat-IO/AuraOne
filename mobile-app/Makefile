@@ -76,6 +76,11 @@ devices:
 	@echo "📱 Connected devices and emulators:"
 	@fvm flutter devices
 
+
+show-device:
+	scrcpy --max-size 1440 --stay-awake
+
+
 # Clean build artifacts
 clean:
 	@echo "🧹 Cleaning build artifacts..."
