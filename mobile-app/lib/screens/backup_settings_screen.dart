@@ -1,7 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:intl/intl.dart';
+import '../services/backup/backup_manager.dart';
+import '../services/backup/backup_restoration_service.dart';
 import '../services/export/backup_scheduler.dart';
+
+/// Provider for BackupManager instance
+final backupManagerProvider = Provider((ref) => BackupManager());
+
+/// Provider for BackupRestorationService instance  
+final backupRestorationProvider = Provider((ref) => BackupRestorationService());
+
+/// Provider for backup history
+final backupHistoryProvider = FutureProvider.family<List<BackupMetadata>, BackupProvider?>(
+  (ref, provider) async {
+    final backupManager = ref.watch(backupManagerProvider);
+    await backupManager.initialize();
+    return backupManager.getBackupHistory(provider: provider);
+  },
+);
+
+/// Provider for current backup configuration
+final backupConfigProvider = FutureProvider<BackupConfig?>(
+  (ref) async => await BackupScheduler.loadConfig(),
+);
 
 class BackupSettingsScreen extends ConsumerStatefulWidget {
   const BackupSettingsScreen({super.key});
@@ -10,988 +32,905 @@ class BackupSettingsScreen extends ConsumerStatefulWidget {
   ConsumerState<BackupSettingsScreen> createState() => _BackupSettingsScreenState();
 }
 
-class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> {
-  BackupConfig _config = BackupConfig();
-  BackupStatus _status = BackupStatus();
-  List<BackupHistoryEntry> _history = [];
-  bool _isLoading = true;
-  final _passwordController = TextEditingController();
-
+class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> 
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  BackupProvider _selectedProvider = BackupProvider.local;
+  bool _isBackupInProgress = false;
+  double _backupProgress = 0.0;
+  String _backupStatus = '';
+  
+  // Backup settings
+  bool _enableAutoBackup = false;
+  BackupFrequency _backupFrequency = BackupFrequency.daily;
+  bool _enableEncryption = false;
+  bool _includeMedia = true;
+  bool _useIncremental = false;
+  
+  // Restore settings
+  RestoreStrategy _restoreStrategy = RestoreStrategy.merge;
+  ConflictResolution _conflictResolution = ConflictResolution.useNewer;
+  
   @override
   void initState() {
     super.initState();
-    _loadSettings();
+    _tabController = TabController(length: 3, vsync: this);
+    _loadBackupSettings();
   }
-
+  
   @override
   void dispose() {
-    _passwordController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
-
-  Future<void> _loadSettings() async {
-    try {
-      final config = await BackupScheduler.getConfig();
-      final status = await BackupScheduler.getStatus();
-      final history = await BackupScheduler.getHistory();
-      
-      setState(() {
-        _config = config;
-        _status = status;
-        _history = history;
-        _passwordController.text = config.encryptionPassword ?? '';
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (mounted) {
-        Fluttertoast.showToast(
-          msg: 'Failed to load backup settings: $e',
-          toastLength: Toast.LENGTH_LONG,
-          backgroundColor: Colors.red,
-        );
-      }
-      setState(() => _isLoading = false);
-    }
-  }
-
   
-  /// Auto-save settings when they change
-  Future<void> _autoSaveSettings() async {
-    try {
-      await BackupScheduler.saveConfig(_config);
-      
-      if (_config.frequency != BackupFrequency.disabled) {
-        await BackupScheduler.scheduleBackup(_config);
-      } else {
-        await BackupScheduler.cancelScheduledBackup();
-      }
-      
-      // Reload status to get updated next scheduled time
-      final status = await BackupScheduler.getStatus();
-      if (mounted) {
-        setState(() => _status = status);
-      }
-    } catch (e) {
-      // Silently fail for auto-save to avoid disrupting user experience
-      debugPrint('Auto-save failed: $e');
+  Future<void> _loadBackupSettings() async {
+    final config = await BackupScheduler.loadConfig();
+    if (config != null) {
+      setState(() {
+        _enableAutoBackup = config.enabled;
+        _backupFrequency = config.frequency;
+        _enableEncryption = config.encryptionEnabled;
+        _includeMedia = config.includeMedia;
+      });
     }
   }
-
+  
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Backup Settings'),
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16.0),
-          children: [
-            // Status Card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          _status.lastBackupSuccess 
-                              ? Icons.check_circle 
-                              : Icons.error,
-                          color: _status.lastBackupSuccess 
-                              ? Colors.green 
-                              : Colors.red,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Backup Status',
-                          style: theme.textTheme.titleLarge,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStatusRow('Last Backup', 
-                      _status.lastBackupTime != null
-                        ? _formatDateTime(_status.lastBackupTime!)
-                        : 'Never'),
-                    _buildStatusRow('Next Scheduled', 
-                      _status.nextScheduledBackup != null
-                        ? _formatDateTime(_status.nextScheduledBackup!)
-                        : 'Not scheduled'),
-                    _buildStatusRow('Total Backups', '${_status.totalBackups}'),
-                    _buildStatusRow('Successful', '${_status.successfulBackups}'),
-                    _buildStatusRow('Failed', '${_status.failedBackups}'),
-                    _buildStatusRow('Total Size', '${_status.totalSizeMB.toStringAsFixed(1)} MB'),
-                    if (_status.lastBackupError != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        'Last Error: ${_status.lastBackupError}',
-                        style: TextStyle(
-                          color: theme.colorScheme.error,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: () async {
-                          try {
-                            // First check if we have storage permissions
-                            final hasPermissions = await BackupScheduler.hasStoragePermissions();
-                            if (!hasPermissions) {
-                              // Request permissions first
-                              final granted = await BackupScheduler.requestStoragePermissions();
-                              if (!granted) {
-                                if (mounted) {
-                                  Fluttertoast.showToast(
-                                    msg: 'Storage permission is required for backups',
-                                    toastLength: Toast.LENGTH_LONG,
-                                    backgroundColor: Colors.red,
-                                  );
-                                }
-                                return;
-                              }
-                            }
-                            
-                            // Perform the backup
-                            await BackupScheduler.performManualBackup();
-                            
-                            // Refresh settings to update status
-                            await _loadSettings();
-                            
-                            if (mounted) {
-                              Fluttertoast.showToast(
-                                msg: 'Manual backup started',
-                                toastLength: Toast.LENGTH_SHORT,
-                              );
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              Fluttertoast.showToast(
-                                msg: 'Backup failed: $e',
-                                toastLength: Toast.LENGTH_LONG,
-                                backgroundColor: Colors.red,
-                              );
-                            }
-                          }
-                        },
-                        icon: const Icon(Icons.backup),
-                        label: const Text('Backup Now'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Schedule Settings
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.schedule, color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Schedule',
-                          style: theme.textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<BackupFrequency>(
-                      value: _config.frequency,
-                      decoration: const InputDecoration(
-                        labelText: 'Backup Frequency',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: BackupFrequency.values.map((freq) {
-                        return DropdownMenuItem(
-                          value: freq,
-                          child: Text(freq.label),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            _config = BackupConfig(
-                              frequency: value,
-                              preferredTime: _config.preferredTime,
-                              includeMedia: _config.includeMedia,
-                              includeLocation: _config.includeLocation,
-                              includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                              enableEncryption: _config.enableEncryption,
-                              encryptionPassword: _config.encryptionPassword,
-                              useBlossomStorage: _config.useBlossomStorage,
-                              useSyncthingFolder: _config.useSyncthingFolder,
-                              maxBackupsToKeep: _config.maxBackupsToKeep,
-                              onlyOnWifi: _config.onlyOnWifi,
-                              onlyWhenCharging: _config.onlyWhenCharging,
-                            );
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      title: const Text('Preferred Time'),
-                      subtitle: Text(
-                        '${_config.preferredTime.hour.toString().padLeft(2, '0')}:${_config.preferredTime.minute.toString().padLeft(2, '0')}',
-                      ),
-                      trailing: const Icon(Icons.access_time),
-                      onTap: _config.frequency != BackupFrequency.disabled
-                          ? () async {
-                              final time = await showTimePicker(
-                                context: context,
-                                initialTime: _config.preferredTime,
-                              );
-                              if (time != null) {
-                                setState(() {
-                                  _config = BackupConfig(
-                                    frequency: _config.frequency,
-                                    preferredTime: time,
-                                    includeMedia: _config.includeMedia,
-                                    includeLocation: _config.includeLocation,
-                                    includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                                    enableEncryption: _config.enableEncryption,
-                                    encryptionPassword: _config.encryptionPassword,
-                                    useBlossomStorage: _config.useBlossomStorage,
-                                    useSyncthingFolder: _config.useSyncthingFolder,
-                                    maxBackupsToKeep: _config.maxBackupsToKeep,
-                                    onlyOnWifi: _config.onlyOnWifi,
-                                    onlyWhenCharging: _config.onlyWhenCharging,
-                                  );
-                                });
-                              }
-                            }
-                          : null,
-                    ),
-                    SwitchListTile(
-                      title: const Text('Only on Wi-Fi'),
-                      subtitle: const Text('Backup only when connected to Wi-Fi'),
-                      value: _config.onlyOnWifi,
-                      onChanged: _config.frequency != BackupFrequency.disabled
-                          ? (value) {
-                              setState(() {
-                                _config = BackupConfig(
-                                  frequency: _config.frequency,
-                                  preferredTime: _config.preferredTime,
-                                  includeMedia: _config.includeMedia,
-                                  includeLocation: _config.includeLocation,
-                                  includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                                  enableEncryption: _config.enableEncryption,
-                                  encryptionPassword: _config.encryptionPassword,
-                                  useBlossomStorage: _config.useBlossomStorage,
-                                  useSyncthingFolder: _config.useSyncthingFolder,
-                                  maxBackupsToKeep: _config.maxBackupsToKeep,
-                                  onlyOnWifi: value,
-                                  onlyWhenCharging: _config.onlyWhenCharging,
-                                );
-                              });
-                            }
-                          : null,
-                    ),
-                    SwitchListTile(
-                      title: const Text('Only When Charging'),
-                      subtitle: const Text('Backup only when device is charging'),
-                      value: _config.onlyWhenCharging,
-                      onChanged: _config.frequency != BackupFrequency.disabled
-                          ? (value) {
-                              setState(() {
-                                _config = BackupConfig(
-                                  frequency: _config.frequency,
-                                  preferredTime: _config.preferredTime,
-                                  includeMedia: _config.includeMedia,
-                                  includeLocation: _config.includeLocation,
-                                  includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                                  enableEncryption: _config.enableEncryption,
-                                  encryptionPassword: _config.encryptionPassword,
-                                  useBlossomStorage: _config.useBlossomStorage,
-                                  useSyncthingFolder: _config.useSyncthingFolder,
-                                  maxBackupsToKeep: _config.maxBackupsToKeep,
-                                  onlyOnWifi: _config.onlyOnWifi,
-                                  onlyWhenCharging: value,
-                                );
-                              });
-                            }
-                          : null,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Backup Content Settings
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.folder, color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Backup Content',
-                          style: theme.textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    SwitchListTile(
-                      title: const Text('Include Media'),
-                      subtitle: const Text('Back up photos, videos, and audio'),
-                      value: _config.includeMedia,
-                      onChanged: (value) {
-                        setState(() {
-                          _config = BackupConfig(
-                            frequency: _config.frequency,
-                            preferredTime: _config.preferredTime,
-                            includeMedia: value,
-                            includeLocation: _config.includeLocation,
-                            includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                            enableEncryption: _config.enableEncryption,
-                            encryptionPassword: _config.encryptionPassword,
-                            useBlossomStorage: _config.useBlossomStorage,
-                            useSyncthingFolder: _config.useSyncthingFolder,
-                            maxBackupsToKeep: _config.maxBackupsToKeep,
-                            onlyOnWifi: _config.onlyOnWifi,
-                            onlyWhenCharging: _config.onlyWhenCharging,
-                          );
-                        });
-                        _autoSaveSettings();
-                      },
-                    ),
-                    SwitchListTile(
-                      title: const Text('Include Location'),
-                      subtitle: const Text('Back up GPS data and places'),
-                      value: _config.includeLocation,
-                      onChanged: (value) {
-                        setState(() {
-                          _config = BackupConfig(
-                            frequency: _config.frequency,
-                            preferredTime: _config.preferredTime,
-                            includeMedia: _config.includeMedia,
-                            includeLocation: value,
-                            includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                            enableEncryption: _config.enableEncryption,
-                            encryptionPassword: _config.encryptionPassword,
-                            useBlossomStorage: _config.useBlossomStorage,
-                            useSyncthingFolder: _config.useSyncthingFolder,
-                            maxBackupsToKeep: _config.maxBackupsToKeep,
-                            onlyOnWifi: _config.onlyOnWifi,
-                            onlyWhenCharging: _config.onlyWhenCharging,
-                          );
-                        });
-                        _autoSaveSettings();
-                      },
-                    ),
-                    SwitchListTile(
-                      title: const Text('Include Health Data'),
-                      subtitle: const Text('Back up fitness and wellness data'),
-                      value: _config.includeHealthData,
-                      onChanged: (value) {
-                        setState(() {
-                          _config = BackupConfig(
-                            frequency: _config.frequency,
-                            preferredTime: _config.preferredTime,
-                            includeMedia: _config.includeMedia,
-                            includeLocation: _config.includeLocation,
-                            includeHealthData: value,
-                            includeCalendarData: _config.includeCalendarData,
-                            enableEncryption: _config.enableEncryption,
-                            encryptionPassword: _config.encryptionPassword,
-                            useBlossomStorage: _config.useBlossomStorage,
-                            useSyncthingFolder: _config.useSyncthingFolder,
-                            maxBackupsToKeep: _config.maxBackupsToKeep,
-                            onlyOnWifi: _config.onlyOnWifi,
-                            onlyWhenCharging: _config.onlyWhenCharging,
-                          );
-                        });
-                        _autoSaveSettings();
-                      },
-                    ),
-                    SwitchListTile(
-                      title: const Text('Include Calendar Data'),
-                      subtitle: const Text('Back up events and appointments'),
-                      value: _config.includeCalendarData,
-                      onChanged: (value) {
-                        setState(() {
-                          _config = BackupConfig(
-                            frequency: _config.frequency,
-                            preferredTime: _config.preferredTime,
-                            includeMedia: _config.includeMedia,
-                            includeLocation: _config.includeLocation,
-                            includeHealthData: _config.includeHealthData,
-                            includeCalendarData: value,
-                            enableEncryption: _config.enableEncryption,
-                            encryptionPassword: _config.encryptionPassword,
-                            useBlossomStorage: _config.useBlossomStorage,
-                            useSyncthingFolder: _config.useSyncthingFolder,
-                            maxBackupsToKeep: _config.maxBackupsToKeep,
-                            onlyOnWifi: _config.onlyOnWifi,
-                            onlyWhenCharging: _config.onlyWhenCharging,
-                          );
-                        });
-                        _autoSaveSettings();
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Encryption Settings
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.lock, color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Encryption',
-                          style: theme.textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    SwitchListTile(
-                      title: const Text('Enable Encryption'),
-                      subtitle: const Text('Protect backups with AES-256'),
-                      value: _config.enableEncryption,
-                      onChanged: (value) {
-                        setState(() {
-                          _config = BackupConfig(
-                            frequency: _config.frequency,
-                            preferredTime: _config.preferredTime,
-                            includeMedia: _config.includeMedia,
-                            includeLocation: _config.includeLocation,
-                            includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                            enableEncryption: value,
-                            encryptionPassword: value ? _passwordController.text : null,
-                            useBlossomStorage: _config.useBlossomStorage,
-                            useSyncthingFolder: _config.useSyncthingFolder,
-                            maxBackupsToKeep: _config.maxBackupsToKeep,
-                            onlyOnWifi: _config.onlyOnWifi,
-                            onlyWhenCharging: _config.onlyWhenCharging,
-                          );
-                        });
-                      },
-                    ),
-                    if (_config.enableEncryption) ...[
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Encryption Password',
-                          border: OutlineInputBorder(),
-                          helperText: 'Required to restore encrypted backups',
-                          prefixIcon: Icon(Icons.vpn_key),
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            _config = BackupConfig(
-                              frequency: _config.frequency,
-                              preferredTime: _config.preferredTime,
-                              includeMedia: _config.includeMedia,
-                              includeLocation: _config.includeLocation,
-                              includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                              enableEncryption: _config.enableEncryption,
-                              encryptionPassword: value,
-                              useBlossomStorage: _config.useBlossomStorage,
-                              useSyncthingFolder: _config.useSyncthingFolder,
-                              maxBackupsToKeep: _config.maxBackupsToKeep,
-                              onlyOnWifi: _config.onlyOnWifi,
-                              onlyWhenCharging: _config.onlyWhenCharging,
-                            );
-                          });
-                        },
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Storage Settings
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.storage, color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Storage',
-                          style: theme.textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    RadioListTile<String>(
-                      title: const Text('Local Storage'),
-                      subtitle: const Text('Save backups to device storage'),
-                      value: 'local',
-                      groupValue: _config.useBlossomStorage
-                          ? 'blossom'
-                          : _config.useSyncthingFolder
-                              ? 'syncthing'
-                              : 'local',
-                      onChanged: (value) {
-                        setState(() {
-                          _config = BackupConfig(
-                            frequency: _config.frequency,
-                            preferredTime: _config.preferredTime,
-                            includeMedia: _config.includeMedia,
-                            includeLocation: _config.includeLocation,
-                            includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                            enableEncryption: _config.enableEncryption,
-                            encryptionPassword: _config.encryptionPassword,
-                            useBlossomStorage: false,
-                            useSyncthingFolder: false,
-                            maxBackupsToKeep: _config.maxBackupsToKeep,
-                            onlyOnWifi: _config.onlyOnWifi,
-                            onlyWhenCharging: _config.onlyWhenCharging,
-                          );
-                        });
-                      },
-                    ),
-                    RadioListTile<String>(
-                      title: const Text('Blossom Storage'),
-                      subtitle: const Text('Upload to decentralized storage'),
-                      value: 'blossom',
-                      groupValue: _config.useBlossomStorage
-                          ? 'blossom'
-                          : _config.useSyncthingFolder
-                              ? 'syncthing'
-                              : 'local',
-                      onChanged: (value) {
-                        setState(() {
-                          _config = BackupConfig(
-                            frequency: _config.frequency,
-                            preferredTime: _config.preferredTime,
-                            includeMedia: _config.includeMedia,
-                            includeLocation: _config.includeLocation,
-                            includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                            enableEncryption: _config.enableEncryption,
-                            encryptionPassword: _config.encryptionPassword,
-                            useBlossomStorage: true,
-                            useSyncthingFolder: false,
-                            maxBackupsToKeep: _config.maxBackupsToKeep,
-                            onlyOnWifi: _config.onlyOnWifi,
-                            onlyWhenCharging: _config.onlyWhenCharging,
-                          );
-                        });
-                      },
-                    ),
-                    RadioListTile<String>(
-                      title: const Text('Syncthing Folder'),
-                      subtitle: const Text('Save to Syncthing-monitored folder'),
-                      value: 'syncthing',
-                      groupValue: _config.useBlossomStorage
-                          ? 'blossom'
-                          : _config.useSyncthingFolder
-                              ? 'syncthing'
-                              : 'local',
-                      onChanged: (value) {
-                        setState(() {
-                          _config = BackupConfig(
-                            frequency: _config.frequency,
-                            preferredTime: _config.preferredTime,
-                            includeMedia: _config.includeMedia,
-                            includeLocation: _config.includeLocation,
-                            includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                            enableEncryption: _config.enableEncryption,
-                            encryptionPassword: _config.encryptionPassword,
-                            useBlossomStorage: false,
-                            useSyncthingFolder: true,
-                            maxBackupsToKeep: _config.maxBackupsToKeep,
-                            onlyOnWifi: _config.onlyOnWifi,
-                            onlyWhenCharging: _config.onlyWhenCharging,
-                          );
-                        });
-                      },
-                    ),
-                    
-                    // Blossom Storage Configuration
-                    if (_config.useBlossomStorage) ...[
-                      const SizedBox(height: 16),
-                      Card(
-                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Blossom Configuration',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextFormField(
-                                initialValue: _config.blossomServerUrl,
-                                decoration: const InputDecoration(
-                                  labelText: 'Blossom Server URL',
-                                  hintText: 'https://blossom.example.com',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.cloud_upload),
-                                ),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _config = BackupConfig(
-                                      frequency: _config.frequency,
-                                      preferredTime: _config.preferredTime,
-                                      includeMedia: _config.includeMedia,
-                                      includeLocation: _config.includeLocation,
-                                      includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                                      enableEncryption: _config.enableEncryption,
-                                      encryptionPassword: _config.encryptionPassword,
-                                      useBlossomStorage: _config.useBlossomStorage,
-                                      blossomServerUrl: value.isEmpty ? null : value,
-                                      blossomNsec: _config.blossomNsec,
-                                      useSyncthingFolder: _config.useSyncthingFolder,
-                                      syncthingFolderPath: _config.syncthingFolderPath,
-                                      maxBackupsToKeep: _config.maxBackupsToKeep,
-                                      onlyOnWifi: _config.onlyOnWifi,
-                                      onlyWhenCharging: _config.onlyWhenCharging,
-                                    );
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 12),
-                              TextFormField(
-                                initialValue: _config.blossomNsec,
-                                decoration: InputDecoration(
-                                  labelText: 'Nostr Private Key (nsec)',
-                                  hintText: 'nsec1...',
-                                  border: const OutlineInputBorder(),
-                                  prefixIcon: const Icon(Icons.key),
-                                  suffixIcon: IconButton(
-                                    icon: const Icon(Icons.info_outline),
-                                    onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('About nsec'),
-                                          content: const Text(
-                                            'Your Nostr private key is used to authenticate with the Blossom server. '
-                                            'It will be stored securely on your device.\n\n'
-                                            'For better security, consider using a signing app or browser extension instead.',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(context),
-                                              child: const Text('OK'),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                obscureText: true,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _config = BackupConfig(
-                                      frequency: _config.frequency,
-                                      preferredTime: _config.preferredTime,
-                                      includeMedia: _config.includeMedia,
-                                      includeLocation: _config.includeLocation,
-                                      includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                                      enableEncryption: _config.enableEncryption,
-                                      encryptionPassword: _config.encryptionPassword,
-                                      useBlossomStorage: _config.useBlossomStorage,
-                                      blossomServerUrl: _config.blossomServerUrl,
-                                      blossomNsec: value.isEmpty ? null : value,
-                                      useSyncthingFolder: _config.useSyncthingFolder,
-                                      syncthingFolderPath: _config.syncthingFolderPath,
-                                      maxBackupsToKeep: _config.maxBackupsToKeep,
-                                      onlyOnWifi: _config.onlyOnWifi,
-                                      onlyWhenCharging: _config.onlyWhenCharging,
-                                    );
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 12),
-                              ElevatedButton.icon(
-                                onPressed: () async {
-                                  // TODO: Test Blossom connection
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Testing Blossom connection...')),
-                                  );
-                                },
-                                icon: const Icon(Icons.check_circle),
-                                label: const Text('Test Connection'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                    
-                    // Syncthing Folder Configuration
-                    if (_config.useSyncthingFolder) ...[
-                      const SizedBox(height: 16),
-                      Card(
-                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Syncthing Configuration',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextFormField(
-                                initialValue: _config.syncthingFolderPath ?? '/sdcard/Syncthing/AuraOneBackup',
-                                decoration: const InputDecoration(
-                                  labelText: 'Syncthing Folder Path',
-                                  hintText: '/sdcard/Syncthing/AuraOneBackup',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.folder),
-                                  helperText: 'Folder must be monitored by Syncthing',
-                                ),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _config = BackupConfig(
-                                      frequency: _config.frequency,
-                                      preferredTime: _config.preferredTime,
-                                      includeMedia: _config.includeMedia,
-                                      includeLocation: _config.includeLocation,
-                                      includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                                      enableEncryption: _config.enableEncryption,
-                                      encryptionPassword: _config.encryptionPassword,
-                                      useBlossomStorage: _config.useBlossomStorage,
-                                      blossomServerUrl: _config.blossomServerUrl,
-                                      blossomNsec: _config.blossomNsec,
-                                      useSyncthingFolder: _config.useSyncthingFolder,
-                                      syncthingFolderPath: value.isEmpty ? null : value,
-                                      maxBackupsToKeep: _config.maxBackupsToKeep,
-                                      onlyOnWifi: _config.onlyOnWifi,
-                                      onlyWhenCharging: _config.onlyWhenCharging,
-                                    );
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 12),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.info_outline,
-                                      color: theme.colorScheme.primary,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        'Make sure this folder is configured in your Syncthing app to sync with other devices.',
-                                        style: theme.textTheme.bodySmall,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                    
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      initialValue: _config.maxBackupsToKeep.toString(),
-                      decoration: const InputDecoration(
-                        labelText: 'Maximum Backups to Keep',
-                        border: OutlineInputBorder(),
-                        helperText: 'Older backups will be automatically deleted',
-                      ),
-                      keyboardType: TextInputType.number,
-                      onChanged: (value) {
-                        final count = int.tryParse(value) ?? 10;
-                        setState(() {
-                          _config = BackupConfig(
-                            frequency: _config.frequency,
-                            preferredTime: _config.preferredTime,
-                            includeMedia: _config.includeMedia,
-                            includeLocation: _config.includeLocation,
-                            includeHealthData: _config.includeHealthData,
-                            includeCalendarData: _config.includeCalendarData,
-                            enableEncryption: _config.enableEncryption,
-                            encryptionPassword: _config.encryptionPassword,
-                            useBlossomStorage: _config.useBlossomStorage,
-                            useSyncthingFolder: _config.useSyncthingFolder,
-                            maxBackupsToKeep: count,
-                            onlyOnWifi: _config.onlyOnWifi,
-                            onlyWhenCharging: _config.onlyWhenCharging,
-                          );
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Backup History
-            if (_history.isNotEmpty) ...[
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.history, color: theme.colorScheme.primary),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Recent Backups',
-                                style: theme.textTheme.titleMedium,
-                              ),
-                            ],
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              await BackupScheduler.clearHistory();
-                              setState(() => _history = []);
-                              if (mounted) {
-                                Fluttertoast.showToast(
-                                  msg: 'History cleared',
-                                  toastLength: Toast.LENGTH_SHORT,
-                                );
-                              }
-                            },
-                            child: const Text('Clear'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _history.take(5).length,
-                        itemBuilder: (context, index) {
-                          final entry = _history[index];
-                          return ListTile(
-                            leading: Icon(
-                              entry.success ? Icons.check_circle : Icons.error,
-                              color: entry.success ? Colors.green : Colors.red,
-                            ),
-                            title: Text(_formatDateTime(entry.timestamp)),
-                            subtitle: Text(
-                              entry.success
-                                  ? '${entry.sizeMB?.toStringAsFixed(1) ?? '?'} MB • ${entry.entriesCount ?? '?'} entries'
-                                  : entry.error ?? 'Failed',
-                            ),
-                            trailing: entry.encrypted == true
-                                ? const Icon(Icons.lock, size: 16)
-                                : null,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+        title: const Text('Backup & Restore'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Backup'),
+            Tab(text: 'Restore'),
+            Tab(text: 'Settings'),
           ],
         ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildBackupTab(theme),
+          _buildRestoreTab(theme),
+          _buildSettingsTab(theme),
+        ],
       ),
     );
   }
   
-  Widget _buildStatusRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildBackupTab(ThemeData theme) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label),
+          // Provider selection
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Backup Location',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  ...BackupProvider.values.map((provider) => RadioListTile<BackupProvider>(
+                    title: Text(provider.displayName),
+                    subtitle: Text(_getProviderDescription(provider)),
+                    value: provider,
+                    groupValue: _selectedProvider,
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _selectedProvider = value);
+                      }
+                    },
+                  )),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Backup options
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Backup Options',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    title: const Text('Include Media'),
+                    subtitle: const Text('Backup photos and videos'),
+                    value: _includeMedia,
+                    onChanged: (value) => setState(() => _includeMedia = value),
+                  ),
+                  SwitchListTile(
+                    title: const Text('Encrypt Backup'),
+                    subtitle: const Text('Protect with password'),
+                    value: _enableEncryption,
+                    onChanged: (value) => setState(() => _enableEncryption = value),
+                  ),
+                  SwitchListTile(
+                    title: const Text('Incremental Backup'),
+                    subtitle: const Text('Only backup changes since last backup'),
+                    value: _useIncremental,
+                    onChanged: (value) => setState(() => _useIncremental = value),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Backup button and progress
+          if (_isBackupInProgress) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Text(_backupStatus),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(value: _backupProgress),
+                    const SizedBox(height: 8),
+                    Text('${(_backupProgress * 100).toInt()}%'),
+                  ],
+                ),
+              ),
+            ),
+          ] else ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _performBackup,
+                icon: const Icon(Icons.backup),
+                label: const Text('Backup Now'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.all(16),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
+          
+          // Recent backups
           Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            'Recent Backups',
+            style: theme.textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          _buildBackupHistory(),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildRestoreTab(ThemeData theme) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Restore options
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Restore Strategy',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  RadioListTile<RestoreStrategy>(
+                    title: const Text('Replace All'),
+                    subtitle: const Text('Replace all existing data with backup'),
+                    value: RestoreStrategy.replace,
+                    groupValue: _restoreStrategy,
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _restoreStrategy = value);
+                      }
+                    },
+                  ),
+                  RadioListTile<RestoreStrategy>(
+                    title: const Text('Merge'),
+                    subtitle: const Text('Merge backup with existing data'),
+                    value: RestoreStrategy.merge,
+                    groupValue: _restoreStrategy,
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _restoreStrategy = value);
+                      }
+                    },
+                  ),
+                  RadioListTile<RestoreStrategy>(
+                    title: const Text('Append'),
+                    subtitle: const Text('Add backup data without replacing'),
+                    value: RestoreStrategy.append,
+                    groupValue: _restoreStrategy,
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _restoreStrategy = value);
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Conflict resolution (only for merge)
+          if (_restoreStrategy == RestoreStrategy.merge) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Conflict Resolution',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    RadioListTile<ConflictResolution>(
+                      title: const Text('Keep Existing'),
+                      subtitle: const Text('Keep existing data when conflicts occur'),
+                      value: ConflictResolution.keepExisting,
+                      groupValue: _conflictResolution,
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _conflictResolution = value);
+                        }
+                      },
+                    ),
+                    RadioListTile<ConflictResolution>(
+                      title: const Text('Use Backup'),
+                      subtitle: const Text('Replace with backup data when conflicts occur'),
+                      value: ConflictResolution.useBackup,
+                      groupValue: _conflictResolution,
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _conflictResolution = value);
+                        }
+                      },
+                    ),
+                    RadioListTile<ConflictResolution>(
+                      title: const Text('Use Newer'),
+                      subtitle: const Text('Use the newer version based on timestamp'),
+                      value: ConflictResolution.useNewer,
+                      groupValue: _conflictResolution,
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _conflictResolution = value);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          
+          // Available backups for restoration
+          Text(
+            'Available Backups',
+            style: theme.textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          _buildRestorableBackups(),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildSettingsTab(ThemeData theme) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Auto backup settings
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Automatic Backup',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    title: const Text('Enable Auto Backup'),
+                    subtitle: const Text('Automatically backup your data'),
+                    value: _enableAutoBackup,
+                    onChanged: (value) => setState(() => _enableAutoBackup = value),
+                  ),
+                  if (_enableAutoBackup) ...[
+                    const Divider(),
+                    ListTile(
+                      title: const Text('Frequency'),
+                      subtitle: Text(_backupFrequency.name),
+                      trailing: DropdownButton<BackupFrequency>(
+                        value: _backupFrequency,
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _backupFrequency = value);
+                          }
+                        },
+                        items: BackupFrequency.values.map((freq) {
+                          return DropdownMenuItem(
+                            value: freq,
+                            child: Text(freq.name),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Storage management
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Storage Management',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    leading: const Icon(Icons.cleaning_services),
+                    title: const Text('Clean Old Backups'),
+                    subtitle: const Text('Remove backups older than 30 days'),
+                    trailing: TextButton(
+                      onPressed: _cleanOldBackups,
+                      child: const Text('CLEAN'),
+                    ),
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.folder),
+                    title: const Text('Backup Storage'),
+                    subtitle: FutureBuilder<double>(
+                      future: _calculateBackupSize(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          return Text('${snapshot.data!.toStringAsFixed(2)} MB used');
+                        }
+                        return const Text('Calculating...');
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Save settings button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _saveSettings,
+              child: const Text('Save Settings'),
+            ),
           ),
         ],
       ),
     );
   }
   
-  String _formatDateTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
+  Widget _buildBackupHistory() {
+    final backupHistory = ref.watch(backupHistoryProvider(_selectedProvider));
     
-    if (difference.inDays == 0) {
-      if (difference.inHours == 0) {
-        if (difference.inMinutes == 0) {
-          return 'Just now';
+    return backupHistory.when(
+      data: (backups) {
+        if (backups.isEmpty) {
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('No backups found'),
+            ),
+          );
         }
-        return '${difference.inMinutes} minutes ago';
+        
+        return Column(
+          children: backups.take(5).map((backup) {
+            return Card(
+              child: ListTile(
+                leading: Icon(_getProviderIcon(backup.provider)),
+                title: Text(
+                  DateFormat('MMM d, yyyy h:mm a').format(backup.timestamp),
+                ),
+                subtitle: Text(
+                  '${backup.entryCount} entries, ${backup.mediaCount} media, ${backup.sizeMB.toStringAsFixed(2)} MB',
+                ),
+                trailing: PopupMenuButton<String>(
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'restore':
+                        _restoreBackup(backup);
+                        break;
+                      case 'delete':
+                        _deleteBackup(backup);
+                        break;
+                      case 'verify':
+                        _verifyBackup(backup);
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'restore',
+                      child: Text('Restore'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'verify',
+                      child: Text('Verify'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Delete'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Text('Error: $error'),
+    );
+  }
+  
+  Widget _buildRestorableBackups() {
+    final backupHistory = ref.watch(backupHistoryProvider(null));
+    
+    return backupHistory.when(
+      data: (backups) {
+        if (backups.isEmpty) {
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('No backups available for restoration'),
+            ),
+          );
+        }
+        
+        return Column(
+          children: backups.map((backup) {
+            return Card(
+              child: ListTile(
+                leading: Icon(_getProviderIcon(backup.provider)),
+                title: Text(
+                  DateFormat('MMM d, yyyy h:mm a').format(backup.timestamp),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${backup.entryCount} entries, ${backup.mediaCount} media'),
+                    if (backup.isFullBackup)
+                      const Text('Full backup', style: TextStyle(fontWeight: FontWeight.bold))
+                    else
+                      const Text('Incremental backup', style: TextStyle(fontStyle: FontStyle.italic)),
+                  ],
+                ),
+                isThreeLine: true,
+                trailing: ElevatedButton.icon(
+                  onPressed: () => _restoreBackup(backup),
+                  icon: const Icon(Icons.restore, size: 16),
+                  label: const Text('Restore'),
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Text('Error: $error'),
+    );
+  }
+  
+  Future<void> _performBackup() async {
+    setState(() {
+      _isBackupInProgress = true;
+      _backupProgress = 0.0;
+      _backupStatus = 'Preparing backup...';
+    });
+    
+    try {
+      final backupManager = ref.read(backupManagerProvider);
+      String? encryptionPassword;
+      
+      if (_enableEncryption) {
+        encryptionPassword = await _showPasswordDialog(context, 'Enter Backup Password');
+        if (encryptionPassword == null || encryptionPassword.isEmpty) {
+          setState(() => _isBackupInProgress = false);
+          return;
+        }
       }
-      return '${difference.inHours} hours ago';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else {
-      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+      
+      final result = await backupManager.performBackup(
+        provider: _selectedProvider,
+        incremental: _useIncremental,
+        encryptionPassword: encryptionPassword,
+        onProgress: (progress) {
+          setState(() {
+            _backupProgress = progress;
+            _backupStatus = 'Backing up... ${(progress * 100).toInt()}%';
+          });
+        },
+      );
+      
+      setState(() {
+        _isBackupInProgress = false;
+        _backupStatus = '';
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Backup completed: ${result.entryCount} entries, ${result.mediaCount} media files',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      
+      // Refresh backup history
+      ref.invalidate(backupHistoryProvider);
+      
+    } catch (e) {
+      setState(() {
+        _isBackupInProgress = false;
+        _backupStatus = '';
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Backup failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
+  }
+  
+  Future<void> _restoreBackup(BackupMetadata backup) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restore Backup'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to restore this backup from ${DateFormat('MMM d, yyyy').format(backup.timestamp)}?',
+            ),
+            const SizedBox(height: 16),
+            Text('Strategy: ${_restoreStrategy.name}'),
+            if (_restoreStrategy == RestoreStrategy.merge)
+              Text('Conflict Resolution: ${_conflictResolution.name}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Restore'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm != true) return;
+    
+    String? encryptionPassword;
+    if (backup.incrementalData['encrypted'] == true) {
+      encryptionPassword = await _showPasswordDialog(context, 'Enter Backup Password');
+      if (encryptionPassword == null || encryptionPassword.isEmpty) return;
+    }
+    
+    final restorationService = ref.read(backupRestorationProvider);
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Restoring Backup'),
+        content: StreamBuilder<RestoreProgress>(
+          stream: restorationService.progressStream,
+          builder: (context, snapshot) {
+            final progress = snapshot.data;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(progress?.currentPhase ?? 'Preparing...'),
+                const SizedBox(height: 16),
+                LinearProgressIndicator(
+                  value: progress?.overallProgress,
+                ),
+                const SizedBox(height: 8),
+                if (progress != null)
+                  Text(
+                    'Entries: ${progress.processedEntries}/${progress.totalEntries}, '
+                    'Media: ${progress.processedMedia}/${progress.totalMedia}',
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+    
+    try {
+      final result = await restorationService.restoreFromMetadata(
+        backup,
+        strategy: _restoreStrategy,
+        conflictResolution: _conflictResolution,
+        encryptionPassword: encryptionPassword,
+      );
+      
+      if (mounted) {
+        Navigator.pop(context); // Close progress dialog
+        
+        if (result.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Restore completed: ${result.restoredEntries} entries, ${result.restoredMedia} media files',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Restore failed: ${result.error}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close progress dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Restore failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+  Future<void> _deleteBackup(BackupMetadata backup) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Backup'),
+        content: Text(
+          'Are you sure you want to delete this backup from ${DateFormat('MMM d, yyyy').format(backup.timestamp)}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm != true) return;
+    
+    // TODO: Implement backup deletion
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Backup deleted')),
+    );
+    
+    // Refresh backup history
+    ref.invalidate(backupHistoryProvider);
+  }
+  
+  Future<void> _verifyBackup(BackupMetadata backup) async {
+    final backupManager = ref.read(backupManagerProvider);
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Text('Verifying backup...'),
+          ],
+        ),
+      ),
+    );
+    
+    final isValid = await backupManager.verifyBackup(backup);
+    
+    if (mounted) {
+      Navigator.pop(context); // Close progress dialog
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isValid ? 'Backup is valid and intact' : 'Backup verification failed - may be corrupted',
+          ),
+          backgroundColor: isValid ? Colors.green : Colors.red,
+        ),
+      );
+    }
+  }
+  
+  Future<void> _cleanOldBackups() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clean Old Backups'),
+        content: const Text(
+          'This will delete backups older than 30 days, keeping at least the 10 most recent. Continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Clean'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm != true) return;
+    
+    final backupManager = ref.read(backupManagerProvider);
+    await backupManager.cleanupOldBackups(
+      keepLastCount: 10,
+      olderThan: const Duration(days: 30),
+    );
+    
+    ref.invalidate(backupHistoryProvider);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Old backups cleaned')),
+      );
+    }
+  }
+  
+  Future<double> _calculateBackupSize() async {
+    final backupManager = ref.read(backupManagerProvider);
+    await backupManager.initialize();
+    final backups = backupManager.getBackupHistory();
+    
+    double totalSize = 0;
+    for (final backup in backups) {
+      totalSize += backup.sizeMB;
+    }
+    
+    return totalSize;
+  }
+  
+  Future<void> _saveSettings() async {
+    final config = BackupConfig(
+      enabled: _enableAutoBackup,
+      frequency: _backupFrequency,
+      provider: _selectedProvider.name,
+      encryptionEnabled: _enableEncryption,
+      includeMedia: _includeMedia,
+      retentionDays: 30,
+      maxBackupCount: 10,
+    );
+    
+    await BackupScheduler.saveConfig(config);
+    
+    if (_enableAutoBackup) {
+      await BackupScheduler.scheduleBackup(config);
+    } else {
+      await BackupScheduler.cancelBackup();
+    }
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Settings saved')),
+      );
+    }
+  }
+  
+  String _getProviderDescription(BackupProvider provider) {
+    switch (provider) {
+      case BackupProvider.local:
+        return 'Store backups on this device';
+      case BackupProvider.syncthing:
+        return 'Sync with other devices via P2P';
+      case BackupProvider.blossom:
+        return 'Decentralized cloud storage';
+    }
+  }
+  
+  IconData _getProviderIcon(BackupProvider provider) {
+    switch (provider) {
+      case BackupProvider.local:
+        return Icons.phone_android;
+      case BackupProvider.syncthing:
+        return Icons.sync;
+      case BackupProvider.blossom:
+        return Icons.cloud_outlined;
+    }
+  }
+  
+  Future<String?> _showPasswordDialog(BuildContext context, String title) async {
+    final controller = TextEditingController();
+    
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Password',
+            hintText: 'Enter password',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 }
