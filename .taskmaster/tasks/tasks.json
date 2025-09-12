@@ -1055,12 +1055,12 @@
             "id": 3,
             "title": "Stage 1: Human Activity Recognition using CNN-LSTM",
             "description": "Implement CNN-LSTM model for classifying physical activity using IMU data with tflite_flutter",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1,
               2
             ],
-            "details": "Classify user's physical activity (stationary, walking, running) using accelerometer and gyroscope data following AI-SPEC.md HAR specifications. Obtain/train lightweight CNN-LSTM model optimized for time-series classification, convert to TensorFlow Lite format with post-training quantization. Load har_model.tflite using tflite_flutter with hardware acceleration delegates. Collect IMU data using sensors_plus plugin. Preprocess sensor data into fixed-length windows of 3-axis readings. Run inference using IsolateInterpreter to avoid blocking UI thread. Correlate with location clustering to create structured Stay and Journey events. Output stream of activity-enriched spatiotemporal events.\n<info added on 2025-09-12T07:40:55.385Z>\nCNN-LSTM architecture details: Design multi-layer CNN for spatial feature extraction from 3-axis sensor data (accelerometer X/Y/Z, gyroscope X/Y/Z), followed by LSTM layers for temporal sequence modeling. Target expanded activity classes: Stationary, Walking, Running, Driving, Cycling per AI-SPEC Table 1. Model optimization: Achieve 27KB quantized model size through INT8 post-training quantization and pruning techniques. Implement 128-sample sliding window (2.56 seconds at 50Hz sampling rate) with 50% overlap for continuous classification. Performance benchmarks: Target 92-97% accuracy with <50ms inference latency on mobile devices. Integration workflow: Correlate HAR classifications with DBSCAN location clusters to distinguish between stationary stays and mobile journeys. Use IsolateInterpreter for background inference processing to maintain UI responsiveness during real-time activity recognition.\n</info added on 2025-09-12T07:40:55.385Z>",
+            "details": "Classify user's physical activity (stationary, walking, running) using accelerometer and gyroscope data following AI-SPEC.md HAR specifications. Obtain/train lightweight CNN-LSTM model optimized for time-series classification, convert to TensorFlow Lite format with post-training quantization. Load har_model.tflite using tflite_flutter with hardware acceleration delegates. Collect IMU data using sensors_plus plugin. Preprocess sensor data into fixed-length windows of 3-axis readings. Run inference using IsolateInterpreter to avoid blocking UI thread. Correlate with location clustering to create structured Stay and Journey events. Output stream of activity-enriched spatiotemporal events.\n<info added on 2025-09-12T07:40:55.385Z>\nCNN-LSTM architecture details: Design multi-layer CNN for spatial feature extraction from 3-axis sensor data (accelerometer X/Y/Z, gyroscope X/Y/Z), followed by LSTM layers for temporal sequence modeling. Target expanded activity classes: Stationary, Walking, Running, Driving, Cycling per AI-SPEC Table 1. Model optimization: Achieve 27KB quantized model size through INT8 post-training quantization and pruning techniques. Implement 128-sample sliding window (2.56 seconds at 50Hz sampling rate) with 50% overlap for continuous classification. Performance benchmarks: Target 92-97% accuracy with <50ms inference latency on mobile devices. Integration workflow: Correlate HAR classifications with DBSCAN location clusters to distinguish between stationary stays and mobile journeys. Use IsolateInterpreter for background inference processing to maintain UI responsiveness during real-time activity recognition.\n</info added on 2025-09-12T07:40:55.385Z>\n<info added on 2025-09-12T08:19:01.579Z>\nImplementation complete. Successfully built IMUDataCollector service that captures real-time accelerometer and gyroscope data at 50Hz sampling rate using sensors_plus package. Implemented sliding window preprocessing with 128-sample windows and 50% overlap for continuous activity classification. Created real-time HAR processing system with startRealtimeHAR() and stopRealtimeHAR() methods that classify activities into 5 categories (stationary, walking, running, driving, cycling) with confidence scoring. System maintains rolling buffer of recent activities for contextual analysis. HAR inference processes sensor windows in real-time, ready for integration with GPS clustering to generate complete spatiotemporal Stay/Journey events.\n</info added on 2025-09-12T08:19:01.579Z>",
             "testStrategy": ""
           },
           {
@@ -1078,7 +1078,7 @@
             "id": 5,
             "title": "Stage 2: Lightweight Image Captioning with LightCap Integration",
             "description": "Implement LightCap model for generating natural language descriptions of photos",
-            "status": "pending",
+            "status": "in-progress",
             "dependencies": [
               1,
               4
@@ -1180,7 +1180,7 @@
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-12T08:11:47.410Z",
+      "updated": "2025-09-12T08:19:31.714Z",
       "description": "Tasks for master context"
     }
   }

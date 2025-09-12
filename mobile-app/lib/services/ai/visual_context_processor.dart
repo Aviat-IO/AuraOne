@@ -9,6 +9,7 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:exif/exif.dart';
 import 'ai_service.dart';
 import 'spatiotemporal_processor.dart';
+import 'image_captioning_processor.dart';
 
 // Stage 2: Visual Context Extraction
 class VisualContextProcessor extends PipelineStage {
@@ -22,6 +23,9 @@ class VisualContextProcessor extends PipelineStage {
   // ML Kit for rapid prototyping
   late final ImageLabeler _imageLabeler;
   late final TextRecognizer _textRecognizer;
+  
+  // Image captioning processor for LightCap integration
+  late final ImageCaptioningProcessor _imageCaptioningProcessor;
 
   bool _initialized = false;
 
@@ -31,7 +35,9 @@ class VisualContextProcessor extends PipelineStage {
   static const int lightcapInputSize = 224;
   static const double inferenceTimeTarget = 200.0; // ms
 
-  VisualContextProcessor(this.config);
+  VisualContextProcessor(this.config) {
+    _imageCaptioningProcessor = ImageCaptioningProcessor(config);
+  }
 
   @override
   Future<void> initialize() async {
@@ -42,6 +48,9 @@ class VisualContextProcessor extends PipelineStage {
 
     // Initialize ML Kit for prototyping
     await _initializeMLKit();
+    
+    // Initialize image captioning processor
+    await _imageCaptioningProcessor.initialize();
 
     _initialized = true;
   }
@@ -117,11 +126,15 @@ class VisualContextProcessor extends PipelineStage {
         date: date,
         photoCount: 0,
         visualEvents: [],
+        enrichedEvents: [],
       );
     }
 
     final visualEvents = <VisualEvent>[];
+    final images = <Uint8List>[];
+    final visualContexts = <VisualContext>[];
 
+    // Process photos for visual context extraction
     for (final photo in photos) {
       try {
         // Extract EXIF metadata
@@ -152,15 +165,31 @@ class VisualContextProcessor extends PipelineStage {
           caption: caption,
           correlatedEvent: correlatedEvent,
         ));
+        
+        // Collect data for LightCap processing
+        images.add(imageData);
+        visualContexts.add(VisualContext(
+          sceneType: _determineSceneType(sceneLabels),
+          detectedObjects: objects,
+          metadata: metadata,
+        ));
       } catch (e) {
         debugPrint('Failed to process photo ${photo.id}: $e');
       }
     }
+    
+    // Process images with LightCap for enriched captions
+    final enrichedEvents = await _imageCaptioningProcessor.processImages(
+      images,
+      visualContexts,
+      events,
+    );
 
     return VisualContextData(
       date: date,
       photoCount: photos.length,
       visualEvents: visualEvents,
+      enrichedEvents: enrichedEvents,
     );
   }
 
@@ -477,11 +506,40 @@ class VisualContextProcessor extends PipelineStage {
     _imageCaptioningInterpreter?.close();
     _imageLabeler.close();
     _textRecognizer.close();
+    await _imageCaptioningProcessor.dispose();
     _initialized = false;
   }
 
   @override
   bool get isInitialized => _initialized;
+  
+  // Helper method to determine scene type from labels
+  SceneType _determineSceneType(List<SceneLabel> labels) {
+    if (labels.isEmpty) return SceneType.unknown;
+    
+    // Check labels for scene type indicators
+    for (final label in labels) {
+      final text = label.text.toLowerCase();
+      
+      if (text.contains('indoor') || text.contains('room') || text.contains('office')) {
+        return SceneType.indoor;
+      } else if (text.contains('outdoor') || text.contains('street') || text.contains('sky')) {
+        return SceneType.outdoor;
+      } else if (text.contains('nature') || text.contains('forest') || text.contains('mountain')) {
+        return SceneType.nature;
+      } else if (text.contains('city') || text.contains('building') || text.contains('urban')) {
+        return SceneType.urban;
+      } else if (text.contains('food') || text.contains('restaurant') || text.contains('meal')) {
+        return SceneType.food;
+      } else if (text.contains('work') || text.contains('desk') || text.contains('computer')) {
+        return SceneType.work;
+      } else if (text.contains('people') || text.contains('group') || text.contains('party')) {
+        return SceneType.social;
+      }
+    }
+    
+    return SceneType.unknown;
+  }
 }
 
 // Extension to reshape Float32List
@@ -555,10 +613,37 @@ class VisualContextData {
   final DateTime date;
   final int photoCount;
   final List<VisualEvent> visualEvents;
+  final List<EnrichedVisualEvent>? enrichedEvents;
 
   VisualContextData({
     required this.date,
     required this.photoCount,
     required this.visualEvents,
+    this.enrichedEvents,
   });
+}
+
+// Visual context for image captioning integration
+class VisualContext {
+  final SceneType? sceneType;
+  final List<DetectedObject> detectedObjects;
+  final PhotoMetadata? metadata;
+  
+  VisualContext({
+    this.sceneType,
+    required this.detectedObjects,
+    this.metadata,
+  });
+}
+
+// Scene type enumeration
+enum SceneType {
+  indoor,
+  outdoor,
+  nature,
+  urban,
+  food,
+  work,
+  social,
+  unknown,
 }

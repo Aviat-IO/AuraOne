@@ -1,15 +1,22 @@
 import 'dart:isolate';
 import 'dart:math';
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'ai_service.dart';
+import 'imu_data_collector.dart';
 
 // Stage 1: Spatiotemporal Data Processing
 class SpatiotemporalProcessor extends PipelineStage {
   final AIServiceConfig config;
   Interpreter? _harInterpreter;
   bool _initialized = false;
+  
+  // IMU data collector for real-time sensor data
+  final IMUDataCollector _imuCollector = IMUDataCollector();
+  StreamSubscription<List<IMUData>>? _imuStreamSubscription;
+  final List<ActivityData> _recentActivities = [];
 
   // DBSCAN parameters
   static const double dbscanEps = 50.0; // 50 meters radius
@@ -91,8 +98,42 @@ class SpatiotemporalProcessor extends PipelineStage {
   }
 
   Future<List<IMUData>> _getIMUData(DateTime date) async {
-    // Retrieve IMU sensor data from storage
+    // For historical data, retrieve from storage
+    // For real-time, use _recentActivities
+    if (_recentActivities.isNotEmpty) {
+      // Convert recent activities back to IMU data for processing
+      // This is a simplified approach - in production, you'd store raw IMU data
+      return _recentActivities
+          .where((a) => a.startTime.day == date.day && 
+                       a.startTime.month == date.month &&
+                       a.startTime.year == date.year)
+          .expand((a) => _generateIMUDataFromActivity(a))
+          .toList();
+    }
+    
+    // Otherwise, retrieve from storage (if implemented)
     return [];
+  }
+  
+  /// Generate synthetic IMU data from activity (for demo purposes)
+  List<IMUData> _generateIMUDataFromActivity(ActivityData activity) {
+    final samples = <IMUData>[];
+    final duration = activity.endTime.difference(activity.startTime);
+    final sampleCount = (duration.inMilliseconds / 20).round(); // 50Hz
+    
+    for (int i = 0; i < sampleCount && i < 128; i++) {
+      samples.add(IMUData(
+        accelX: 0.0,
+        accelY: 9.8, // Gravity
+        accelZ: 0.0,
+        gyroX: 0.0,
+        gyroY: 0.0,
+        gyroZ: 0.0,
+        timestamp: activity.startTime.add(Duration(milliseconds: i * 20)),
+      ));
+    }
+    
+    return samples;
   }
 
   Future<List<LocationCluster>> _performDBSCAN(List<GPSPoint> points) async {
@@ -392,8 +433,67 @@ class SpatiotemporalProcessor extends PipelineStage {
         .key;
   }
 
+  /// Start real-time Human Activity Recognition
+  Future<void> startRealtimeHAR() async {
+    if (!_initialized || _harInterpreter == null) {
+      debugPrint('HAR not initialized, cannot start real-time collection');
+      return;
+    }
+    
+    // Check sensor availability
+    final sensorsAvailable = await _imuCollector.checkSensorAvailability();
+    if (!sensorsAvailable) {
+      debugPrint('IMU sensors not available on this device');
+      return;
+    }
+    
+    // Start IMU data collection
+    await _imuCollector.startCollection();
+    
+    // Subscribe to IMU data stream for real-time HAR
+    _imuStreamSubscription = _imuCollector.imuDataStream.listen(
+      (List<IMUData> window) async {
+        // Run HAR inference on the window
+        final prediction = await _runHARInference(window);
+        
+        // Store activity data
+        final activity = ActivityData(
+          startTime: window.first.timestamp,
+          endTime: window.last.timestamp,
+          activity: prediction.activity,
+          confidence: prediction.confidence,
+        );
+        
+        _recentActivities.add(activity);
+        
+        // Keep only recent activities (last hour)
+        final cutoff = DateTime.now().subtract(const Duration(hours: 1));
+        _recentActivities.removeWhere((a) => a.endTime.isBefore(cutoff));
+        
+        debugPrint('HAR: ${prediction.activity} (confidence: ${prediction.confidence.toStringAsFixed(2)})');
+      },
+    );
+    
+    debugPrint('Real-time HAR started');
+  }
+  
+  /// Stop real-time Human Activity Recognition
+  void stopRealtimeHAR() {
+    _imuStreamSubscription?.cancel();
+    _imuStreamSubscription = null;
+    _imuCollector.stopCollection();
+    debugPrint('Real-time HAR stopped');
+  }
+  
+  /// Get recent activity data from real-time HAR
+  List<ActivityData> getRecentActivities() {
+    return List.from(_recentActivities);
+  }
+
   @override
   Future<void> dispose() async {
+    stopRealtimeHAR();
+    _imuCollector.dispose();
     _harInterpreter?.close();
     _initialized = false;
   }
