@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -9,7 +11,7 @@ import 'package:latlong2/latlong.dart';
 import '../theme/colors.dart';
 import '../widgets/page_header.dart';
 import '../database/media_database.dart';
-import '../services/simple_location_service.dart';
+import 'package:drift/drift.dart' show Value;
 import '../providers/media_database_provider.dart';
 import '../services/ai/enhanced_ai_service.dart';
 import '../services/ai/narrative_generation.dart';
@@ -17,7 +19,6 @@ import '../providers/location_database_provider.dart';
 import '../database/location_database.dart' as loc_db;
 import '../providers/photo_service_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'main_layout_screen.dart'; // Import for selectedTabIndexProvider
 
 // Provider to store the current day's journal entry
 final todayJournalEntryProvider = StateProvider<String?>((ref) => null);
@@ -179,6 +180,7 @@ class HomeScreen extends HookConsumerWidget {
     );
   }
 
+
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) {
@@ -227,7 +229,8 @@ class _OverviewTab extends HookConsumerWidget {
     final todayPhotos = photosFuture.data?.where((item) {
       return item.createdDate.year == todayStart.year &&
              item.createdDate.month == todayStart.month &&
-             item.createdDate.day == todayStart.day;
+             item.createdDate.day == todayStart.day &&
+             !item.isDeleted; // Only count included photos
     }).toList() ?? [];
     final photosCount = todayPhotos.length;
 
@@ -857,27 +860,34 @@ class _MediaTab extends HookConsumerWidget {
       return null;
     }, []);
 
-    // Get media from the last 2 days to ensure we catch all of today's media
-    final mediaFuture = useMemoized(
-      () => mediaDb.getRecentMedia(duration: const Duration(days: 2), limit: 500),
-      [todayStart, hasScanned.value], // Re-fetch when scanning completes
+    // Watch media items for real-time updates (including deleted/excluded)
+    final mediaStream = useMemoized(
+      () => mediaDb.watchMediaItems(includeDeleted: true),
+      [hasScanned.value], // Re-watch when scanning completes
     );
-    final mediaSnapshot = useFuture(mediaFuture);
+    final mediaSnapshot = useStream(mediaStream);
 
     if (mediaSnapshot.connectionState == ConnectionState.waiting) {
       return const Center(child: CircularProgressIndicator());
     }
 
     final allMedia = mediaSnapshot.data ?? [];
-    // Filter to only today's media
-    final mediaItems = allMedia.where((item) {
+    // Filter to only today's media (recent items from last 2 days) and separate included/excluded
+    final cutoff = DateTime.now().subtract(const Duration(days: 2));
+    final recentMedia = allMedia.where((item) => item.createdDate.isAfter(cutoff)).toList();
+    
+    final todaysMedia = recentMedia.where((item) {
       // Check if the media was created today
       return item.createdDate.year == todayStart.year &&
              item.createdDate.month == todayStart.month &&
              item.createdDate.day == todayStart.day;
     }).toList();
+    
+    // Separate included and excluded photos
+    final includedPhotos = todaysMedia.where((item) => !item.isDeleted).toList();
+    final excludedPhotos = todaysMedia.where((item) => item.isDeleted).toList();
 
-    if (mediaItems.isEmpty) {
+    if (todaysMedia.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -908,92 +918,244 @@ class _MediaTab extends HookConsumerWidget {
 
     return Skeletonizer(
       enabled: isLoading.value,
-      child: GridView.builder(
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-        ),
-        itemCount: mediaItems.length,
-        itemBuilder: (context, index) {
-          final media = mediaItems[index];
-          return Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                // Navigate to History screen and select the photo's date
-                // First, switch to the History tab (index 1)
-                ref.read(selectedTabIndexProvider.notifier).state = 1;
-                
-                // Then update the selected date in the history screen
-                // This will be picked up by the HistoryScreen when it rebuilds
-                final photoDate = media.createdDate;
-                
-                // Store the selected date for the history screen to use
-                // We'll create a provider for this purpose
-                ref.read(historySelectedDateProvider.notifier).state = photoDate;
-              },
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: theme.colorScheme.surfaceContainerHighest,
-                ),
-                child: Stack(
+      child: _buildMediaSections(includedPhotos, excludedPhotos, theme, ref),
+    );
+  }
+
+  Widget _buildMediaSections(List<MediaItem> includedPhotos, List<MediaItem> excludedPhotos, ThemeData theme, WidgetRef ref) {
+    final allPhotos = [...includedPhotos, ...excludedPhotos]; // For photo viewer navigation
+    
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Main photos section (included)
+          if (includedPhotos.isNotEmpty) ...[
+            _buildPhotosGrid(includedPhotos, theme, ref, allPhotos, 'Today\'s Photos'),
+            const SizedBox(height: 32),
+          ] else ...[
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: Center(
+                child: Column(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: media.filePath != null
-                        ? Image.file(
-                            File(media.filePath!),
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                              _buildMediaPlaceholder(media, theme),
-                          )
-                        : _buildMediaPlaceholder(media, theme),
+                    Icon(
+                      Icons.photo_library_outlined,
+                      size: 48,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                     ),
-                    // Add a subtle overlay to indicate it's tappable
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withValues(alpha: 0.1),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Add a small link icon in the corner
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.calendar_today,
-                          size: 12,
-                          color: Colors.white,
-                        ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No photos included today',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-          );
-        },
+          ],
+          
+          // Excluded photos section
+          if (excludedPhotos.isNotEmpty) ...[
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.visibility_off,
+                        size: 20,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Excluded Photos',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.secondary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${excludedPhotos.length}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.secondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'These photos won\'t be used for AI journal generation',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3, // Smaller grid for excluded photos
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                      childAspectRatio: 1.0, // Square tiles for excluded section
+                    ),
+                    itemCount: excludedPhotos.length,
+                    itemBuilder: (context, index) {
+                      final media = excludedPhotos[index];
+                      return _buildPhotoTile(media, theme, ref, allPhotos);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 80), // Extra space for bottom navigation
+          ],
+        ],
       ),
     );
+  }
+  
+  Widget _buildPhotosGrid(List<MediaItem> mediaItems, ThemeData theme, WidgetRef ref, List<MediaItem> allPhotos, String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2, // 2 columns for main photos
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 0.8, // Slightly taller for better photo proportions
+            ),
+            itemCount: mediaItems.length,
+            itemBuilder: (context, index) {
+              final media = mediaItems[index];
+              return _buildPhotoTile(media, theme, ref, allPhotos);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhotoTile(MediaItem media, ThemeData theme, WidgetRef ref, List<MediaItem> allPhotos) {
+    return Builder(
+      builder: (context) => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            _showPhotoViewer(context, ref, media, allPhotos);
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: theme.colorScheme.surfaceContainerHighest,
+          ),
+          child: Stack(
+            children: [
+              // Image with proper fit
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: media.filePath != null
+                    ? Image.file(
+                        File(media.filePath!),
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                          _buildMediaPlaceholder(media, theme),
+                      )
+                    : _buildMediaPlaceholder(media, theme),
+                ),
+              ),
+              // Subtle gradient overlay
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.15),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Inclusion status indicator
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: media.isDeleted 
+                        ? Colors.red.withValues(alpha: 0.9)
+                        : Colors.green.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(
+                    media.isDeleted ? Icons.visibility_off : Icons.visibility,
+                    size: 14, // Slightly larger for better visibility
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              // Subtle overlay for excluded photos (less intrusive)
+              if (media.isDeleted)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.black.withValues(alpha: 0.2), // Reduced opacity
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    ),
+    ); // Close Builder
   }
 
   Widget _buildMediaPlaceholder(MediaItem media, ThemeData theme) {
@@ -1014,6 +1176,381 @@ class _MediaTab extends HookConsumerWidget {
         icon,
         color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
         size: 32,
+      ),
+    );
+  }
+
+  void _showPhotoViewer(BuildContext context, WidgetRef ref, MediaItem media, List<MediaItem> allPhotos) {
+    if (media.filePath == null) return;
+    
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => _CustomPhotoViewer(
+          photos: allPhotos,
+          initialIndex: allPhotos.indexOf(media),
+          ref: ref,
+        ),
+        fullscreenDialog: true,
+      ),
+    );
+  }
+
+  // This method is no longer needed as options are now in the custom viewer
+
+  Future<void> _togglePhotoInclusion(WidgetRef ref, MediaItem media) async {
+    try {
+      final mediaDb = ref.read(mediaDatabaseProvider);
+      
+      // Toggle the isDeleted flag
+      await (mediaDb.update(mediaDb.mediaItems)
+        ..where((tbl) => tbl.id.equals(media.id)))
+        .write(MediaItemsCompanion(isDeleted: Value(!media.isDeleted)));
+    } catch (e) {
+      // Handle error silently or show a brief message
+    }
+  }
+}
+
+// Custom Photo Viewer with swipe navigation and toggle button
+class _CustomPhotoViewer extends HookConsumerWidget {
+  final List<MediaItem> photos;
+  final int initialIndex;
+  final WidgetRef ref;
+
+  const _CustomPhotoViewer({
+    required this.photos,
+    required this.initialIndex,
+    required this.ref,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final pageController = usePageController(initialPage: initialIndex);
+    final currentIndex = useState(initialIndex);
+    final showUI = useState(true);
+    
+    // Watch for real-time updates to media items
+    final mediaDb = ref.watch(mediaDatabaseProvider);
+    final mediaStream = useMemoized(() => mediaDb.watchMediaItems(includeDeleted: true), []);
+    final mediaSnapshot = useStream(mediaStream);
+    
+    // Get updated photos list or fallback to original static list
+    final updatedPhotos = mediaSnapshot.hasData 
+        ? mediaSnapshot.data!
+            .where((item) => photos.any((p) => p.id == item.id))
+            .toList()
+        : photos;
+    
+    // Auto-hide UI after a delay
+    final hideTimer = useRef<Timer?>(null);
+    
+    void resetHideTimer() {
+      hideTimer.value?.cancel();
+      showUI.value = true;
+      hideTimer.value = Timer(const Duration(seconds: 3), () {
+        if (context.mounted) {
+          showUI.value = false;
+        }
+      });
+    }
+    
+    useEffect(() {
+      resetHideTimer();
+      return () => hideTimer.value?.cancel();
+    }, []);
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Photo viewer with swipe navigation
+          GestureDetector(
+            onTap: resetHideTimer,
+            child: PageView.builder(
+              controller: pageController,
+              onPageChanged: (index) {
+                currentIndex.value = index;
+                HapticFeedback.selectionClick();
+              },
+              itemCount: updatedPhotos.length,
+              itemBuilder: (context, index) {
+                final photo = updatedPhotos[index];
+                if (photo.filePath == null) return const SizedBox();
+                
+                return InteractiveViewer(
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: Center(
+                    child: Image.file(
+                      File(photo.filePath!),
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.broken_image,
+                              size: 64,
+                              color: Colors.white.withValues(alpha: 0.7),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Failed to load image',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          
+          // Top UI bar
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            top: showUI.value ? 40 : -60,  // Brought down from 0 to 40
+            left: 0,
+            right: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.7),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 16), // Added top padding
+                child: Row(
+                  children: [
+                    // Close button
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close),
+                      color: Colors.white,
+                      iconSize: 28,
+                    ),
+                    
+                    const Spacer(),
+                    
+                    // Photo counter
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        '${currentIndex.value + 1} / ${updatedPhotos.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          
+          // Bottom UI bar with toggle button
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            bottom: showUI.value ? 0 : -100,
+            left: 0,
+            right: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.7),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Center(
+                    child: _ToggleInclusionButton(
+                      photo: updatedPhotos[currentIndex.value],
+                      ref: ref,
+                      onToggle: resetHideTimer,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Toggle inclusion button widget
+class _ToggleInclusionButton extends HookConsumerWidget {
+  final MediaItem photo;
+  final WidgetRef ref;
+  final VoidCallback onToggle;
+
+  const _ToggleInclusionButton({
+    required this.photo,
+    required this.ref,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isToggling = useState(false);
+    
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOutCubic,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: photo.isDeleted 
+                ? Colors.green.withValues(alpha: 0.3)
+                : Colors.red.withValues(alpha: 0.3),
+            blurRadius: 12,
+            spreadRadius: 2,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 200),
+        scale: isToggling.value ? 0.95 : 1.0,
+        child: ElevatedButton.icon(
+          onPressed: isToggling.value ? null : () async {
+            isToggling.value = true;
+            onToggle();
+            
+            // Provide immediate haptic feedback
+            HapticFeedback.lightImpact();
+            
+            try {
+              final mediaDb = ref.read(mediaDatabaseProvider);
+              
+              // Toggle the isDeleted flag
+              await (mediaDb.update(mediaDb.mediaItems)
+                ..where((tbl) => tbl.id.equals(photo.id)))
+                .write(MediaItemsCompanion(isDeleted: Value(!photo.isDeleted)));
+              
+              // No snackbar - button will change instantly to show new state
+            } catch (e) {
+              // Handle error with feedback only on failure
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Failed to update photo status'),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(milliseconds: 2000),
+                    behavior: SnackBarBehavior.floating,
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+              }
+            } finally {
+              if (context.mounted) {
+                isToggling.value = false;
+              }
+            }
+          },
+          icon: isToggling.value
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Colors.white,
+                    ),
+                  ),
+                )
+              : AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    return RotationTransition(
+                      turns: Tween<double>(
+                        begin: 0.0,
+                        end: 0.5,
+                      ).animate(animation),
+                      child: FadeTransition(
+                        opacity: animation,
+                        child: ScaleTransition(
+                          scale: animation,
+                          child: child,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Icon(
+                    photo.isDeleted ? Icons.visibility : Icons.visibility_off,
+                    size: 20,
+                    key: ValueKey(photo.isDeleted), // Key for AnimatedSwitcher
+                  ),
+                ),
+          label: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: animation.drive(
+                    Tween(
+                      begin: const Offset(0.0, 0.5),
+                      end: Offset.zero,
+                    ).chain(CurveTween(curve: Curves.easeOutCubic)),
+                  ),
+                  child: child,
+                ),
+              );
+            },
+            child: Text(
+              photo.isDeleted ? 'Include in Journal' : 'Exclude from Journal',
+              key: ValueKey(photo.isDeleted ? 'include' : 'exclude'),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: photo.isDeleted 
+                ? Colors.green.withValues(alpha: 0.9)
+                : Colors.red.withValues(alpha: 0.9),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 12,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(25),
+            ),
+            elevation: 8,
+            // Add animation scale effect
+            animationDuration: const Duration(milliseconds: 300),
+          ),
+        ),
       ),
     );
   }

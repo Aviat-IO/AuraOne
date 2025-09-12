@@ -191,12 +191,17 @@ class MediaDatabase extends _$MediaDatabase {
   Future<List<MediaItem>> getRecentMedia({
     Duration duration = const Duration(days: 7),
     int limit = 50,
+    bool includeDeleted = false,
   }) {
     final cutoff = DateTime.now().subtract(duration);
     return (select(mediaItems)
-          ..where((tbl) =>
-              tbl.createdDate.isBiggerOrEqualValue(cutoff) &
-              tbl.isDeleted.equals(false))
+          ..where((tbl) {
+            Expression<bool> filter = tbl.createdDate.isBiggerOrEqualValue(cutoff);
+            if (!includeDeleted) {
+              filter = filter & tbl.isDeleted.equals(false);
+            }
+            return filter;
+          })
           ..orderBy([(tbl) => OrderingTerm.desc(tbl.createdDate)])
           ..limit(limit))
         .get();
