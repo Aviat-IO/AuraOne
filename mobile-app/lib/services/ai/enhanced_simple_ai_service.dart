@@ -9,6 +9,8 @@ import 'narrative_generation.dart';
 import 'multimodal_fusion.dart';
 import 'activity_recognition.dart';
 import 'image_captioning.dart';
+import 'advanced_photo_analyzer.dart';
+import 'gemini_nano_service.dart';
 
 /// Enhanced Simple AI Service with image captioning
 class EnhancedSimpleAIService {
@@ -22,6 +24,8 @@ class EnhancedSimpleAIService {
   ImageCaptioningService? _imageCaptioningService;
   ImageLabeler? _imageLabeler;
   TextRecognizer? _textRecognizer;
+  AdvancedPhotoAnalyzer? _advancedAnalyzer;
+  GeminiNanoService? _geminiService;
 
   bool get isInitialized => _isInitialized;
 
@@ -46,8 +50,19 @@ class EnhancedSimpleAIService {
       _imageCaptioningService = ImageCaptioningService();
       await _imageCaptioningService!.initialize();
 
+      // Initialize advanced photo analyzer with all ML Kit models
+      _advancedAnalyzer = AdvancedPhotoAnalyzer();
+      await _advancedAnalyzer!.initialize();
+
+      // Try to initialize Gemini Nano for even better descriptions
+      _geminiService = GeminiNanoService();
+      await _geminiService!.initialize();
+      if (_geminiService!.isAvailable) {
+        debugPrint('Gemini Nano available for enhanced on-device processing');
+      }
+
       _isInitialized = true;
-      debugPrint('Enhanced AI Service initialized with on-device ML only');
+      debugPrint('Enhanced AI Service initialized with advanced on-device ML');
     } catch (e) {
       debugPrint('Warning: Could not initialize image analysis: $e');
       _isInitialized = true; // Still allow service to work without image analysis
@@ -149,15 +164,47 @@ class EnhancedSimpleAIService {
     return captions;
   }
 
-  /// Generate caption for a single photo using only on-device ML
+  /// Generate caption for a single photo using advanced analyzer
   Future<PhotoCaption?> _generatePhotoCaption(MediaItem photo) async {
     if (photo.filePath == null) return null;
 
     try {
+      // First try Gemini Nano if available for best descriptions
+      if (_geminiService != null && _geminiService!.isAvailable) {
+        final geminiDescription = await _geminiService!.describePhoto(photo.filePath!);
+        if (geminiDescription != null) {
+          debugPrint('Gemini Nano description: $geminiDescription');
+          // Still use advanced analyzer for metadata
+          final analysis = await _advancedAnalyzer?.analyzePhoto(photo.filePath!);
+          return PhotoCaption(
+            photoId: photo.id,
+            caption: geminiDescription,
+            labels: analysis?.labels ?? [],
+            confidence: 0.95, // High confidence for Gemini
+            metadata: analysis?.metadata ?? {},
+          );
+        }
+      }
+
+      // Fallback to advanced analyzer for richer captions
+      if (_advancedAnalyzer != null) {
+        final analysis = await _advancedAnalyzer!.analyzePhoto(photo.filePath!);
+        if (analysis != null) {
+          debugPrint('Advanced analysis: ${analysis.generateDescription()}');
+          return PhotoCaption(
+            photoId: photo.id,
+            caption: analysis.generateDescription(),
+            labels: analysis.labels,
+            confidence: analysis.confidence,
+            metadata: analysis.metadata,
+          );
+        }
+      }
+
+      // Fallback to basic ML Kit analysis
       final file = File(photo.filePath!);
       if (!await file.exists()) return null;
 
-      // Use on-device ML Kit to analyze the image
       final inputImage = InputImage.fromFile(file);
 
       // Get image labels with higher quality filtering
