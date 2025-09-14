@@ -268,24 +268,6 @@ class SettingsScreen extends ConsumerWidget {
                                 ),
                                 theme: theme,
                               ),
-                              Divider(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-                                height: 1,
-                              ),
-                              _buildSettingsTile(
-                                icon: Icons.camera_alt,
-                                title: 'Aura Camera',
-                                subtitle: 'Capture and analyze your aura',
-                                trailing: Icon(
-                                  Icons.arrow_forward_ios,
-                                  size: 16,
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                                ),
-                                theme: theme,
-                                onTap: () {
-                                  context.push('/camera');
-                                },
-                              ),
                             ],
                           ),
                         ),
@@ -391,24 +373,6 @@ class SettingsScreen extends ConsumerWidget {
                                 theme: theme,
                                 onTap: () {
                                   context.push('/debug/database-viewer');
-                                },
-                              ),
-                              Divider(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-                                height: 1,
-                              ),
-                              _buildSettingsTile(
-                                icon: Icons.psychology,
-                                title: 'AI Models',
-                                subtitle: 'Manage AI models for on-device processing',
-                                trailing: Icon(
-                                  Icons.arrow_forward_ios,
-                                  size: 16,
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                                ),
-                                theme: theme,
-                                onTap: () {
-                                  context.push('/settings/ai-models');
                                 },
                               ),
                               Divider(

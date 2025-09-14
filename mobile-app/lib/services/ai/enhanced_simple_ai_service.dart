@@ -11,7 +11,8 @@ import 'activity_recognition.dart';
 import 'image_captioning.dart';
 import 'advanced_photo_analyzer.dart';
 import 'gemini_nano_service.dart';
-import '../data_fusion/multi_modal_fusion_engine.dart';
+import '../data_fusion/multi_modal_fusion_engine.dart' as fusion;
+import '../data_fusion/multi_modal_fusion_engine.dart' show MultiModalFusionEngine;
 import 'personal_context_engine.dart';
 
 /// Enhanced Simple AI Service with image captioning

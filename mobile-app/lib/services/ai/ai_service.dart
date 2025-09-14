@@ -136,22 +136,34 @@ class AIService {
         spatiotemporalData.events,
       );
 
-      // Convert VisualContextData to VisualContext if needed
-      final visualContext = visualContextData;
+      // Create a compatible VisualContext object for the fusion processor
+      // This is a temporary adapter until we unify the types
+      final visualContext = _createVisualContextAdapter(visualContextData);
 
       // Stage 3&4: Multimodal Fusion and Narrative Generation
-      final fusedData = await multimodalFusionProcessor.fuse(
+      final fusedData = await multimodalFusionProcessor.process([
         spatiotemporalData,
         visualContext,
-      );
+      ]);
 
       final summary = await summaryGenerator.process(fusedData);
 
-      return summary;
+      return summary as DailySummary;
     } catch (e) {
       // Progressive fallback strategy
       return _generateFallbackSummary(date, e);
     }
+  }
+
+  // Adapter to convert VisualContextData to the format expected by fusion processor
+  dynamic _createVisualContextAdapter(dynamic visualContextData) {
+    // Create an anonymous object with the properties expected by the fusion processor
+    return _VisualContextAdapter(
+      descriptions: <String>[],
+      objects: <String>[],
+      scenes: <String>[],
+      totalPhotoCount: (visualContextData as VisualContextData?)?.photoCount ?? 0,
+    );
   }
 
   Future<DailySummary> _generateFallbackSummary(DateTime date, dynamic error) async {
@@ -286,4 +298,19 @@ final aiServiceProvider = Provider<AIService>((ref) {
     summaryGenerator: SummaryGenerator(config),
   );
 });
+
+// Adapter class for VisualContext compatibility
+class _VisualContextAdapter {
+  final List<String> descriptions;
+  final List<String> objects;
+  final List<String> scenes;
+  final int totalPhotoCount;
+
+  _VisualContextAdapter({
+    required this.descriptions,
+    required this.objects,
+    required this.scenes,
+    required this.totalPhotoCount,
+  });
+}
 

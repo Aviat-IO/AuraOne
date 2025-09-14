@@ -13,12 +13,10 @@ import 'package:aura_one/screens/import_screen.dart';
 import 'package:aura_one/screens/backup_settings_screen.dart';
 import 'package:aura_one/screens/syncthing_settings_screen.dart';
 import 'package:aura_one/screens/app_lock_settings_screen.dart';
-import 'package:aura_one/screens/camera_screen.dart';
 import 'package:aura_one/screens/privacy_dashboard_screen.dart';
 import 'package:aura_one/screens/privacy/data_deletion_screen.dart';
 import 'package:aura_one/screens/font_size_settings_screen.dart';
 import 'package:aura_one/screens/about_screen.dart';
-import 'package:aura_one/screens/ai_models_screen.dart';
 import 'package:aura_one/screens/har_test_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -123,11 +121,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AppLockSettingsScreen(),
       ),
 
-      // Camera screen
-      GoRoute(
-        path: '/camera',
-        builder: (context, state) => const CameraScreen(),
-      ),
 
       // Font size settings screen
       GoRoute(
@@ -141,11 +134,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AboutScreen(),
       ),
 
-      // AI Models management screen
-      GoRoute(
-        path: '/settings/ai-models',
-        builder: (context, state) => const AIModelsScreen(),
-      ),
 
       // HAR Model test screen
       GoRoute(

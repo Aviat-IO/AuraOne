@@ -18,6 +18,8 @@ import 'package:aura_one/utils/logger.dart';
 import 'package:aura_one/services/simple_location_service.dart';
 import 'package:aura_one/services/movement_tracking_service.dart';
 import 'package:aura_one/services/background_data_service.dart';
+import 'package:aura_one/providers/fusion_providers.dart';
+import 'package:aura_one/providers/context_providers.dart';
 
 void main() {
   // Initialize error handling first
@@ -296,6 +298,24 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
       includeMovement: true,
     );
     appLogger.info('Background data collection started');
+
+    // Initialize Multi-Modal AI Fusion Engine (if enabled by default)
+    appLogger.info('Initializing Multi-Modal AI Fusion Engine...');
+    final fusionEnabled = ref.read(fusionEngineRunningProvider);
+    if (fusionEnabled) {
+      final fusionController = ref.read(fusionEngineControllerProvider);
+      await fusionController.start();
+      appLogger.info('Multi-Modal AI Fusion Engine started');
+    }
+
+    // Initialize Personal Context Engine (if enabled by default)
+    appLogger.info('Initializing Personal Context Engine...');
+    final contextEnabled = ref.read(contextEngineEnabledProvider);
+    if (contextEnabled) {
+      final contextEngine = ref.read(personalContextEngineProvider);
+      await contextEngine.learnUserPatterns();
+      appLogger.info('Personal Context Engine started learning patterns');
+    }
 
     appLogger.info('App initialization complete');
   } catch (error, stackTrace) {

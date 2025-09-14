@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
-import '../location_service.dart';
-import '../database_service.dart';
+import 'package:photo_manager/photo_manager.dart';
+import '../simple_location_service.dart';
 import '../photo_service.dart';
 import '../ai/advanced_photo_analyzer.dart';
+import '../../providers/database_provider.dart';
+import '../../database/media_database.dart';
 import '../../models/collected_data.dart';
 
 /// Represents a fused data point combining multiple modalities
@@ -42,6 +46,40 @@ class FusedDataPoint {
     'photos': photos.map((p) => p.toJson()).toList(),
     'metadata': metadata,
   };
+
+  factory FusedDataPoint.fromJson(Map<String, dynamic> json) {
+    Position? location;
+    if (json['location'] != null) {
+      final loc = json['location'];
+      location = Position(
+        latitude: loc['latitude'],
+        longitude: loc['longitude'],
+        timestamp: DateTime.now(),
+        accuracy: 0,
+        altitude: loc['altitude'] ?? 0,
+        altitudeAccuracy: 0,
+        heading: 0,
+        headingAccuracy: 0,
+        speed: loc['speed'] ?? 0,
+        speedAccuracy: 0,
+      );
+    }
+
+    return FusedDataPoint(
+      timestamp: DateTime.parse(json['timestamp']),
+      location: location,
+      locationContext: json['locationContext'],
+      activity: ActivityType.values.firstWhere(
+        (e) => e.toString() == json['activity'],
+        orElse: () => ActivityType.unknown,
+      ),
+      confidence: json['confidence'] ?? 0.0,
+      photos: (json['photos'] as List?)
+          ?.map((p) => PhotoContext.fromJson(p))
+          .toList() ?? [],
+      metadata: json['metadata'] ?? {},
+    );
+  }
 }
 
 /// Photo with analyzed context
@@ -76,6 +114,17 @@ class PhotoContext {
     'sceneDescription': sceneDescription,
     'metadata': metadata,
   };
+
+  factory PhotoContext.fromJson(Map<String, dynamic> json) => PhotoContext(
+    photoPath: json['photoPath'] ?? '',
+    timestamp: DateTime.parse(json['timestamp']),
+    objects: List<String>.from(json['objects'] ?? []),
+    labels: List<String>.from(json['labels'] ?? []),
+    faceCount: json['faceCount'] ?? 0,
+    recognizedText: json['recognizedText'],
+    sceneDescription: json['sceneDescription'] ?? '',
+    metadata: json['metadata'] ?? {},
+  );
 }
 
 /// Activity types detected from movement patterns
@@ -92,7 +141,7 @@ enum ActivityType {
 /// Multi-Modal Data Fusion Engine
 /// Combines photo analysis, location data, and movement patterns
 class MultiModalFusionEngine {
-  final LocationService _locationService;
+  final SimpleLocationService _locationService;
   final PhotoService _photoService;
   final DatabaseService _databaseService;
   final AdvancedPhotoAnalyzer _photoAnalyzer;
@@ -117,7 +166,7 @@ class MultiModalFusionEngine {
   bool _isRunning = false;
 
   MultiModalFusionEngine({
-    required LocationService locationService,
+    required SimpleLocationService locationService,
     required PhotoService photoService,
     required DatabaseService databaseService,
     required AdvancedPhotoAnalyzer photoAnalyzer,
@@ -275,7 +324,7 @@ class MultiModalFusionEngine {
 
   /// Calculate magnitude of 3D vector
   double _calculateMagnitude(double x, double y, double z) {
-    return (x * x + y * y + z * z).sqrt();
+    return math.sqrt(x * x + y * y + z * z);
   }
 
   /// Process and fuse collected data
@@ -354,13 +403,37 @@ class MultiModalFusionEngine {
 
   /// Get recent photos from photo service
   Future<List<MediaItem>> _getRecentPhotos(DateTime since) async {
-    final photos = _photoService.getAllMedia();
+    // Get photos from the last 30 minutes
+    final assets = await _photoService.getRecentPhotos(
+      limit: 100,
+    );
+
     final cutoff = since.subtract(const Duration(minutes: 30));
 
-    return photos.where((photo) {
-      if (photo.createdDate == null) return false;
-      return photo.createdDate!.isAfter(cutoff);
-    }).toList();
+    // Convert AssetEntity to MediaItem for compatibility
+    final mediaItems = <MediaItem>[];
+    for (final asset in assets) {
+      final file = await _photoService.getFile(asset);
+      if (file != null && asset.createDateTime.isAfter(cutoff)) {
+        mediaItems.add(MediaItem(
+          id: asset.id,
+          filePath: file.path,
+          fileName: asset.title ?? 'photo',
+          mimeType: asset.mimeType ?? 'image/jpeg',
+          fileSize: await file.length(),
+          createdDate: asset.createDateTime,
+          modifiedDate: asset.modifiedDateTime,
+          width: asset.width,
+          height: asset.height,
+          duration: asset.type == AssetType.video ? asset.videoDuration.inSeconds : null,
+          isDeleted: false,
+          isProcessed: false,
+          addedDate: DateTime.now(),
+        ));
+      }
+    }
+
+    return mediaItems;
   }
 
   /// Analyze photos using ML Kit
@@ -403,11 +476,12 @@ class MultiModalFusionEngine {
       // Store each fused point as collected data
       for (final point in _fusedDataBuffer) {
         final data = CollectedData(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          type: 'fused_context',
           timestamp: point.timestamp,
-          dataType: 'fused_context',
-          value: point.toJson(),
+          data: point.toJson(),
         );
-        await _databaseService.insertCollectedData(data);
+        await _databaseService.addCollectedData(data.toJson());
       }
 
       debugPrint('Stored ${_fusedDataBuffer.length} fused data points');
@@ -422,13 +496,14 @@ class MultiModalFusionEngine {
     Duration lookback = const Duration(hours: 24),
   }) async {
     final since = DateTime.now().subtract(lookback);
-    final data = await _databaseService.getCollectedDataByType(
-      'fused_context',
-      since: since,
+    final data = await _databaseService.queryCollectedData(
+      startDate: since,
+      endDate: DateTime.now(),
+      type: 'fused_context',
     );
 
     return data.map((item) {
-      final json = item.value as Map<String, dynamic>;
+      final json = item['data'] as Map<String, dynamic>? ?? item;
       return _fusedDataPointFromJson(json);
     }).toList();
   }

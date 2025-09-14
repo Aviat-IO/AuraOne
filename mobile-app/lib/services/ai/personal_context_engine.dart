@@ -1,9 +1,43 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
-import '../database_service.dart';
 import '../data_fusion/multi_modal_fusion_engine.dart';
+import '../../providers/database_provider.dart';
 import '../../models/collected_data.dart';
+
+/// Daily pattern representation
+class DailyPattern {
+  final int hour;
+  final ActivityType activity;
+  final String? location;
+  final double confidence;
+
+  DailyPattern({
+    required this.hour,
+    required this.activity,
+    this.location,
+    required this.confidence,
+  });
+}
+
+/// Personal daily narrative
+class PersonalDailyNarrative {
+  final String narrative;
+  final List<String> emotionalInsights;
+  final List<String> recommendations;
+  final double wellnessScore;
+  final Map<String, dynamic> activitySummary;
+  final DateTime generatedAt;
+
+  PersonalDailyNarrative({
+    required this.narrative,
+    required this.emotionalInsights,
+    required this.recommendations,
+    required this.wellnessScore,
+    required this.activitySummary,
+    required this.generatedAt,
+  });
+}
 
 /// Personal Daily Context Engine
 /// Generates natural language narratives from fused multi-modal data
@@ -168,7 +202,7 @@ class PersonalContextEngine {
     // Add personalized recommendations
     final recommendations = includeRecommendations
         ? _generateRecommendations(todayData)
-        : [];
+        : <String>[];
 
     // Enhance narrative with on-device processing
     narrative = _enhanceNarrativeOnDevice(
@@ -179,12 +213,12 @@ class PersonalContextEngine {
     );
 
     return PersonalDailyNarrative(
-      date: date,
       narrative: narrative,
       emotionalInsights: emotions,
       recommendations: recommendations,
       activitySummary: _summarizeActivities(todayData),
       wellnessScore: _calculateWellnessScore(todayData),
+      generatedAt: DateTime.now(),
     );
   }
 
@@ -619,47 +653,4 @@ class PersonalContextEngine {
         .reduce((a, b) => a.value > b.value ? a : b)
         .key;
   }
-}
-
-/// Daily pattern data
-class DailyPattern {
-  final int hour;
-  final ActivityType activity;
-  final String? location;
-  final double confidence;
-
-  DailyPattern({
-    required this.hour,
-    required this.activity,
-    this.location,
-    required this.confidence,
-  });
-}
-
-/// Personal daily narrative with insights
-class PersonalDailyNarrative {
-  final DateTime date;
-  final String narrative;
-  final List<String> emotionalInsights;
-  final List<String> recommendations;
-  final Map<String, dynamic> activitySummary;
-  final double wellnessScore;
-
-  PersonalDailyNarrative({
-    required this.date,
-    required this.narrative,
-    required this.emotionalInsights,
-    required this.recommendations,
-    required this.activitySummary,
-    required this.wellnessScore,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'date': date.toIso8601String(),
-    'narrative': narrative,
-    'emotionalInsights': emotionalInsights,
-    'recommendations': recommendations,
-    'activitySummary': activitySummary,
-    'wellnessScore': wellnessScore,
-  };
 }

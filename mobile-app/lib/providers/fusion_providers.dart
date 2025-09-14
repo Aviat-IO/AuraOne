@@ -1,8 +1,6 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/data_fusion/multi_modal_fusion_engine.dart';
-import '../services/location_service.dart';
-import '../services/photo_service.dart';
-import '../services/database_service.dart';
 import '../services/ai/advanced_photo_analyzer.dart';
 import 'location_providers.dart';
 import 'photo_providers.dart';
@@ -28,8 +26,36 @@ final fusionEngineProvider = Provider<MultiModalFusionEngine>((ref) {
   );
 });
 
-/// Provider for fusion engine running state
-final fusionEngineRunningProvider = StateProvider<bool>((ref) => false);
+/// Provider for fusion engine running state with persistence
+final fusionEngineRunningProvider = StateNotifierProvider<FusionEngineStateNotifier, bool>((ref) {
+  return FusionEngineStateNotifier(ref);
+});
+
+class FusionEngineStateNotifier extends StateNotifier<bool> {
+  final Ref _ref;
+
+  FusionEngineStateNotifier(this._ref) : super(true) {
+    _loadState();
+  }
+
+  Future<void> _loadState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isEnabled = prefs.getBool('fusion_engine_enabled') ?? true;
+    state = isEnabled;
+
+    // Auto-start if enabled
+    if (isEnabled) {
+      final controller = _ref.read(fusionEngineControllerProvider);
+      await controller.start();
+    }
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('fusion_engine_enabled', enabled);
+  }
+}
 
 /// Provider to start/stop fusion engine based on settings
 final fusionEngineControllerProvider = Provider<FusionEngineController>((ref) {
@@ -49,18 +75,18 @@ class FusionEngineController {
 
     if (!isRunning) {
       await engine.start();
-      _ref.read(fusionEngineRunningProvider.notifier).state = true;
+      await _ref.read(fusionEngineRunningProvider.notifier).setEnabled(true);
     }
   }
 
   /// Stop the fusion engine
-  void stop() {
+  Future<void> stop() async {
     final engine = _ref.read(fusionEngineProvider);
     final isRunning = _ref.read(fusionEngineRunningProvider);
 
     if (isRunning) {
       engine.stop();
-      _ref.read(fusionEngineRunningProvider.notifier).state = false;
+      await _ref.read(fusionEngineRunningProvider.notifier).setEnabled(false);
     }
   }
 
@@ -68,7 +94,7 @@ class FusionEngineController {
   Future<void> toggle() async {
     final isRunning = _ref.read(fusionEngineRunningProvider);
     if (isRunning) {
-      stop();
+      await stop();
     } else {
       await start();
     }

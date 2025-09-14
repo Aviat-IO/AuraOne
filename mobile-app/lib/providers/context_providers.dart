@@ -2,7 +2,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/ai/personal_context_engine.dart';
 import '../services/data_fusion/multi_modal_fusion_engine.dart';
-import '../services/database_service.dart';
 import 'database_provider.dart';
 import 'fusion_providers.dart';
 
@@ -26,13 +25,19 @@ final contextEngineEnabledProvider = StateNotifierProvider<ContextEngineEnabledN
 class ContextEngineEnabledNotifier extends StateNotifier<bool> {
   final Ref _ref;
 
-  ContextEngineEnabledNotifier(this._ref) : super(false) {
+  ContextEngineEnabledNotifier(this._ref) : super(true) {
     _loadState();
   }
 
   Future<void> _loadState() async {
     final prefs = await SharedPreferences.getInstance();
-    state = prefs.getBool('context_engine_enabled') ?? false;
+    state = prefs.getBool('context_engine_enabled') ?? true;
+
+    // Auto-start learning patterns if enabled
+    if (state) {
+      final engine = _ref.read(personalContextEngineProvider);
+      await engine.learnUserPatterns();
+    }
   }
 
   Future<void> setEnabled(bool enabled) async {
@@ -59,13 +64,14 @@ final dailyNarrativeProvider = FutureProvider.family<PersonalDailyNarrative?, Da
   final engine = ref.watch(personalContextEngineProvider);
 
   try {
-    return await engine.generateNarrative(
+    final narrative = await engine.generateNarrative(
       date: date,
       includeRecommendations: true,
     );
+    return narrative;
   } catch (e) {
     // Log error but don't crash
-    print('Error generating narrative: $e');
+    // TODO: Replace with proper logging
     return null;
   }
 });
