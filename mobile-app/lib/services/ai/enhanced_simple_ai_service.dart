@@ -11,6 +11,7 @@ import 'activity_recognition.dart';
 import 'image_captioning.dart';
 import 'advanced_photo_analyzer.dart';
 import 'gemini_nano_service.dart';
+import '../data_fusion/multi_modal_fusion_engine.dart';
 
 /// Enhanced Simple AI Service with image captioning
 class EnhancedSimpleAIService {
@@ -26,8 +27,17 @@ class EnhancedSimpleAIService {
   TextRecognizer? _textRecognizer;
   AdvancedPhotoAnalyzer? _advancedAnalyzer;
   GeminiNanoService? _geminiService;
+  MultiModalFusionEngine? _fusionEngine;
 
   bool get isInitialized => _isInitialized;
+
+  /// Set the fusion engine for multi-modal data fusion
+  void setFusionEngine(MultiModalFusionEngine? engine) {
+    _fusionEngine = engine;
+    if (engine != null) {
+      debugPrint('Multi-modal fusion engine connected to AI service');
+    }
+  }
 
   /// Initialize the service
   Future<void> initialize({
@@ -77,6 +87,30 @@ class EnhancedSimpleAIService {
   }) async {
     debugPrint('Generating enhanced daily summary for ${date.toIso8601String()}');
 
+    // Try to use fusion engine if available
+    if (_fusionEngine != null) {
+      try {
+        final fusedNarrative = await _fusionEngine!.generateNarrative(
+          lookback: Duration(days: 1),
+        );
+        if (fusedNarrative.isNotEmpty && !fusedNarrative.contains('No activity data')) {
+          debugPrint('Using multi-modal fusion narrative');
+          // Return fusion-based summary
+          return EnhancedDailySummary(
+            date: date,
+            narrative: fusedNarrative,
+            summary: 'Rich multi-modal summary with location, movement, and photos',
+            events: [],
+            photoCaptions: [],
+            style: style,
+          );
+        }
+      } catch (e) {
+        debugPrint('Fusion engine error, falling back to standard generation: $e');
+      }
+    }
+
+    // Fall back to standard generation
     // Get data from databases
     final locationData = await _getLocationData(date);
     final mediaData = await _getMediaData(date);

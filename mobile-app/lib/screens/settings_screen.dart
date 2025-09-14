@@ -6,6 +6,7 @@ import '../widgets/page_header.dart';
 import '../theme.dart';
 import '../theme/colors.dart';
 import '../providers/settings_providers.dart';
+import '../providers/fusion_providers.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -195,6 +196,28 @@ class SettingsScreen extends ConsumerWidget {
                           isLight: isLight,
                           child: Column(
                             children: [
+                              _buildSettingsTile(
+                                icon: Icons.merge_type,
+                                title: 'Multi-Modal AI Fusion',
+                                subtitle: 'Combine photos, location, and movement for richer summaries',
+                                trailing: Consumer(
+                                  builder: (context, ref, _) {
+                                    final isRunning = ref.watch(fusionEngineRunningProvider);
+                                    return Switch(
+                                      value: isRunning,
+                                      onChanged: (value) async {
+                                        final controller = ref.read(fusionEngineControllerProvider);
+                                        await controller.toggle();
+                                      },
+                                    );
+                                  },
+                                ),
+                                theme: theme,
+                              ),
+                              Divider(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                                height: 1,
+                              ),
                               _buildSettingsTile(
                                 icon: Icons.track_changes,
                                 title: 'Mood Tracking',
