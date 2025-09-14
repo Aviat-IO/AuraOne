@@ -98,7 +98,7 @@ class ImageCaptioningService {
 
         _logger.info('Caption model loaded successfully');
       } catch (e) {
-        _logger.warning('Caption model not found, using fallback labeling');
+        // Silently skip if model not found - will use fallback labeling
         // Model will be downloaded/generated in a production app
       }
     } catch (e) {

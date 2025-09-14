@@ -34,9 +34,11 @@ class EnhancedSimpleAIService {
     _mediaDb = mediaDb;
 
     try {
-      // Initialize ML Kit services
+      // Initialize ML Kit services with improved configuration
       _imageLabeler = ImageLabeler(
-        options: ImageLabelerOptions(confidenceThreshold: 0.5),
+        options: ImageLabelerOptions(
+          confidenceThreshold: 0.7,  // Higher threshold for better accuracy
+        ),
       );
       _textRecognizer = TextRecognizer();
 
@@ -150,23 +152,29 @@ class EnhancedSimpleAIService {
       // Use ML Kit to analyze the image
       final inputImage = InputImage.fromFile(file);
 
-      // Get image labels
+      // Get image labels with higher quality filtering
       List<ImageLabel> labels = [];
       if (_imageLabeler != null) {
-        labels = await _imageLabeler!.processImage(inputImage);
+        final allLabels = await _imageLabeler!.processImage(inputImage);
+        // Filter to only high-confidence labels
+        labels = allLabels.where((l) => l.confidence >= 0.7).toList();
+
+        // Sort by confidence for better accuracy
+        labels.sort((a, b) => b.confidence.compareTo(a.confidence));
       }
 
       // Try to detect text in the image
       String? detectedText;
       if (_textRecognizer != null) {
         final recognizedText = await _textRecognizer!.processImage(inputImage);
-        if (recognizedText.text.isNotEmpty) {
-          detectedText = recognizedText.text;
+        if (recognizedText.text.isNotEmpty && recognizedText.text.length < 100) {
+          // Filter out excessive text detection
+          detectedText = recognizedText.text.trim();
         }
       }
 
       // Generate a descriptive caption
-      String caption = _buildCaption(labels, detectedText, photo);
+      String caption = _buildEnhancedCaption(labels, detectedText, photo);
 
       return PhotoCaption(
         photoId: photo.id,
@@ -182,8 +190,8 @@ class EnhancedSimpleAIService {
     }
   }
 
-  /// Build a natural language caption from labels and text
-  String _buildCaption(List<ImageLabel> labels, String? detectedText, MediaItem photo) {
+  /// Build an enhanced natural language caption from labels and text
+  String _buildEnhancedCaption(List<ImageLabel> labels, String? detectedText, MediaItem photo) {
     if (labels.isEmpty && detectedText == null) {
       return "A photo";
     }
@@ -194,26 +202,78 @@ class EnhancedSimpleAIService {
     if (labels.isNotEmpty) {
       final topLabels = labels.take(3).map((l) => l.label.toLowerCase()).toList();
 
-      // Look for specific patterns
-      if (_containsAny(topLabels, ['sunset', 'sunrise', 'dawn', 'dusk'])) {
-        buffer.write("A beautiful ${topLabels.first}");
-      } else if (_containsAny(topLabels, ['beach', 'ocean', 'sea', 'coast'])) {
-        buffer.write("A scenic beach view");
-      } else if (_containsAny(topLabels, ['mountain', 'hill', 'landscape'])) {
-        buffer.write("A majestic landscape");
-      } else if (_containsAny(topLabels, ['food', 'meal', 'dish', 'restaurant'])) {
-        buffer.write("A delicious meal");
-      } else if (_containsAny(topLabels, ['person', 'people', 'group', 'selfie'])) {
-        buffer.write("A moment with friends");
-      } else if (_containsAny(topLabels, ['pet', 'dog', 'cat', 'animal'])) {
-        buffer.write("A cute ${topLabels.firstWhere((l) => ['pet', 'dog', 'cat', 'animal'].contains(l))}");
-      } else if (_containsAny(topLabels, ['architecture', 'building', 'monument'])) {
-        buffer.write("An architectural view");
-      } else if (_containsAny(topLabels, ['nature', 'forest', 'tree', 'park'])) {
-        buffer.write("A natural scene");
+      // Enhanced pattern matching with more specific categories
+      if (_containsAny(topLabels, ['sunset', 'sunrise', 'dawn', 'dusk', 'golden hour'])) {
+        final skyType = topLabels.firstWhere((l) => ['sunset', 'sunrise', 'dawn', 'dusk', 'golden hour'].contains(l));
+        if (_containsAny(topLabels, ['sky', 'cloud', 'horizon'])) {
+          buffer.write("A breathtaking $skyType with dramatic skies");
+        } else {
+          buffer.write("A beautiful $skyType");
+        }
+      } else if (_containsAny(topLabels, ['beach', 'ocean', 'sea', 'coast', 'shore', 'waves'])) {
+        if (_containsAny(topLabels, ['sand', 'water', 'waves'])) {
+          buffer.write("A pristine beach scene");
+        } else {
+          buffer.write("A coastal view");
+        }
+      } else if (_containsAny(topLabels, ['mountain', 'hill', 'valley', 'peak', 'ridge'])) {
+        if (_containsAny(topLabels, ['snow', 'glacier'])) {
+          buffer.write("Snow-capped mountains");
+        } else if (_containsAny(topLabels, ['forest', 'tree'])) {
+          buffer.write("Mountain landscapes with lush forests");
+        } else {
+          buffer.write("Majestic mountain scenery");
+        }
+      } else if (_containsAny(topLabels, ['food', 'meal', 'dish', 'cuisine', 'dessert', 'drink'])) {
+        if (_containsAny(topLabels, ['restaurant', 'cafe', 'dining'])) {
+          buffer.write("A dining experience");
+        } else if (_containsAny(topLabels, ['dessert', 'cake', 'sweet'])) {
+          buffer.write("A delicious dessert");
+        } else {
+          buffer.write("A culinary moment");
+        }
+      } else if (_containsAny(topLabels, ['person', 'face', 'people', 'crowd', 'portrait'])) {
+        if (_containsAny(topLabels, ['smile', 'happy', 'joy'])) {
+          buffer.write("Happy moments with people");
+        } else if (_containsAny(topLabels, ['selfie', 'portrait'])) {
+          buffer.write("A portrait capture");
+        } else if (_containsAny(topLabels, ['group', 'crowd', 'team'])) {
+          buffer.write("A group gathering");
+        } else {
+          buffer.write("A moment with people");
+        }
+      } else if (_containsAny(topLabels, ['dog', 'cat', 'pet', 'animal', 'bird'])) {
+        final animal = topLabels.firstWhere((l) => ['dog', 'cat', 'pet', 'animal', 'bird'].contains(l));
+        buffer.write("A lovely $animal");
+      } else if (_containsAny(topLabels, ['city', 'building', 'skyscraper', 'street', 'urban'])) {
+        if (_containsAny(topLabels, ['night', 'lights', 'neon'])) {
+          buffer.write("City lights at night");
+        } else if (_containsAny(topLabels, ['architecture', 'landmark'])) {
+          buffer.write("Urban architecture");
+        } else {
+          buffer.write("A cityscape");
+        }
+      } else if (_containsAny(topLabels, ['nature', 'forest', 'tree', 'plant', 'flower'])) {
+        if (_containsAny(topLabels, ['flower', 'blossom', 'bloom'])) {
+          buffer.write("Beautiful flowers in bloom");
+        } else if (_containsAny(topLabels, ['forest', 'woods'])) {
+          buffer.write("A peaceful forest scene");
+        } else {
+          buffer.write("Natural beauty");
+        }
+      } else if (_containsAny(topLabels, ['water', 'lake', 'river', 'waterfall'])) {
+        final waterType = topLabels.firstWhere((l) => ['lake', 'river', 'waterfall', 'water'].contains(l));
+        buffer.write("A serene $waterType view");
+      } else if (topLabels.isNotEmpty) {
+        // Improved generic description
+        final mainSubject = topLabels.first;
+        if (topLabels.length > 1) {
+          buffer.write("A $mainSubject scene");
+        } else {
+          buffer.write("A photo of $mainSubject");
+        }
       } else {
-        // Generic description with top labels
-        buffer.write("A photo featuring ${_formatList(topLabels)}");
+        buffer.write("A captured moment");
       }
 
       // Add location context if multiple related labels

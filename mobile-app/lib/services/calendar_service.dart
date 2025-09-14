@@ -200,7 +200,7 @@ class CalendarService {
     Set<String>? calendarIds,
   }) async {
     if (!_hasPermissions) {
-      _logger.warning('Cannot get events without calendar permissions');
+      // Silently return empty list when no permissions
       return [];
     }
 
