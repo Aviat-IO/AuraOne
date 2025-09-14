@@ -50,9 +50,10 @@ class EnhancedSimpleAIService {
       _imageCaptioningService = ImageCaptioningService();
       await _imageCaptioningService!.initialize();
 
-      // Initialize advanced photo analyzer with all ML Kit models
+      // Initialize ML Kit for high-quality object detection
       _advancedAnalyzer = AdvancedPhotoAnalyzer();
       await _advancedAnalyzer!.initialize();
+      debugPrint('ML Kit object detection initialized');
 
       // Try to initialize Gemini Nano for even better descriptions
       _geminiService = GeminiNanoService();
@@ -164,39 +165,37 @@ class EnhancedSimpleAIService {
     return captions;
   }
 
-  /// Generate caption for a single photo using advanced analyzer
+  /// Generate caption for a single photo using best available analyzer
   Future<PhotoCaption?> _generatePhotoCaption(MediaItem photo) async {
     if (photo.filePath == null) return null;
 
     try {
-      // First try Gemini Nano if available for best descriptions
-      if (_geminiService != null && _geminiService!.isAvailable) {
-        final geminiDescription = await _geminiService!.describePhoto(photo.filePath!);
-        if (geminiDescription != null) {
-          debugPrint('Gemini Nano description: $geminiDescription');
-          // Still use advanced analyzer for metadata
-          final analysis = await _advancedAnalyzer?.analyzePhoto(photo.filePath!);
-          return PhotoCaption(
-            photoId: photo.id,
-            caption: geminiDescription,
-            labels: analysis?.labels ?? [],
-            confidence: 0.95, // High confidence for Gemini
-            metadata: analysis?.metadata ?? {},
-          );
-        }
-      }
-
-      // Fallback to advanced analyzer for richer captions
+      // Use ML Kit analyzer for object detection
       if (_advancedAnalyzer != null) {
         final analysis = await _advancedAnalyzer!.analyzePhoto(photo.filePath!);
         if (analysis != null) {
-          debugPrint('Advanced analysis: ${analysis.generateDescription()}');
+          // Try Gemini for enhanced description if available
+          String finalCaption = analysis.generateDescription();
+          if (_geminiService != null && _geminiService!.isAvailable) {
+            final geminiDescription = await _geminiService!.describePhoto(photo.filePath!);
+            if (geminiDescription != null) {
+              finalCaption = geminiDescription;
+            }
+          }
+
+          debugPrint('Photo analysis: ${finalCaption} (${analysis.objects.length} objects, ${analysis.labels.length} labels)');
+
           return PhotoCaption(
             photoId: photo.id,
-            caption: analysis.generateDescription(),
+            caption: finalCaption,
             labels: analysis.labels,
             confidence: analysis.confidence,
-            metadata: analysis.metadata,
+            timestamp: photo.createdDate,
+            metadata: {
+              'objectCount': analysis.objects.length,
+              'faceCount': analysis.faceCount,
+              'hasText': analysis.recognizedText != null,
+            },
           );
         }
       }
@@ -757,6 +756,7 @@ class PhotoCaption {
   final double confidence;
   final DateTime timestamp;
   final String? detectedText;
+  final Map<String, dynamic> metadata;
 
   PhotoCaption({
     required this.photoId,
@@ -765,5 +765,6 @@ class PhotoCaption {
     required this.confidence,
     required this.timestamp,
     this.detectedText,
+    this.metadata = const {},
   });
 }

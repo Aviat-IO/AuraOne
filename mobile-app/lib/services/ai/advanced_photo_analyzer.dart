@@ -99,19 +99,19 @@ class AdvancedPhotoAnalyzer {
   /// Initialize all ML Kit components
   Future<void> initialize() async {
     try {
-      // Initialize Image Labeler with higher confidence
+      // Initialize Image Labeler with optimal confidence threshold
       _imageLabeler = ImageLabeler(
         options: ImageLabelerOptions(
-          confidenceThreshold: 0.6,
+          confidenceThreshold: 0.7,  // Higher threshold for better quality
         ),
       );
 
-      // Initialize Object Detector for multiple objects
+      // Initialize Object Detector with optimized settings
       _objectDetector = ObjectDetector(
         options: ObjectDetectorOptions(
-          mode: DetectionMode.single,
-          classifyObjects: true,
-          multipleObjects: true,
+          mode: DetectionMode.single,  // Static image mode (not streaming)
+          classifyObjects: true,       // Get object labels
+          multipleObjects: true,        // Detect all objects in image
         ),
       );
 
@@ -206,8 +206,9 @@ class AdvancedPhotoAnalyzer {
 
       // Filter and sort by confidence
       return labels
-        .where((l) => l.confidence >= 0.65)
+        .where((l) => l.confidence >= 0.7)  // Match the threshold
         .map((l) => l.label)
+        .take(10)  // Limit to top 10 for relevance
         .toList();
     } catch (e) {
       debugPrint('Error analyzing labels: $e');
