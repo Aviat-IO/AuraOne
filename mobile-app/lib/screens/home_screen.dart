@@ -935,15 +935,13 @@ class _MediaTab extends HookConsumerWidget {
   }
 
   Widget _buildMediaSections(List<MediaItem> includedPhotos, List<MediaItem> excludedPhotos, ThemeData theme, WidgetRef ref) {
-    final allPhotos = [...includedPhotos, ...excludedPhotos]; // For photo viewer navigation
-    
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Main photos section (included)
           if (includedPhotos.isNotEmpty) ...[
-            _buildPhotosGrid(includedPhotos, theme, ref, allPhotos, 'Today\'s Photos'),
+            _buildPhotosGrid(includedPhotos, theme, ref, includedPhotos, 'Today\'s Photos'),
             const SizedBox(height: 32),
           ] else ...[
             Padding(
@@ -1037,7 +1035,7 @@ class _MediaTab extends HookConsumerWidget {
                     itemCount: excludedPhotos.length,
                     itemBuilder: (context, index) {
                       final media = excludedPhotos[index];
-                      return _buildPhotoTile(media, theme, ref, allPhotos);
+                      return _buildPhotoTile(media, theme, ref, excludedPhotos);
                     },
                   ),
                 ],
@@ -1050,7 +1048,7 @@ class _MediaTab extends HookConsumerWidget {
     );
   }
   
-  Widget _buildPhotosGrid(List<MediaItem> mediaItems, ThemeData theme, WidgetRef ref, List<MediaItem> allPhotos, String title) {
+  Widget _buildPhotosGrid(List<MediaItem> mediaItems, ThemeData theme, WidgetRef ref, List<MediaItem> photoList, String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -1075,7 +1073,7 @@ class _MediaTab extends HookConsumerWidget {
             itemCount: mediaItems.length,
             itemBuilder: (context, index) {
               final media = mediaItems[index];
-              return _buildPhotoTile(media, theme, ref, allPhotos);
+              return _buildPhotoTile(media, theme, ref, photoList);
             },
           ),
         ],
@@ -1083,13 +1081,13 @@ class _MediaTab extends HookConsumerWidget {
     );
   }
 
-  Widget _buildPhotoTile(MediaItem media, ThemeData theme, WidgetRef ref, List<MediaItem> allPhotos) {
+  Widget _buildPhotoTile(MediaItem media, ThemeData theme, WidgetRef ref, List<MediaItem> photoList) {
     return Builder(
       builder: (context) => Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            _showPhotoViewer(context, ref, media, allPhotos);
+            _showPhotoViewer(context, ref, media, photoList);
           },
           borderRadius: BorderRadius.circular(8),
           child: Container(
@@ -1192,19 +1190,20 @@ class _MediaTab extends HookConsumerWidget {
     );
   }
 
-  void _showPhotoViewer(BuildContext context, WidgetRef ref, MediaItem media, List<MediaItem> allPhotos) {
+  void _showPhotoViewer(BuildContext context, WidgetRef ref, MediaItem media, List<MediaItem> photoList) {
     if (media.filePath == null) return;
 
-    // Find index by ID instead of object reference to ensure correct photo is shown
-    final index = allPhotos.indexWhere((photo) => photo.id == media.id);
+    // Find index by ID in the specific photo list (either included or excluded)
+    final index = photoList.indexWhere((photo) => photo.id == media.id);
     final safeIndex = index >= 0 ? index : 0; // Fallback to 0 if not found
 
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => _CustomPhotoViewer(
-          photos: allPhotos,
+          photos: photoList,
           initialIndex: safeIndex,
           ref: ref,
+          isExcludedSection: media.isDeleted, // Pass context about which section we're viewing
         ),
         fullscreenDialog: true,
       ),
@@ -1232,11 +1231,13 @@ class _CustomPhotoViewer extends HookConsumerWidget {
   final List<MediaItem> photos;
   final int initialIndex;
   final WidgetRef ref;
+  final bool isExcludedSection;
 
   const _CustomPhotoViewer({
     required this.photos,
     required this.initialIndex,
     required this.ref,
+    this.isExcludedSection = false,
   });
 
   @override
@@ -1248,13 +1249,19 @@ class _CustomPhotoViewer extends HookConsumerWidget {
     
     // Watch for real-time updates to media items
     final mediaDb = ref.watch(mediaDatabaseProvider);
-    final mediaStream = useMemoized(() => mediaDb.watchMediaItems(includeDeleted: true), []);
+    final mediaStream = useMemoized(
+      () => mediaDb.watchMediaItems(includeDeleted: true),
+      [],
+    );
     final mediaSnapshot = useStream(mediaStream);
-    
-    // Get updated photos list or fallback to original static list
-    final updatedPhotos = mediaSnapshot.hasData 
+
+    // Get updated photos list filtered by inclusion status
+    final updatedPhotos = mediaSnapshot.hasData
         ? mediaSnapshot.data!
-            .where((item) => photos.any((p) => p.id == item.id))
+            .where((item) =>
+              photos.any((p) => p.id == item.id) &&
+              item.isDeleted == isExcludedSection // Keep photos in same section
+            )
             .toList()
         : photos;
     
