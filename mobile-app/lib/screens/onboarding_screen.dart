@@ -342,9 +342,10 @@ class OnboardingScreen extends HookConsumerWidget {
                   ref,
                   Icons.calendar_today,
                   'Calendar',
-                  'Import events and appointments',
+                  'Import events and appointments for your daily summaries',
                   Permission.calendar,
                   permissionsGranted,
+                  isRequired: true,
                 ),
 
                 _buildPermissionTile(

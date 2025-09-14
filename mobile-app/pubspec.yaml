@@ -83,6 +83,7 @@ dependencies:
   google_mlkit_text_recognition: ^0.15.0
   exif: ^3.3.0
   battery_plus: ^7.0.0
+  google_generative_ai: ^0.4.7
   # flutter_gemma: ^0.1.0  # Temporarily commented due to dependency conflict
 
 dependency_overrides:
