@@ -7,6 +7,7 @@ import '../theme.dart';
 import '../theme/colors.dart';
 import '../providers/settings_providers.dart';
 import '../providers/fusion_providers.dart';
+import '../providers/context_providers.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -208,6 +209,27 @@ class SettingsScreen extends ConsumerWidget {
                                       onChanged: (value) async {
                                         final controller = ref.read(fusionEngineControllerProvider);
                                         await controller.toggle();
+                                      },
+                                    );
+                                  },
+                                ),
+                                theme: theme,
+                              ),
+                              Divider(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                                height: 1,
+                              ),
+                              _buildSettingsTile(
+                                icon: Icons.auto_awesome_motion,
+                                title: 'Personal Context Engine',
+                                subtitle: 'Learn from patterns to provide personalized insights and recommendations',
+                                trailing: Consumer(
+                                  builder: (context, ref, _) {
+                                    final isEnabled = ref.watch(contextEngineEnabledProvider);
+                                    return Switch(
+                                      value: isEnabled,
+                                      onChanged: (value) async {
+                                        await ref.read(contextEngineEnabledProvider.notifier).setEnabled(value);
                                       },
                                     );
                                   },

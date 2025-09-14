@@ -12,6 +12,7 @@ import 'image_captioning.dart';
 import 'advanced_photo_analyzer.dart';
 import 'gemini_nano_service.dart';
 import '../data_fusion/multi_modal_fusion_engine.dart';
+import 'personal_context_engine.dart';
 
 /// Enhanced Simple AI Service with image captioning
 class EnhancedSimpleAIService {
@@ -28,6 +29,7 @@ class EnhancedSimpleAIService {
   AdvancedPhotoAnalyzer? _advancedAnalyzer;
   GeminiNanoService? _geminiService;
   MultiModalFusionEngine? _fusionEngine;
+  PersonalContextEngine? _contextEngine;
 
   bool get isInitialized => _isInitialized;
 
@@ -36,6 +38,14 @@ class EnhancedSimpleAIService {
     _fusionEngine = engine;
     if (engine != null) {
       debugPrint('Multi-modal fusion engine connected to AI service');
+    }
+  }
+
+  /// Set the personal context engine for enhanced narratives
+  void setContextEngine(PersonalContextEngine? engine) {
+    _contextEngine = engine;
+    if (engine != null) {
+      debugPrint('Personal context engine connected to AI service');
     }
   }
 
@@ -87,7 +97,35 @@ class EnhancedSimpleAIService {
   }) async {
     debugPrint('Generating enhanced daily summary for ${date.toIso8601String()}');
 
-    // Try to use fusion engine if available
+    // Try to use personal context engine if available (highest priority)
+    if (_contextEngine != null) {
+      try {
+        final contextNarrative = await _contextEngine!.generateNarrative(
+          date: date,
+          includeRecommendations: true,
+        );
+
+        if (contextNarrative.narrative.isNotEmpty) {
+          debugPrint('Using personal context engine narrative');
+          // Return context-based summary with insights
+          return EnhancedDailySummary(
+            date: date,
+            narrative: contextNarrative.narrative,
+            summary: 'Personalized wellness narrative with insights and recommendations',
+            events: [],
+            photoCaptions: [],
+            style: style,
+            wellnessScore: contextNarrative.wellnessScore,
+            emotionalInsights: contextNarrative.emotionalInsights,
+            recommendations: contextNarrative.recommendations,
+          );
+        }
+      } catch (e) {
+        debugPrint('Context engine error, falling back to fusion: $e');
+      }
+    }
+
+    // Try to use fusion engine if available (second priority)
     if (_fusionEngine != null) {
       try {
         final fusedNarrative = await _fusionEngine!.generateNarrative(
@@ -746,6 +784,9 @@ class EnhancedDailySummary {
   final NarrativeStyle style;
   final double confidence;
   final Map<String, dynamic> dataPoints;
+  final double? wellnessScore;
+  final List<String>? emotionalInsights;
+  final List<String>? recommendations;
 
   EnhancedDailySummary({
     required this.date,
@@ -754,8 +795,11 @@ class EnhancedDailySummary {
     required this.events,
     required this.photoCaptions,
     required this.style,
-    required this.confidence,
-    required this.dataPoints,
+    this.confidence = 0.8,
+    this.dataPoints = const {},
+    this.wellnessScore,
+    this.emotionalInsights,
+    this.recommendations,
   });
 }
 
