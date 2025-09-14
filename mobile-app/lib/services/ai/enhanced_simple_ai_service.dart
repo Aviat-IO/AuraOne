@@ -127,17 +127,25 @@ class EnhancedSimpleAIService {
       m.mimeType?.startsWith('image/') ?? false
     ).toList();
 
-    for (final photo in photos) {
+    debugPrint('Processing ${photos.length} photos for captions');
+
+    for (int i = 0; i < photos.length; i++) {
+      final photo = photos[i];
+      debugPrint('Processing photo ${i + 1}/${photos.length}: ${photo.id}');
       try {
         final caption = await _generatePhotoCaption(photo);
         if (caption != null) {
           captions.add(caption);
+          debugPrint('Generated caption for photo ${photo.id}: ${caption.caption}');
+        } else {
+          debugPrint('No caption generated for photo ${photo.id}');
         }
       } catch (e) {
         debugPrint('Error analyzing photo ${photo.id}: $e');
       }
     }
 
+    debugPrint('Generated ${captions.length} captions total');
     return captions;
   }
 
@@ -327,9 +335,11 @@ class EnhancedSimpleAIService {
 
   /// Generate enhanced media summary with photo descriptions
   String _generateEnhancedMediaSummary(List<MediaItem> media, List<PhotoCaption> captions) {
+    final photoCount = media.where((m) => m.mimeType?.startsWith('image/') ?? false).length;
+    debugPrint('Generating summary for $photoCount photos with ${captions.length} captions');
+
     if (captions.isEmpty) {
       // Fallback to simple count
-      final photoCount = media.where((m) => m.mimeType?.startsWith('image/') ?? false).length;
       if (photoCount > 0) {
         return "You took $photoCount photo${photoCount > 1 ? 's' : ''}.";
       }
@@ -386,17 +396,35 @@ class EnhancedSimpleAIService {
       buffer.write(". ");
     }
 
-    // Add specific interesting captions
-    final interestingCaptions = captions
-      .where((c) => c.confidence > 0.7)
-      .take(2)
-      .map((c) => c.caption)
-      .toList();
+    // If we have uncategorized photos, mention them
+    final uncategorized = captions.where((c) =>
+      !scenicPhotos.contains(c) &&
+      !foodPhotos.contains(c) &&
+      !peoplePhotos.contains(c)
+    ).toList();
 
-    if (interestingCaptions.isNotEmpty && buffer.isEmpty) {
-      buffer.write("Your photos included ");
-      buffer.write(_formatList(interestingCaptions.map((c) => c.toLowerCase()).toList()));
+    if (uncategorized.isNotEmpty) {
+      if (buffer.isNotEmpty) buffer.write("Additionally, ");
+
+      // Add specific interesting captions from uncategorized photos
+      final interestingCaptions = uncategorized
+        .where((c) => c.confidence > 0.7)
+        .take(2)
+        .map((c) => c.caption)
+        .toList();
+
+      if (interestingCaptions.isNotEmpty) {
+        buffer.write("you captured ");
+        buffer.write(_formatList(interestingCaptions.map((c) => c.toLowerCase()).toList()));
+      } else {
+        buffer.write("you took ${uncategorized.length} other photo${uncategorized.length > 1 ? 's' : ''}");
+      }
       buffer.write(". ");
+    }
+
+    // Always mention total photo count if more than what's specifically described
+    if (captions.length > 3) {
+      buffer.write("In total, you captured ${captions.length} special moments throughout the day. ");
     }
 
     return buffer.toString().trim();
@@ -505,11 +533,15 @@ class EnhancedSimpleAIService {
       final startOfDay = DateTime(date.year, date.month, date.day);
       final endOfDay = startOfDay.add(const Duration(days: 1));
 
-      return media.where((m) {
+      final todayMedia = media.where((m) {
         final createdDate = m.createdDate;
         return createdDate.isAfter(startOfDay) &&
-               createdDate.isBefore(endOfDay);
+               createdDate.isBefore(endOfDay) &&
+               !m.isDeleted;  // Only include non-deleted photos
       }).toList();
+
+      debugPrint('Found ${todayMedia.length} media items for ${date.toIso8601String()}');
+      return todayMedia;
     } catch (e) {
       debugPrint('Error getting media data: $e');
       return [];

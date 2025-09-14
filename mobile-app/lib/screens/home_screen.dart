@@ -310,6 +310,9 @@ class _OverviewTab extends HookConsumerWidget {
     Future<void> generateSummary() async {
       isGenerating.value = true;
       try {
+        // Clear the cached entry to force regeneration
+        ref.read(todayJournalEntryProvider.notifier).state = null;
+
         if (!aiService.isInitialized) {
           await aiService.initialize(
             locationDb: locationDb,
@@ -1264,7 +1267,22 @@ class _CustomPhotoViewer extends HookConsumerWidget {
             )
             .toList()
         : photos;
-    
+
+    // Handle case where photos list changes (e.g., after toggling inclusion)
+    useEffect(() {
+      if (updatedPhotos.isEmpty && context.mounted) {
+        // If no photos left in this section, close the viewer
+        Navigator.of(context).pop();
+      } else if (currentIndex.value >= updatedPhotos.length) {
+        // If current index is out of bounds, adjust it
+        currentIndex.value = updatedPhotos.length - 1;
+        if (currentIndex.value >= 0) {
+          pageController.jumpToPage(currentIndex.value);
+        }
+      }
+      return null;
+    }, [updatedPhotos.length]);
+
     // Auto-hide UI after a delay
     final hideTimer = useRef<Timer?>(null);
     
@@ -1411,11 +1429,13 @@ class _CustomPhotoViewer extends HookConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Center(
-                    child: _ToggleInclusionButton(
-                      photo: updatedPhotos[currentIndex.value],
-                      ref: ref,
-                      onToggle: resetHideTimer,
-                    ),
+                    child: updatedPhotos.isNotEmpty && currentIndex.value < updatedPhotos.length
+                        ? _ToggleInclusionButton(
+                            photo: updatedPhotos[currentIndex.value],
+                            ref: ref,
+                            onToggle: resetHideTimer,
+                          )
+                        : const SizedBox.shrink(),
                   ),
                 ),
               ),
