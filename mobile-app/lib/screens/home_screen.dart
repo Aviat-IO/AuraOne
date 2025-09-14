@@ -1194,12 +1194,16 @@ class _MediaTab extends HookConsumerWidget {
 
   void _showPhotoViewer(BuildContext context, WidgetRef ref, MediaItem media, List<MediaItem> allPhotos) {
     if (media.filePath == null) return;
-    
+
+    // Find index by ID instead of object reference to ensure correct photo is shown
+    final index = allPhotos.indexWhere((photo) => photo.id == media.id);
+    final safeIndex = index >= 0 ? index : 0; // Fallback to 0 if not found
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => _CustomPhotoViewer(
           photos: allPhotos,
-          initialIndex: allPhotos.indexOf(media),
+          initialIndex: safeIndex,
           ref: ref,
         ),
         fullscreenDialog: true,

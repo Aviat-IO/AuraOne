@@ -9,7 +9,6 @@ import 'narrative_generation.dart';
 import 'multimodal_fusion.dart';
 import 'activity_recognition.dart';
 import 'image_captioning.dart';
-import 'gemini_image_captioning.dart';
 
 /// Enhanced Simple AI Service with image captioning
 class EnhancedSimpleAIService {
@@ -21,7 +20,6 @@ class EnhancedSimpleAIService {
   loc_db.LocationDatabase? _locationDb;
   MediaDatabase? _mediaDb;
   ImageCaptioningService? _imageCaptioningService;
-  GeminiImageCaptioning? _geminiCaptioning;
   ImageLabeler? _imageLabeler;
   TextRecognizer? _textRecognizer;
 
@@ -36,11 +34,7 @@ class EnhancedSimpleAIService {
     _mediaDb = mediaDb;
 
     try {
-      // Initialize Gemini for high-quality captioning
-      _geminiCaptioning = GeminiImageCaptioning();
-      await _geminiCaptioning!.initialize();
-
-      // Initialize ML Kit services as backup
+      // Initialize on-device ML Kit services only
       _imageLabeler = ImageLabeler(
         options: ImageLabelerOptions(
           confidenceThreshold: 0.7,  // Higher threshold for better accuracy
@@ -48,12 +42,12 @@ class EnhancedSimpleAIService {
       );
       _textRecognizer = TextRecognizer();
 
-      // Initialize legacy image captioning service
+      // Initialize on-device image captioning service
       _imageCaptioningService = ImageCaptioningService();
       await _imageCaptioningService!.initialize();
 
       _isInitialized = true;
-      debugPrint('Enhanced AI Service initialized with Gemini captioning');
+      debugPrint('Enhanced AI Service initialized with on-device ML only');
     } catch (e) {
       debugPrint('Warning: Could not initialize image analysis: $e');
       _isInitialized = true; // Still allow service to work without image analysis
@@ -147,33 +141,15 @@ class EnhancedSimpleAIService {
     return captions;
   }
 
-  /// Generate caption for a single photo
+  /// Generate caption for a single photo using only on-device ML
   Future<PhotoCaption?> _generatePhotoCaption(MediaItem photo) async {
     if (photo.filePath == null) return null;
 
     try {
-      // First try Gemini for high-quality captions
-      if (_geminiCaptioning != null && _geminiCaptioning!.isInitialized) {
-        final geminiResult = await _geminiCaptioning!.generateCaption(photo);
-
-        // Use Gemini caption if it's high quality
-        if (geminiResult.confidence > 0.8 && geminiResult.caption.isNotEmpty) {
-          return PhotoCaption(
-            photoId: photo.id,
-            caption: geminiResult.caption,
-            labels: geminiResult.labels ?? [],
-            confidence: geminiResult.confidence,
-            timestamp: photo.createdDate,
-            detectedText: geminiResult.detectedText,
-          );
-        }
-      }
-
-      // Fallback to ML Kit analysis
       final file = File(photo.filePath!);
       if (!await file.exists()) return null;
 
-      // Use ML Kit to analyze the image
+      // Use on-device ML Kit to analyze the image
       final inputImage = InputImage.fromFile(file);
 
       // Get image labels with higher quality filtering
@@ -197,7 +173,7 @@ class EnhancedSimpleAIService {
         }
       }
 
-      // Generate a descriptive caption
+      // Generate a descriptive caption using on-device processing
       String caption = _buildEnhancedCaption(labels, detectedText, photo);
 
       return PhotoCaption(
@@ -642,7 +618,6 @@ class EnhancedSimpleAIService {
     _imageLabeler?.close();
     _textRecognizer?.close();
     _imageCaptioningService?.dispose();
-    _geminiCaptioning?.dispose();
     _isInitialized = false;
     _locationDb = null;
     _mediaDb = null;
