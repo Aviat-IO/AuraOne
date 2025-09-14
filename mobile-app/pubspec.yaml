@@ -85,6 +85,7 @@ dependencies:
   battery_plus: ^7.0.0
   google_mlkit_object_detection: ^0.15.0
   google_generative_ai: ^0.4.7
+  timezone: ^0.9.4
   # flutter_gemma: ^0.1.0  # Temporarily commented due to dependency conflict
 
 dependency_overrides:

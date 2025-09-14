@@ -345,7 +345,7 @@ class OnboardingScreen extends HookConsumerWidget {
                   'Import events and appointments for your daily summaries',
                   Permission.calendar,
                   permissionsGranted,
-                  isRequired: true,
+                  isRequired: false,
                 ),
 
                 _buildPermissionTile(

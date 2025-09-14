@@ -20,6 +20,7 @@ import 'package:aura_one/services/movement_tracking_service.dart';
 import 'package:aura_one/services/background_data_service.dart';
 import 'package:aura_one/providers/fusion_providers.dart';
 import 'package:aura_one/providers/context_providers.dart';
+import 'package:aura_one/providers/settings_providers.dart';
 
 void main() {
   // Initialize error handling first
@@ -316,6 +317,17 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
       await contextEngine.learnUserPatterns();
       appLogger.info('Personal Context Engine started learning patterns');
     }
+
+    // Initialize Notification Service for daily reminders
+    appLogger.info('Initializing Notification Service...');
+    final notificationService = ref.read(notificationServiceProvider);
+    await notificationService.initialize();
+    appLogger.info('Notification Service initialized');
+
+    // Initialize daily reminders (this will schedule them if enabled)
+    appLogger.info('Setting up daily reminders...');
+    final dailyRemindersEnabled = ref.read(dailyRemindersEnabledProvider);
+    appLogger.info('Daily reminders ${dailyRemindersEnabled ? 'enabled' : 'disabled'}');
 
     appLogger.info('App initialization complete');
   } catch (error, stackTrace) {

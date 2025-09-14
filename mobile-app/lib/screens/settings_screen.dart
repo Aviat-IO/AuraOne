@@ -148,6 +148,34 @@ class SettingsScreen extends ConsumerWidget {
                                 height: 1,
                               ),
                               _buildSettingsTile(
+                                icon: Icons.notification_add,
+                                title: 'Test Notifications',
+                                subtitle: 'Send a test notification to verify reminders work',
+                                trailing: Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                ),
+                                theme: theme,
+                                onTap: () async {
+                                  final notificationService = ref.read(notificationServiceProvider);
+                                  await notificationService.sendTestNotification();
+
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Test notification sent! Check your notification panel.'),
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                              Divider(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                                height: 1,
+                              ),
+                              _buildSettingsTile(
                                 icon: Icons.auto_awesome,
                                 title: 'AI Suggestions',
                                 subtitle: 'Enable AI-powered writing suggestions',
