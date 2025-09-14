@@ -348,6 +348,42 @@ class SettingsScreen extends ConsumerWidget {
                                   context.push('/debug/database-viewer');
                                 },
                               ),
+                              Divider(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                                height: 1,
+                              ),
+                              _buildSettingsTile(
+                                icon: Icons.psychology,
+                                title: 'AI Models',
+                                subtitle: 'Manage AI models for on-device processing',
+                                trailing: Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                ),
+                                theme: theme,
+                                onTap: () {
+                                  context.push('/settings/ai-models');
+                                },
+                              ),
+                              Divider(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                                height: 1,
+                              ),
+                              _buildSettingsTile(
+                                icon: Icons.directions_walk,
+                                title: 'HAR Test',
+                                subtitle: 'Test Human Activity Recognition model',
+                                trailing: Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                ),
+                                theme: theme,
+                                onTap: () {
+                                  context.push('/test/har');
+                                },
+                              ),
                             ],
                           ),
                         ),

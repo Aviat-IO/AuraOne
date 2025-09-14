@@ -81,6 +81,9 @@ dependencies:
   google_mlkit_commons: ^0.11.0
   google_mlkit_image_labeling: ^0.14.1
   google_mlkit_text_recognition: ^0.15.0
+  exif: ^3.3.0
+  battery_plus: ^7.0.0
+  # flutter_gemma: ^0.1.0  # Temporarily commented due to dependency conflict
 
 dependency_overrides:
   models:

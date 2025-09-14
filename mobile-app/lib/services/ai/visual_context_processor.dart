@@ -8,7 +8,7 @@ import 'package:image/image.dart' as img;
 import 'package:photo_manager/photo_manager.dart';
 import 'package:exif/exif.dart';
 import 'ai_service.dart';
-import 'spatiotemporal_processor.dart';
+import 'spatiotemporal_processor.dart' as spatial;
 import 'image_captioning_processor.dart';
 
 // Stage 2: Visual Context Extraction
@@ -239,7 +239,7 @@ class VisualContextProcessor extends PipelineStage {
       final data = await readExifFromBytes(bytes);
 
       // Extract GPS coordinates if available
-      LatLng? location;
+      spatial.LatLng? location;
       if (data.containsKey('GPS GPSLatitude') &&
           data.containsKey('GPS GPSLongitude')) {
         final lat = _convertGPSToDecimal(
@@ -250,17 +250,17 @@ class VisualContextProcessor extends PipelineStage {
           data['GPS GPSLongitude']!.values.toList(),
           data['GPS GPSLongitudeRef']?.printable ?? 'E',
         );
-        location = LatLng(lat, lon);
+        location = spatial.LatLng(lat, lon);
       }
 
       return PhotoMetadata(
         timestamp: photo.createDateTime,
-        location: location ?? LatLng(photo.latitude ?? 0, photo.longitude ?? 0),
+        location: location ?? spatial.LatLng(photo.latitude ?? 0, photo.longitude ?? 0),
       );
     } catch (e) {
       return PhotoMetadata(
         timestamp: photo.createDateTime,
-        location: LatLng(photo.latitude ?? 0, photo.longitude ?? 0),
+        location: spatial.LatLng(photo.latitude ?? 0, photo.longitude ?? 0),
       );
     }
   }
@@ -483,7 +483,7 @@ class VisualContextProcessor extends PipelineStage {
     return null;
   }
 
-  double _calculateDistance(LatLng p1, LatLng p2) {
+  double _calculateDistance(spatial.LatLng p1, spatial.LatLng p2) {
     // Haversine distance calculation
     const double earthRadius = 6371000; // meters
     final lat1Rad = p1.latitude * 3.14159 / 180;

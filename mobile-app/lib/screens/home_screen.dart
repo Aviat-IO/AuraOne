@@ -13,7 +13,7 @@ import '../widgets/page_header.dart';
 import '../database/media_database.dart';
 import 'package:drift/drift.dart' show Value;
 import '../providers/media_database_provider.dart';
-import '../services/ai/enhanced_ai_service.dart';
+import '../services/ai/simple_ai_service.dart';
 import '../services/ai/narrative_generation.dart';
 import '../providers/location_database_provider.dart';
 import '../database/location_database.dart' as loc_db;
@@ -211,9 +211,8 @@ class _OverviewTab extends HookConsumerWidget {
     final controller = useTextEditingController(text: journalEntry ?? '');
     final isLoading = useState(false);
     final isGenerating = useState(false);
-    final aiService = ref.watch(enhancedAIServiceProvider);
-
-    // Get today's stats
+    final aiService = SimpleAIService();
+    final locationDb = ref.watch(locationDatabaseProvider);
     final mediaDb = ref.watch(mediaDatabaseProvider);
 
     // Calculate stats
@@ -279,6 +278,13 @@ class _OverviewTab extends HookConsumerWidget {
 
             isGenerating.value = true;
             try {
+              // Initialize service with databases if needed
+              if (!aiService.isInitialized) {
+                await aiService.initialize(
+                  locationDb: locationDb,
+                  mediaDb: mediaDb,
+                );
+              }
               final result = await aiService.generateDailySummary(
                 date: DateTime.now(),
                 style: NarrativeStyle.casual,
@@ -304,6 +310,12 @@ class _OverviewTab extends HookConsumerWidget {
     Future<void> generateSummary() async {
       isGenerating.value = true;
       try {
+        if (!aiService.isInitialized) {
+          await aiService.initialize(
+            locationDb: locationDb,
+            mediaDb: mediaDb,
+          );
+        }
         final result = await aiService.generateDailySummary(
           date: DateTime.now(),
           style: NarrativeStyle.casual,

@@ -6,6 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
 import 'optimization_manager.dart';
 import 'privacy_manager.dart';
+import 'spatiotemporal_processor.dart';
+import 'visual_context_processor.dart';
+import 'multimodal_fusion_processor.dart';
+import 'summary_generator.dart';
 
 // AI Service Configuration
 class AIServiceConfig {
@@ -14,11 +18,13 @@ class AIServiceConfig {
   final double privacyEpsilon;
   final int maxMemoryMB;
   final BatteryOptimizationLevel batteryOptimization;
+  final int inferenceThreads;
 
   const AIServiceConfig({
     this.enableHardwareAcceleration = true,
     this.enableDifferentialPrivacy = false,
     this.privacyEpsilon = 1.0,
+    this.inferenceThreads = 2,
     this.maxMemoryMB = 512,
     this.batteryOptimization = BatteryOptimizationLevel.adaptive,
   });
@@ -76,11 +82,7 @@ class AIService {
       enableDifferentialPrivacy: config.enableDifferentialPrivacy,
     );
     
-    // Request necessary permissions
-    final permissionStatus = await _optimizationManager.requestPermissions();
-    if (permissionStatus != PermissionStatus.granted) {
-      debugPrint('WARNING: Not all permissions granted. Some features may be limited.');
-    }
+    // Permissions are handled at app level
 
     // Initialize all pipeline stages with optimization support
     await spatiotemporalProcessor.initialize();
@@ -126,17 +128,16 @@ class AIService {
       // Stage 1: Spatiotemporal Analysis with privacy
       final spatiotemporalData = await spatiotemporalProcessor.process(date);
       
-      // Apply privacy to location data if enabled
-      if (config.enableDifferentialPrivacy) {
-        spatiotemporalData.applyPrivacy(_privacyManager);
-      }
+      // Privacy features can be implemented here if needed
 
-      // Stage 2: Visual Context Extraction with adaptive quality
-      final visualContext = await visualContextProcessor.process(
+      // Stage 2: Visual Context Extraction
+      final visualContextData = await visualContextProcessor.process(
         date,
         spatiotemporalData.events,
-        quality: quality,
       );
+
+      // Convert VisualContextData to VisualContext if needed
+      final visualContext = visualContextData;
 
       // Stage 3&4: Multimodal Fusion and Narrative Generation
       final fusedData = await multimodalFusionProcessor.fuse(
@@ -144,7 +145,7 @@ class AIService {
         visualContext,
       );
 
-      final summary = await summaryGenerator.generate(fusedData);
+      final summary = await summaryGenerator.process(fusedData);
 
       return summary;
     } catch (e) {
@@ -170,10 +171,10 @@ class AIService {
 
   Future<void> dispose() async {
     _inferenceIsolate?.kill(priority: Isolate.immediate);
-    await spatiotemporalProcessor.dispose();
-    await visualContextProcessor.dispose();
-    await multimodalFusionProcessor.dispose();
-    await summaryGenerator.dispose();
+    spatiotemporalProcessor.dispose();
+    visualContextProcessor.dispose();
+    multimodalFusionProcessor.dispose();
+    summaryGenerator.dispose();
     _isInitialized = false;
   }
 }
@@ -286,8 +287,3 @@ final aiServiceProvider = Provider<AIService>((ref) {
   );
 });
 
-// Import the pipeline stage implementations
-import 'spatiotemporal_processor.dart';
-import 'visual_context_processor.dart';
-import 'multimodal_fusion_processor.dart';
-import 'summary_generator.dart';

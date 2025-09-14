@@ -232,8 +232,9 @@ class ActivityRecognitionService {
       // Emit result
       _activityController.add(result);
 
-      _logger.debug('Activity recognized: ${result.activity.name} '
-          '(confidence: ${result.confidence.toStringAsFixed(2)})');
+      // Comment out verbose logging to reduce console noise
+      // _logger.debug('Activity recognized: ${result.activity.name} '
+      //     '(confidence: ${result.confidence.toStringAsFixed(2)})');
     } catch (e) {
       _logger.error('Failed to recognize activity', error: e);
     }

@@ -5,12 +5,18 @@ import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:workmanager/workmanager.dart';
 import '../../utils/logger.dart';
-// import '../location_service.dart'; // Removed - not needed
+import 'model_download_manager.dart';
+import 'tflite_manager.dart';
 import 'dbscan_clustering.dart';
 import 'activity_recognition.dart';
 import 'image_captioning.dart';
 import 'multimodal_fusion.dart';
 import 'narrative_generation.dart';
+import 'pipeline_orchestrator.dart';
+import '../../database/location_database.dart' as loc_db;
+import '../../database/media_database.dart';
+import '../../providers/location_database_provider.dart';
+import '../../providers/media_database_provider.dart';
 
 /// Enhanced AI Service with hardware acceleration and optimizations
 class EnhancedAIService {
@@ -20,16 +26,29 @@ class EnhancedAIService {
   factory EnhancedAIService() => _instance;
   EnhancedAIService._internal();
 
+  // Core managers
+  final ModelDownloadManager _downloadManager = ModelDownloadManager();
+  final TFLiteManager _tfliteManager = TFLiteManager();
+  final PipelineOrchestrator _pipelineOrchestrator = PipelineOrchestrator();
+
   // Sub-services
   final ActivityRecognitionService _activityService = ActivityRecognitionService();
   final ImageCaptioningService _captionService = ImageCaptioningService();
   final MultiModalFusionService _fusionService = MultiModalFusionService();
   final NarrativeGenerationService _narrativeService = NarrativeGenerationService();
 
+  // Database references (will be injected)
+  loc_db.LocationDatabase? _locationDb;
+  MediaDatabase? _mediaDb;
+
   // State management
   bool _isInitialized = false;
   bool _isProcessing = false;
   Timer? _backgroundTimer;
+
+  // Public getters
+  bool get isInitialized => _isInitialized;
+  bool get isProcessing => _isProcessing;
 
   // Performance monitoring
   final Map<String, Duration> _performanceMetrics = {};
@@ -40,7 +59,11 @@ class EnhancedAIService {
   bool _useCoreMLDelegate = false;
 
   /// Initialize the enhanced AI service with hardware acceleration
-  Future<void> initialize({bool enableHardwareAcceleration = true}) async {
+  Future<void> initialize({
+    bool enableHardwareAcceleration = true,
+    loc_db.LocationDatabase? locationDb,
+    MediaDatabase? mediaDb,
+  }) async {
     if (_isInitialized) {
       _logger.info('Enhanced AI service already initialized');
       return;
@@ -53,6 +76,13 @@ class EnhancedAIService {
       if (enableHardwareAcceleration) {
         await _configureHardwareAcceleration();
       }
+
+      // Store database references
+      _locationDb = locationDb;
+      _mediaDb = mediaDb;
+
+      // Initialize pipeline orchestrator
+      await _pipelineOrchestrator.initialize();
 
       // Initialize sub-services
       await _initializeSubServices();
@@ -73,84 +103,17 @@ class EnhancedAIService {
     try {
       _logger.info('Configuring hardware acceleration...');
 
-      if (Platform.isAndroid) {
-        // Check for Android Neural Networks API support
-        try {
-          final options = InterpreterOptions();
-            // ..addDelegate(NnApiDelegate()); // Not available in current version
+      // Initialize TFLite manager with hardware acceleration
+      await _tfliteManager.initialize();
 
-          // Test if NNAPI is available
-          final testInterpreter = await Interpreter.fromAsset(
-            'assets/models/test_model.tflite',
-            options: options,
-          );
-          testInterpreter.close();
+      // Get acceleration status
+      final accelerationStatus = _tfliteManager.getAccelerationStatus();
+      _useGpuDelegate = accelerationStatus['gpu'] ?? false;
+      _useNnApiDelegate = accelerationStatus['nnapi'] ?? false;
+      _useCoreMLDelegate = accelerationStatus['coreml'] ?? false;
 
-          _useNnApiDelegate = true;
-          _logger.info('Android NNAPI delegate enabled');
-        } catch (e) {
-          _logger.warning('NNAPI not available, falling back to CPU');
-        }
-
-        // Try GPU delegate for Android
-        try {
-          final gpuOptions = InterpreterOptions()
-            ..addDelegate(GpuDelegateV2(
-              options: GpuDelegateOptionsV2(
-                // GPU options simplified for compatibility
-              ),
-            ));
-
-          final testInterpreter = await Interpreter.fromAsset(
-            'assets/models/test_model.tflite',
-            options: gpuOptions,
-          );
-          testInterpreter.close();
-
-          _useGpuDelegate = true;
-          _logger.info('GPU delegate enabled for Android');
-        } catch (e) {
-          _logger.warning('GPU delegate not available');
-        }
-      } else if (Platform.isIOS) {
-        // Try Core ML delegate for iOS
-        try {
-          final options = InterpreterOptions();
-          // CoreML delegate not available in current tflite_flutter version
-
-          final testInterpreter = await Interpreter.fromAsset(
-            'assets/models/test_model.tflite',
-            options: options,
-          );
-          testInterpreter.close();
-
-          _useCoreMLDelegate = true;
-          _logger.info('Core ML delegate enabled for iOS');
-        } catch (e) {
-          _logger.warning('Core ML not available, trying Metal');
-
-          // Try Metal delegate as fallback
-          try {
-            final metalOptions = InterpreterOptions()
-              // Metal delegate not available in current version
-              ..threads = Platform.numberOfProcessors;
-
-            final testInterpreter = await Interpreter.fromAsset(
-              'assets/models/test_model.tflite',
-              options: metalOptions,
-            );
-            testInterpreter.close();
-
-            _useGpuDelegate = true;
-            _logger.info('Metal delegate enabled for iOS');
-          } catch (e) {
-            _logger.warning('Metal delegate not available');
-          }
-        }
-      }
-
-      _logger.info('Hardware acceleration configuration complete - '
-          'GPU: $_useGpuDelegate, NNAPI: $_useNnApiDelegate, CoreML: $_useCoreMLDelegate');
+      _logger.info('Hardware acceleration configured: '
+          'GPU=$_useGpuDelegate, NNAPI=$_useNnApiDelegate, CoreML=$_useCoreMLDelegate');
     } catch (e) {
       _logger.error('Failed to configure hardware acceleration', error: e);
     }
@@ -215,54 +178,51 @@ class EnhancedAIService {
       throw Exception('Already processing a summary');
     }
 
+    // Check if we have database references
+    if (_locationDb == null || _mediaDb == null) {
+      _logger.warning('Database references not set, using fallback data');
+      return await _generateFallbackSummary(date, style);
+    }
+
     _isProcessing = true;
     final stopwatch = Stopwatch()..start();
 
     try {
-      _logger.info('Generating daily summary for ${date.toIso8601String()}');
+      _logger.info('Generating daily summary for ${date.toIso8601String()} using pipeline orchestrator');
 
-      // Step 1: Data collection (can be parallelized)
-      final dataCollectionStart = stopwatch.elapsedMilliseconds;
-
-      final locationData = await _collectLocationData(date);
-      final activityData = await _collectActivityData(date);
-      final photoData = await _collectPhotoData(date);
-
-      _performanceMetrics['dataCollection'] =
-          Duration(milliseconds: stopwatch.elapsedMilliseconds - dataCollectionStart);
-
-      // Step 2: Multi-modal fusion
-      final fusionStart = stopwatch.elapsedMilliseconds;
-
-      final dailyEvents = await _fusionService.buildDailyTimeline(
+      // Use the pipeline orchestrator for the full AI pipeline
+      final pipelineSummary = await _pipelineOrchestrator.generateDailySummary(
         date: date,
-        locationPoints: locationData,
-        activityResults: activityData,
-        photos: photoData,
-      );
-
-      _performanceMetrics['fusion'] =
-          Duration(milliseconds: stopwatch.elapsedMilliseconds - fusionStart);
-
-      // Step 3: Narrative generation
-      final narrativeStart = stopwatch.elapsedMilliseconds;
-
-      final narrative = await _narrativeService.generateNarrative(
-        events: dailyEvents,
+        locationDb: _locationDb!,
+        mediaDb: _mediaDb!,
         style: style,
       );
 
-      _performanceMetrics['narrative'] =
-          Duration(milliseconds: stopwatch.elapsedMilliseconds - narrativeStart);
-
-      // Build result
+      // Convert pipeline summary to our result format
       final result = DailySummaryResult(
         date: date,
-        narrative: narrative.narrative,
-        summary: narrative.summary,
-        events: dailyEvents,
+        narrative: pipelineSummary.narrative,
+        summary: pipelineSummary.briefSummary,
+        events: pipelineSummary.events.map((e) => DailyEvent(
+          id: '${e.type}_${e.startTime.millisecondsSinceEpoch}',
+          startTime: e.startTime,
+          endTime: e.endTime,
+          type: e.type == 'journey' ? EventType.journey : EventType.stay,
+          activities: [
+            // Parse activity string into ActivityType
+            if (e.activity.toLowerCase().contains('walk')) ActivityType.walking
+            else if (e.activity.toLowerCase().contains('run')) ActivityType.running
+            else if (e.activity.toLowerCase().contains('driv')) ActivityType.driving
+            else if (e.activity.toLowerCase().contains('cycl')) ActivityType.cycling
+            else ActivityType.stationary,
+          ],
+          locationId: e.location,
+          photoCaptions: e.imageCaptions ?? [],
+          photoIds: [], // Generate IDs if needed
+          metadata: e.attributes ?? {},
+        )).toList(),
         style: style,
-        confidence: narrative.confidence,
+        confidence: pipelineSummary.confidence,
         processingTime: stopwatch.elapsed,
         performanceMetrics: Map.from(_performanceMetrics),
       );
@@ -272,10 +232,44 @@ class EnhancedAIService {
       return result;
     } catch (e, stack) {
       _logger.error('Failed to generate daily summary', error: e, stackTrace: stack);
-      rethrow;
+      // Return a fallback summary on error
+      return await _generateFallbackSummary(date, style);
     } finally {
       _isProcessing = false;
     }
+  }
+
+  /// Generate a fallback summary when pipeline fails or databases are not available
+  Future<DailySummaryResult> _generateFallbackSummary(DateTime date, NarrativeStyle style) async {
+    _logger.info('Generating fallback summary for ${date.toIso8601String()}');
+
+    // Use the original simple implementation as fallback
+    final locationData = await _collectLocationData(date);
+    final activityData = await _collectActivityData(date);
+    final photoData = await _collectPhotoData(date);
+
+    final dailyEvents = await _fusionService.buildDailyTimeline(
+      date: date,
+      locationPoints: locationData,
+      activityResults: activityData,
+      photos: photoData,
+    );
+
+    final narrative = await _narrativeService.generateNarrative(
+      events: dailyEvents,
+      style: style,
+    );
+
+    return DailySummaryResult(
+      date: date,
+      narrative: narrative.narrative,
+      summary: narrative.summary,
+      events: dailyEvents,
+      style: style,
+      confidence: narrative.confidence,
+      processingTime: Duration.zero,
+      performanceMetrics: {},
+    );
   }
 
   /// Collect location data for the date
@@ -439,6 +433,9 @@ class DailySummaryResult {
 /// Provider for enhanced AI service
 final enhancedAIServiceProvider = Provider<EnhancedAIService>((ref) {
   final service = EnhancedAIService();
+
+  // Initialize service with database references when first accessed
+  // The actual database instances will be provided when calling generateDailySummary
   ref.onDispose(() => service.dispose());
   return service;
 });
@@ -447,6 +444,19 @@ final enhancedAIServiceProvider = Provider<EnhancedAIService>((ref) {
 final dailySummaryProvider = FutureProvider.family<DailySummaryResult, DateTime>(
   (ref, date) async {
     final service = ref.watch(enhancedAIServiceProvider);
+
+    // Get database references from providers
+    final locationDb = ref.read(locationDatabaseProvider);
+    final mediaDb = ref.read(mediaDatabaseProvider);
+
+    // Initialize service with databases if not already done
+    if (!service.isInitialized) {
+      await service.initialize(
+        locationDb: locationDb,
+        mediaDb: mediaDb,
+      );
+    }
+
     return await service.generateDailySummary(date: date);
   },
 );
