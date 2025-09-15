@@ -3,6 +3,423 @@
 part of 'journal_database.dart';
 
 // ignore_for_file: type=lint
+class JournalSearch extends Table
+    with
+        TableInfo<JournalSearch, JournalSearchData>,
+        VirtualTableInfo<JournalSearch, JournalSearchData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  JournalSearch(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _entryIdMeta = const VerificationMeta(
+    'entryId',
+  );
+  late final GeneratedColumn<String> entryId = GeneratedColumn<String>(
+    'entry_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: '',
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: '',
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: '',
+  );
+  static const VerificationMeta _moodMeta = const VerificationMeta('mood');
+  late final GeneratedColumn<String> mood = GeneratedColumn<String>(
+    'mood',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: '',
+  );
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+    'tags',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: '',
+  );
+  static const VerificationMeta _summaryMeta = const VerificationMeta(
+    'summary',
+  );
+  late final GeneratedColumn<String> summary = GeneratedColumn<String>(
+    'summary',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: '',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    entryId,
+    title,
+    content,
+    mood,
+    tags,
+    summary,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'journal_search';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<JournalSearchData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('entry_id')) {
+      context.handle(
+        _entryIdMeta,
+        entryId.isAcceptableOrUnknown(data['entry_id']!, _entryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entryIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('mood')) {
+      context.handle(
+        _moodMeta,
+        mood.isAcceptableOrUnknown(data['mood']!, _moodMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_moodMeta);
+    }
+    if (data.containsKey('tags')) {
+      context.handle(
+        _tagsMeta,
+        tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tagsMeta);
+    }
+    if (data.containsKey('summary')) {
+      context.handle(
+        _summaryMeta,
+        summary.isAcceptableOrUnknown(data['summary']!, _summaryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_summaryMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => const {};
+  @override
+  JournalSearchData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return JournalSearchData(
+      entryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entry_id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      mood: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mood'],
+      )!,
+      tags: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tags'],
+      )!,
+      summary: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}summary'],
+      )!,
+    );
+  }
+
+  @override
+  JournalSearch createAlias(String alias) {
+    return JournalSearch(attachedDatabase, alias);
+  }
+
+  @override
+  bool get dontWriteConstraints => true;
+  @override
+  String get moduleAndArgs =>
+      'fts5(entry_id UNINDEXED, title, content, mood, tags, summary, tokenize = \'porter unicode61\')';
+}
+
+class JournalSearchData extends DataClass
+    implements Insertable<JournalSearchData> {
+  final String entryId;
+  final String title;
+  final String content;
+  final String mood;
+  final String tags;
+  final String summary;
+  const JournalSearchData({
+    required this.entryId,
+    required this.title,
+    required this.content,
+    required this.mood,
+    required this.tags,
+    required this.summary,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['entry_id'] = Variable<String>(entryId);
+    map['title'] = Variable<String>(title);
+    map['content'] = Variable<String>(content);
+    map['mood'] = Variable<String>(mood);
+    map['tags'] = Variable<String>(tags);
+    map['summary'] = Variable<String>(summary);
+    return map;
+  }
+
+  JournalSearchCompanion toCompanion(bool nullToAbsent) {
+    return JournalSearchCompanion(
+      entryId: Value(entryId),
+      title: Value(title),
+      content: Value(content),
+      mood: Value(mood),
+      tags: Value(tags),
+      summary: Value(summary),
+    );
+  }
+
+  factory JournalSearchData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return JournalSearchData(
+      entryId: serializer.fromJson<String>(json['entry_id']),
+      title: serializer.fromJson<String>(json['title']),
+      content: serializer.fromJson<String>(json['content']),
+      mood: serializer.fromJson<String>(json['mood']),
+      tags: serializer.fromJson<String>(json['tags']),
+      summary: serializer.fromJson<String>(json['summary']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'entry_id': serializer.toJson<String>(entryId),
+      'title': serializer.toJson<String>(title),
+      'content': serializer.toJson<String>(content),
+      'mood': serializer.toJson<String>(mood),
+      'tags': serializer.toJson<String>(tags),
+      'summary': serializer.toJson<String>(summary),
+    };
+  }
+
+  JournalSearchData copyWith({
+    String? entryId,
+    String? title,
+    String? content,
+    String? mood,
+    String? tags,
+    String? summary,
+  }) => JournalSearchData(
+    entryId: entryId ?? this.entryId,
+    title: title ?? this.title,
+    content: content ?? this.content,
+    mood: mood ?? this.mood,
+    tags: tags ?? this.tags,
+    summary: summary ?? this.summary,
+  );
+  JournalSearchData copyWithCompanion(JournalSearchCompanion data) {
+    return JournalSearchData(
+      entryId: data.entryId.present ? data.entryId.value : this.entryId,
+      title: data.title.present ? data.title.value : this.title,
+      content: data.content.present ? data.content.value : this.content,
+      mood: data.mood.present ? data.mood.value : this.mood,
+      tags: data.tags.present ? data.tags.value : this.tags,
+      summary: data.summary.present ? data.summary.value : this.summary,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('JournalSearchData(')
+          ..write('entryId: $entryId, ')
+          ..write('title: $title, ')
+          ..write('content: $content, ')
+          ..write('mood: $mood, ')
+          ..write('tags: $tags, ')
+          ..write('summary: $summary')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(entryId, title, content, mood, tags, summary);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is JournalSearchData &&
+          other.entryId == this.entryId &&
+          other.title == this.title &&
+          other.content == this.content &&
+          other.mood == this.mood &&
+          other.tags == this.tags &&
+          other.summary == this.summary);
+}
+
+class JournalSearchCompanion extends UpdateCompanion<JournalSearchData> {
+  final Value<String> entryId;
+  final Value<String> title;
+  final Value<String> content;
+  final Value<String> mood;
+  final Value<String> tags;
+  final Value<String> summary;
+  final Value<int> rowid;
+  const JournalSearchCompanion({
+    this.entryId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.content = const Value.absent(),
+    this.mood = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.summary = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  JournalSearchCompanion.insert({
+    required String entryId,
+    required String title,
+    required String content,
+    required String mood,
+    required String tags,
+    required String summary,
+    this.rowid = const Value.absent(),
+  }) : entryId = Value(entryId),
+       title = Value(title),
+       content = Value(content),
+       mood = Value(mood),
+       tags = Value(tags),
+       summary = Value(summary);
+  static Insertable<JournalSearchData> custom({
+    Expression<String>? entryId,
+    Expression<String>? title,
+    Expression<String>? content,
+    Expression<String>? mood,
+    Expression<String>? tags,
+    Expression<String>? summary,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (entryId != null) 'entry_id': entryId,
+      if (title != null) 'title': title,
+      if (content != null) 'content': content,
+      if (mood != null) 'mood': mood,
+      if (tags != null) 'tags': tags,
+      if (summary != null) 'summary': summary,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  JournalSearchCompanion copyWith({
+    Value<String>? entryId,
+    Value<String>? title,
+    Value<String>? content,
+    Value<String>? mood,
+    Value<String>? tags,
+    Value<String>? summary,
+    Value<int>? rowid,
+  }) {
+    return JournalSearchCompanion(
+      entryId: entryId ?? this.entryId,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      mood: mood ?? this.mood,
+      tags: tags ?? this.tags,
+      summary: summary ?? this.summary,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (entryId.present) {
+      map['entry_id'] = Variable<String>(entryId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (mood.present) {
+      map['mood'] = Variable<String>(mood.value);
+    }
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
+    }
+    if (summary.present) {
+      map['summary'] = Variable<String>(summary.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('JournalSearchCompanion(')
+          ..write('entryId: $entryId, ')
+          ..write('title: $title, ')
+          ..write('content: $content, ')
+          ..write('mood: $mood, ')
+          ..write('tags: $tags, ')
+          ..write('summary: $summary, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $JournalEntriesTable extends JournalEntries
     with TableInfo<$JournalEntriesTable, JournalEntry> {
   @override
@@ -1630,17 +2047,70 @@ class JournalTemplatesCompanion extends UpdateCompanion<JournalTemplate> {
 abstract class _$JournalDatabase extends GeneratedDatabase {
   _$JournalDatabase(QueryExecutor e) : super(e);
   $JournalDatabaseManager get managers => $JournalDatabaseManager(this);
+  late final JournalSearch journalSearch = JournalSearch(this);
+  late final Trigger journalSearchInsert = Trigger(
+    'CREATE TRIGGER IF NOT EXISTS journal_search_insert AFTER INSERT ON journal_entries BEGIN INSERT INTO journal_search (entry_id, title, content, mood, tags, summary) VALUES (new.id, new.title, new.content, new.mood, new.tags, new.summary);END',
+    'journal_search_insert',
+  );
+  late final Trigger journalSearchUpdate = Trigger(
+    'CREATE TRIGGER IF NOT EXISTS journal_search_update AFTER UPDATE ON journal_entries BEGIN UPDATE journal_search SET title = new.title, content = new.content, mood = new.mood, tags = new.tags, summary = new.summary WHERE entry_id = new.id;END',
+    'journal_search_update',
+  );
+  late final Trigger journalSearchDelete = Trigger(
+    'CREATE TRIGGER IF NOT EXISTS journal_search_delete AFTER DELETE ON journal_entries BEGIN DELETE FROM journal_search WHERE entry_id = old.id;END',
+    'journal_search_delete',
+  );
   late final $JournalEntriesTable journalEntries = $JournalEntriesTable(this);
   late final $JournalActivitiesTable journalActivities =
       $JournalActivitiesTable(this);
   late final $JournalTemplatesTable journalTemplates = $JournalTemplatesTable(
     this,
   );
+  Selectable<SearchJournalEntriesFtsResult> searchJournalEntriesFts(
+    String query,
+    int limit,
+  ) {
+    return customSelect(
+      'SELECT je.id, je.date, je.title, je.content, je.mood, je.tags, je.summary, je.is_auto_generated, je.is_edited, je.created_at, je.updated_at, bm25(journal_search) AS rank, snippet(journal_search, 1, \'[\', \']\', \'...\', 32) AS title_snippet, snippet(journal_search, 2, \'[\', \']\', \'...\', 64) AS content_snippet FROM journal_search AS js JOIN journal_entries AS je ON js.entry_id = je.id WHERE journal_search MATCH ?1 ORDER BY rank LIMIT ?2',
+      variables: [Variable<String>(query), Variable<int>(limit)],
+      readsFrom: {journalSearch},
+    ).map(
+      (QueryRow row) => SearchJournalEntriesFtsResult(
+        id: row.readNullable<String>('id'),
+        date: row.readNullable<String>('date'),
+        title: row.readNullable<String>('title'),
+        content: row.readNullable<String>('content'),
+        mood: row.readNullable<String>('mood'),
+        tags: row.readNullable<String>('tags'),
+        summary: row.readNullable<String>('summary'),
+        isAutoGenerated: row.readNullable<String>('is_auto_generated'),
+        isEdited: row.readNullable<String>('is_edited'),
+        createdAt: row.readNullable<String>('created_at'),
+        updatedAt: row.readNullable<String>('updated_at'),
+        rank: row.read<double>('rank'),
+        titleSnippet: row.readNullable<String>('title_snippet'),
+        contentSnippet: row.readNullable<String>('content_snippet'),
+      ),
+    );
+  }
+
+  Future<int> rebuildSearchIndex() {
+    return customInsert(
+      'INSERT INTO journal_search (journal_search) VALUES (\'rebuild\')',
+      variables: [],
+      updates: {journalSearch},
+    );
+  }
+
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+    journalSearch,
+    journalSearchInsert,
+    journalSearchUpdate,
+    journalSearchDelete,
     journalEntries,
     journalActivities,
     journalTemplates,
@@ -1657,6 +2127,225 @@ abstract class _$JournalDatabase extends GeneratedDatabase {
   ]);
 }
 
+typedef $JournalSearchCreateCompanionBuilder =
+    JournalSearchCompanion Function({
+      required String entryId,
+      required String title,
+      required String content,
+      required String mood,
+      required String tags,
+      required String summary,
+      Value<int> rowid,
+    });
+typedef $JournalSearchUpdateCompanionBuilder =
+    JournalSearchCompanion Function({
+      Value<String> entryId,
+      Value<String> title,
+      Value<String> content,
+      Value<String> mood,
+      Value<String> tags,
+      Value<String> summary,
+      Value<int> rowid,
+    });
+
+class $JournalSearchFilterComposer
+    extends Composer<_$JournalDatabase, JournalSearch> {
+  $JournalSearchFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get entryId => $composableBuilder(
+    column: $table.entryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mood => $composableBuilder(
+    column: $table.mood,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get summary => $composableBuilder(
+    column: $table.summary,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $JournalSearchOrderingComposer
+    extends Composer<_$JournalDatabase, JournalSearch> {
+  $JournalSearchOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get entryId => $composableBuilder(
+    column: $table.entryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mood => $composableBuilder(
+    column: $table.mood,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tags => $composableBuilder(
+    column: $table.tags,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get summary => $composableBuilder(
+    column: $table.summary,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $JournalSearchAnnotationComposer
+    extends Composer<_$JournalDatabase, JournalSearch> {
+  $JournalSearchAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get entryId =>
+      $composableBuilder(column: $table.entryId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<String> get mood =>
+      $composableBuilder(column: $table.mood, builder: (column) => column);
+
+  GeneratedColumn<String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => column);
+
+  GeneratedColumn<String> get summary =>
+      $composableBuilder(column: $table.summary, builder: (column) => column);
+}
+
+class $JournalSearchTableManager
+    extends
+        RootTableManager<
+          _$JournalDatabase,
+          JournalSearch,
+          JournalSearchData,
+          $JournalSearchFilterComposer,
+          $JournalSearchOrderingComposer,
+          $JournalSearchAnnotationComposer,
+          $JournalSearchCreateCompanionBuilder,
+          $JournalSearchUpdateCompanionBuilder,
+          (
+            JournalSearchData,
+            BaseReferences<_$JournalDatabase, JournalSearch, JournalSearchData>,
+          ),
+          JournalSearchData,
+          PrefetchHooks Function()
+        > {
+  $JournalSearchTableManager(_$JournalDatabase db, JournalSearch table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $JournalSearchFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $JournalSearchOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $JournalSearchAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> entryId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> content = const Value.absent(),
+                Value<String> mood = const Value.absent(),
+                Value<String> tags = const Value.absent(),
+                Value<String> summary = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => JournalSearchCompanion(
+                entryId: entryId,
+                title: title,
+                content: content,
+                mood: mood,
+                tags: tags,
+                summary: summary,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String entryId,
+                required String title,
+                required String content,
+                required String mood,
+                required String tags,
+                required String summary,
+                Value<int> rowid = const Value.absent(),
+              }) => JournalSearchCompanion.insert(
+                entryId: entryId,
+                title: title,
+                content: content,
+                mood: mood,
+                tags: tags,
+                summary: summary,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $JournalSearchProcessedTableManager =
+    ProcessedTableManager<
+      _$JournalDatabase,
+      JournalSearch,
+      JournalSearchData,
+      $JournalSearchFilterComposer,
+      $JournalSearchOrderingComposer,
+      $JournalSearchAnnotationComposer,
+      $JournalSearchCreateCompanionBuilder,
+      $JournalSearchUpdateCompanionBuilder,
+      (
+        JournalSearchData,
+        BaseReferences<_$JournalDatabase, JournalSearch, JournalSearchData>,
+      ),
+      JournalSearchData,
+      PrefetchHooks Function()
+    >;
 typedef $$JournalEntriesTableCreateCompanionBuilder =
     JournalEntriesCompanion Function({
       Value<int> id,
@@ -2731,10 +3420,45 @@ typedef $$JournalTemplatesTableProcessedTableManager =
 class $JournalDatabaseManager {
   final _$JournalDatabase _db;
   $JournalDatabaseManager(this._db);
+  $JournalSearchTableManager get journalSearch =>
+      $JournalSearchTableManager(_db, _db.journalSearch);
   $$JournalEntriesTableTableManager get journalEntries =>
       $$JournalEntriesTableTableManager(_db, _db.journalEntries);
   $$JournalActivitiesTableTableManager get journalActivities =>
       $$JournalActivitiesTableTableManager(_db, _db.journalActivities);
   $$JournalTemplatesTableTableManager get journalTemplates =>
       $$JournalTemplatesTableTableManager(_db, _db.journalTemplates);
+}
+
+class SearchJournalEntriesFtsResult {
+  final String? id;
+  final String? date;
+  final String? title;
+  final String? content;
+  final String? mood;
+  final String? tags;
+  final String? summary;
+  final String? isAutoGenerated;
+  final String? isEdited;
+  final String? createdAt;
+  final String? updatedAt;
+  final double rank;
+  final String? titleSnippet;
+  final String? contentSnippet;
+  SearchJournalEntriesFtsResult({
+    this.id,
+    this.date,
+    this.title,
+    this.content,
+    this.mood,
+    this.tags,
+    this.summary,
+    this.isAutoGenerated,
+    this.isEdited,
+    this.createdAt,
+    this.updatedAt,
+    required this.rank,
+    this.titleSnippet,
+    this.contentSnippet,
+  });
 }

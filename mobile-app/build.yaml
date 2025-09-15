@@ -1,0 +1,15 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Store date times as text for better compatibility
+          store_date_time_values_as_text: false
+          # SQL modules to enable
+          sqlite:
+            modules:
+              - json1
+              - fts5  # Enable Full-Text Search 5
+          # Schema verification
+          apply_converters_on_variables: true
+          generate_values_in_copy_with: true

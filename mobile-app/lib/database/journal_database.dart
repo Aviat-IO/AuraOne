@@ -46,16 +46,19 @@ class JournalTemplates extends Table {
   DateTimeColumn get lastUsedAt => dateTime().nullable()();
 }
 
-@DriftDatabase(tables: [
-  JournalEntries,
-  JournalActivities,
-  JournalTemplates,
-])
+@DriftDatabase(
+  tables: [
+    JournalEntries,
+    JournalActivities,
+    JournalTemplates,
+  ],
+  include: {'search_tables.drift'},
+)
 class JournalDatabase extends _$JournalDatabase {
   JournalDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'journal_database');
@@ -215,20 +218,40 @@ class JournalDatabase extends _$JournalDatabase {
 
           // Create indices for better performance
           await customStatement('''
-            CREATE INDEX idx_journal_entries_date ON journal_entries(date DESC);
+            CREATE INDEX IF NOT EXISTS idx_journal_entries_date ON journal_entries(date DESC);
           ''');
           await customStatement('''
-            CREATE INDEX idx_journal_entries_created_at ON journal_entries(created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_journal_entries_created_at ON journal_entries(created_at DESC);
           ''');
           await customStatement('''
-            CREATE INDEX idx_journal_activities_entry_timestamp ON journal_activities(journal_entry_id, timestamp);
+            CREATE INDEX IF NOT EXISTS idx_journal_activities_entry_timestamp ON journal_activities(journal_entry_id, timestamp);
           ''');
           await customStatement('''
-            CREATE INDEX idx_journal_templates_active_usage ON journal_templates(is_active, usage_count DESC);
+            CREATE INDEX IF NOT EXISTS idx_journal_templates_active_usage ON journal_templates(is_active, usage_count DESC);
+          ''');
+
+          // Populate FTS5 index with existing data
+          await customStatement('''
+            INSERT INTO journal_search(entry_id, title, content, mood, tags, summary)
+            SELECT id, title, content, mood, tags, summary
+            FROM journal_entries;
           ''');
         },
         onUpgrade: (Migrator m, int from, int to) async {
-          // Handle future schema updates
+          if (from < 2) {
+            // Create FTS5 virtual table and triggers
+            await m.createAll();
+
+            // Populate FTS5 index with existing data
+            await customStatement('''
+              INSERT INTO journal_search(entry_id, title, content, mood, tags, summary)
+              SELECT id, title, content, mood, tags, summary
+              FROM journal_entries
+              WHERE NOT EXISTS (
+                SELECT 1 FROM journal_search WHERE entry_id = journal_entries.id
+              );
+            ''');
+          }
         },
       );
 }

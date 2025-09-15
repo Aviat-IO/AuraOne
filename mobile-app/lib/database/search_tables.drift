@@ -1,0 +1,66 @@
+-- Full-Text Search table for journal entries
+-- FTS5 virtual table for fast text searching
+CREATE VIRTUAL TABLE IF NOT EXISTS journal_search USING fts5(
+  entry_id UNINDEXED,  -- Reference to journal_entries.id (not indexed for search)
+  title,
+  content,
+  mood,
+  tags,
+  summary,
+  tokenize = 'porter unicode61'  -- Porter stemmer + Unicode support
+);
+
+-- Trigger to insert into FTS table when a new journal entry is created
+CREATE TRIGGER IF NOT EXISTS journal_search_insert
+AFTER INSERT ON journal_entries
+BEGIN
+  INSERT INTO journal_search(entry_id, title, content, mood, tags, summary)
+  VALUES (new.id, new.title, new.content, new.mood, new.tags, new.summary);
+END;
+
+-- Trigger to update FTS table when a journal entry is updated
+CREATE TRIGGER IF NOT EXISTS journal_search_update
+AFTER UPDATE ON journal_entries
+BEGIN
+  UPDATE journal_search
+  SET title = new.title,
+      content = new.content,
+      mood = new.mood,
+      tags = new.tags,
+      summary = new.summary
+  WHERE entry_id = new.id;
+END;
+
+-- Trigger to delete from FTS table when a journal entry is deleted
+CREATE TRIGGER IF NOT EXISTS journal_search_delete
+AFTER DELETE ON journal_entries
+BEGIN
+  DELETE FROM journal_search WHERE entry_id = old.id;
+END;
+
+-- Query to search journal entries using FTS5
+searchJournalEntriesFts:
+  SELECT
+    je.id,
+    je.date,
+    je.title,
+    je.content,
+    je.mood,
+    je.tags,
+    je.summary,
+    je.is_auto_generated,
+    je.is_edited,
+    je.created_at,
+    je.updated_at,
+    bm25(journal_search) as rank,
+    snippet(journal_search, 1, '[', ']', '...', 32) as title_snippet,
+    snippet(journal_search, 2, '[', ']', '...', 64) as content_snippet
+  FROM journal_search js
+  JOIN journal_entries je ON js.entry_id = je.id
+  WHERE journal_search MATCH :query
+  ORDER BY rank
+  LIMIT :limit;
+
+-- Query to rebuild the FTS index (useful after bulk imports)
+rebuildSearchIndex:
+  INSERT INTO journal_search(journal_search) VALUES('rebuild');

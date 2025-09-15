@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../theme/colors.dart';
 import '../widgets/page_header.dart';
+import '../services/optimized_search_service.dart';
 import '../services/enhanced_search_service.dart';
 import '../services/journal_service.dart';
 
@@ -17,12 +18,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   String _searchQuery = '';
   List<JournalEntrySearchResult> _searchResults = [];
   bool _isSearching = false;
-  late final EnhancedSearchService _searchService;
+  late final OptimizedSearchService _searchService;
 
   @override
   void initState() {
     super.initState();
-    _searchService = EnhancedSearchService();
+    _searchService = OptimizedSearchService();
+
+    // Initialize FTS5 index on first load
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final journalDatabase = ref.read(journalDatabaseProvider);
+      await _searchService.initializeSearchIndex(journalDatabase);
+    });
   }
 
   @override
