@@ -299,22 +299,6 @@ class SettingsScreen extends ConsumerWidget {
                                 height: 1,
                               ),
                               _buildSettingsTile(
-                                icon: Icons.track_changes,
-                                title: 'Mood Tracking',
-                                subtitle: 'Track your daily mood and emotions',
-                                trailing: Switch(
-                                  value: true, // TODO: Connect to actual settings
-                                  onChanged: (value) {
-                                    // TODO: Implement mood tracking settings
-                                  },
-                                ),
-                                theme: theme,
-                              ),
-                              Divider(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-                                height: 1,
-                              ),
-                              _buildSettingsTile(
                                 icon: Icons.insights,
                                 title: 'Wellness Insights',
                                 subtitle: 'Get personalized wellness recommendations',

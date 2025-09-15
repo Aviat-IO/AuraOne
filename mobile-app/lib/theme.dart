@@ -1,9 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/colors.dart';
 import 'providers/settings_providers.dart';
 
-final brightnessProvider = StateProvider<Brightness>((ref) => Brightness.light);
+// Persistent brightness provider
+final brightnessProvider = StateNotifierProvider<BrightnessNotifier, Brightness>((ref) {
+  return BrightnessNotifier();
+});
+
+class BrightnessNotifier extends StateNotifier<Brightness> {
+  BrightnessNotifier() : super(Brightness.light) {
+    _loadBrightness();
+  }
+
+  Future<void> _loadBrightness() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedValue = prefs.getBool('isDarkMode') ?? false; // Default to light mode
+    state = savedValue ? Brightness.dark : Brightness.light;
+  }
+
+  Future<void> setBrightness(Brightness brightness) async {
+    state = brightness;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isDarkMode', brightness == Brightness.dark);
+  }
+
+  Future<void> toggleBrightness() async {
+    final newBrightness = state == Brightness.light ? Brightness.dark : Brightness.light;
+    await setBrightness(newBrightness);
+  }
+}
 
 // Theme provider that switches between light and dark with font size scaling
 final themeProvider = Provider<ThemeData>((ref) {

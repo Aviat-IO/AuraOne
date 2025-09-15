@@ -121,9 +121,7 @@ class JournalDatabase extends _$JournalDatabase {
     return (select(journalEntries)
           ..where((tbl) =>
               tbl.title.lower().contains(lowerQuery) |
-              tbl.content.lower().contains(lowerQuery) |
-              tbl.tags.lower().contains(lowerQuery) |
-              (tbl.mood.isNotNull() & tbl.mood.lower().contains(lowerQuery)))
+              tbl.content.lower().contains(lowerQuery))
           ..orderBy([(tbl) => OrderingTerm.desc(tbl.date)]))
         .get();
   }

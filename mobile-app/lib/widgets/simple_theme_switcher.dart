@@ -13,8 +13,7 @@ class SimpleThemeSwitcher extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () {
-        final newBrightness = isDark ? Brightness.light : Brightness.dark;
-        ref.read(brightnessProvider.notifier).state = newBrightness;
+        ref.read(brightnessProvider.notifier).toggleBrightness();
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),

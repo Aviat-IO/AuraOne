@@ -264,9 +264,7 @@ class HistoryScreen extends HookConsumerWidget {
           shape: BoxShape.circle,
         ),
         defaultTextStyle: theme.textTheme.bodyMedium!,
-        weekendTextStyle: theme.textTheme.bodyMedium!.copyWith(
-          color: theme.colorScheme.primary,
-        ),
+        weekendTextStyle: theme.textTheme.bodyMedium!,
         selectedTextStyle: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.bold,
@@ -301,7 +299,7 @@ class HistoryScreen extends HookConsumerWidget {
         ),
         weekendStyle: theme.textTheme.bodySmall!.copyWith(
           fontWeight: FontWeight.bold,
-          color: theme.colorScheme.primary.withValues(alpha: 0.7),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
         ),
       ),
     );

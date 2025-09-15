@@ -262,17 +262,6 @@ class JournalEditorWidget extends HookConsumerWidget {
                           await journalService.createEntryForDate(date);
                         } else {
                           // Update existing entry
-                          List<String> tags = [];
-                          try {
-                            if (journalEntry.tags != null) {
-                              final decoded = jsonDecode(journalEntry.tags!);
-                              tags = List<String>.from(decoded);
-                            }
-                          } catch (e) {
-                            // If tags is not JSON, treat as empty
-                            tags = [];
-                          }
-
                           await journalService.updateJournalEntry(
                             id: journalEntry.id,
                             title: titleController.text.trim().isNotEmpty
@@ -281,7 +270,6 @@ class JournalEditorWidget extends HookConsumerWidget {
                             content: contentController.text.trim().isNotEmpty
                                 ? contentController.text.trim()
                                 : null,
-                            tags: tags,
                           );
                         }
 
@@ -375,53 +363,6 @@ class JournalEditorWidget extends HookConsumerWidget {
 
                         const SizedBox(height: 8),
 
-                        // Metadata (mood and tags)
-                        if (journalEntry != null) ...[
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              // Mood chip
-                              if (journalEntry.mood != null)
-                                Chip(
-                                  avatar: Icon(
-                                    _getMoodIcon(journalEntry.mood!),
-                                    size: 18,
-                                    color: _getMoodColor(journalEntry.mood!),
-                                  ),
-                                  label: Text(
-                                    journalEntry.mood!,
-                                    style: theme.textTheme.bodySmall,
-                                  ),
-                                  backgroundColor: _getMoodColor(journalEntry.mood!).withValues(alpha: 0.1),
-                                  side: BorderSide(
-                                    color: _getMoodColor(journalEntry.mood!).withValues(alpha: 0.3),
-                                  ),
-                                ),
-                              // Tag chips
-                              if (journalEntry.tags != null)
-                                ...(() {
-                                  try {
-                                    final tagsJson = jsonDecode(journalEntry.tags!);
-                                    final tagsList = List<String>.from(tagsJson);
-                                    return tagsList.map((tag) => Chip(
-                                      label: Text(
-                                        tag,
-                                        style: theme.textTheme.bodySmall,
-                                      ),
-                                      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-                                      side: BorderSide(
-                                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                                      ),
-                                    )).toList();
-                                  } catch (e) {
-                                    return <Widget>[];
-                                  }
-                                })(),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                        ],
 
                         // Content
                         if (isEditMode)
@@ -596,43 +537,6 @@ class JournalEditorWidget extends HookConsumerWidget {
     }
   }
 
-  IconData _getMoodIcon(String mood) {
-    switch (mood.toLowerCase()) {
-      case 'happy':
-        return Icons.sentiment_very_satisfied;
-      case 'balanced':
-        return Icons.sentiment_satisfied;
-      case 'sad':
-        return Icons.sentiment_dissatisfied;
-      case 'anxious':
-        return Icons.sentiment_neutral;
-      case 'excited':
-        return Icons.mood;
-      case 'peaceful':
-        return Icons.spa;
-      default:
-        return Icons.sentiment_neutral;
-    }
-  }
-
-  Color _getMoodColor(String mood) {
-    switch (mood.toLowerCase()) {
-      case 'happy':
-        return Colors.green;
-      case 'balanced':
-        return Colors.blue;
-      case 'sad':
-        return Colors.grey;
-      case 'anxious':
-        return Colors.orange;
-      case 'excited':
-        return Colors.pink;
-      case 'peaceful':
-        return Colors.teal;
-      default:
-        return Colors.blue;
-    }
-  }
 
   String _formatLastEdited(DateTime dateTime) {
     final now = DateTime.now();
