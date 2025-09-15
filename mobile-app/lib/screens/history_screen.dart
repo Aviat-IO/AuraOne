@@ -4,8 +4,9 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../theme/colors.dart';
 import '../widgets/page_header.dart';
-import '../services/calendar_service.dart';
+import '../database/journal_database.dart';
 import '../providers/service_providers.dart';
+import '../services/journal_service.dart';
 import 'home_screen.dart'; // Import for historySelectedDateProvider
 
 class HistoryScreen extends ConsumerStatefulWidget {
@@ -19,7 +20,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   final CalendarFormat _calendarFormat = CalendarFormat.month; // Fixed to month view
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  Map<DateTime, List<CalendarEventData>> _journalEntries = {};
+  Map<DateTime, List<JournalEntry>> _journalEntries = {};
   bool _isLoading = true;
 
   @override
@@ -44,31 +45,31 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   Future<void> _loadCalendarEntries() async {
     try {
-      final calendarService = ref.read(calendarServiceProvider);
-      
+      final journalDatabase = ref.read(journalDatabaseProvider);
+
       // Load entries for the current month and surrounding months
       final startDate = DateTime(_focusedDay.year, _focusedDay.month - 1, 1);
       final endDate = DateTime(_focusedDay.year, _focusedDay.month + 2, 0);
-      
-      final entries = await calendarService.getJournalSummaryEntries(
-        startDate: startDate,
-        endDate: endDate,
+
+      final entries = await journalDatabase.getJournalEntriesBetween(
+        startDate,
+        endDate,
       );
-      
+
       // Group entries by date
-      final Map<DateTime, List<CalendarEventData>> groupedEntries = {};
+      final Map<DateTime, List<JournalEntry>> groupedEntries = {};
       for (final entry in entries) {
         final dateKey = DateTime(
-          entry.startDate.year,
-          entry.startDate.month,
-          entry.startDate.day,
+          entry.date.year,
+          entry.date.month,
+          entry.date.day,
         );
         if (!groupedEntries.containsKey(dateKey)) {
           groupedEntries[dateKey] = [];
         }
         groupedEntries[dateKey]!.add(entry);
       }
-      
+
       setState(() {
         _journalEntries = groupedEntries;
         _isLoading = false;
@@ -81,7 +82,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     }
   }
 
-  List<CalendarEventData> _getEntriesForDay(DateTime day) {
+  List<JournalEntry> _getEntriesForDay(DateTime day) {
     final dateKey = DateTime(day.year, day.month, day.day);
     return _journalEntries[dateKey] ?? [];
   }
@@ -196,7 +197,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     calendarFormat: _calendarFormat,
                     selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                     eventLoader: (day) {
-                      // Convert CalendarEventData to List<String> for the calendar widget
+                      // Convert JournalEntry to List<String> for the calendar widget
                       final events = _getEntriesForDay(day);
                       return events.map((e) => e.title).toList();
                     },
@@ -272,7 +273,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Widget _buildSelectedDayEntries(ThemeData theme, bool isLight, DateTime selectedDate, List<CalendarEventData> entries) {
+  Widget _buildSelectedDayEntries(ThemeData theme, bool isLight, DateTime selectedDate, List<JournalEntry> entries) {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -378,23 +379,67 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    subtitle: Text(
-                      'Created: ${entry.startDate.day}/${entry.startDate.month}/${entry.startDate.year}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    children: [
-                      if (entry.description != null)
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Text(
-                            entry.description!,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              height: 1.5,
-                            ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Created: ${entry.date.day}/${entry.date.month}/${entry.date.year}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
+                        if (entry.mood != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.mood,
+                                size: 16,
+                                color: theme.colorScheme.secondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Mood: ${entry.mood}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.secondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              entry.content,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                height: 1.5,
+                              ),
+                            ),
+                            if (entry.tags != null && entry.tags!.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                'Tags:',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                entry.tags!,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 );

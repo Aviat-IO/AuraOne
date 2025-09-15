@@ -113,6 +113,18 @@ class JournalDatabase extends _$JournalDatabase {
         .getSingleOrNull();
   }
 
+  Future<List<JournalEntry>> searchJournalEntries(String query) {
+    final lowerQuery = query.toLowerCase();
+    return (select(journalEntries)
+          ..where((tbl) =>
+              tbl.title.lower().contains(lowerQuery) |
+              tbl.content.lower().contains(lowerQuery) |
+              tbl.tags.lower().contains(lowerQuery) |
+              (tbl.mood.isNotNull() & tbl.mood.lower().contains(lowerQuery)))
+          ..orderBy([(tbl) => OrderingTerm.desc(tbl.date)]))
+        .get();
+  }
+
   // Journal Activities Methods
   Future<int> insertJournalActivity(JournalActivitiesCompanion activity) {
     return into(journalActivities).insert(activity);

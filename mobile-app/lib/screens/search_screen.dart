@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../theme/colors.dart';
 import '../widgets/page_header.dart';
+import '../database/journal_database.dart';
+import '../providers/service_providers.dart';
+import '../services/journal_service.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -13,11 +16,42 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  List<JournalEntry> _searchResults = [];
+  bool _isSearching = false;
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _performSearch(String query) async {
+    if (query.trim().isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearching = true;
+    });
+
+    try {
+      final journalDatabase = ref.read(journalDatabaseProvider);
+      final results = await journalDatabase.searchJournalEntries(query);
+
+      setState(() {
+        _searchResults = results;
+        _isSearching = false;
+      });
+    } catch (e) {
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+      });
+    }
   }
 
   @override
@@ -84,6 +118,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       setState(() {
                         _searchQuery = value;
                       });
+                      _performSearch(value);
                     },
                     decoration: InputDecoration(
                       hintText: 'Search your journal entries...',
@@ -98,6 +133,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 _searchController.clear();
                                 setState(() {
                                   _searchQuery = '';
+                                  _searchResults = [];
                                 });
                               },
                             )
@@ -121,7 +157,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 Expanded(
                   child: _searchQuery.isEmpty
                       ? _buildSearchPlaceholder(theme, isLight)
-                      : _buildSearchResults(theme, isLight),
+                      : _isSearching
+                          ? _buildSearchLoading(theme, isLight)
+                          : _buildSearchResults(theme, isLight),
                 ),
               ],
             ),
@@ -181,68 +219,180 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
+  Widget _buildSearchLoading(ThemeData theme, bool isLight) {
+    return const Center(
+      child: CircularProgressIndicator(),
+    );
+  }
+
   Widget _buildSearchResults(ThemeData theme, bool isLight) {
-    // Placeholder for search results - in a real app, this would query the database
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Results for "${_searchQuery}"',
+          'Results for "${_searchQuery}" (${_searchResults.length})',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 16),
         Expanded(
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: isLight
-                    ? AuraColors.lightCardGradient
-                    : AuraColors.darkCardGradient,
+          child: _searchResults.isEmpty
+              ? Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: isLight
+                          ? AuraColors.lightCardGradient
+                          : AuraColors.darkCardGradient,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isLight
+                            ? AuraColors.lightPrimary.withValues(alpha: 0.08)
+                            : Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 48,
+                          color: theme.colorScheme.primary.withValues(alpha: 0.7),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No matches found',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Try different keywords or\ncheck your spelling',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: _searchResults.length,
+                  itemBuilder: (context, index) {
+                    final entry = _searchResults[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: isLight
+                            ? AuraColors.lightCardGradient
+                            : AuraColors.darkCardGradient,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isLight
+                              ? AuraColors.lightPrimary.withValues(alpha: 0.05)
+                              : Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ExpansionTile(
+                        leading: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.secondary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        title: Text(
+                          entry.title,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${entry.date.day}/${entry.date.month}/${entry.date.year}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                            ),
+                            if (entry.mood != null) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.mood,
+                                    size: 16,
+                                    color: theme.colorScheme.secondary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Mood: ${entry.mood}',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.secondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  entry.content,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    height: 1.5,
+                                  ),
+                                ),
+                                if (entry.tags != null && entry.tags!.isNotEmpty) ...[
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Tags:',
+                                    style: theme.textTheme.labelMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    entry.tags!,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isLight
-                      ? AuraColors.lightPrimary.withValues(alpha: 0.08)
-                      : Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.auto_stories_outlined,
-                    size: 48,
-                    color: theme.colorScheme.primary.withValues(alpha: 0.7),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No entries found yet',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Start writing journal entries to see\nsearch results here',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ),
       ],
     );
