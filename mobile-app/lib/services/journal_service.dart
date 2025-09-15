@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
 
 import '../database/journal_database.dart';
+import '../database/dev_seed_data.dart';
 import '../services/ai_service.dart' as ai_service;
 import '../providers/database_provider.dart';
 import '../providers/service_providers.dart';
@@ -38,6 +40,17 @@ class JournalService {
   /// Initialize the service and start daily entry generation
   Future<void> initialize() async {
     _logger.info('Initializing Journal Service...');
+
+    // In development mode, seed the database with test data if needed
+    if (kDebugMode) {
+      final shouldSeed = await DevSeedData.shouldSeedDatabase(_journalDb);
+      if (shouldSeed) {
+        _logger.info('Development mode: Seeding database with test data...');
+        await DevSeedData.seedDatabase(_journalDb);
+      } else {
+        _logger.info('Development mode: Database already has data, skipping seed');
+      }
+    }
 
     // Check if today's entry exists, create if not
     await _ensureTodayEntry();
