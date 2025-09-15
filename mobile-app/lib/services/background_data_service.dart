@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
+import '../database/location_database.dart';
 import '../utils/logger.dart';
-import 'simple_location_service.dart';
-import 'ble_scanning_service.dart';
-import 'movement_tracking_service.dart';
 
 // Background task callback - must be top-level function
 @pragma('vm:entry-point')
@@ -70,8 +74,37 @@ Future<void> _performBleScanning() async {
 // Perform location tracking
 Future<void> _performLocationTracking() async {
   try {
-    // Note: In a real background task, services would need proper initialization
-    appLogger.info('Background location tracking task executed');
+    appLogger.info('Background location tracking started');
+
+    // Get current location and store it
+    final position = await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 30),
+      ),
+    );
+
+    // Initialize database and store location
+    final documentsDir = await getApplicationDocumentsDirectory();
+    final database = LocationDatabase.withConnection(
+      openConnection: NativeDatabase.createInBackground(
+        File(path.join(documentsDir.path, 'location_database.db')),
+      ),
+    );
+
+    await database.insertLocationPoint(LocationPointsCompanion(
+      latitude: drift.Value(position.latitude),
+      longitude: drift.Value(position.longitude),
+      altitude: drift.Value(position.altitude),
+      speed: drift.Value(position.speed),
+      heading: drift.Value(position.heading),
+      timestamp: drift.Value(position.timestamp),
+      accuracy: drift.Value(position.accuracy),
+      isSignificant: const drift.Value(false),
+    ));
+
+    appLogger.info('Background location stored: ${position.latitude}, ${position.longitude}');
+    await database.close();
   } catch (e) {
     appLogger.error('Background location tracking failed', error: e);
   }
@@ -138,6 +171,7 @@ class BackgroundDataService {
         'periodic_data_collection',
         'data_collection_task',
         frequency: frequency,
+        initialDelay: const Duration(seconds: 15),
         existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
         constraints: Constraints(
           networkType: NetworkType.notRequired,
@@ -159,6 +193,7 @@ class BackgroundDataService {
           'periodic_location_tracking',
           'location_tracking_task',
           frequency: const Duration(minutes: 5),
+          initialDelay: const Duration(seconds: 10),
           existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
           constraints: Constraints(
             networkType: NetworkType.notRequired,

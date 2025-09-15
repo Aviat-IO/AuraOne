@@ -19,6 +19,7 @@ import '../providers/location_database_provider.dart';
 import '../database/location_database.dart' as loc_db;
 import '../providers/photo_service_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../services/simple_location_service.dart';
 
 // Provider to store the current day's journal entry
 final todayJournalEntryProvider = StateProvider<String?>((ref) => null);
@@ -705,6 +706,17 @@ class _MapTab extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLoading = useState(false);
+    final hasLocationPermission = useState<bool?>(null);
+
+    // Check location permission on mount
+    useEffect(() {
+      Future<void> checkPermission() async {
+        final permission = await Permission.locationAlways.status;
+        hasLocationPermission.value = permission.isGranted;
+      }
+      checkPermission();
+      return null;
+    }, []);
 
     // Get locations from database for the last 24 hours
     final locationStream = ref.watch(recentLocationPointsProvider(const Duration(hours: 24)));
@@ -738,11 +750,43 @@ class _MapTab extends HookConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Start tracking to see your daily journey',
+                  hasLocationPermission.value == false
+                    ? 'Location permission needed'
+                    : 'Start tracking to see your daily journey',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                 ),
+                if (hasLocationPermission.value == false) ...[
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      final status = await Permission.locationAlways.request();
+                      hasLocationPermission.value = status.isGranted;
+                      if (status.isGranted) {
+                        // Start tracking
+                        final locationService = ref.read(simpleLocationServiceProvider);
+                        await locationService.startTracking(
+                          interval: const Duration(seconds: 30),
+                          distanceFilter: 10,
+                        );
+                      } else if (status.isPermanentlyDenied) {
+                        // Open app settings
+                        await openAppSettings();
+                      }
+                    },
+                    icon: const Icon(Icons.location_on),
+                    label: const Text('Enable Location'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           );

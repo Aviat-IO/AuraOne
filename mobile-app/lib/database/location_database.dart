@@ -105,6 +105,10 @@ class MovementData extends Table {
 class LocationDatabase extends _$LocationDatabase {
   LocationDatabase() : super(_openConnection());
 
+  // Constructor that accepts a custom connection for background tasks
+  LocationDatabase.withConnection({required QueryExecutor openConnection})
+      : super(openConnection);
+
   @override
   int get schemaVersion => 3;
 

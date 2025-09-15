@@ -12,7 +12,6 @@ import 'package:aura_one/theme/colors.dart';
 import 'package:aura_one/widgets/simple_theme_switcher.dart';
 import 'package:aura_one/widgets/privacy_screen_overlay.dart';
 import 'package:aura_one/screens/app_lock_screen.dart';
-import 'package:aura_one/services/app_lock_service.dart';
 import 'package:aura_one/utils/error_handler.dart';
 import 'package:aura_one/utils/logger.dart';
 import 'package:aura_one/services/simple_location_service.dart';
@@ -281,6 +280,19 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
     appLogger.info('Initializing location service...');
     final locationService = ref.read(simpleLocationServiceProvider);
     await locationService.initialize();
+
+    // Start location tracking automatically
+    appLogger.info('Starting location tracking...');
+    final hasPermission = await locationService.checkLocationPermission();
+    if (hasPermission) {
+      await locationService.startTracking(
+        interval: const Duration(seconds: 30),
+        distanceFilter: 10,
+      );
+      appLogger.info('Location tracking started successfully');
+    } else {
+      appLogger.warning('Location permission not granted - tracking disabled');
+    }
 
     // Initialize movement tracking service
     appLogger.info('Initializing movement tracking service...');
