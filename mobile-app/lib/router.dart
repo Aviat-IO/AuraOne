@@ -8,6 +8,7 @@ import 'package:aura_one/screens/location_history_screen.dart';
 import 'package:aura_one/screens/photo_test_screen.dart';
 import 'package:aura_one/screens/debug/data_viewer_screen.dart';
 import 'package:aura_one/screens/debug/database_viewer_screen.dart';
+import 'package:aura_one/screens/debug/journal_debug_screen.dart';
 import 'package:aura_one/screens/export_screen.dart';
 import 'package:aura_one/screens/import_screen.dart';
 import 'package:aura_one/screens/backup_settings_screen.dart';
@@ -89,6 +90,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/debug/database-viewer',
         builder: (context, state) => const DatabaseViewerScreen(),
+      ),
+      GoRoute(
+        path: '/debug/journal',
+        builder: (context, state) => const JournalDebugScreen(),
       ),
 
       // Export screen

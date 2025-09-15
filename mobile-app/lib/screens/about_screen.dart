@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../theme/colors.dart';
@@ -204,6 +206,17 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                         // Open support
                       },
                     ),
+                    if (kDebugMode) ...[
+                      const Divider(height: 1),
+                      _buildLinkTile(
+                        context,
+                        icon: Icons.bug_report,
+                        title: 'Journal Debug',
+                        onTap: () {
+                          context.push('/debug/journal');
+                        },
+                      ),
+                    ],
                   ],
                 ),
               ),
