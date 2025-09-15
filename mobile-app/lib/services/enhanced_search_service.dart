@@ -294,7 +294,9 @@ class EnhancedSearchService {
     // Check all search variations against all words in text
     for (final variation in searchVariations) {
       for (final word in words) {
-        if (word.contains(variation) || variation.contains(word)) {
+        // Only match if the word contains the variation, not the other way around
+        // This prevents "victories" from matching "to" just because "victories" contains "to"
+        if (word == variation || word.contains(variation)) {
           score += 25.0;
           print('DEBUG: Variation "$variation" matches word "$word"! Score: $score');
         }
@@ -302,14 +304,23 @@ class EnhancedSearchService {
     }
 
     // Fuzzy matches using the fuzzy package
-    final fuzzy = Fuzzy(searchVariations.toList());
-    final fuzzyResults = fuzzy.search(text);
+    // We search for each variation within the list of words, not the entire text
+    try {
+      final fuzzy = Fuzzy(words, options: FuzzyOptions(
+        threshold: _fuzzyThreshold,
+      ));
 
-    for (final result in fuzzyResults) {
-      if (result.score >= _fuzzyThreshold) {
-        score += result.score * 30.0;
-        print('DEBUG: Fuzzy match "${result.item}" with score ${result.score}! Total score: $score');
+      for (final variation in searchVariations) {
+        final fuzzyResults = fuzzy.search(variation);
+        for (final result in fuzzyResults) {
+          if (result.score >= _fuzzyThreshold) {
+            score += result.score * 30.0;
+            print('DEBUG: Fuzzy match "${result.item}" for variation "$variation" with score ${result.score}! Total score: $score');
+          }
+        }
       }
+    } catch (e) {
+      print('DEBUG: Fuzzy search error (continuing with other methods): $e');
     }
 
     // String similarity matches
