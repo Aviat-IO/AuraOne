@@ -2,139 +2,101 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:intl/intl.dart';
 import '../theme/colors.dart';
 import '../widgets/page_header.dart';
+import '../widgets/common/journal_entry_editor.dart';
+import '../widgets/daily_canvas/journal_editor_widget.dart';
 import '../database/journal_database.dart';
-import '../providers/service_providers.dart';
 import '../services/journal_service.dart';
 import 'home_screen.dart'; // Import for historySelectedDateProvider
 
-class HistoryScreen extends ConsumerStatefulWidget {
+// Provider for calendar expansion state
+final calendarExpandedProvider = StateProvider<bool>((ref) => true);
+
+// Provider for recent journal entries to show dots on calendar
+final recentJournalEntriesProvider = StreamProvider<List<JournalEntry>>((ref) {
+  final journalService = ref.watch(journalServiceProvider);
+  return journalService.watchRecentEntries(limit: 100); // Get more entries for calendar dots
+});
+
+class HistoryScreen extends HookConsumerWidget {
   const HistoryScreen({super.key});
 
   @override
-  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
-}
-
-class _HistoryScreenState extends ConsumerState<HistoryScreen> {
-  final CalendarFormat _calendarFormat = CalendarFormat.month; // Fixed to month view
-  DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay;
-  Map<DateTime, List<JournalEntry>> _journalEntries = {};
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    
-    // Check if we have a date from media navigation
-    final dateFromMedia = ref.read(historySelectedDateProvider);
-    if (dateFromMedia != null) {
-      _selectedDay = dateFromMedia;
-      _focusedDay = dateFromMedia;
-      // Clear the provider after consuming it
-      Future.microtask(() {
-        ref.read(historySelectedDateProvider.notifier).state = null;
-      });
-    } else {
-      _selectedDay = _focusedDay;
-    }
-    
-    _loadCalendarEntries();
-  }
-
-  Future<void> _loadCalendarEntries() async {
-    try {
-      final journalDatabase = ref.read(journalDatabaseProvider);
-
-      // Load entries for the current month and surrounding months
-      final startDate = DateTime(_focusedDay.year, _focusedDay.month - 1, 1);
-      final endDate = DateTime(_focusedDay.year, _focusedDay.month + 2, 0);
-
-      final entries = await journalDatabase.getJournalEntriesBetween(
-        startDate,
-        endDate,
-      );
-
-      // Group entries by date
-      final Map<DateTime, List<JournalEntry>> groupedEntries = {};
-      for (final entry in entries) {
-        final dateKey = DateTime(
-          entry.date.year,
-          entry.date.month,
-          entry.date.day,
-        );
-        if (!groupedEntries.containsKey(dateKey)) {
-          groupedEntries[dateKey] = [];
-        }
-        groupedEntries[dateKey]!.add(entry);
-      }
-
-      setState(() {
-        _journalEntries = groupedEntries;
-        _isLoading = false;
-      });
-    } catch (e) {
-      // Handle error
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  List<JournalEntry> _getEntriesForDay(DateTime day) {
-    final dateKey = DateTime(day.year, day.month, day.day);
-    return _journalEntries[dateKey] ?? [];
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    
-    // Listen to navigation from media tab
-    ref.listen<DateTime?>(historySelectedDateProvider, (previous, next) {
-      if (next != null && mounted) {
-        setState(() {
-          _selectedDay = next;
-          _focusedDay = next;
-        });
-        // Clear the provider after consuming it
+
+    // State management
+    final selectedDay = useState<DateTime?>(null);
+    final focusedDay = useState(DateTime.now());
+    final isCalendarExpanded = ref.watch(calendarExpandedProvider);
+
+    // Reset state when navigating to this screen
+    useEffect(() {
+      // Reset to initial state when widget is first built
+      selectedDay.value = null;
+      Future.microtask(() {
+        ref.read(calendarExpandedProvider.notifier).state = true;
+      });
+      return null;
+    }, const []);
+
+    // Animation controller for smooth transitions
+    final animationController = useAnimationController(
+      duration: const Duration(milliseconds: 200),
+      initialValue: isCalendarExpanded ? 1.0 : 0.0,
+    );
+
+    // Sync animation with expansion state
+    useEffect(() {
+      if (isCalendarExpanded) {
+        animationController.forward();
+      } else {
+        animationController.reverse();
+      }
+      return null;
+    }, [isCalendarExpanded]);
+
+    // Check if we have a date from media navigation
+    useEffect(() {
+      final dateFromMedia = ref.read(historySelectedDateProvider);
+      if (dateFromMedia != null) {
+        selectedDay.value = dateFromMedia;
+        focusedDay.value = dateFromMedia;
+        // Delay provider modifications to avoid build phase conflicts
         Future.microtask(() {
+          ref.read(calendarExpandedProvider.notifier).state = false;
           ref.read(historySelectedDateProvider.notifier).state = null;
         });
-        // Reload entries if needed for the new month
-        _loadCalendarEntries();
+      }
+      return null;
+    }, []);
+
+    // Auto-collapse when a date is selected
+    useEffect(() {
+      if (selectedDay.value != null && isCalendarExpanded) {
+        // Delay the state change to avoid modifying provider during build
+        Future.microtask(() {
+          ref.read(calendarExpandedProvider.notifier).state = false;
+        });
+      }
+      return null;
+    }, [selectedDay.value]);
+
+    // Listen to navigation from media tab
+    ref.listen<DateTime?>(historySelectedDateProvider, (previous, next) {
+      if (next != null) {
+        selectedDay.value = next;
+        focusedDay.value = next;
+        // Delay provider modifications to avoid build phase conflicts
+        Future.microtask(() {
+          ref.read(calendarExpandedProvider.notifier).state = false;
+          ref.read(historySelectedDateProvider.notifier).state = null;
+        });
       }
     });
-
-    if (_isLoading) {
-      return Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: isLight ? [
-                AuraColors.lightSurface,
-                AuraColors.lightSurface.withValues(alpha: 0.95),
-                AuraColors.lightSurfaceContainerLow.withValues(alpha: 0.9),
-              ] : [
-                AuraColors.darkSurface,
-                AuraColors.darkSurface.withValues(alpha: 0.98),
-                AuraColors.darkSurfaceContainerLow.withValues(alpha: 0.95),
-              ],
-              stops: const [0.0, 0.3, 1.0],
-            ),
-          ),
-          child: const SafeArea(
-            child: Center(
-              child: CircularProgressIndicator(),
-            ),
-          ),
-        ),
-      );
-    }
 
     return Scaffold(
       body: Container(
@@ -155,344 +117,298 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // History header
-                PageHeader(
+          child: Column(
+            children: [
+              // Page header
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: PageHeader(
                   icon: Icons.book,
                   title: 'Journal History',
-                  subtitle:
-                  'Find your past entries',
+                  subtitle: 'Browse your daily reflections',
                 ),
-                const SizedBox(height: 24),
+              ),
 
-                // Calendar widget
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: isLight
-                        ? AuraColors.lightCardGradient
-                        : AuraColors.darkCardGradient,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isLight
-                          ? AuraColors.lightPrimary.withValues(alpha: 0.08)
-                          : Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: TableCalendar<String>(
-                    firstDay: DateTime.utc(2020, 1, 1),
-                    lastDay: DateTime.utc(2030, 12, 31),
-                    focusedDay: _focusedDay,
-                    calendarFormat: _calendarFormat,
-                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                    eventLoader: (day) {
-                      // Convert JournalEntry to List<String> for the calendar widget
-                      final events = _getEntriesForDay(day);
-                      return events.map((e) => e.title).toList();
-                    },
-                    startingDayOfWeek: StartingDayOfWeek.sunday,
-                    calendarStyle: CalendarStyle(
-                      outsideDaysVisible: false,
-                      weekendTextStyle: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                      ) ?? TextStyle(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                      holidayTextStyle: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                      ) ?? TextStyle(
-                        color: theme.colorScheme.primary,
-                      ),
-                      selectedDecoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      todayDecoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.7),
-                        shape: BoxShape.circle,
-                      ),
-                      markerDecoration: BoxDecoration(
-                        color: theme.colorScheme.secondary,
-                        shape: BoxShape.circle,
-                      ),
-                      markersMaxCount: 3,
-                      markerSize: 6,
-                      markerMargin: const EdgeInsets.symmetric(horizontal: 1),
-                    ),
-                    headerStyle: HeaderStyle(
-                      titleCentered: true,
-                      formatButtonVisible: false, // Hide format toggle button
-                      leftChevronIcon: Icon(
-                        Icons.chevron_left,
-                        color: theme.colorScheme.primary,
-                      ),
-                      rightChevronIcon: Icon(
-                        Icons.chevron_right,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    onDaySelected: (selected, focused) {
-                      setState(() {
-                        _selectedDay = selected;
-                        _focusedDay = focused;
-                      });
-                    },
-                    onPageChanged: (focused) {
-                      setState(() {
-                        _focusedDay = focused;
-                      });
-                      // Load more entries if needed
-                      _loadCalendarEntries();
-                    },
-                  ),
-                ),
-                const SizedBox(height: 24),
+              // Calendar section (collapsible)
+              AnimatedBuilder(
+                animation: animationController,
+                builder: (context, child) {
+                  final heightAnimation = Tween<double>(
+                    begin: 60,
+                    end: 360,
+                  ).animate(CurvedAnimation(
+                    parent: animationController,
+                    curve: Curves.easeInOut,
+                  ));
 
-                // Selected day entries
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    height: heightAnimation.value,
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: isLight
+                          ? AuraColors.lightCardGradient
+                          : AuraColors.darkCardGradient,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isLight
+                            ? AuraColors.lightPrimary.withValues(alpha: 0.08)
+                            : Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: isCalendarExpanded
+                          ? _buildExpandedCalendar(context, theme, ref, selectedDay, focusedDay)
+                          : _buildCollapsedCalendar(context, theme, ref, selectedDay.value),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // Journal entry section
+              if (selectedDay.value != null)
                 Expanded(
-                  child: _selectedDay != null
-                      ? _buildSelectedDayEntries(theme, isLight, _selectedDay!, _getEntriesForDay(_selectedDay!))
-                      : _buildNoSelectionPlaceholder(theme, isLight),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildJournalEntry(context, theme, ref, selectedDay.value!),
+                  ),
+                )
+              else if (!isCalendarExpanded)
+                // Show placeholder when calendar is collapsed but no date selected
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          size: 64,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Select a date to view journal entry',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ],
-            ),
+
+              const SizedBox(height: 16),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSelectedDayEntries(ThemeData theme, bool isLight, DateTime selectedDate, List<JournalEntry> entries) {
+  Widget _buildExpandedCalendar(
+    BuildContext context,
+    ThemeData theme,
+    WidgetRef ref,
+    ValueNotifier<DateTime?> selectedDay,
+    ValueNotifier<DateTime> focusedDay,
+  ) {
+    final recentEntriesAsync = ref.watch(recentJournalEntriesProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Entries for ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+    // Get list of dates that have journal entries
+    final datesWithEntries = recentEntriesAsync.when(
+      data: (entries) => entries.map((entry) => DateTime(
+        entry.date.year,
+        entry.date.month,
+        entry.date.day,
+      )).toSet(),
+      loading: () => <DateTime>{},
+      error: (_, __) => <DateTime>{},
+    );
+
+    return TableCalendar(
+      firstDay: DateTime.utc(2020, 1, 1),
+      lastDay: DateTime.now(),
+      focusedDay: focusedDay.value,
+      calendarFormat: CalendarFormat.month,
+      selectedDayPredicate: (day) {
+        return selectedDay.value != null && isSameDay(selectedDay.value, day);
+      },
+      onDaySelected: (selected, focused) {
+        selectedDay.value = selected;
+        focusedDay.value = focused;
+      },
+      eventLoader: (day) {
+        // Return a list with one item if this day has an entry
+        final normalizedDay = DateTime(day.year, day.month, day.day);
+        return datesWithEntries.contains(normalizedDay) ? ['entry'] : [];
+      },
+      calendarStyle: CalendarStyle(
+        outsideDaysVisible: false,
+        selectedDecoration: BoxDecoration(
+          color: theme.colorScheme.primary,
+          shape: BoxShape.circle,
         ),
-        const SizedBox(height: 16),
+        todayDecoration: BoxDecoration(
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+          shape: BoxShape.circle,
+        ),
+        defaultTextStyle: theme.textTheme.bodyMedium!,
+        weekendTextStyle: theme.textTheme.bodyMedium!.copyWith(
+          color: theme.colorScheme.primary,
+        ),
+        selectedTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+        // Style for marker dots
+        markerDecoration: BoxDecoration(
+          color: theme.colorScheme.secondary,
+          shape: BoxShape.circle,
+        ),
+        markersMaxCount: 1,
+        markerSize: 6.0,
+      ),
+      headerStyle: HeaderStyle(
+        formatButtonVisible: false,
+        titleCentered: true,
+        titleTextStyle: theme.textTheme.titleLarge!.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
+        leftChevronIcon: Icon(
+          Icons.chevron_left,
+          color: theme.colorScheme.onSurface,
+        ),
+        rightChevronIcon: Icon(
+          Icons.chevron_right,
+          color: theme.colorScheme.onSurface,
+        ),
+      ),
+      daysOfWeekStyle: DaysOfWeekStyle(
+        weekdayStyle: theme.textTheme.bodySmall!.copyWith(
+          fontWeight: FontWeight.bold,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+        ),
+        weekendStyle: theme.textTheme.bodySmall!.copyWith(
+          fontWeight: FontWeight.bold,
+          color: theme.colorScheme.primary.withValues(alpha: 0.7),
+        ),
+      ),
+    );
+  }
 
-        if (entries.isEmpty)
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: isLight
-                    ? AuraColors.lightCardGradient
-                    : AuraColors.darkCardGradient,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isLight
-                      ? AuraColors.lightPrimary.withValues(alpha: 0.08)
-                      : Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.event_available,
-                      size: 48,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.7),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No entries for this day',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Start your wellness journey by\\ncreating your first entry',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ],
-                ),
+  Widget _buildCollapsedCalendar(
+    BuildContext context,
+    ThemeData theme,
+    WidgetRef ref,
+    DateTime? selectedDate,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        ref.read(calendarExpandedProvider.notifier).state = true;
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              Icons.calendar_today,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              selectedDate != null
+                  ? DateFormat('EEEE, MMMM d, yyyy').format(selectedDate)
+                  : 'Select a date',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: selectedDate != null
+                    ? theme.colorScheme.onSurface
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
-          )
-        else
-          Expanded(
-            child: ListView.builder(
-              itemCount: entries.length,
-              itemBuilder: (context, index) {
-                final entry = entries[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: isLight
-                        ? AuraColors.lightCardGradient
-                        : AuraColors.darkCardGradient,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isLight
-                          ? AuraColors.lightPrimary.withValues(alpha: 0.05)
-                          : Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: ExpansionTile(
-                    leading: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.secondary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    title: Text(
-                      entry.title,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Created: ${entry.date.day}/${entry.date.month}/${entry.date.year}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
-                        ),
-                        if (entry.mood != null) ...[
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.mood,
-                                size: 16,
-                                color: theme.colorScheme.secondary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Mood: ${entry.mood}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.secondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
-                    ),
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              entry.content,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                height: 1.5,
-                              ),
-                            ),
-                            if (entry.tags != null && entry.tags!.isNotEmpty) ...[
-                              const SizedBox(height: 12),
-                              Text(
-                                'Tags:',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                entry.tags!,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
+            const Spacer(),
+            IconButton(
+              icon: const Icon(Icons.expand_more),
+              onPressed: () {
+                ref.read(calendarExpandedProvider.notifier).state = true;
+              },
+              tooltip: 'Expand calendar',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildJournalEntry(
+    BuildContext context,
+    ThemeData theme,
+    WidgetRef ref,
+    DateTime selectedDate,
+  ) {
+    final journalEntryAsync = ref.watch(journalEntryProvider(selectedDate));
+
+    return journalEntryAsync.when(
+      data: (journalEntry) {
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: theme.brightness == Brightness.light
+                ? AuraColors.lightCardGradient
+                : AuraColors.darkCardGradient,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: theme.brightness == Brightness.light
+                  ? AuraColors.lightPrimary.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.2),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: JournalEntryEditor(
+              entry: journalEntry,
+              date: selectedDate,
+              onSaved: () {
+                // Refresh the entry after saving
+                ref.invalidate(journalEntryProvider(selectedDate));
               },
             ),
           ),
-      ],
-    );
-  }
-
-  Widget _buildNoSelectionPlaceholder(ThemeData theme, bool isLight) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isLight
-            ? AuraColors.lightCardGradient
-            : AuraColors.darkCardGradient,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isLight
-              ? AuraColors.lightPrimary.withValues(alpha: 0.08)
-              : Colors.black.withValues(alpha: 0.2),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Center(
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.calendar_today,
+              Icons.error_outline,
               size: 48,
-              color: theme.colorScheme.primary.withValues(alpha: 0.7),
+              color: theme.colorScheme.error,
             ),
             const SizedBox(height: 16),
             Text(
-              'Select a Date',
+              'Error loading journal entry',
               style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Tap on a date to view\\nyour journal entries',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                color: theme.colorScheme.error,
               ),
             ),
           ],
@@ -500,4 +416,5 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       ),
     );
   }
+
 }
