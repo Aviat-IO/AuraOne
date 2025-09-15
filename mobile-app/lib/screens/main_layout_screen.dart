@@ -34,7 +34,13 @@ class MainLayoutScreen extends ConsumerWidget {
       bottomNavigationBar: AnimatedBottomNavBar(
         selectedIndex: selectedIndex,
         isLight: isLight,
-        onItemTapped: (index) => ref.read(selectedTabIndexProvider.notifier).state = index,
+        onItemTapped: (index) {
+          // If navigating to Home (index 2), reset to Overview tab
+          if (index == 2) {
+            ref.read(homeSubTabIndexProvider.notifier).state = 0;
+          }
+          ref.read(selectedTabIndexProvider.notifier).state = index;
+        },
         items: const [
           AnimatedTabItem(
             icon: Icons.search,
