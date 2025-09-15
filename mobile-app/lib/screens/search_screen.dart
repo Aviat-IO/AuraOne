@@ -46,16 +46,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     try {
       final journalDatabase = ref.read(journalDatabaseProvider);
-      print('DEBUG: Starting search for query: "$query"');
       final results = await _searchService.searchJournalEntries(journalDatabase, query);
-      print('DEBUG: Search completed, found ${results.length} results');
 
       setState(() {
         _searchResults = results;
         _isSearching = false;
       });
     } catch (e) {
-      print('DEBUG: Search error: $e');
       setState(() {
         _searchResults = [];
         _isSearching = false;
@@ -68,19 +65,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
 
-    // DEBUG: Show database stats
-    final journalDatabase = ref.read(journalDatabaseProvider);
-
-    return FutureBuilder<Map<String, int>>(
-      future: journalDatabase.getJournalStatistics(),
-      builder: (context, snapshot) {
-        final stats = snapshot.data;
-        return _buildMainContent(context, theme, isLight, stats);
-      },
-    );
-  }
-
-  Widget _buildMainContent(BuildContext context, ThemeData theme, bool isLight, Map<String, int>? stats) {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -111,20 +95,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   title: 'Search Journal',
                   subtitle: 'Find your past entries',
                 ),
-                if (stats != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.only(top: 16, bottom: 8),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'DEBUG: Total entries: ${stats['total_entries']}, Auto: ${stats['auto_generated']}, Edited: ${stats['user_edited']}, This month: ${stats['this_month']}',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ),
-                ],
                 const SizedBox(height: 24),
 
                 // Search bar

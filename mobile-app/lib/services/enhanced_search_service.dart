@@ -43,35 +43,10 @@ class EnhancedSearchService {
     JournalDatabase database,
     String query,
   ) async {
-    print('DEBUG: === SEARCH START ===');
-    print('DEBUG: Query received: "$query"');
-
-    if (query.trim().isEmpty) {
-      print('DEBUG: Query is empty, returning empty results');
-      return [];
-    }
+    if (query.trim().isEmpty) return [];
 
     // Get all journal entries first
     final allEntries = await database.select(database.journalEntries).get();
-
-    print('DEBUG: Found ${allEntries.length} total entries in database');
-    if (allEntries.isNotEmpty) {
-      print('DEBUG: Sample entry titles:');
-      for (int i = 0; i < (allEntries.length < 3 ? allEntries.length : 3); i++) {
-        print('  - "${allEntries[i].title}"');
-      }
-
-      // Check for entries containing victory/victories
-      final victoryEntries = allEntries.where((entry) =>
-        entry.title.toLowerCase().contains('victor') ||
-        entry.content.toLowerCase().contains('victor')
-      ).toList();
-      print('DEBUG: Found ${victoryEntries.length} entries containing "victor":');
-      for (final entry in victoryEntries) {
-        print('  - "${entry.title}" (content: "${entry.content.substring(0, entry.content.length < 50 ? entry.content.length : 50)}...")');
-      }
-    }
-
     if (allEntries.isEmpty) return [];
 
     // Prepare search data for fuzzy matching
@@ -84,10 +59,6 @@ class EnhancedSearchService {
 
     // Generate search variations (stemmed and similar words)
     final searchVariations = generateSearchVariations(query);
-
-    print('DEBUG: Search query "$query" generated ${searchVariations.length} variations:');
-    print('DEBUG: ${searchVariations.toList()}');
-
     final results = <JournalEntrySearchResult>[];
 
     for (final searchableEntry in searchableEntries) {
@@ -98,26 +69,16 @@ class EnhancedSearchService {
       );
 
       if (score > 0) {
-        print('DEBUG: Entry "${searchableEntry.entry.title}" scored $score');
         results.add(JournalEntrySearchResult(
           entry: searchableEntry.entry,
           relevanceScore: score,
           matchedTerms: _findMatchedTerms(searchableEntry.searchableText, searchVariations),
         ));
-      } else if (searchableEntry.entry.title.toLowerCase().contains('victor')) {
-        print('DEBUG: Entry "${searchableEntry.entry.title}" with victory-related title scored 0 (searchable text: "${searchableEntry.searchableText.substring(0, 100)}")');
       }
     }
 
     // Sort by relevance score (highest first)
     results.sort((a, b) => b.relevanceScore.compareTo(a.relevanceScore));
-
-    print('DEBUG: === SEARCH END ===');
-    print('DEBUG: Returning ${results.length} total results');
-    if (results.isNotEmpty) {
-      print('DEBUG: Top result: "${results.first.entry.title}" with score ${results.first.relevanceScore}');
-    }
-
     return results;
   }
 
@@ -273,21 +234,15 @@ class EnhancedSearchService {
     final words = text.split(RegExp(r'\s+'));
     final queryWords = originalQuery.toLowerCase().split(RegExp(r'\s+'));
 
-    print('DEBUG: Calculating score for text: "${text.substring(0, text.length < 50 ? text.length : 50)}..."');
-    print('DEBUG: Query words: $queryWords');
-    print('DEBUG: Search variations: $searchVariations');
-
     // Exact phrase match gets highest score
     if (text.contains(originalQuery.toLowerCase())) {
       score += 100.0;
-      print('DEBUG: Exact phrase match found! Score: $score');
     }
 
     // Exact word matches
     for (final queryWord in queryWords) {
       if (words.any((word) => word.contains(queryWord))) {
         score += 50.0;
-        print('DEBUG: Query word "$queryWord" found in text! Score: $score');
       }
     }
 
@@ -298,7 +253,6 @@ class EnhancedSearchService {
         // This prevents "victories" from matching "to" just because "victories" contains "to"
         if (word == variation || word.contains(variation)) {
           score += 25.0;
-          print('DEBUG: Variation "$variation" matches word "$word"! Score: $score');
         }
       }
     }
@@ -315,12 +269,11 @@ class EnhancedSearchService {
         for (final result in fuzzyResults) {
           if (result.score >= _fuzzyThreshold) {
             score += result.score * 30.0;
-            print('DEBUG: Fuzzy match "${result.item}" for variation "$variation" with score ${result.score}! Total score: $score');
           }
         }
       }
     } catch (e) {
-      print('DEBUG: Fuzzy search error (continuing with other methods): $e');
+      // Silently continue with other matching methods
     }
 
     // String similarity matches
@@ -328,7 +281,6 @@ class EnhancedSearchService {
       final similarity = StringSimilarity.compareTwoStrings(text, variation);
       if (similarity >= _similarityThreshold) {
         score += similarity * 25.0;
-        print('DEBUG: Similarity match "$variation" with similarity $similarity! Score: $score');
       }
 
       // Check individual words for similarity
@@ -336,12 +288,10 @@ class EnhancedSearchService {
         final wordSimilarity = StringSimilarity.compareTwoStrings(word, variation);
         if (wordSimilarity >= _similarityThreshold) {
           score += wordSimilarity * 15.0;
-          print('DEBUG: Word similarity "$word" vs "$variation" = $wordSimilarity! Score: $score');
         }
       }
     }
 
-    print('DEBUG: Final score: $score');
     return score;
   }
 
