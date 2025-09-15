@@ -42,9 +42,16 @@
     
     <!-- Microphone permission for voice-to-text features -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    
+
     <!-- Camera permission for taking photos -->
     <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Notification permissions for daily reminders -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- For Android 12-13 (API 31-33): User must grant this permission -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="33" />
+    <!-- For Android 14+ (API 34+): Automatically granted -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     
     <application
         android:label="Aura One"

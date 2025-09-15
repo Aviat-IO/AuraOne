@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/material.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import '../utils/logger.dart';
 
 /// Service for managing local notifications and daily reminders
@@ -66,6 +68,29 @@ class NotificationService {
     }
 
     try {
+      // Check if we need exact alarm permission on Android
+      if (Platform.isAndroid) {
+        final androidImpl = _notifications.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+
+        if (androidImpl != null) {
+          // Check Android version
+          final androidInfo = await DeviceInfoPlugin().androidInfo;
+          final sdkInt = androidInfo.version.sdkInt;
+
+          // Android 12-13 (API 31-33): Need to request SCHEDULE_EXACT_ALARM
+          if (sdkInt >= 31 && sdkInt <= 33) {
+            final granted = await androidImpl.requestExactAlarmsPermission();
+            if (granted != true) {
+              _logger.error('Exact alarms permission not granted for Android $sdkInt');
+              throw Exception('Please enable "Alarms & reminders" permission in app settings');
+            }
+          }
+          // Android 14+ (API 34+): USE_EXACT_ALARM is automatically granted
+          // Android 11 and below: No special permission needed
+        }
+      }
+
       // Cancel existing daily reminder
       await cancelDailyReminder();
 
@@ -170,24 +195,44 @@ class NotificationService {
   /// Request notification permissions
   Future<bool> requestPermissions() async {
     try {
-      final androidImpl = _notifications.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+      if (Platform.isAndroid) {
+        final androidImpl = _notifications.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
 
-      if (androidImpl != null) {
-        final granted = await androidImpl.requestNotificationsPermission();
-        return granted ?? false;
-      }
+        if (androidImpl != null) {
+          // Request notification permission
+          final granted = await androidImpl.requestNotificationsPermission();
 
-      final iosImpl = _notifications.resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin>();
+          if (granted != true) {
+            return false;
+          }
 
-      if (iosImpl != null) {
-        final granted = await iosImpl.requestPermissions(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
-        return granted ?? false;
+          // Check Android version for exact alarm permission
+          final androidInfo = await DeviceInfoPlugin().androidInfo;
+          final sdkInt = androidInfo.version.sdkInt;
+
+          // Android 12-13 (API 31-33): Request SCHEDULE_EXACT_ALARM
+          if (sdkInt >= 31 && sdkInt <= 33) {
+            final exactAlarmGranted = await androidImpl.requestExactAlarmsPermission();
+            return exactAlarmGranted ?? false;
+          }
+
+          // Android 14+ (API 34+): USE_EXACT_ALARM is automatically granted
+          // Android 11 and below: No special permission needed
+          return true;
+        }
+      } else if (Platform.isIOS) {
+        final iosImpl = _notifications.resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>();
+
+        if (iosImpl != null) {
+          final granted = await iosImpl.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
+          return granted ?? false;
+        }
       }
 
       return false;

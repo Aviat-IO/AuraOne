@@ -122,22 +122,52 @@ class SettingsScreen extends ConsumerWidget {
                                   value: dailyReminders,
                                   onChanged: (value) async {
                                     if (value) {
-                                      // Request notification permission if enabling
-                                      final status = await Permission.notification.request();
-                                      if (status.isGranted) {
-                                        ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(value);
-                                      } else {
-                                        // Show permission denied message
+                                      try {
+                                        // Request notification permission first
+                                        final notificationStatus = await Permission.notification.request();
+
+                                        if (!notificationStatus.isGranted) {
+                                          // Show permission denied message
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Please enable notifications in settings to use daily reminders'),
+                                              ),
+                                            );
+                                          }
+                                          return;
+                                        }
+
+                                        // Request exact alarm permission for Android 12+
+                                        final notificationService = ref.read(notificationServiceProvider);
+                                        final permissionsGranted = await notificationService.requestPermissions();
+
+                                        if (permissionsGranted) {
+                                          // All permissions granted, enable reminders
+                                          await ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(value);
+                                        } else {
+                                          // Show permission denied message
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Please enable exact alarms permission in settings to use daily reminders'),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      } catch (e) {
+                                        // Handle any errors
                                         if (context.mounted) {
                                           ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Please enable notifications in settings to use daily reminders'),
+                                            SnackBar(
+                                              content: Text('Failed to enable reminders: ${e.toString()}'),
                                             ),
                                           );
                                         }
                                       }
                                     } else {
-                                      ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(value);
+                                      // Disabling reminders doesn't need permissions
+                                      await ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(value);
                                     }
                                   },
                                 ),
