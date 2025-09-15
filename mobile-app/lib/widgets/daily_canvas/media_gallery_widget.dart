@@ -5,8 +5,11 @@ import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../theme/colors.dart';
 
-// Provider for media items
-final mediaItemsProvider = StateProvider.family<List<MediaItem>, DateTime>((ref, date) {
+// Provider for media items with async loading simulation
+final mediaItemsProvider = FutureProvider.family<List<MediaItem>, DateTime>((ref, date) async {
+  // Simulate loading delay
+  await Future.delayed(const Duration(milliseconds: 800));
+
   // TODO: Replace with actual media from storage
   return [
     MediaItem(
@@ -102,13 +105,11 @@ class MediaGalleryWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final mediaItems = ref.watch(mediaItemsProvider(date));
-    final isLoading = ref.watch(mediaLoadingProvider);
+    final mediaItemsAsync = ref.watch(mediaItemsProvider(date));
     final viewMode = ref.watch(galleryViewModeProvider);
 
-    return Skeletonizer(
-      enabled: isLoading,
-      child: Column(
+    return mediaItemsAsync.when(
+      data: (mediaItems) => Column(
         children: [
           // Gallery header with view mode selector
           Container(
@@ -166,6 +167,86 @@ class MediaGalleryWidget extends ConsumerWidget {
                   ),
           ),
         ],
+      ),
+      loading: () => Skeletonizer(
+        enabled: true,
+        child: Column(
+          children: [
+            // Header skeleton
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 80,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  Row(
+                    children: List.generate(3, (index) => Container(
+                      margin: const EdgeInsets.only(left: 8),
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    )),
+                  ),
+                ],
+              ),
+            ),
+            // Grid skeleton
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.all(16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                itemCount: 6,
+                itemBuilder: (context, index) => Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      error: (error, stack) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: theme.colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Error loading media',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error.toString(),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

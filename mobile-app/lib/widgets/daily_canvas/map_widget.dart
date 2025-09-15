@@ -3,8 +3,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../theme/colors.dart';
 
-// Provider for map data
-final mapDataProvider = StateProvider.family<MapData?, DateTime>((ref, date) {
+// Provider for map data with async loading simulation
+final mapDataProvider = FutureProvider.family<MapData?, DateTime>((ref, date) async {
+  // Simulate loading delay
+  await Future.delayed(const Duration(milliseconds: 500));
+
   // TODO: Replace with actual location data from storage
   return MapData(
     locations: [
@@ -80,148 +83,261 @@ class MapWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final mapData = ref.watch(mapDataProvider(date));
-    final isLoading = ref.watch(mapLoadingProvider);
+    final mapDataAsync = ref.watch(mapDataProvider(date));
 
+    return mapDataAsync.when(
+      data: (mapData) => _buildMapContent(mapData, theme, isLight),
+      loading: () => _buildLoadingState(theme),
+      error: (error, stack) => _buildErrorState(error, theme),
+    );
+  }
+
+  Widget _buildMapContent(MapData? mapData, ThemeData theme, bool isLight) {
+    return Column(
+      children: [
+        // Map placeholder (will be replaced with flutter_map)
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            ),
+            child: Stack(
+              children: [
+                // Map placeholder
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.map,
+                        size: 64,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Map View',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Interactive map will be displayed here',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Map controls
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Column(
+                    children: [
+                      _buildMapControl(
+                        icon: Icons.add,
+                        onTap: () {
+                          // TODO: Zoom in
+                        },
+                        theme: theme,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildMapControl(
+                        icon: Icons.remove,
+                        onTap: () {
+                          // TODO: Zoom out
+                        },
+                        theme: theme,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildMapControl(
+                        icon: Icons.my_location,
+                        onTap: () {
+                          // TODO: Center on current location
+                        },
+                        theme: theme,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Location stats
+        if (mapData != null) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isLight
+                    ? AuraColors.lightCardGradient
+                    : AuraColors.darkCardGradient,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStat(
+                  icon: Icons.place,
+                  value: mapData.locations.length.toString(),
+                  label: 'Places',
+                  theme: theme,
+                ),
+                _buildStat(
+                  icon: Icons.straighten,
+                  value: '${mapData.totalDistance.toStringAsFixed(1)} km',
+                  label: 'Distance',
+                  theme: theme,
+                ),
+                _buildStat(
+                  icon: Icons.timer,
+                  value: '${mapData.totalTime.inHours}h ${mapData.totalTime.inMinutes % 60}m',
+                  label: 'Active Time',
+                  theme: theme,
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // Location list
+        if (mapData != null && mapData.locations.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Container(
+            height: 120,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              itemCount: mapData.locations.length,
+              itemBuilder: (context, index) {
+                final location = mapData.locations[index];
+                return _buildLocationCard(
+                  location: location,
+                  theme: theme,
+                  isLight: isLight,
+                );
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildLoadingState(ThemeData theme) {
     return Skeletonizer(
-      enabled: isLoading,
+      enabled: true,
       child: Column(
         children: [
-          // Map placeholder (will be replaced with flutter_map)
+          // Map skeleton
           Expanded(
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-              ),
-              child: Stack(
-                children: [
-                  // Map placeholder
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.map,
-                          size: 64,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Map View',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Interactive map will be displayed here',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Map controls
-                  Positioned(
-                    top: 16,
-                    right: 16,
-                    child: Column(
-                      children: [
-                        _buildMapControl(
-                          icon: Icons.add,
-                          onTap: () {
-                            // TODO: Zoom in
-                          },
-                          theme: theme,
-                        ),
-                        const SizedBox(height: 8),
-                        _buildMapControl(
-                          icon: Icons.remove,
-                          onTap: () {
-                            // TODO: Zoom out
-                          },
-                          theme: theme,
-                        ),
-                        const SizedBox(height: 8),
-                        _buildMapControl(
-                          icon: Icons.my_location,
-                          onTap: () {
-                            // TODO: Center on current location
-                          },
-                          theme: theme,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                color: theme.colorScheme.surfaceContainerHighest,
               ),
             ),
           ),
-
-          // Location stats
-          if (mapData != null) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: isLight
-                      ? AuraColors.lightCardGradient
-                      : AuraColors.darkCardGradient,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+          const SizedBox(height: 16),
+          // Stats skeleton
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: theme.colorScheme.surfaceContainerHighest,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(3, (index) => Column(
                 children: [
-                  _buildStat(
-                    icon: Icons.place,
-                    value: mapData.locations.length.toString(),
-                    label: 'Places',
-                    theme: theme,
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainer,
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                  _buildStat(
-                    icon: Icons.straighten,
-                    value: '${mapData.totalDistance.toStringAsFixed(1)} km',
-                    label: 'Distance',
-                    theme: theme,
+                  const SizedBox(height: 4),
+                  Container(
+                    width: 40,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
-                  _buildStat(
-                    icon: Icons.timer,
-                    value: '${mapData.totalTime.inHours}h ${mapData.totalTime.inMinutes % 60}m',
-                    label: 'Active Time',
-                    theme: theme,
+                  const SizedBox(height: 2),
+                  Container(
+                    width: 30,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
                 ],
+              )),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Location list skeleton
+          Container(
+            height: 120,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              itemCount: 3,
+              itemBuilder: (context, index) => Container(
+                width: 150,
+                margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: theme.colorScheme.surfaceContainerHighest,
+                ),
               ),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
 
-          // Location list
-          if (mapData != null && mapData.locations.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Container(
-              height: 120,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                itemCount: mapData.locations.length,
-                itemBuilder: (context, index) {
-                  final location = mapData.locations[index];
-                  return _buildLocationCard(
-                    location: location,
-                    theme: theme,
-                    isLight: isLight,
-                  );
-                },
-              ),
+  Widget _buildErrorState(Object error, ThemeData theme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 48,
+            color: theme.colorScheme.error,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Error loading map data',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.error,
             ),
-          ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            error.toString(),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );

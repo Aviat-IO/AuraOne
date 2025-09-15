@@ -135,12 +135,14 @@ class AuraOneSplashScreen extends StatelessWidget {
                 right: 16,
                 child: const SimpleThemeSwitcher(),
               ),
-              // Main content
-              SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+              // Main content - Center vertically in available space
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                 // Aura One Logo - a mindful, circular design
                 Container(
                   width: 120,
@@ -243,7 +245,8 @@ class AuraOneSplashScreen extends StatelessWidget {
                     color: colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
-              ],
+                    ],
+                  ),
                 ),
               ),
             ],
