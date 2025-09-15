@@ -43,7 +43,13 @@ class EnhancedSearchService {
     JournalDatabase database,
     String query,
   ) async {
-    if (query.trim().isEmpty) return [];
+    print('DEBUG: === SEARCH START ===');
+    print('DEBUG: Query received: "$query"');
+
+    if (query.trim().isEmpty) {
+      print('DEBUG: Query is empty, returning empty results');
+      return [];
+    }
 
     // Get all journal entries first
     final allEntries = await database.select(database.journalEntries).get();
@@ -53,6 +59,16 @@ class EnhancedSearchService {
       print('DEBUG: Sample entry titles:');
       for (int i = 0; i < (allEntries.length < 3 ? allEntries.length : 3); i++) {
         print('  - "${allEntries[i].title}"');
+      }
+
+      // Check for entries containing victory/victories
+      final victoryEntries = allEntries.where((entry) =>
+        entry.title.toLowerCase().contains('victor') ||
+        entry.content.toLowerCase().contains('victor')
+      ).toList();
+      print('DEBUG: Found ${victoryEntries.length} entries containing "victor":');
+      for (final entry in victoryEntries) {
+        print('  - "${entry.title}" (content: "${entry.content.substring(0, entry.content.length < 50 ? entry.content.length : 50)}...")');
       }
     }
 
@@ -95,6 +111,12 @@ class EnhancedSearchService {
 
     // Sort by relevance score (highest first)
     results.sort((a, b) => b.relevanceScore.compareTo(a.relevanceScore));
+
+    print('DEBUG: === SEARCH END ===');
+    print('DEBUG: Returning ${results.length} total results');
+    if (results.isNotEmpty) {
+      print('DEBUG: Top result: "${results.first.entry.title}" with score ${results.first.relevanceScore}');
+    }
 
     return results;
   }
