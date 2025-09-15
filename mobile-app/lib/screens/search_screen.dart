@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../theme/colors.dart';
 import '../widgets/page_header.dart';
-import '../database/journal_database.dart';
-import '../providers/service_providers.dart';
+import '../services/enhanced_search_service.dart';
 import '../services/journal_service.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -16,8 +15,15 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  List<JournalEntry> _searchResults = [];
+  List<JournalEntrySearchResult> _searchResults = [];
   bool _isSearching = false;
+  late final EnhancedSearchService _searchService;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchService = EnhancedSearchService();
+  }
 
   @override
   void dispose() {
@@ -40,7 +46,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     try {
       final journalDatabase = ref.read(journalDatabaseProvider);
-      final results = await journalDatabase.searchJournalEntries(query);
+      final results = await _searchService.searchJournalEntries(journalDatabase, query);
 
       setState(() {
         _searchResults = results;
@@ -229,11 +235,45 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Results for "${_searchQuery}" (${_searchResults.length})',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Results for "$_searchQuery" (${_searchResults.length})',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            if (_searchResults.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.auto_awesome,
+                      size: 16,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Smart',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 16),
         Expanded(
@@ -290,7 +330,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               : ListView.builder(
                   itemCount: _searchResults.length,
                   itemBuilder: (context, index) {
-                    final entry = _searchResults[index];
+                    final result = _searchResults[index];
+                    final entry = result.entry;
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
@@ -313,13 +354,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ],
                       ),
                       child: ExpansionTile(
-                        leading: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.secondary,
-                            shape: BoxShape.circle,
-                          ),
+                        leading: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: _getRelevanceColor(result.relevanceScore, theme),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${(result.relevanceScore / 10).toStringAsFixed(0)}%',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontSize: 10,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
                         ),
                         title: Text(
                           entry.title,
@@ -353,6 +407,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     ),
                                   ),
                                 ],
+                              ),
+                            ],
+                            if (result.matchedTerms.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Wrap(
+                                spacing: 4,
+                                runSpacing: 2,
+                                children: result.matchedTerms.take(3).map((term) => Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primaryContainer.withValues(alpha: 0.7),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    term,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: theme.colorScheme.onPrimaryContainer,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                )).toList(),
                               ),
                             ],
                           ],
@@ -396,5 +471,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
       ],
     );
+  }
+
+  /// Returns a color based on relevance score
+  Color _getRelevanceColor(double score, ThemeData theme) {
+    if (score >= 75) {
+      return Colors.green;
+    } else if (score >= 50) {
+      return Colors.orange;
+    } else if (score >= 25) {
+      return Colors.deepOrange;
+    } else {
+      return theme.colorScheme.secondary;
+    }
   }
 }

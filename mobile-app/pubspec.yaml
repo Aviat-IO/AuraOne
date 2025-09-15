@@ -87,6 +87,8 @@ dependencies:
   google_generative_ai: ^0.4.7
   timezone: ^0.9.4
   device_info_plus: ^11.5.0
+  string_similarity: ^2.1.1
+  fuzzy: ^0.5.1
   # flutter_gemma: ^0.1.0  # Temporarily commented due to dependency conflict
 
 dependency_overrides:
