@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../services/notification_service.dart';
 
 // Notification service provider
@@ -53,18 +54,39 @@ final dailyRemindersEnabledProvider = StateNotifierProvider<DailyRemindersNotifi
 class DailyRemindersNotifier extends StateNotifier<bool> {
   final Ref _ref;
 
-  DailyRemindersNotifier(this._ref) : super(true) {
+  DailyRemindersNotifier(this._ref) : super(false) {
     _loadState();
   }
 
   Future<void> _loadState() async {
     final prefs = await SharedPreferences.getInstance();
-    final isEnabled = prefs.getBool('dailyReminders') ?? true;
-    state = isEnabled;
 
-    // If reminders are enabled, schedule them
-    if (isEnabled) {
-      await _scheduleReminders();
+    // Check if we have a saved preference
+    final savedPref = prefs.getBool('dailyReminders');
+
+    if (savedPref != null) {
+      // Use saved preference
+      state = savedPref;
+    } else {
+      // First time - check actual notification permission status
+      final status = await Permission.notification.status;
+      final hasPermission = status.isGranted;
+      state = hasPermission;
+
+      // Save the initial state based on permission
+      await prefs.setBool('dailyReminders', hasPermission);
+    }
+
+    // If reminders are enabled and we have permission, schedule them
+    if (state) {
+      final permissionStatus = await Permission.notification.status;
+      if (permissionStatus.isGranted) {
+        await _scheduleReminders();
+      } else {
+        // Permission was revoked, update state
+        state = false;
+        await prefs.setBool('dailyReminders', false);
+      }
     }
   }
 

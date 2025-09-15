@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -7,42 +9,14 @@ import '../../theme/colors.dart';
 import '../../services/voice_editing_service.dart';
 import '../../services/permission_service.dart';
 import '../../services/nlp_command_parser.dart';
+import '../../services/journal_service.dart';
+import '../../database/journal_database.dart';
 import '../voice_permission_fallback.dart';
 
-// Provider for journal entry
-final journalEntryProvider = StateProvider.family<JournalEntry?, DateTime>((ref, date) {
-  // TODO: Replace with actual journal data from storage
-  final now = DateTime.now();
-  if (date.year == now.year && date.month == now.month && date.day == now.day) {
-    return JournalEntry(
-      date: date,
-      title: 'Today\'s Reflection',
-      content: '''# Morning Thoughts
-Started the day with meditation and a clear mind. The morning routine helped set a positive tone.
-
-## Work Highlights
-- Completed the main feature implementation
-- Had a productive team meeting
-- Made progress on the design review
-
-## Personal Moments
-The afternoon walk was refreshing. Found a new path through the park that I hadn't explored before. The weather was perfect - not too hot, with a gentle breeze.
-
-## Evening Reflection
-Grateful for the productive day and the time spent with loved ones. Looking forward to tomorrow's challenges.
-
-### Things to Remember
-- Call mom tomorrow
-- Prepare for Friday's presentation
-- Buy groceries for the weekend
-''',
-      mood: 'balanced',
-      tags: ['productive', 'peaceful', 'grateful'],
-      wordCount: 127,
-      lastEdited: DateTime.now().subtract(const Duration(minutes: 30)),
-    );
-  }
-  return null;
+// Provider for journal entry using the journal service
+final journalEntryProvider = StreamProvider.family<JournalEntry?, DateTime>((ref, date) {
+  final journalService = ref.watch(journalServiceProvider);
+  return journalService.watchEntryForDate(date);
 });
 
 // Provider for edit mode
@@ -50,26 +24,6 @@ final journalEditModeProvider = StateProvider<bool>((ref) => false);
 
 // Provider for loading state
 final journalLoadingProvider = StateProvider<bool>((ref) => false);
-
-class JournalEntry {
-  final DateTime date;
-  final String title;
-  final String content;
-  final String mood;
-  final List<String> tags;
-  final int wordCount;
-  final DateTime lastEdited;
-
-  JournalEntry({
-    required this.date,
-    required this.title,
-    required this.content,
-    required this.mood,
-    required this.tags,
-    required this.wordCount,
-    required this.lastEdited,
-  });
-}
 
 class JournalEditorWidget extends HookConsumerWidget {
   final DateTime date;
@@ -83,10 +37,58 @@ class JournalEditorWidget extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final journalEntry = ref.watch(journalEntryProvider(date));
+    final journalEntryAsync = ref.watch(journalEntryProvider(date));
     final isEditMode = ref.watch(journalEditModeProvider);
     final isLoading = ref.watch(journalLoadingProvider);
 
+    return journalEntryAsync.when(
+      data: (journalEntry) => _buildContent(
+        context,
+        ref,
+        theme,
+        journalEntry,
+        isEditMode,
+        isLoading,
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: theme.colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Error loading journal entry',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error.toString(),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+    JournalEntry? journalEntry,
+    bool isEditMode,
+    bool isLoading,
+  ) {
     // Text controllers
     final titleController = useTextEditingController(text: journalEntry?.title ?? '');
     final contentController = useTextEditingController(text: journalEntry?.content ?? '');
@@ -144,7 +146,7 @@ class JournalEditorWidget extends HookConsumerWidget {
                 // Word count
                 if (journalEntry != null)
                   Text(
-                    '${journalEntry.wordCount} words',
+                    '${journalEntry.content.split(' ').length} words',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
@@ -247,19 +249,55 @@ class JournalEditorWidget extends HookConsumerWidget {
                 // Edit/Save button
                 IconButton(
                   icon: Icon(isEditMode ? Icons.check : Icons.edit),
-                  onPressed: () {
+                  onPressed: () async {
                     if (isEditMode) {
-                      // Save the journal entry
-                      final newEntry = JournalEntry(
-                        date: date,
-                        title: titleController.text,
-                        content: contentController.text,
-                        mood: journalEntry?.mood ?? 'neutral',
-                        tags: journalEntry?.tags ?? [],
-                        wordCount: contentController.text.split(' ').length,
-                        lastEdited: DateTime.now(),
-                      );
-                      ref.read(journalEntryProvider(date).notifier).state = newEntry;
+                      // Save the journal entry using the journal service
+                      ref.read(journalLoadingProvider.notifier).state = true;
+
+                      try {
+                        final journalService = ref.read(journalServiceProvider);
+
+                        if (journalEntry == null) {
+                          // Create new entry (shouldn't happen since we auto-create, but just in case)
+                          await journalService.createEntryForDate(date);
+                        } else {
+                          // Update existing entry
+                          List<String> tags = [];
+                          try {
+                            if (journalEntry.tags != null) {
+                              final decoded = jsonDecode(journalEntry.tags!);
+                              tags = List<String>.from(decoded);
+                            }
+                          } catch (e) {
+                            // If tags is not JSON, treat as empty
+                            tags = [];
+                          }
+
+                          await journalService.updateJournalEntry(
+                            id: journalEntry.id,
+                            title: titleController.text.trim().isNotEmpty
+                                ? titleController.text.trim()
+                                : null,
+                            content: contentController.text.trim().isNotEmpty
+                                ? contentController.text.trim()
+                                : null,
+                            tags: tags,
+                          );
+                        }
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Journal entry saved!')),
+                        );
+                      } catch (error) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to save: $error'),
+                            backgroundColor: theme.colorScheme.error,
+                          ),
+                        );
+                      } finally {
+                        ref.read(journalLoadingProvider.notifier).state = false;
+                      }
                     }
                     ref.read(journalEditModeProvider.notifier).state = !isEditMode;
                   },
@@ -305,7 +343,7 @@ class JournalEditorWidget extends HookConsumerWidget {
           // Journal content
           Expanded(
             child: journalEntry == null && !isEditMode
-                ? _buildEmptyState(theme, ref)
+                ? _buildEmptyState(theme, ref, context)
                 : SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -344,32 +382,42 @@ class JournalEditorWidget extends HookConsumerWidget {
                             runSpacing: 8,
                             children: [
                               // Mood chip
-                              Chip(
-                                avatar: Icon(
-                                  _getMoodIcon(journalEntry.mood),
-                                  size: 18,
-                                  color: _getMoodColor(journalEntry.mood),
+                              if (journalEntry.mood != null)
+                                Chip(
+                                  avatar: Icon(
+                                    _getMoodIcon(journalEntry.mood!),
+                                    size: 18,
+                                    color: _getMoodColor(journalEntry.mood!),
+                                  ),
+                                  label: Text(
+                                    journalEntry.mood!,
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                                  backgroundColor: _getMoodColor(journalEntry.mood!).withValues(alpha: 0.1),
+                                  side: BorderSide(
+                                    color: _getMoodColor(journalEntry.mood!).withValues(alpha: 0.3),
+                                  ),
                                 ),
-                                label: Text(
-                                  journalEntry.mood,
-                                  style: theme.textTheme.bodySmall,
-                                ),
-                                backgroundColor: _getMoodColor(journalEntry.mood).withValues(alpha: 0.1),
-                                side: BorderSide(
-                                  color: _getMoodColor(journalEntry.mood).withValues(alpha: 0.3),
-                                ),
-                              ),
                               // Tag chips
-                              ...journalEntry.tags.map((tag) => Chip(
-                                label: Text(
-                                  tag,
-                                  style: theme.textTheme.bodySmall,
-                                ),
-                                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-                                side: BorderSide(
-                                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                                ),
-                              )),
+                              if (journalEntry.tags != null)
+                                ...(() {
+                                  try {
+                                    final tagsJson = jsonDecode(journalEntry.tags!);
+                                    final tagsList = List<String>.from(tagsJson);
+                                    return tagsList.map((tag) => Chip(
+                                      label: Text(
+                                        tag,
+                                        style: theme.textTheme.bodySmall,
+                                      ),
+                                      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                      side: BorderSide(
+                                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                                      ),
+                                    )).toList();
+                                  } catch (e) {
+                                    return <Widget>[];
+                                  }
+                                })(),
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -431,7 +479,7 @@ class JournalEditorWidget extends HookConsumerWidget {
                         if (journalEntry != null && !isEditMode) ...[
                           const SizedBox(height: 24),
                           Text(
-                            'Last edited ${_formatLastEdited(journalEntry.lastEdited)}',
+                            'Last edited ${_formatLastEdited(journalEntry.updatedAt)}',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                               fontStyle: FontStyle.italic,
@@ -447,7 +495,7 @@ class JournalEditorWidget extends HookConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(ThemeData theme, WidgetRef ref) {
+  Widget _buildEmptyState(ThemeData theme, WidgetRef ref, BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -473,8 +521,22 @@ class JournalEditorWidget extends HookConsumerWidget {
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () {
-              ref.read(journalEditModeProvider.notifier).state = true;
+            onPressed: () async {
+              ref.read(journalLoadingProvider.notifier).state = true;
+              try {
+                final journalService = ref.read(journalServiceProvider);
+                await journalService.createEntryForDate(date);
+                ref.read(journalEditModeProvider.notifier).state = true;
+              } catch (error) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to create entry: $error'),
+                    backgroundColor: theme.colorScheme.error,
+                  ),
+                );
+              } finally {
+                ref.read(journalLoadingProvider.notifier).state = false;
+              }
             },
             icon: const Icon(Icons.create),
             label: const Text('Start Writing'),

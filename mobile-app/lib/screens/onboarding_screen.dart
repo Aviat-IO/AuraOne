@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/simple_location_service.dart';
 import '../services/movement_tracking_service.dart';
 import '../providers/location_database_provider.dart';
+import '../providers/settings_providers.dart';
 
 // Provider to track if onboarding has been completed
 final onboardingCompletedProvider = FutureProvider<bool>((ref) async {
@@ -741,6 +742,11 @@ class OnboardingScreen extends HookConsumerWidget {
                           newPermissions[permission] = status.isGranted || status.isLimited;
                           permissionsGranted.value = newPermissions;
                           print('Updated permissions: $newPermissions');
+
+                          // If notification permission was granted, sync with settings
+                          if (permission == Permission.notification && (status.isGranted || status.isLimited)) {
+                            await ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(true);
+                          }
                         }
                       },
                       child: const Text('Enable'),
@@ -825,6 +831,16 @@ class OnboardingScreen extends HookConsumerWidget {
                 // Complete onboarding
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.setBool('onboarding_completed', true);
+
+                // Save final notification permission state to settings
+                final notificationPermission = permissions[Permission.notification] ?? false;
+                if (notificationPermission) {
+                  // If permission was granted during onboarding, enable daily reminders
+                  await ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(true);
+                } else {
+                  // If permission was not granted, ensure daily reminders are disabled
+                  await ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(false);
+                }
 
                 // Start services
                 final locationService = ref.read(simpleLocationServiceProvider);

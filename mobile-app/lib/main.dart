@@ -21,6 +21,7 @@ import 'package:aura_one/services/background_data_service.dart';
 import 'package:aura_one/providers/fusion_providers.dart';
 import 'package:aura_one/providers/context_providers.dart';
 import 'package:aura_one/providers/settings_providers.dart';
+import 'package:aura_one/services/journal_service.dart';
 
 void main() {
   // Initialize error handling first
@@ -328,6 +329,12 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
     appLogger.info('Setting up daily reminders...');
     final dailyRemindersEnabled = ref.read(dailyRemindersEnabledProvider);
     appLogger.info('Daily reminders ${dailyRemindersEnabled ? 'enabled' : 'disabled'}');
+
+    // Initialize Journal Service for daily entry creation
+    appLogger.info('Initializing Journal Service...');
+    final journalService = ref.read(journalServiceProvider);
+    await journalService.initialize();
+    appLogger.info('Journal Service initialized and daily entries will be created automatically');
 
     appLogger.info('App initialization complete');
   } catch (error, stackTrace) {
