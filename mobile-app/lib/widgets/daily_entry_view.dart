@@ -562,7 +562,10 @@ class _MediaTab extends HookConsumerWidget {
     // which already handles date-specific media display
     return Container(
       padding: const EdgeInsets.all(16),
-      child: MediaGalleryWidget(date: date),
+      child: MediaGalleryWidget(
+        date: date,
+        enableSelection: enableSelection,
+      ),
     );
   }
 }

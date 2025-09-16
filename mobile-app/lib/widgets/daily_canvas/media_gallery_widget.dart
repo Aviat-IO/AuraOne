@@ -6,15 +6,14 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'dart:io';
 import '../../theme/colors.dart';
 import '../../providers/media_database_provider.dart';
-import '../../services/media_picker_service.dart';
 
 // Provider for media items from device storage
-final mediaItemsProvider = FutureProvider.family<List<MediaItem>, DateTime>((ref, date) async {
+final mediaItemsProvider = FutureProvider.family<List<MediaItem>, ({DateTime date, bool includeDeleted})>((ref, params) async {
   final mediaDb = ref.watch(mediaDatabaseProvider);
 
   // Calculate date range for the selected day
-  final startOfDay = DateTime(date.year, date.month, date.day, 0, 0, 0);
-  final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+  final startOfDay = DateTime(params.date.year, params.date.month, params.date.day, 0, 0, 0);
+  final endOfDay = DateTime(params.date.year, params.date.month, params.date.day, 23, 59, 59);
 
   try {
     // Query media items for the specific date range
@@ -22,6 +21,7 @@ final mediaItemsProvider = FutureProvider.family<List<MediaItem>, DateTime>((ref
       startDate: startOfDay,
       endDate: endOfDay,
       processedOnly: true,
+      includeDeleted: params.includeDeleted,
     );
 
     // Convert database media items to UI MediaItem objects
@@ -54,6 +54,7 @@ final mediaItemsProvider = FutureProvider.family<List<MediaItem>, DateTime>((ref
           timestamp: item.createdDate,
           caption: '', // No captions in media database
           duration: item.duration != null ? Duration(seconds: item.duration!) : null,
+          isDeleted: item.isDeleted,
         ));
       }
     }
@@ -63,7 +64,7 @@ final mediaItemsProvider = FutureProvider.family<List<MediaItem>, DateTime>((ref
 
     return result;
   } catch (e) {
-    debugPrint('Error loading media items for date $date: $e');
+    debugPrint('Error loading media items for date ${params.date}: $e');
     return [];
   }
 });
@@ -85,6 +86,7 @@ class MediaItem {
   final DateTime timestamp;
   final String? caption;
   final Duration? duration;
+  final bool isDeleted;
 
   MediaItem({
     required this.id,
@@ -94,22 +96,44 @@ class MediaItem {
     required this.timestamp,
     this.caption,
     this.duration,
+    this.isDeleted = false,
   });
 }
 
 class MediaGalleryWidget extends ConsumerWidget {
   final DateTime date;
+  final bool enableSelection;
 
   const MediaGalleryWidget({
     super.key,
     required this.date,
+    this.enableSelection = false,
   });
+
+  Future<void> _toggleMediaSelection(MediaItem item, WidgetRef ref) async {
+    try {
+      final mediaDb = ref.read(mediaDatabaseProvider);
+
+      if (item.isDeleted) {
+        // Restore the item (include it)
+        await mediaDb.restoreMediaItem(item.id);
+      } else {
+        // Soft delete the item (exclude it)
+        await mediaDb.softDeleteMediaItem(item.id);
+      }
+
+      // Refresh the provider to update the UI
+      ref.invalidate(mediaItemsProvider);
+    } catch (e) {
+      debugPrint('Error toggling media selection: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final mediaItemsAsync = ref.watch(mediaItemsProvider(date));
+    final mediaItemsAsync = ref.watch(mediaItemsProvider((date: date, includeDeleted: enableSelection)));
     final viewMode = ref.watch(galleryViewModeProvider);
 
     return mediaItemsAsync.when(
@@ -168,6 +192,7 @@ class MediaGalleryWidget extends ConsumerWidget {
                     theme: theme,
                     isLight: isLight,
                     context: context,
+                    ref: ref,
                   ),
           ),
         ],
@@ -261,60 +286,24 @@ class MediaGalleryWidget extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.photo_library,
+            Icons.photo_library_outlined,
             size: 64,
             color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
-            'No media for this day',
+            'No photos for this day',
             style: theme.textTheme.titleMedium?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Photos and videos will appear here',
+            'Photos from your device will appear here\nwhen available for this date',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () async {
-              final mediaPickerService = ref.read(mediaPickerServiceProvider);
-
-              // Check and request permissions first
-              final hasPermissions = await mediaPickerService.checkAndRequestPermissions();
-              if (!hasPermissions) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Camera and gallery permissions are required to add media'),
-                    ),
-                  );
-                }
-                return;
-              }
-
-              // Show media picker options
-              if (context.mounted) {
-                final selectedPath = await mediaPickerService.showMediaPickerOptions(context);
-                if (selectedPath != null) {
-                  // Media was successfully added, the provider will automatically refresh
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Media added successfully'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                }
-              }
-            },
-            icon: const Icon(Icons.add_photo_alternate),
-            label: const Text('Add Media'),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -327,14 +316,15 @@ class MediaGalleryWidget extends ConsumerWidget {
     required ThemeData theme,
     required bool isLight,
     required BuildContext context,
+    required WidgetRef ref,
   }) {
     switch (viewMode) {
       case GalleryViewMode.grid:
-        return _buildGridView(mediaItems, theme, isLight, context);
+        return _buildGridView(mediaItems, theme, isLight, context, ref);
       case GalleryViewMode.list:
-        return _buildListView(mediaItems, theme, isLight, context);
+        return _buildListView(mediaItems, theme, isLight, context, ref);
       case GalleryViewMode.carousel:
-        return _buildCarouselView(mediaItems, theme, isLight, context);
+        return _buildCarouselView(mediaItems, theme, isLight, context, ref);
     }
   }
 
@@ -343,6 +333,7 @@ class MediaGalleryWidget extends ConsumerWidget {
     ThemeData theme,
     bool isLight,
     BuildContext context,
+    WidgetRef ref,
   ) {
     return GridView.builder(
       padding: const EdgeInsets.all(16),
@@ -359,6 +350,7 @@ class MediaGalleryWidget extends ConsumerWidget {
           onTap: () => _openImageViewer(context, mediaItems, index),
           theme: theme,
           isLight: isLight,
+          ref: ref,
         );
       },
     );
@@ -369,6 +361,7 @@ class MediaGalleryWidget extends ConsumerWidget {
     ThemeData theme,
     bool isLight,
     BuildContext context,
+    WidgetRef ref,
   ) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -382,6 +375,7 @@ class MediaGalleryWidget extends ConsumerWidget {
             onTap: () => _openImageViewer(context, mediaItems, index),
             theme: theme,
             isLight: isLight,
+            ref: ref,
           ),
         );
       },
@@ -393,6 +387,7 @@ class MediaGalleryWidget extends ConsumerWidget {
     ThemeData theme,
     bool isLight,
     BuildContext context,
+    WidgetRef ref,
   ) {
     return PageView.builder(
       padEnds: false,
@@ -407,6 +402,7 @@ class MediaGalleryWidget extends ConsumerWidget {
             onTap: () => _openImageViewer(context, mediaItems, index),
             theme: theme,
             isLight: isLight,
+            ref: ref,
           ),
         );
       },
@@ -418,9 +414,12 @@ class MediaGalleryWidget extends ConsumerWidget {
     required VoidCallback onTap,
     required ThemeData theme,
     required bool isLight,
+    required WidgetRef ref,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: enableSelection
+          ? () => _toggleMediaSelection(item, ref)
+          : onTap,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
@@ -437,24 +436,43 @@ class MediaGalleryWidget extends ConsumerWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _buildImageWidget(
-                url: item.thumbnailUrl,
-                fit: BoxFit.cover,
-                placeholder: Container(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  child: const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
+              // Image with opacity based on selection state
+              Opacity(
+                opacity: enableSelection && item.isDeleted ? 0.5 : 1.0,
+                child: _buildImageWidget(
+                  url: item.thumbnailUrl,
+                  fit: BoxFit.cover,
+                  placeholder: Container(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    child: const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
                   ),
-                ),
-                errorWidget: Container(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  child: Icon(
-                    Icons.broken_image,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                  errorWidget: Container(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    child: Icon(
+                      Icons.broken_image,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                    ),
                   ),
                 ),
               ),
-              if (item.type == MediaType.video)
+
+              // Excluded overlay
+              if (enableSelection && item.isDeleted)
+                Container(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  child: const Center(
+                    child: Icon(
+                      Icons.remove_circle,
+                      color: Colors.red,
+                      size: 32,
+                    ),
+                  ),
+                ),
+
+              // Video play button
+              if (item.type == MediaType.video && (!enableSelection || !item.isDeleted))
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -481,6 +499,31 @@ class MediaGalleryWidget extends ConsumerWidget {
                     ),
                   ),
                 ),
+
+              // Selection indicator
+              if (enableSelection)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: item.isDeleted
+                          ? Colors.red.withValues(alpha: 0.9)
+                          : Colors.green.withValues(alpha: 0.9),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 2,
+                      ),
+                    ),
+                    child: Icon(
+                      item.isDeleted ? Icons.remove : Icons.check,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -493,11 +536,14 @@ class MediaGalleryWidget extends ConsumerWidget {
     required VoidCallback onTap,
     required ThemeData theme,
     required bool isLight,
+    required WidgetRef ref,
   }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: enableSelection
+            ? () => _toggleMediaSelection(item, ref)
+            : onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(12),
@@ -588,9 +634,12 @@ class MediaGalleryWidget extends ConsumerWidget {
     required VoidCallback onTap,
     required ThemeData theme,
     required bool isLight,
+    required WidgetRef ref,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: enableSelection
+          ? () => _toggleMediaSelection(item, ref)
+          : onTap,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),

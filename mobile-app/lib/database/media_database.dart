@@ -251,6 +251,11 @@ class MediaDatabase extends _$MediaDatabase {
         .write(const MediaItemsCompanion(isDeleted: Value(true)));
   }
 
+  Future<int> restoreMediaItem(String id) {
+    return (update(mediaItems)..where((tbl) => tbl.id.equals(id)))
+        .write(const MediaItemsCompanion(isDeleted: Value(false)));
+  }
+
   // Metadata Methods
   Future<int> insertMetadata(MediaMetadataCompanion metadata) {
     return into(mediaMetadata).insert(metadata, mode: InsertMode.insertOrReplace);
