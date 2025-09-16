@@ -207,6 +207,31 @@ class MediaDatabase extends _$MediaDatabase {
         .get();
   }
 
+  Future<List<MediaItem>> getMediaByDateRange({
+    required DateTime startDate,
+    required DateTime endDate,
+    bool includeDeleted = false,
+    bool processedOnly = true,
+  }) {
+    return (select(mediaItems)
+          ..where((tbl) {
+            Expression<bool> filter = tbl.createdDate.isBiggerOrEqualValue(startDate) &
+                                     tbl.createdDate.isSmallerOrEqualValue(endDate);
+
+            if (!includeDeleted) {
+              filter = filter & tbl.isDeleted.equals(false);
+            }
+
+            if (processedOnly) {
+              filter = filter & tbl.isProcessed.equals(true);
+            }
+
+            return filter;
+          })
+          ..orderBy([(tbl) => OrderingTerm.desc(tbl.createdDate)]))
+        .get();
+  }
+
   Future<List<MediaItem>> getUnprocessedMedia({int? limit}) {
     final query = select(mediaItems)
       ..where((tbl) =>

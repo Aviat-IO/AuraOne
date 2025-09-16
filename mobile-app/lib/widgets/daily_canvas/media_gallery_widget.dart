@@ -3,65 +3,68 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'dart:io';
 import '../../theme/colors.dart';
+import '../../providers/media_database_provider.dart';
 
-// Provider for media items with async loading simulation
+// Provider for media items from device storage
 final mediaItemsProvider = FutureProvider.family<List<MediaItem>, DateTime>((ref, date) async {
-  // Simulate loading delay
-  await Future.delayed(const Duration(milliseconds: 800));
+  final mediaDb = ref.watch(mediaDatabaseProvider);
 
-  // TODO: Replace with actual media from storage
-  return [
-    MediaItem(
-      id: '1',
-      type: MediaType.photo,
-      url: 'https://picsum.photos/400/300?random=1',
-      thumbnailUrl: 'https://picsum.photos/200/150?random=1',
-      timestamp: DateTime(date.year, date.month, date.day, 8, 30),
-      caption: 'Morning coffee',
-    ),
-    MediaItem(
-      id: '2',
-      type: MediaType.photo,
-      url: 'https://picsum.photos/400/300?random=2',
-      thumbnailUrl: 'https://picsum.photos/200/150?random=2',
-      timestamp: DateTime(date.year, date.month, date.day, 12, 0),
-      caption: 'Lunch view',
-    ),
-    MediaItem(
-      id: '3',
-      type: MediaType.photo,
-      url: 'https://picsum.photos/400/300?random=3',
-      thumbnailUrl: 'https://picsum.photos/200/150?random=3',
-      timestamp: DateTime(date.year, date.month, date.day, 15, 30),
-      caption: 'Afternoon walk',
-    ),
-    MediaItem(
-      id: '4',
-      type: MediaType.video,
-      url: 'https://example.com/video.mp4',
-      thumbnailUrl: 'https://picsum.photos/200/150?random=4',
-      timestamp: DateTime(date.year, date.month, date.day, 18, 0),
-      caption: 'Sunset timelapse',
-      duration: const Duration(seconds: 30),
-    ),
-    MediaItem(
-      id: '5',
-      type: MediaType.photo,
-      url: 'https://picsum.photos/400/300?random=5',
-      thumbnailUrl: 'https://picsum.photos/200/150?random=5',
-      timestamp: DateTime(date.year, date.month, date.day, 20, 0),
-      caption: 'Dinner with friends',
-    ),
-    MediaItem(
-      id: '6',
-      type: MediaType.photo,
-      url: 'https://picsum.photos/400/300?random=6',
-      thumbnailUrl: 'https://picsum.photos/200/150?random=6',
-      timestamp: DateTime(date.year, date.month, date.day, 21, 30),
-      caption: 'Evening reading',
-    ),
-  ];
+  // Calculate date range for the selected day
+  final startOfDay = DateTime(date.year, date.month, date.day, 0, 0, 0);
+  final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+
+  try {
+    // Query media items for the specific date range
+    final mediaItems = await mediaDb.getMediaByDateRange(
+      startDate: startOfDay,
+      endDate: endOfDay,
+      processedOnly: true,
+    );
+
+    // Convert database media items to UI MediaItem objects
+    final List<MediaItem> result = [];
+
+    for (final item in mediaItems) {
+      // Determine media type based on MIME type
+      MediaType type = MediaType.photo;
+      if (item.mimeType.startsWith('video/')) {
+        type = MediaType.video;
+      } else if (item.mimeType.startsWith('audio/')) {
+        type = MediaType.audio;
+      }
+
+      // Create file URLs from file paths
+      String? fileUrl;
+      String? thumbnailUrl;
+
+      if (item.filePath != null && File(item.filePath!).existsSync()) {
+        fileUrl = item.filePath!; // Use direct path for local files
+        thumbnailUrl = item.filePath!; // Use same path for thumbnails
+      }
+
+      if (fileUrl != null) {
+        result.add(MediaItem(
+          id: item.id,
+          type: type,
+          url: fileUrl,
+          thumbnailUrl: thumbnailUrl ?? fileUrl,
+          timestamp: item.createdDate,
+          caption: '', // No captions in media database
+          duration: item.duration != null ? Duration(seconds: item.duration!) : null,
+        ));
+      }
+    }
+
+    // Sort by timestamp, newest first
+    result.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+    return result;
+  } catch (e) {
+    debugPrint('Error loading media items for date $date: $e');
+    return [];
+  }
 });
 
 // Provider for loading state
@@ -404,16 +407,16 @@ class MediaGalleryWidget extends ConsumerWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              CachedNetworkImage(
-                imageUrl: item.thumbnailUrl,
+              _buildImageWidget(
+                url: item.thumbnailUrl,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
+                placeholder: Container(
                   color: theme.colorScheme.surfaceContainerHighest,
                   child: const Center(
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 ),
-                errorWidget: (context, url, error) => Container(
+                errorWidget: Container(
                   color: theme.colorScheme.surfaceContainerHighest,
                   child: Icon(
                     Icons.broken_image,
@@ -482,18 +485,18 @@ class MediaGalleryWidget extends ConsumerWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: CachedNetworkImage(
-                  imageUrl: item.thumbnailUrl,
+                child: _buildImageWidget(
+                  url: item.thumbnailUrl,
                   width: 80,
                   height: 80,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
+                  placeholder: Container(
                     color: theme.colorScheme.surfaceContainerHighest,
                     child: const Center(
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   ),
-                  errorWidget: (context, url, error) => Container(
+                  errorWidget: Container(
                     color: theme.colorScheme.surfaceContainerHighest,
                     child: Icon(
                       Icons.broken_image,
@@ -574,16 +577,16 @@ class MediaGalleryWidget extends ConsumerWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              CachedNetworkImage(
-                imageUrl: item.url,
+              _buildImageWidget(
+                url: item.url,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
+                placeholder: Container(
                   color: theme.colorScheme.surfaceContainerHighest,
                   child: const Center(
                     child: CircularProgressIndicator(),
                   ),
                 ),
-                errorWidget: (context, url, error) => Container(
+                errorWidget: Container(
                   color: theme.colorScheme.surfaceContainerHighest,
                   child: Icon(
                     Icons.broken_image,
@@ -687,7 +690,7 @@ class MediaGalleryWidget extends ConsumerWidget {
   void _openImageViewer(BuildContext context, List<MediaItem> mediaItems, int initialIndex) {
     final imageProviders = mediaItems
         .where((item) => item.type == MediaType.photo)
-        .map((item) => CachedNetworkImageProvider(item.url))
+        .map((item) => _getImageProvider(item.url))
         .toList();
 
     if (imageProviders.isNotEmpty) {
@@ -700,6 +703,47 @@ class MediaGalleryWidget extends ConsumerWidget {
         backgroundColor: Colors.black.withValues(alpha: 0.9),
       );
     }
+  }
+
+  ImageProvider _getImageProvider(String url) {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return CachedNetworkImageProvider(url);
+    } else {
+      return FileImage(File(url));
+    }
+  }
+
+  Widget _buildImageWidget({
+    required String url,
+    BoxFit? fit,
+    double? width,
+    double? height,
+    Widget? placeholder,
+    Widget? errorWidget,
+  }) {
+    // Handle local files
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return Image.file(
+        File(url),
+        fit: fit ?? BoxFit.cover,
+        width: width,
+        height: height,
+        errorBuilder: (context, error, stackTrace) => errorWidget ?? Container(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: const Icon(Icons.broken_image),
+        ),
+      );
+    }
+
+    // Handle network images
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: fit ?? BoxFit.cover,
+      width: width,
+      height: height,
+      placeholder: placeholder != null ? (context, url) => placeholder : null,
+      errorWidget: errorWidget != null ? (context, url, error) => errorWidget : null,
+    );
   }
 
   String _formatDuration(Duration duration) {
