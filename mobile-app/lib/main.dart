@@ -345,18 +345,8 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
     final locationService = ref.read(simpleLocationServiceProvider);
     await locationService.initialize();
 
-    // Start location tracking automatically
-    appLogger.info('Starting location tracking...');
-    final hasPermission = await locationService.checkLocationPermission();
-    if (hasPermission) {
-      await locationService.startTracking(
-        interval: const Duration(seconds: 30),
-        distanceFilter: 10,
-      );
-      appLogger.info('Location tracking started successfully');
-    } else {
-      appLogger.warning('Location permission not granted - tracking disabled');
-    }
+    // Location tracking will be started after onboarding completion
+    // Do not check permissions during app initialization
 
     // Initialize movement tracking service
     appLogger.info('Initializing movement tracking service...');

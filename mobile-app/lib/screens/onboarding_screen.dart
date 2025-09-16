@@ -55,7 +55,7 @@ class OnboardingScreen extends HookConsumerWidget {
       return null;
     }, []);
 
-    // Timer to show skip button after 20 seconds on permissions page
+    // Timer to show skip button after 30 seconds on permissions page
     useEffect(() {
       if (currentPage.value == 3 && !showSkipButton.value) {
         // We're on the permissions page and skip button is not shown
@@ -70,7 +70,7 @@ class OnboardingScreen extends HookConsumerWidget {
           }
 
           final elapsed = DateTime.now().difference(skipButtonTimer.value!);
-          if (elapsed.inSeconds >= 20) {
+          if (elapsed.inSeconds >= 30) {
             showSkipButton.value = true;
             timer.cancel();
           }
@@ -771,7 +771,14 @@ class OnboardingScreen extends HookConsumerWidget {
   ) {
     final isLastPage = currentPage == 4;
     final isPermissionsPage = currentPage == 3;
-    final hasRequiredPermissions = permissions[Permission.locationAlways] ?? false;
+
+    // Check if all required permissions are granted
+    final hasAllRequiredPermissions =
+        (permissions[Permission.notification] ?? false) &&
+        (permissions[Permission.locationAlways] ?? false);
+
+    // Can continue if has all permissions OR 30 seconds have elapsed (showSkipButton is true)
+    final canContinueFromPermissions = hasAllRequiredPermissions || showSkipButton;
 
     return Container(
       padding: const EdgeInsets.all(24.0),
@@ -797,8 +804,8 @@ class OnboardingScreen extends HookConsumerWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Add Skip button for permissions page (only show after conditions are met)
-                if (isPermissionsPage && !hasRequiredPermissions && showSkipButton)
+                // Add Skip button for permissions page (only show after 30 seconds and no all permissions)
+                if (isPermissionsPage && !hasAllRequiredPermissions && showSkipButton)
                   TextButton(
                     onPressed: () {
                       pageController.nextPage(
@@ -808,10 +815,10 @@ class OnboardingScreen extends HookConsumerWidget {
                     },
                     child: const Text('Skip for now'),
                   ),
-                if (isPermissionsPage && !hasRequiredPermissions && showSkipButton)
+                if (isPermissionsPage && !hasAllRequiredPermissions && showSkipButton)
                   const SizedBox(width: 12),
                 FilledButton(
-                  onPressed: (isPermissionsPage && !hasRequiredPermissions)
+                  onPressed: (isPermissionsPage && !canContinueFromPermissions)
                       ? null
                       : () {
                           pageController.nextPage(
