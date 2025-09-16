@@ -152,12 +152,12 @@ class ErrorHandler {
       stackTrace: stackTrace,
       withScope: (scope) {
         // Add additional context while respecting privacy
-        scope.setLevel(SentryLevel.error);
+        scope.level = SentryLevel.error;
 
         // Add error context without PII
         scope.setContexts('error_context', {
           'timestamp': DateTime.now().toIso8601String(),
-          'platform': Theme.platform.name,
+          'platform': Platform.operatingSystem,
           'app_state': 'active',
           ...getSafeContext(), // Include safe context
         });
@@ -260,7 +260,7 @@ class ErrorHandler {
           stackTrace: stackTrace,
           withScope: (scope) {
             scope.setTag('operation_context', context);
-            scope.setLevel(SentryLevel.warning);
+            scope.level = SentryLevel.warning;
           },
         );
       }

@@ -6,6 +6,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'dart:io';
 import '../../theme/colors.dart';
 import '../../providers/media_database_provider.dart';
+import '../../services/media_picker_service.dart';
 
 // Provider for media items from device storage
 final mediaItemsProvider = FutureProvider.family<List<MediaItem>, DateTime>((ref, date) async {
@@ -280,8 +281,37 @@ class MediaGalleryWidget extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () {
-              // TODO: Add media
+            onPressed: () async {
+              final mediaPickerService = ref.read(mediaPickerServiceProvider);
+
+              // Check and request permissions first
+              final hasPermissions = await mediaPickerService.checkAndRequestPermissions();
+              if (!hasPermissions) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Camera and gallery permissions are required to add media'),
+                    ),
+                  );
+                }
+                return;
+              }
+
+              // Show media picker options
+              if (context.mounted) {
+                final selectedPath = await mediaPickerService.showMediaPickerOptions(context);
+                if (selectedPath != null) {
+                  // Media was successfully added, the provider will automatically refresh
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Media added successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                }
+              }
             },
             icon: const Icon(Icons.add_photo_alternate),
             label: const Text('Add Media'),

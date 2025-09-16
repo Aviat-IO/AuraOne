@@ -114,6 +114,7 @@ class TimelineWidget extends ConsumerWidget {
                   event: event,
                   isFirst: isFirst,
                   isLast: isLast,
+                  context: context,
                   theme: theme,
                   isLight: isLight,
                 );
@@ -201,6 +202,7 @@ class TimelineWidget extends ConsumerWidget {
     required bool isLast,
     required ThemeData theme,
     required bool isLight,
+    required BuildContext context,
   }) {
     final timeFormat = DateFormat('HH:mm');
     final color = _getEventColor(event.type, theme);

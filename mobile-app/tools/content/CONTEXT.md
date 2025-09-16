@@ -9,11 +9,13 @@ Development stack designed for AI agents to build Nostr-enabled Flutter applicat
 ### Purplestack MCP Server
 
 **CRITICAL**: This project relies on the purplestack MCP server for essential recipes and `models` package documentation. **YOU MUST VERIFY THE MCP SERVER IS WORKING BEFORE IMPLEMENTING ANY FEATURE**. If the purplestack MCP server cannot be called or returns 0 tools, there is a configuration issue. Fixes:
- - Run `flutter pub get`, then you must prompt the user to reload their IDE/environment
- - the `agent.json` (or `mcp.json` or equivalent) file may need to be modified to include the correct "cwd" pointing to the current project directory for the purplestack MCP server configuration, and/or the full path to the `dart` executable in the system
+
+- Run `fvm flutter pub get`, then you must prompt the user to reload their IDE/environment
+- the `agent.json` (or `mcp.json` or equivalent) file may need to be modified to include the correct "cwd" pointing to the current project directory for the purplestack MCP server configuration, and/or the full path to the `dart` executable in the system
 
 Available purplestack MCP tools:
-- `list_recipes` - List all available implementation recipes  
+
+- `list_recipes` - List all available implementation recipes
 - `read_recipe` - Read a specific recipe by name
 - `search_recipes` - Search recipes by keyword
 - `list_docs` - List all available documentation
@@ -21,6 +23,7 @@ Available purplestack MCP tools:
 - `search_docs` - Search documentation by keyword
 
 **Usage Requirements:**
+
 - **BEFORE IMPLEMENTING ANY FEATURE**: Check for relevant recipes using `search_recipes` **AND** API documentation using `search_docs`
 - **For ANY code implementation**: Consult both recipes and documentation first
 - **Always search first**: Use `search_recipes` and `search_docs` before writing any code. Always prioritize looking for documentation (`search_docs`) and recipes (purplestack MCP) before calling the nostr MCP
@@ -37,13 +40,15 @@ The `nostr` MCP server provides Nostr protocol reference and documentation for u
 
 When handling a first prompt (as defined above), you MUST ALWAYS:
 
-1. Run `fvm flutter pub get` (if fvm available), or `flutter pub get`
+1. Run `fvm flutter pub get` (if fvm available), or `fvm flutter pub get`
 2. Initialize a fresh git repository **IF AND ONLY IF THE FIRST GIT COMMIT HASH IN THE REPOSITORY IS `c99f911fa1c2fd25e6a401f146ae5e0f53c459b1`:**
    - `rm -rf .git/` (remove existing git history)
    - `git init` (start fresh repository)
    - Make sure you are NOT deleting commits by the user!
 3. Suggest the user an app name, app ID (e.g., `com.sample.app`) and description. Based on obtained information, you MUST call the `rename_app` tool
-  - `dart tools/scripts/rename_app.dart --name "Your App Name" --app-id "com.sample.app"` – full reference available via purplestack MCP server: `search_recipes renaming`.
+
+- `dart tools/scripts/rename_app.dart --name "Your App Name" --app-id "com.sample.app"` – full reference available via purplestack MCP server: `search_recipes renaming`.
+
 4. Summarize what you understood, and ask important questions to ensure all requirements are crystal clear before starting any code
 5. Ask them which outputs they want. By default, this project builds an Android app, but Flutter supports iOS, MacOS, Linux and Windows, all of these are preconfigured. **Remove the whole folders** of platforms that the user does not care about.
 
@@ -103,7 +108,7 @@ Always manage packages via the CLI to ensure latest compatible versions are reso
 # Adding packages
 fvm dart pub add package_name
 
-# Removing packages  
+# Removing packages
 fvm dart pub remove package_name
 
 # Getting dependencies
@@ -138,13 +143,13 @@ Search for updated configuration syntax via purplestack MCP server (`search_docs
 final config = StorageConfiguration(
   // Database path (null for in-memory)
   databasePath: '/path/to/database.sqlite',
-  
+
   // Whether to keep signatures in local storage
   keepSignatures: false,
-  
+
   // Whether to skip BIP-340 verification
   skipVerification: false,
-  
+
   // Relay groups
   relayGroups: {
     'default': {
@@ -155,20 +160,20 @@ final config = StorageConfiguration(
       'wss://my-private-relay.com',
     },
   },
-  
+
   // Default relay group
   defaultRelayGroup: 'default',
-  
+
   // Default source for queries when not specified
   defaultQuerySource: LocalAndRemoteSource(stream: false),
-  
+
   // Connection timeouts
   idleTimeout: Duration(minutes: 5),
   responseTimeout: Duration(seconds: 6),
-  
+
   // Streaming configuration
   streamingBufferWindow: Duration(seconds: 2),
-  
+
   // Storage limits
   keepMaxModels: 20000,
 );
@@ -192,6 +197,7 @@ The project uses [Material 3](https://m3.material.io/) with `useMaterial3: true`
 ### Material 3 Components
 
 **Navigation & Structure:**
+
 - **AppBar**: Top app bar with title, navigation icon, and action items
 - **BottomNavigationBar**: Primary navigation for multi-screen apps
 - **NavigationRail**: Side navigation for larger screens
@@ -199,6 +205,7 @@ The project uses [Material 3](https://m3.material.io/) with `useMaterial3: true`
 - **TabBar**: Horizontal tabs for navigating between views
 
 **Feedback & Overlays:**
+
 - **Alert/AlertDialog**: Modal dialog for critical information or decisions
 - **MaterialBanner**: Persistent surface for important messages
 - **BottomSheet**: Surface sliding from bottom edge for additional content
@@ -206,6 +213,7 @@ The project uses [Material 3](https://m3.material.io/) with `useMaterial3: true`
 - **Tooltip**: Informative popup on hover/focus/tap
 
 **Input & Selection:**
+
 - **TextField**: Text input with styling and validation options
 - **Checkbox**: Multi-selection control for lists
 - **Radio/RadioGroup**: Single-selection control from a set
@@ -216,11 +224,13 @@ The project uses [Material 3](https://m3.material.io/) with `useMaterial3: true`
 - **TimePicker**: Time selection interface
 
 **Actions & Buttons:**
+
 - **Button**: Elevated, Filled, Outlined, Text variants with different emphasis
 - **FloatingActionButton**: Primary action button floating above UI
 - **IconButton**: Icon-only button for common actions
 
 **Display & Content:**
+
 - **Card**: Container for single-topic content with elevation
 - **ListTile**: Fixed-height row for lists and menus
 - **CircleAvatar**: Circular widget for user representation
@@ -231,6 +241,7 @@ The project uses [Material 3](https://m3.material.io/) with `useMaterial3: true`
 - **Divider/Separator**: Visual separation between content
 
 **Progress & Loading:**
+
 - **CircularProgressIndicator**: Circular loading indicator
 - **LinearProgressIndicator**: Linear progress bar
 
@@ -255,6 +266,7 @@ Text(note.content) // Missing entity parsing
 ```
 
 ##### any_link_preview
+
 Already implemented in `NoteParser`, useful for standalone hyperlink rendering:
 
 ##### Rich Text Content with NoteParser
@@ -303,14 +315,17 @@ ParseContentWidget(
 - **When to use**: Dashboard layouts with multiple panels, complex responsive designs requiring specific column/row spanning, when CSS Grid-like behavior is needed.
 
 ##### auto_size_text
+
 - **When to use**: User-generated content with varying lengths, responsive cards or tiles with dynamic content, navigation labels that might overflow, any UI where text length is unpredictable and space is limited
 
 #### Progress and File Operations
 
 ##### percent_indicator
+
 Perfect for Nostr file operations - file upload/download progress with Blossom protocol, media processing operations, sync operations with relays, any long-running operation with measurable progress
 
 ##### table_calendar
+
 Highly customizable calendar widget for any calendar functionality.
 
 ### Loading States & Async Patterns
@@ -446,6 +461,7 @@ final customHybridNotes = ref.watch(
 #### Relay Selection Priority
 
 The framework selects relays in this order:
+
 1. **`relayUrls`** - When provided, these specific URLs are used
 2. **`group`** - Falls back to the relay group from `StorageConfiguration.relayGroups`
 3. **`defaultRelayGroup`** - Uses the default group when neither is specified
@@ -515,7 +531,7 @@ await ref.storage.publish({model});
 
 // Publish to specific relay group
 await ref.storage.publish(
-  {model}, 
+  {model},
   source: RemoteSource(group: 'social'),
 );
 
@@ -599,7 +615,7 @@ final complexRequest = Request<Note>([
     limit: 10,
   ),
   RequestFilter<Note>(
-    authors: {pubkey2}, 
+    authors: {pubkey2},
     kinds: {6}, // Reposts only
     limit: 5,
   ),
@@ -640,25 +656,25 @@ If the user does not specify, **Modern/Clean** style is the default.
 
 Always adjust palettes to ensure a good contrast ratio, especially with text over backgrounds.
 
-- **Modern/Clean**: 
+- **Modern/Clean**:
   - **Fonts**: Inter Variable, Outfit Variable, or Manrope
   - **Color Scheme**: Minimalist palette with subtle grays (#F8F9FA, #E9ECEF, #6C757D) and a single accent color (#007BFF)
   - **UI Elements**: Rounded corners (8-12px), subtle shadows, generous whitespace, clean typography hierarchy
   - **Best For**: Productivity apps, dashboards, professional tools
 
-- **Professional/Corporate**: 
-  - **Fonts**: Roboto, Open Sans, or Source Sans Pro  
+- **Professional/Corporate**:
+  - **Fonts**: Roboto, Open Sans, or Source Sans Pro
   - **Color Scheme**: Conservative blues and grays (#1E3A8A, #374151, #F3F4F6) with muted accents
   - **UI Elements**: Sharp corners (4-6px), structured layouts, consistent spacing, formal typography
   - **Best For**: Business applications, enterprise software, financial tools
 
-- **Creative/Artistic**: 
+- **Creative/Artistic**:
   - **Fonts**: Poppins, Nunito, or Comfortaa
   - **Color Scheme**: Vibrant, diverse palette with gradients (#FF6B6B, #4ECDC4, #45B7D1, #96CEB4)
   - **UI Elements**: Organic shapes, bold colors, playful animations, creative layouts
   - **Best For**: Design tools, creative platforms, entertainment apps
 
-- **Technical/Code**: 
+- **Technical/Code**:
   - **Fonts**: JetBrains Mono, Fira Code, or Source Code Pro (for monospace)
   - **Color Scheme**: Dark theme with syntax highlighting colors (#0D1117, #21262D, #58A6FF, #7EE787)
   - **UI Elements**: Monospace fonts, code-style layouts, terminal aesthetics, minimal distractions
@@ -667,6 +683,7 @@ Always adjust palettes to ensure a good contrast ratio, especially with text ove
 ### Color Scheme Implementation
 
 When users specify color schemes, use Material 3's color system:
+
 - Use `colorSchemeSeed` to generate cohesive color schemes from a single color
 - Apply colors consistently across components (buttons, links, accents) using theme colors
 - Test both light and dark mode variants
@@ -717,7 +734,7 @@ CircleAvatar(
           errorListener: (error) => debugPrint('Avatar failed: $error'),
         )
       : null,
-  child: author?.pictureUrl == null 
+  child: author?.pictureUrl == null
     ? Icon(Icons.person, size: 24)
     : null,
 )
@@ -734,6 +751,7 @@ This project uses the `models` and `purplebase` packages as the ONLY way to inte
 **ALWAYS use model constructors, setters, and relationships instead of direct `model.event` manipulation.**
 
 **❌ WRONG - Direct event manipulation:**
+
 ```dart
 // Don't do this - bypasses model interface and breaks abstraction
 note.event.addTag('custom', ['value']);
@@ -741,6 +759,7 @@ note.event.content = 'modified content';
 ```
 
 **✅ CORRECT - Use model interface:**
+
 ```dart
 // Use proper model constructors with parameters
 final partialNote = PartialNote("content", tags: {'farming'});
@@ -768,6 +787,7 @@ final partialProfile = PartialProfile()
 **For ANY model creation, updating, or registration work, ALWAYS search for recipes first:**
 
 Use `search_recipes` to find comprehensive implementation guidance before writing any model-related code. There are excellent recipes with step-by-step instructions for:
+
 - Creating custom models
 - Updating existing models
 - Registering new event kinds
@@ -805,7 +825,7 @@ final notesWithRelationsState = ref.watch(
     limit: 10,
     and: (note) => {
       note.author,      // Load author profile
-      note.reactions,   // Load reactions  
+      note.reactions,   // Load reactions
       note.zaps,        // Load zaps
       // Nested relationships
       ...note.reactions.map((reaction) => reaction.author),
@@ -971,6 +991,7 @@ The `purplebase` package automatically handles all low-level Nostr protocol erro
 For debugging and monitoring, Purplebase exposes the `infoNotifierProvider` which streams diagnostic messages about operations. This is one helpful tool for debugging storage and relay pool issues.
 
 **Use `infoNotifierProvider` for debugging:**
+
 - **Storage operations**: Database queries, saves, and cache hits
 - **Relay pool status**: Connection states, subscription management, publishing results
 
@@ -991,7 +1012,7 @@ For debugging and monitoring, Purplebase exposes the `infoNotifierProvider` whic
 ### Architecture
 
 - Local-first architecture: data from local storage, continuously synced from remote sources
-- State management: **Always use `flutter_hooks` for widget-local state**, **Riverpod providers for global state**
+- State management: **Always use `fvm flutter_hooks` for widget-local state**, **Riverpod providers for global state**
 - **Never use StatefulWidgets** - hooks provide better composition
 - Component-based architecture with shared components in `lib/widgets`
 - **SafeArea**: Always use by default to handle device notches and system UI
@@ -1004,7 +1025,8 @@ For debugging and monitoring, Purplebase exposes the `infoNotifierProvider` whic
 ### AI Agent Workflow Guidelines
 
 **When finishing a feature or fix:**
-- **DO NOT run the app** (`flutter run...`) unless user explicitly asks to
+
+- **DO NOT run the app** (`fvm flutter run...`) unless user explicitly asks to
 - **Be BRIEF when summarizing** what you produced - focus on key functionality implemented
 - **DO NOT celebrate** - instead ask the user if they are satisfied or need further changes
 
@@ -1015,17 +1037,20 @@ The widgets in `widgets/common` are generic, reusable components that must remai
 **Do not modify common widgets with app-specific behavior** - use their callback systems for customization instead.
 
 **✅ Generic (belongs in `/common/`):**
+
 - Takes data through parameters, never hardcodes app-specific values
 - Uses callback functions for handling actions
 - Focuses on rendering and interaction patterns, not business logic
 - Configurable through props and styling parameters
 
 **❌ App-Specific (belongs in app screens/widgets):**
+
 - Hardcoded business rules or app-specific behavior
 - Direct navigation to specific screens
 - App-specific styling that can't be configured
 
 **Current Generic Widgets (DO NOT MODIFY):**
+
 1. `NoteParser` - Parses Nostr content with customizable callbacks
 2. `EngagementRow` - Social engagement metrics with callback-based interaction
 3. `TimeUtils` & `TimeAgoText` - Time formatting utilities
@@ -1045,11 +1070,16 @@ The widgets in `widgets/common` are generic, reusable components that must remai
 ### Utility Functions
 
 Always check for existing utilities before creating new ones:
+
 - **TimeUtils & TimeAgoText**: For timestamp formatting (generic components)
 - **Utils (from models package)**: For Nostr-related utilities
 - **NoteParser**: REQUIRED for displaying note content (generic component)
 
 Always use available MCP servers before searching the web.
+
+### Building
+
+Ensure the application builds before you consider your work done
 
 ## Security and Environment
 
@@ -1072,11 +1102,14 @@ Consider using [Zapstore](https://zapstore.dev) for distribution.
 ### README Guidelines
 
 Update README to be short and concise:
+
 - Remove "Purplestack" from title
-- Include 1-2 paragraphs describing app and features  
+- Include 1-2 paragraphs describing app and features
 - Brief development instructions
 - Footer: "Powered by [Purplestack](https://purplestack.io)"
 
 ## Task Master AI Instructions
+
 **Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
 @./.taskmaster/CLAUDE.md
+- Use `fvm flutter...` instead of just `flutter...` for flutter commands

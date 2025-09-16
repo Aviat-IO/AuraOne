@@ -1193,6 +1193,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.5.3"
+  media_picker_plus:
+    dependency: "direct main"
+    description:
+      name: media_picker_plus
+      sha256: fffb0522dddf06b099071cf5da3f7abee01c99722c7470170181f45cbbbd28b2
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.0+2"
   meta:
     dependency: transitive
     description:

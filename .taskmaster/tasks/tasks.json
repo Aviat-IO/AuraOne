@@ -1281,7 +1281,7 @@
         "description": "Implement the TODO at line 281 in MediaGalleryWidget by adding camera and gallery picker functionality to allow users to capture new photos or select existing ones from their device.",
         "details": "Implement the missing 'Add Media' functionality in MediaGalleryWidget by: 1) Adding the `image_picker` package dependency to pubspec.yaml for camera and gallery access, 2) Creating a MediaPickerService that handles camera capture, gallery selection, and permission management using both image_picker and the existing photo_manager integration, 3) Implementing a bottom sheet or dialog that presents users with options to 'Take Photo', 'Choose from Gallery', and 'Cancel', 4) Integrating with the existing PhotoService and MediaDatabase infrastructure to store newly captured/selected media items, 5) Updating the MediaGalleryWidget's 'Add Media' button at line 281 to trigger the new picker functionality, 6) Adding proper error handling for permission denials, camera unavailability, and storage issues, 7) Ensuring new media items are immediately visible in the gallery view after selection/capture by refreshing the mediaItemsProvider. The implementation should leverage the existing robust media infrastructure including MediaDatabase for storage, PhotoService for processing, and the comprehensive metadata extraction capabilities already in place.",
         "testStrategy": "Test the 'Add Media' button functionality by verifying the picker dialog/bottom sheet appears with camera and gallery options. Test camera capture functionality creates new photos that appear immediately in the MediaGalleryWidget. Test gallery selection allows picking existing photos that get added to the current day's media collection. Verify proper permission handling for camera and photo library access. Test error scenarios including permission denial, camera unavailability, and storage failures. Validate that new media items integrate properly with the existing MediaDatabase, appearing in the correct date's media collection with proper metadata extraction.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           20,
           15
@@ -1293,15 +1293,79 @@
         "id": 28,
         "title": "Replace mock map with real map integration using flutter_map and GPS data",
         "description": "Replace the placeholder map UI in MapWidget with a real interactive map using flutter_map package and integrate with existing location database to display actual GPS tracking data and location points.",
-        "details": "Remove the mock placeholder map UI from MapWidget (lines 100-133) and replace it with a real interactive map implementation using the existing flutter_map package (already in pubspec.yaml at line 69). The implementation should: 1) Replace the placeholder Container with a FlutterMap widget configured with OpenStreetMap tiles, 2) Integrate with the existing LocationDatabase to query LocationPoints for the selected date using the locationDatabaseProvider, 3) Display location points as markers on the map with proper icons based on activity type (walking, driving, stationary), 4) Add polyline connections between consecutive location points to show movement paths with different colors for different activity types, 5) Implement the TODO functionalities for map controls including zoom in/out (lines 144-155) and center on current location (lines 158-163), 6) Update the location card tap handler (line 428) to center the map on the selected location, 7) Calculate real distance traveled using the Haversine formula between consecutive GPS points instead of mock data (line 36), 8) Integrate with existing GeofenceAreas to display named locations and boundaries on the map, 9) Handle loading states properly while GPS data is being fetched from the database, 10) Add proper error handling for map loading failures and missing GPS data scenarios. The map should maintain the existing UI structure with location stats and horizontal location list while replacing only the placeholder map area with the real interactive map functionality.",
-        "testStrategy": "Verify that the placeholder map UI is completely replaced with an interactive flutter_map widget displaying OpenStreetMap tiles. Test that real GPS location points from the LocationDatabase are displayed as markers on the map with correct icons for different activity types. Verify polylines connect consecutive location points showing actual movement paths with appropriate colors. Test map controls functionality including zoom in/out and center on current location. Confirm that tapping location cards in the horizontal list centers the map on the selected location. Verify real distance calculations using GPS points instead of mock distance values. Test geofence areas display correctly as boundaries on the map. Validate proper loading states while location data is being fetched and error handling for map loading failures or missing GPS data.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           3,
           2
         ],
         "priority": "medium",
-        "subtasks": []
+        "details": "Replace the mock placeholder Container (lines 100-133 in map_widget.dart) with a real FlutterMap widget following the working implementation pattern found in home_screen.dart (lines 801-856). The implementation should: 1) Replace the placeholder Container with a FlutterMap widget configured with MapOptions for initial center/zoom and OpenStreetMap TileLayer using urlTemplate 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', 2) Integrate with existing LocationDatabase via locationDatabaseProvider to query LocationPoints for the selected date, 3) Add PolylineLayer to connect consecutive location points showing movement paths with theme.colorScheme.primary color and 3.0 strokeWidth, 4) Add MarkerLayer with custom markers for different activity types (green circle with play icon for start, red circle with stop icon for end, following the pattern in home_screen.dart lines 822-851), 5) Implement the TODO map control functionalities: zoom in/out (lines 144-155) using MapController.move() and center on current location (lines 158-163) using MapController.move() with user's current position, 6) Update the location card tap handler (around line 428) to center the map on the selected location using MapController.move(), 7) Calculate real distance using the existing Haversine formula implementation from home_screen.dart lines 597-612, 8) Add proper loading states while GPS data is being fetched using Skeletonizer as shown in home_screen.dart line 799, 9) Handle error states for map loading failures and missing GPS data with proper error widgets, 10) Maintain the existing UI structure with location stats container and horizontal location list while only replacing the map placeholder area. Use MapController for programmatic map control and ensure proper disposal in widget lifecycle.",
+        "testStrategy": "Verify that the placeholder Container is completely replaced with an interactive FlutterMap widget displaying OpenStreetMap tiles. Test that real GPS location points from LocationDatabase are displayed as polylines connecting consecutive points with proper theme colors. Verify map controls work: zoom in/out buttons adjust map zoom level and center on current location button moves map to user's current position. Confirm that tapping location cards in the horizontal list centers the map on the selected location coordinates. Test that distance calculations use real GPS coordinates instead of mock data. Validate proper loading states with Skeletonizer while location data is being fetched and error handling displays appropriate error widgets for map loading failures or missing GPS data scenarios. Ensure MapController is properly initialized and disposed to prevent memory leaks.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Replace placeholder Container with FlutterMap widget and TileLayer",
+            "description": "Replace the mock Container (lines 100-133) with FlutterMap widget, MapOptions, and OpenStreetMap TileLayer following the pattern from home_screen.dart",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Integrate LocationDatabase to display real GPS points as polylines",
+            "description": "Connect to locationDatabaseProvider to fetch LocationPoints for selected date and display them as connected polylines using PolylineLayer",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Add MarkerLayer with activity-based markers",
+            "description": "Implement start/end markers with custom icons (green play, red stop) and consider activity-type markers for walking/driving/stationary points",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement map controls with MapController",
+            "description": "Replace TODO items (lines 144-155, 158-163) with working zoom in/out and center on current location functionality using MapController.move()",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Add location card tap handler for map centering",
+            "description": "Update location card tap handler to center map on selected location coordinates using MapController",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Integrate real distance calculation using Haversine formula",
+            "description": "Replace mock distance calculation with real GPS-based distance using the Haversine formula implementation from home_screen.dart",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Add loading and error state handling",
+            "description": "Implement Skeletonizer for loading states and proper error widgets for map loading failures or missing GPS data",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          }
+        ]
       },
       {
         "id": 29,
@@ -1309,7 +1373,7 @@
         "description": "Implement the three TODO items at lines 144, 152, and 160 in map_widget.dart by adding zoom in/out functionality and center on current location capability using flutter_map MapController.",
         "details": "Implement the missing map control functionality in the MapWidget by: 1) Adding a MapController from the flutter_map package to manage map interactions and state, 2) Creating a provider or state management solution to handle the MapController instance and zoom level state, 3) Implementing zoom in functionality that increases the zoom level by 1 and animates to the new zoom level using mapController.move(), 4) Implementing zoom out functionality that decreases the zoom level by 1 with smooth animation, 5) Implementing center on location functionality that gets the user's current location using the existing location services and animates the map to center on that position, 6) Adding proper error handling for location permissions and GPS availability, 7) Integrating with the existing location data from the LocationService to show actual user location data on the map instead of the current placeholder, 8) Adding visual feedback during location centering operations with loading states, and 9) Ensuring the map controls work smoothly with the existing map placeholder and integrate properly with the flutter_map widget when the actual map implementation is added.",
         "testStrategy": "Test zoom in button increases map zoom level smoothly with proper animation. Test zoom out button decreases zoom level with smooth transition. Test that zoom controls respect minimum and maximum zoom limits. Test center on location button triggers location permission request if needed and centers map on user's current location. Verify that location centering shows loading state while fetching GPS coordinates. Test error handling when location services are disabled or permission is denied. Validate that map controls maintain proper visual styling and positioning across different screen sizes. Test integration with existing location data providers and ensure map state persists correctly during widget rebuilds.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           3,
           15
@@ -1415,7 +1479,7 @@
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-16T10:58:43.162Z",
+      "updated": "2025-09-16T12:43:03.387Z",
       "description": "Tasks for master context"
     }
   }
