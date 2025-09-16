@@ -20,7 +20,7 @@ final mediaItemsProvider = FutureProvider.family<List<MediaItem>, ({DateTime dat
     final mediaItems = await mediaDb.getMediaByDateRange(
       startDate: startOfDay,
       endDate: endOfDay,
-      processedOnly: true,
+      processedOnly: false,  // Show both processed and unprocessed media
       includeDeleted: params.includeDeleted,
     );
 

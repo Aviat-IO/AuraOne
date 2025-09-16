@@ -10,10 +10,13 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../theme/colors.dart';
 import '../../database/location_database.dart';
+import '../../providers/location_database_provider.dart';
+import '../../providers/location_clustering_provider.dart';
+import '../../services/ai/dbscan_clustering.dart' as clustering;
 
 // Provider for real location data from database
 final mapDataProvider = FutureProvider.family<MapData?, DateTime>((ref, date) async {
-  final database = LocationDatabase();
+  final database = ref.watch(locationDatabaseProvider);
 
   // Get start and end of the requested date
   final startOfDay = DateTime(date.year, date.month, date.day);
@@ -22,39 +25,57 @@ final mapDataProvider = FutureProvider.family<MapData?, DateTime>((ref, date) as
   // Fetch location points from database
   final locationPoints = await database.getLocationPointsBetween(startOfDay, endOfDay);
 
+  // Debug logging
+  print('MapWidget: Querying locations for date: $date');
+  print('MapWidget: Start of day: $startOfDay');
+  print('MapWidget: End of day: $endOfDay');
+  print('MapWidget: Found ${locationPoints.length} location points');
+
   if (locationPoints.isEmpty) {
+    // Also try to get recent points to see if there's any data at all
+    final now = DateTime.now();
+    final sevenDaysAgo = now.subtract(const Duration(days: 7));
+    final recentPoints = await database.getLocationPointsBetween(sevenDaysAgo, now);
+    print('MapWidget: Recent points (last 7 days): ${recentPoints.length}');
+    if (recentPoints.isNotEmpty) {
+      print('MapWidget: First recent point: ${recentPoints.first.timestamp}');
+      print('MapWidget: Last recent point: ${recentPoints.last.timestamp}');
+    }
     return null;
   }
 
-  // Calculate total distance
+  // Get clustered locations to show unique places
+  final clusters = await ref.read(clusteredLocationsProvider(date).future);
+
+  // Get journey segments for distance calculation
+  final journeys = await ref.read(journeySegmentsProvider(date).future);
+
+  // Calculate total distance from journeys and movements between clusters
   double totalDistance = 0;
-  for (int i = 1; i < locationPoints.length; i++) {
-    totalDistance += _calculateDistance(
-      locationPoints[i - 1].latitude,
-      locationPoints[i - 1].longitude,
-      locationPoints[i].latitude,
-      locationPoints[i].longitude,
-    );
+  for (final journey in journeys) {
+    totalDistance += journey.totalDistance;
   }
 
-  // Convert database location points to MapData location points
-  final locations = locationPoints.map((point) => MapLocationPoint(
-    latitude: point.latitude,
-    longitude: point.longitude,
-    time: point.timestamp,
-    name: _inferLocationName(point),
-    type: _inferLocationType(point),
+  // Convert clusters to MapData location points (one per unique location)
+  final locations = clusters.map((cluster) => MapLocationPoint(
+    latitude: cluster.centerLatitude,
+    longitude: cluster.centerLongitude,
+    time: cluster.startTime,
+    name: _inferLocationNameFromCluster(cluster),
+    type: _inferLocationTypeFromCluster(cluster),
   )).toList();
 
-  // Calculate total time span
-  final totalTime = locationPoints.isNotEmpty
-      ? locationPoints.last.timestamp.difference(locationPoints.first.timestamp)
-      : Duration.zero;
+  // Calculate total active time (sum of time spent at each location)
+  Duration totalTime = Duration.zero;
+  for (final cluster in clusters) {
+    totalTime += cluster.duration;
+  }
 
   return MapData(
     locations: locations,
     totalDistance: totalDistance / 1000, // Convert to kilometers
     totalTime: totalTime,
+    allPoints: locationPoints, // Keep all points for drawing the path
   );
 });
 
@@ -86,11 +107,13 @@ class MapData {
   final List<MapLocationPoint> locations;
   final double totalDistance;
   final Duration totalTime;
+  final List<LocationPoint>? allPoints; // Optional, for drawing the path
 
   MapData({
     required this.locations,
     required this.totalDistance,
     required this.totalTime,
+    this.allPoints,
   });
 }
 
@@ -835,6 +858,55 @@ LocationType _inferLocationType(LocationPoint point) {
   } else {
     return LocationType.other;
   }
+}
+
+// Helper functions for cluster-based location inference
+String _inferLocationNameFromCluster(clustering.LocationCluster cluster) {
+  // Generate name based on duration spent at location
+  final minutes = cluster.duration.inMinutes;
+
+  if (minutes < 5) {
+    return 'Brief Stop';
+  } else if (minutes < 30) {
+    return 'Quick Visit';
+  } else if (minutes < 120) {
+    return 'Location Visit';
+  } else {
+    return 'Extended Stay';
+  }
+}
+
+LocationType _inferLocationTypeFromCluster(clustering.LocationCluster cluster) {
+  // Use the average time of the cluster to infer type
+  final hour = cluster.startTime.hour;
+  final duration = cluster.duration;
+
+  // Long stays in evening/night are likely home
+  if ((hour >= 20 || hour <= 7) && duration.inHours >= 4) {
+    return LocationType.home;
+  }
+  // Long stays during work hours are likely work
+  else if (hour >= 9 && hour <= 17 && duration.inHours >= 2) {
+    return LocationType.work;
+  }
+  // Short stays around meal times might be food
+  else if ((hour >= 11 && hour <= 14) || (hour >= 18 && hour <= 20)) {
+    if (duration.inMinutes >= 20 && duration.inMinutes <= 90) {
+      return LocationType.food;
+    }
+  }
+  // Morning/evening short stops might be exercise
+  else if ((hour >= 5 && hour <= 8) || (hour >= 17 && hour <= 19)) {
+    if (duration.inMinutes >= 30 && duration.inMinutes <= 120) {
+      return LocationType.exercise;
+    }
+  }
+  // Weekend afternoon activities might be social
+  else if (cluster.startTime.weekday >= 6 && hour >= 12 && hour <= 20) {
+    return LocationType.social;
+  }
+
+  return LocationType.other;
 }
 
 // Distance calculation helper
