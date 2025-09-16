@@ -1239,7 +1239,7 @@
         "description": "Remove hardcoded timeline events and implement integration with the journal database to fetch real activities and events for timeline display.",
         "details": "Remove the mock hardcoded TimelineEvent data from the timelineEventsProvider (lines 13-63 in timeline_widget.dart) and replace it with actual storage integration. Implement queries to fetch JournalActivities from the journal database for the specified date using the existing JournalDatabase infrastructure. Create a mapping system to convert JournalActivity records to TimelineEvent objects, including proper activity type to icon/color mapping based on activityType field (location, photo, movement, calendar, manual). Update the provider to use ref.watch(journalServiceProvider) or direct database access to fetch activities for the given date. Ensure proper error handling for database queries and maintain the existing async loading behavior with skeleton states. Add proper sorting by timestamp to display events chronologically throughout the day. Consider implementing caching for better performance on frequently accessed dates. The timeline should display real user activities captured by various app sensors and services, providing an accurate daily timeline view.",
         "testStrategy": "Verify that hardcoded mock data no longer appears in the timeline widget. Test timeline display with real journal entries containing activities from the database. Verify proper date filtering shows only activities for the selected date. Test that different activity types (location, photo, movement, calendar, manual) display with appropriate icons and colors. Validate proper chronological sorting of timeline events by timestamp. Test empty state behavior when no activities exist for a selected date. Verify loading states work correctly during database queries. Test error handling when database queries fail. Confirm performance remains smooth when loading timelines for different dates and that skeleton loading states display appropriately during data fetching.",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           2,
           3,
@@ -1401,7 +1401,7 @@
         "description": "Replace the hardcoded picsum.photos placeholder URLs in MediaGalleryWidget's mediaItemsProvider with actual photo service integration using existing PhotoService and MediaDatabase infrastructure.",
         "details": "Remove the mock data in the mediaItemsProvider (lines 13-65 in media_gallery_widget.dart) which currently returns hardcoded MediaItem objects with picsum.photos URLs and placeholder captions. Replace this with real implementation that: 1) Integrates with the existing PhotoService from photo_service_provider.dart to access device media through the photo_manager package, 2) Queries the MediaDatabase via mediaItemsProvider from media_database_provider.dart to fetch actual photos and videos for the specified date, 3) Creates a mapping function to convert MediaItem database records and AssetEntity objects to the MediaItem model used by the widget, 4) Maintains the same provider interface but returns real device photos filtered by the selected date, 5) Uses actual thumbnails from PhotoService.getThumbnail() instead of placeholder URLs, 6) Populates captions and metadata from stored media metadata in the database, 7) Handles permission states properly by checking PhotoService.hasAccess before querying media, 8) Implements proper error handling for cases where photo access is denied or media files are unavailable. The implementation should preserve the existing MediaItem model structure and widget functionality while replacing placeholder data with real photo library integration.",
         "testStrategy": "Verify that placeholder picsum.photos URLs no longer appear in the media gallery. Test media gallery displays real photos and videos from the device photo library when photo permissions are granted. Test proper date filtering shows only media items from the selected date. Verify thumbnail generation works correctly using PhotoService methods. Test error handling displays appropriate messages when photo permissions are denied. Verify loading states work properly while scanning device media. Test that media metadata and captions are populated from stored database records when available.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           2,
           3,
@@ -1441,7 +1441,7 @@
         "description": "Complete the privacy preset implementation in PrivacyQuickStart screen by adding actual preset configuration logic and persistence for different privacy levels (Minimal, Balanced, Maximum).",
         "details": "Implement the missing privacy preset application logic in the PrivacyQuickStart screen by: 1) Creating a PrivacyPresetService that defines three preset configurations - Minimal (basic location tracking, limited data collection), Balanced (moderate privacy with essential features), and Maximum (comprehensive tracking for full functionality), 2) Adding preset data models that specify exact settings for each privacy level including location tracking frequency, data retention periods, backup destinations, AI processing preferences, and third-party integrations, 3) Implementing the applyPreset() method that updates app-wide privacy settings in SharedPreferences or secure storage, including location services permissions, calendar integration toggles, health data access, and backup method selections, 4) Creating a PrivacySettingsProvider using Riverpod to manage privacy state across the app and ensure all services respect the selected privacy level, 5) Adding validation logic to ensure preset changes properly update dependent services like LocationService, CalendarService, and BackupManager, 6) Implementing preset persistence so the selected privacy level survives app restarts and updates the UI accordingly, 7) Adding proper error handling for cases where preset application fails due to permission issues or service unavailability.",
         "testStrategy": "Test each privacy preset selection properly applies the correct configuration settings across all app services. Verify Minimal preset disables non-essential tracking while maintaining core functionality. Test Balanced preset provides reasonable defaults with moderate privacy protection. Validate Maximum preset enables full feature set with appropriate user consent flows. Test preset persistence across app restarts and ensure UI reflects the currently active preset. Verify that changing presets properly updates all dependent services and their permission states. Test error scenarios where preset application might fail and ensure graceful fallback behavior.",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [
           2,
           3,
@@ -1479,7 +1479,7 @@
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-16T13:06:28.252Z",
+      "updated": "2025-09-16T21:15:46.197Z",
       "description": "Tasks for master context"
     }
   }
