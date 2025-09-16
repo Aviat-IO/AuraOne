@@ -259,10 +259,15 @@ class JournalEditorWidget extends HookConsumerWidget {
 
                         if (journalEntry == null) {
                           // Create new entry (shouldn't happen since we auto-create, but just in case)
+                          print('Creating new journal entry for date: $date');
                           await journalService.createEntryForDate(date);
                         } else {
                           // Update existing entry
-                          await journalService.updateJournalEntry(
+                          print('Updating journal entry ID: ${journalEntry.id}');
+                          print('Title: ${titleController.text.trim()}');
+                          print('Content length: ${contentController.text.trim().length}');
+
+                          final success = await journalService.updateJournalEntry(
                             id: journalEntry.id,
                             title: titleController.text.trim().isNotEmpty
                                 ? titleController.text.trim()
@@ -271,11 +276,15 @@ class JournalEditorWidget extends HookConsumerWidget {
                                 ? contentController.text.trim()
                                 : null,
                           );
+
+                          print('Update result: $success');
                         }
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Journal entry saved!')),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Journal entry saved!')),
+                          );
+                        }
                       } catch (error) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(

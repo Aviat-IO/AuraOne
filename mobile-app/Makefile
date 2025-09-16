@@ -110,8 +110,14 @@ release:
 build-apk:
 	@echo "📦 Building APK..."
 	@echo "→ Cleaning Gradle cache to prevent POM errors..."
-	@cd android && ./gradlew clean 2>/dev/null || true
-	fvm flutter build apk --target-platform android-arm64 --split-per-abi 2>&1 | grep -v "Fatal Error.*pom" || true
+	@cd android && ./gradlew clean --quiet 2>/dev/null || true
+	@fvm flutter build apk --target-platform android-arm64 --split-per-abi 2>&1 | \
+		grep -v "Fatal Error.*pom" | \
+		grep -v "source value 8 is obsolete" | \
+		grep -v "target value 8 is obsolete" | \
+		grep -v "To suppress warnings about obsolete options" | \
+		grep -v "getter for minSdkVersion" | \
+		grep -v "Recompile with -Xlint" || true
 	@echo "✅ APK built! Find it in build/app/outputs/flutter-apk/"
 
 # Run tests

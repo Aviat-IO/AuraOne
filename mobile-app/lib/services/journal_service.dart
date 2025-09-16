@@ -177,6 +177,8 @@ class JournalService {
     String? summary,
   }) async {
     try {
+      _logger.info('Updating journal entry $id with: title=${title?.substring(0, 30) ?? 'null'}, content_length=${content?.length ?? 0}');
+
       final result = await _journalDb.updateJournalEntry(
         JournalEntriesCompanion(
           id: Value(id),
@@ -188,7 +190,7 @@ class JournalService {
         ),
       );
 
-      _logger.info('Updated journal entry: $id');
+      _logger.info('Successfully updated journal entry $id: result=$result');
       return result;
     } catch (e, stack) {
       _logger.error('Failed to update journal entry: $id', error: e, stackTrace: stack);
