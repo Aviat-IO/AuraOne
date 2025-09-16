@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -60,6 +61,9 @@ final mapDataProvider = FutureProvider.family<MapData?, DateTime>((ref, date) as
 // Provider for loading state
 final mapLoadingProvider = StateProvider<bool>((ref) => false);
 
+// Provider for focused location
+final focusedLocationProvider = StateProvider<MapLocationPoint?>((ref) => null);
+
 enum LocationType { home, work, food, shopping, exercise, social, other }
 
 class MapLocationPoint {
@@ -108,13 +112,13 @@ class MapWidget extends HookConsumerWidget {
     final mapController = useMemoized(() => MapController(), []);
 
     return mapDataAsync.when(
-      data: (mapData) => _buildMapContent(mapData, theme, isLight, mapController),
+      data: (mapData) => _buildMapContent(mapData, theme, isLight, mapController, ref),
       loading: () => _buildLoadingState(theme),
       error: (error, stack) => _buildErrorState(error, theme),
     );
   }
 
-  Widget _buildMapContent(MapData? mapData, ThemeData theme, bool isLight, MapController mapController) {
+  Widget _buildMapContent(MapData? mapData, ThemeData theme, bool isLight, MapController mapController, WidgetRef ref) {
     return Column(
       children: [
         // Real FlutterMap implementation
@@ -124,7 +128,7 @@ class MapWidget extends HookConsumerWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             clipBehavior: Clip.hardEdge,
-            child: _buildFlutterMap(mapData, theme, mapController),
+            child: _buildFlutterMap(mapData, theme, mapController, ref),
           ),
         ),
 
@@ -184,6 +188,8 @@ class MapWidget extends HookConsumerWidget {
                   location: location,
                   theme: theme,
                   isLight: isLight,
+                  mapController: mapController,
+                  ref: ref,
                 );
               },
             ),
@@ -302,7 +308,7 @@ class MapWidget extends HookConsumerWidget {
     );
   }
 
-  Widget _buildFlutterMap(MapData? mapData, ThemeData theme, MapController mapController) {
+  Widget _buildFlutterMap(MapData? mapData, ThemeData theme, MapController mapController, WidgetRef? ref) {
     if (mapData == null || mapData.locations.isEmpty) {
       return Center(
         child: Column(
@@ -332,6 +338,9 @@ class MapWidget extends HookConsumerWidget {
         ),
       );
     }
+
+    // Get focused location for special marker
+    final focusedLocation = ref?.watch(focusedLocationProvider);
 
     // Calculate map center based on location points
     final locations = mapData.locations;
@@ -450,6 +459,33 @@ class MapWidget extends HookConsumerWidget {
                     ),
                   );
                 }),
+
+                // Focused location marker (special highlight)
+                if (focusedLocation != null)
+                  Marker(
+                    point: LatLng(focusedLocation.latitude, focusedLocation.longitude),
+                    width: 50,
+                    height: 50,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _getLocationColor(focusedLocation.type, theme),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _getLocationColor(focusedLocation.type, theme).withValues(alpha: 0.5),
+                            blurRadius: 10,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        _getLocationIcon(focusedLocation.type),
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ],
@@ -560,6 +596,28 @@ class MapWidget extends HookConsumerWidget {
     }
   }
 
+  void _focusOnLocation(MapLocationPoint location, MapController mapController, WidgetRef ref) {
+    try {
+      // Set focused location for visual feedback
+      ref.read(focusedLocationProvider.notifier).state = location;
+
+      // Center map on the selected location with smooth animation
+      mapController.move(
+        LatLng(location.latitude, location.longitude),
+        16.0, // Zoom level for location detail view
+      );
+
+      // Clear focused state after 5 seconds for better UX
+      Timer(const Duration(seconds: 5), () {
+        if (ref.read(focusedLocationProvider) == location) {
+          ref.read(focusedLocationProvider.notifier).state = null;
+        }
+      });
+    } catch (e) {
+      debugPrint('Error focusing on location: $e');
+    }
+  }
+
   Widget _buildMapControl({
     required IconData icon,
     required VoidCallback onTap,
@@ -618,8 +676,15 @@ class MapWidget extends HookConsumerWidget {
     required MapLocationPoint location,
     required ThemeData theme,
     required bool isLight,
+    required MapController mapController,
+    required WidgetRef ref,
   }) {
     final color = _getLocationColor(location.type, theme);
+    final focusedLocation = ref.watch(focusedLocationProvider);
+    final isSelected = focusedLocation != null &&
+        focusedLocation.latitude == location.latitude &&
+        focusedLocation.longitude == location.longitude &&
+        focusedLocation.time == location.time;
 
     return Container(
       width: 150,
@@ -629,20 +694,37 @@ class MapWidget extends HookConsumerWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            color.withValues(alpha: 0.15),
-            color.withValues(alpha: 0.08),
-          ],
+          colors: isSelected
+              ? [
+                  color.withValues(alpha: 0.3),
+                  color.withValues(alpha: 0.2),
+                ]
+              : [
+                  color.withValues(alpha: 0.15),
+                  color.withValues(alpha: 0.08),
+                ],
         ),
         border: Border.all(
-          color: color.withValues(alpha: 0.3),
+          color: isSelected
+              ? color.withValues(alpha: 0.6)
+              : color.withValues(alpha: 0.3),
+          width: isSelected ? 2 : 1,
         ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // TODO: Focus on location on map
+            _focusOnLocation(location, mapController, ref);
           },
           borderRadius: BorderRadius.circular(12),
           child: Padding(
