@@ -3,19 +3,12 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
-import 'package:go_router/go_router.dart';
 import '../theme/colors.dart';
-import '../widgets/page_header.dart';
 import '../database/journal_database.dart';
 import '../services/journal_service.dart';
+import '../widgets/daily_entry_view.dart';
 import 'home_screen.dart'; // Import for historySelectedDateProvider
-import '../widgets/daily_canvas/timeline_widget.dart';
-import '../widgets/daily_canvas/map_widget.dart';
-import '../widgets/daily_canvas/media_gallery_widget.dart';
-import '../widgets/daily_canvas/journal_editor_widget.dart';
 
-// Provider for sub-tab index in History screen
-final historySubTabIndexProvider = StateProvider<int>((ref) => 0);
 
 // Provider for recent journal entries to show dots on calendar
 final recentJournalEntriesProvider = StreamProvider<List<JournalEntry>>((ref) {
@@ -30,23 +23,10 @@ class HistoryScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final tabController = useTabController(initialLength: 4);
-    final currentSubTab = ref.watch(historySubTabIndexProvider);
 
     // State management
     final selectedDay = useState<DateTime>(DateTime.now());
     final focusedDay = useState(DateTime.now());
-
-    // Sync tab controller with provider
-    useEffect(() {
-      tabController.index = currentSubTab;
-      tabController.addListener(() {
-        if (tabController.index != currentSubTab) {
-          ref.read(historySubTabIndexProvider.notifier).state = tabController.index;
-        }
-      });
-      return null;
-    }, [currentSubTab]);
 
 
     // Check if we have a date from media navigation
@@ -99,109 +79,12 @@ class HistoryScreen extends HookConsumerWidget {
               // Header with date selector
               _buildHeader(context, theme, isLight, selectedDay, focusedDay, ref),
 
-              // Tab content
+              // Daily Entry View for selected date
               Expanded(
-                child: TabBarView(
-                  controller: tabController,
-                  children: [
-                    _TimelineTab(date: selectedDay.value),
-                    _JournalTab(date: selectedDay.value),
-                    _MapTab(date: selectedDay.value),
-                    _MediaTab(date: selectedDay.value),
-                  ],
-                ),
-              ),
-
-              // Sub-tabs at bottom (sticky) - matching main nav bar colors
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: isLight
-                        ? [
-                            AuraColors.lightSurface.withValues(alpha: 0.95),
-                            AuraColors.lightSurface,
-                          ]
-                        : [
-                            AuraColors.darkSurface.withValues(alpha: 0.95),
-                            AuraColors.darkSurface,
-                          ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isLight
-                        ? Colors.black.withValues(alpha: 0.05)
-                        : Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
-                ),
-                child: Container(
-                  margin: const EdgeInsets.fromLTRB(12, 0, 12, 0), // Removed bottom margin to connect with main nav bar
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: TabBar(
-                    controller: tabController,
-                    indicator: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: theme.colorScheme.primaryContainer,
-                    ),
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    indicatorPadding: const EdgeInsets.symmetric(vertical: 6), // Add padding around indicator
-                    labelColor: theme.colorScheme.onPrimaryContainer,
-                    unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12), // Add padding to tabs
-                    tabs: [
-                      Tab(
-                        height: 48, // Standard height with container padding
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.timeline, size: 16),
-                            const SizedBox(height: 4),
-                            Text('Timeline', style: theme.textTheme.labelSmall),
-                          ],
-                        ),
-                      ),
-                      Tab(
-                        height: 48,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.edit_note, size: 16),
-                            const SizedBox(height: 4),
-                            Text('Journal', style: theme.textTheme.labelSmall),
-                          ],
-                        ),
-                      ),
-                      Tab(
-                        height: 48,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.map, size: 16),
-                            const SizedBox(height: 4),
-                            Text('Map', style: theme.textTheme.labelSmall),
-                          ],
-                        ),
-                      ),
-                      Tab(
-                        height: 48,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.photo_library, size: 16),
-                            const SizedBox(height: 4),
-                            Text('Media', style: theme.textTheme.labelSmall),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                child: DailyEntryView(
+                  date: selectedDay.value,
+                  enableAI: true, // Enable AI for history entries too
+                  enableMediaSelection: false, // Disable media selection for history (read-only)
                 ),
               ),
             ],
@@ -387,64 +270,4 @@ class HistoryScreen extends HookConsumerWidget {
     );
   }
 
-}
-
-// Timeline Tab Widget
-class _TimelineTab extends ConsumerWidget {
-  final DateTime date;
-
-  const _TimelineTab({required this.date});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: TimelineWidget(date: date),
-    );
-  }
-}
-
-// Journal Tab Widget
-class _JournalTab extends ConsumerWidget {
-  final DateTime date;
-
-  const _JournalTab({required this.date});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: JournalEditorWidget(date: date),
-    );
-  }
-}
-
-// Map Tab Widget
-class _MapTab extends ConsumerWidget {
-  final DateTime date;
-
-  const _MapTab({required this.date});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: MapWidget(date: date),
-    );
-  }
-}
-
-// Media Tab Widget
-class _MediaTab extends ConsumerWidget {
-  final DateTime date;
-
-  const _MediaTab({required this.date});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: MediaGalleryWidget(date: date),
-    );
-  }
 }
