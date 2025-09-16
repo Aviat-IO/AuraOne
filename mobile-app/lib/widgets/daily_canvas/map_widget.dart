@@ -2,9 +2,11 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../theme/colors.dart';
 import '../../database/location_database.dart';
 
@@ -88,7 +90,7 @@ class MapData {
   });
 }
 
-class MapWidget extends ConsumerWidget {
+class MapWidget extends HookConsumerWidget {
   final DateTime date;
 
   const MapWidget({
@@ -102,14 +104,17 @@ class MapWidget extends ConsumerWidget {
     final isLight = theme.brightness == Brightness.light;
     final mapDataAsync = ref.watch(mapDataProvider(date));
 
+    // Use hook to create and maintain MapController
+    final mapController = useMemoized(() => MapController(), []);
+
     return mapDataAsync.when(
-      data: (mapData) => _buildMapContent(mapData, theme, isLight),
+      data: (mapData) => _buildMapContent(mapData, theme, isLight, mapController),
       loading: () => _buildLoadingState(theme),
       error: (error, stack) => _buildErrorState(error, theme),
     );
   }
 
-  Widget _buildMapContent(MapData? mapData, ThemeData theme, bool isLight) {
+  Widget _buildMapContent(MapData? mapData, ThemeData theme, bool isLight, MapController mapController) {
     return Column(
       children: [
         // Real FlutterMap implementation
@@ -119,7 +124,7 @@ class MapWidget extends ConsumerWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             clipBehavior: Clip.hardEdge,
-            child: _buildFlutterMap(mapData, theme),
+            child: _buildFlutterMap(mapData, theme, mapController),
           ),
         ),
 
@@ -297,7 +302,7 @@ class MapWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildFlutterMap(MapData? mapData, ThemeData theme) {
+  Widget _buildFlutterMap(MapData? mapData, ThemeData theme, MapController mapController) {
     if (mapData == null || mapData.locations.isEmpty) {
       return Center(
         child: Column(
@@ -336,6 +341,7 @@ class MapWidget extends ConsumerWidget {
     return Stack(
       children: [
         FlutterMap(
+          mapController: mapController,
           options: MapOptions(
             initialCenter: LatLng(avgLat, avgLng),
             initialZoom: 13.0,
@@ -449,6 +455,33 @@ class MapWidget extends ConsumerWidget {
           ],
         ),
 
+        // Map controls
+        Positioned(
+          top: 16,
+          right: 16,
+          child: Column(
+            children: [
+              _buildMapControl(
+                icon: Icons.add,
+                onTap: () => _zoomIn(mapController),
+                theme: theme,
+              ),
+              const SizedBox(height: 8),
+              _buildMapControl(
+                icon: Icons.remove,
+                onTap: () => _zoomOut(mapController),
+                theme: theme,
+              ),
+              const SizedBox(height: 8),
+              _buildMapControl(
+                icon: Icons.my_location,
+                onTap: () => _centerOnCurrentLocation(mapController),
+                theme: theme,
+              ),
+            ],
+          ),
+        ),
+
         // Map attribution
         Positioned(
           bottom: 4,
@@ -472,6 +505,84 @@ class MapWidget extends ConsumerWidget {
     );
   }
 
+  // Map control methods
+  void _zoomIn(MapController mapController) {
+    final currentZoom = mapController.camera.zoom;
+    if (currentZoom < 18.0) {
+      mapController.move(
+        mapController.camera.center,
+        (currentZoom + 1).clamp(3.0, 18.0),
+      );
+    }
+  }
+
+  void _zoomOut(MapController mapController) {
+    final currentZoom = mapController.camera.zoom;
+    if (currentZoom > 3.0) {
+      mapController.move(
+        mapController.camera.center,
+        (currentZoom - 1).clamp(3.0, 18.0),
+      );
+    }
+  }
+
+  void _centerOnCurrentLocation(MapController mapController) async {
+    try {
+      // Check location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return; // Permission denied, can't get location
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        return; // Permissions permanently denied
+      }
+
+      // Get current location
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
+
+      // Center map on current location
+      mapController.move(
+        LatLng(position.latitude, position.longitude),
+        15.0, // Zoom to street level
+      );
+    } catch (e) {
+      // Handle location errors silently
+      debugPrint('Error getting current location: $e');
+    }
+  }
+
+  Widget _buildMapControl({
+    required IconData icon,
+    required VoidCallback onTap,
+    required ThemeData theme,
+  }) {
+    return Material(
+      color: theme.colorScheme.surface.withValues(alpha: 0.9),
+      borderRadius: BorderRadius.circular(8),
+      elevation: 2,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          child: Icon(
+            icon,
+            size: 20,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildStat({
     required IconData icon,
