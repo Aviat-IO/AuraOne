@@ -145,7 +145,7 @@ class ActivityRecognitionService {
   Future<void> _loadModel() async {
     try {
       // Check if model exists in assets
-      const modelPath = 'assets/models/har_model.tflite';
+      const modelPath = 'assets/models/preprocessing/har_model.tflite';
 
       // Try to load the model
       try {

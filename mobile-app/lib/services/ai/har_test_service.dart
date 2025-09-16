@@ -58,7 +58,7 @@ class HARTestService {
     }
   }
 
-  /// Download and load the HAR model
+  /// Load the HAR model from assets (with fallback support)
   Future<void> loadModel({bool forceDownload = false}) async {
     if (!_isInitialized) {
       await initialize();
@@ -70,38 +70,26 @@ class HARTestService {
     }
 
     try {
-      _logger.info('Loading HAR model...');
+      _logger.info('Loading HAR model from assets...');
 
-      // Check if model is downloaded
-      String? modelPath = await _downloadManager.getModelPath(_modelId);
+      // Try to load the model directly from assets
+      const assetPath = 'assets/models/preprocessing/har_model.tflite';
+      try {
+        await _tfliteManager.loadModelFromAsset(assetPath, modelId: _modelId);
+        _isModelLoaded = true;
+        _logger.info('HAR model loaded successfully from assets');
 
-      if (modelPath == null || forceDownload) {
-        _logger.info('Downloading HAR model...');
-
-        // Subscribe to download progress
-        final progressStream = _downloadManager.getDownloadProgress(_modelId);
-        if (progressStream != null) {
-          progressStream.listen((progress) {
-            _logger.info('Download progress: ${(progress.progress * 100).toStringAsFixed(1)}%');
-          });
-        }
-
-        modelPath = await _downloadManager.downloadModel(_modelId);
-        _logger.info('HAR model downloaded to: $modelPath');
+        // Log model details
+        _logModelDetails();
+      } catch (e) {
+        _logger.warning('HAR model not available, using fallback mode for testing: $e');
+        // Set as loaded to allow testing with synthetic data using heuristic fallback
+        _isModelLoaded = false; // Keep false to indicate fallback mode
       }
-
-      // Load the model with TFLite manager
-      await _tfliteManager.loadModel(modelPath, modelId: _modelId);
-
-      _isModelLoaded = true;
-      _logger.info('HAR model loaded successfully');
-
-      // Log model details
-      _logModelDetails();
     } catch (e, stack) {
-      _logger.error('Failed to load HAR model', error: e, stackTrace: stack);
+      _logger.error('Failed to initialize HAR model loading', error: e, stackTrace: stack);
       _isModelLoaded = false;
-      throw Exception('Failed to load HAR model: $e');
+      throw Exception('Failed to initialize HAR model loading: $e');
     }
   }
 
@@ -186,60 +174,176 @@ class HARTestService {
     return data;
   }
 
-  /// Test the HAR model with synthetic data
+  /// Test the HAR model with synthetic data (supports fallback mode)
   Future<Map<String, dynamic>> testWithSyntheticData(String activity) async {
-    if (!_isModelLoaded) {
-      await loadModel();
-    }
+    await loadModel(); // Always attempt to load model first
 
     try {
-      _logger.info('Testing HAR model with synthetic $activity data...');
+      _logger.info('Testing HAR with synthetic $activity data...');
 
-      // Get model input shape
-      final inputShape = _tfliteManager.getInputShape(_modelId);
-      _logger.info('Model expects input shape: $inputShape');
-
-      // Generate synthetic sensor data
-      final sensorData = generateSyntheticSensorData(
-        activity: activity,
-        windowSize: inputShape.length > 1 ? inputShape[1] : 128,
-        features: inputShape.length > 2 ? inputShape[2] : 6,
-      );
-
-      // Reshape data to match model input
-      final input = _reshapeInput(sensorData, inputShape);
-
-      // Run inference
-      final startTime = DateTime.now();
-      final outputs = await _tfliteManager.runInference(_modelId, [input]);
-      final inferenceTime = DateTime.now().difference(startTime);
-
-      // Process outputs
-      final predictions = outputs[0] as List<double>;
-      final predictedActivity = _getPredictedActivity(predictions);
-      final confidence = _getConfidence(predictions);
-
-      final result = {
-        'inputActivity': activity,
-        'predictedActivity': predictedActivity,
-        'confidence': confidence,
-        'inferenceTimeMs': inferenceTime.inMilliseconds,
-        'allPredictions': _getAllPredictions(predictions),
-        'modelId': _modelId,
-        'inputShape': inputShape,
-        'outputShape': _tfliteManager.getOutputShape(_modelId),
-      };
-
-      _logger.info('Test completed:');
-      _logger.info('  Input: $activity');
-      _logger.info('  Predicted: $predictedActivity (${(confidence * 100).toStringAsFixed(1)}%)');
-      _logger.info('  Inference time: ${inferenceTime.inMilliseconds}ms');
-
-      return result;
+      if (_isModelLoaded) {
+        // Use actual model inference
+        return await _testWithModelInference(activity);
+      } else {
+        // Use fallback heuristic testing
+        return await _testWithHeuristicFallback(activity);
+      }
     } catch (e, stack) {
       _logger.error('HAR test failed', error: e, stackTrace: stack);
       throw Exception('HAR test failed: $e');
     }
+  }
+
+  /// Test with actual model inference
+  Future<Map<String, dynamic>> _testWithModelInference(String activity) async {
+    // Get model input shape
+    final inputShape = _tfliteManager.getInputShape(_modelId);
+    _logger.info('Model expects input shape: $inputShape');
+
+    // Generate synthetic sensor data
+    final sensorData = generateSyntheticSensorData(
+      activity: activity,
+      windowSize: inputShape.length > 1 ? inputShape[1] : 128,
+      features: inputShape.length > 2 ? inputShape[2] : 6,
+    );
+
+    // Reshape data to match model input
+    final input = _reshapeInput(sensorData, inputShape);
+
+    // Run inference
+    final startTime = DateTime.now();
+    final outputs = await _tfliteManager.runInference(_modelId, [input]);
+    final inferenceTime = DateTime.now().difference(startTime);
+
+    // Process outputs
+    final predictions = outputs[0] as List<double>;
+    final predictedActivity = _getPredictedActivity(predictions);
+    final confidence = _getConfidence(predictions);
+
+    final result = {
+      'inputActivity': activity,
+      'predictedActivity': predictedActivity,
+      'confidence': confidence,
+      'inferenceTimeMs': inferenceTime.inMilliseconds,
+      'allPredictions': _getAllPredictions(predictions),
+      'modelId': _modelId,
+      'inputShape': inputShape,
+      'outputShape': _tfliteManager.getOutputShape(_modelId),
+      'mode': 'model_inference',
+    };
+
+    _logger.info('Model inference completed:');
+    _logger.info('  Input: $activity');
+    _logger.info('  Predicted: $predictedActivity (${(confidence * 100).toStringAsFixed(1)}%)');
+    _logger.info('  Inference time: ${inferenceTime.inMilliseconds}ms');
+
+    return result;
+  }
+
+  /// Test with heuristic fallback (simulates ActivityRecognitionService fallback)
+  Future<Map<String, dynamic>> _testWithHeuristicFallback(String activity) async {
+    _logger.info('Using heuristic fallback for testing');
+
+    // Generate synthetic sensor data with default parameters
+    final sensorData = generateSyntheticSensorData(
+      activity: activity,
+      windowSize: 128,
+      features: 6,
+    );
+
+    // Simulate heuristic analysis (similar to ActivityRecognitionService._heuristicRecognition)
+    final startTime = DateTime.now();
+    final features = _extractHeuristicFeatures(sensorData);
+    final inferenceTime = DateTime.now().difference(startTime);
+
+    // Simple heuristic classification
+    String predictedActivity;
+    double confidence;
+
+    final avgAccelMagnitude = features['accelMagnitude']!;
+    final stdAccel = features['accelStd']!;
+    final avgGyroMagnitude = features['gyroMagnitude']!;
+
+    if (avgAccelMagnitude < 0.5 && stdAccel < 0.2) {
+      predictedActivity = 'Sitting';
+      confidence = 0.8;
+    } else if (avgAccelMagnitude < 2.0 && stdAccel < 1.0) {
+      predictedActivity = 'Walking';
+      confidence = 0.7;
+    } else if (avgAccelMagnitude < 5.0 && stdAccel < 2.0) {
+      predictedActivity = 'Running';
+      confidence = 0.6;
+    } else if (avgGyroMagnitude > 2.0) {
+      predictedActivity = 'Cycling';
+      confidence = 0.5;
+    } else {
+      predictedActivity = 'Standing';
+      confidence = 0.4;
+    }
+
+    final result = {
+      'inputActivity': activity,
+      'predictedActivity': predictedActivity,
+      'confidence': confidence,
+      'inferenceTimeMs': inferenceTime.inMilliseconds,
+      'allPredictions': {
+        predictedActivity: confidence,
+      },
+      'mode': 'heuristic_fallback',
+      'features': features,
+    };
+
+    _logger.info('Heuristic fallback completed:');
+    _logger.info('  Input: $activity');
+    _logger.info('  Predicted: $predictedActivity (${(confidence * 100).toStringAsFixed(1)}%)');
+    _logger.info('  Analysis time: ${inferenceTime.inMilliseconds}ms');
+
+    return result;
+  }
+
+  /// Extract heuristic features from sensor data (similar to ActivityRecognitionService)
+  Map<String, double> _extractHeuristicFeatures(Float32List data) {
+    final features = <String, double>{};
+
+    // Calculate accelerometer magnitude (every 6th element starting from 0,1,2)
+    double sumAccelMag = 0.0;
+    double sumAccelMagSq = 0.0;
+    int accelCount = 0;
+
+    for (int i = 0; i < data.length; i += 6) {
+      if (i + 2 < data.length) {
+        final magnitude = sqrt(data[i] * data[i] + data[i + 1] * data[i + 1] + data[i + 2] * data[i + 2]);
+        sumAccelMag += magnitude;
+        sumAccelMagSq += magnitude * magnitude;
+        accelCount++;
+      }
+    }
+
+    if (accelCount > 0) {
+      final avgMag = sumAccelMag / accelCount;
+      final variance = (sumAccelMagSq / accelCount) - (avgMag * avgMag);
+      features['accelMagnitude'] = avgMag;
+      features['accelStd'] = sqrt(variance);
+    } else {
+      features['accelMagnitude'] = 0.0;
+      features['accelStd'] = 0.0;
+    }
+
+    // Calculate gyroscope magnitude (every 6th element starting from 3,4,5)
+    double sumGyroMag = 0.0;
+    int gyroCount = 0;
+
+    for (int i = 3; i < data.length; i += 6) {
+      if (i + 2 < data.length) {
+        final magnitude = sqrt(data[i] * data[i] + data[i + 1] * data[i + 1] + data[i + 2] * data[i + 2]);
+        sumGyroMag += magnitude;
+        gyroCount++;
+      }
+    }
+
+    features['gyroMagnitude'] = gyroCount > 0 ? sumGyroMag / gyroCount : 0.0;
+
+    return features;
   }
 
   /// Test with real sensor data
@@ -402,6 +506,7 @@ class HARTestService {
       'initialized': _isInitialized,
       'modelLoaded': _isModelLoaded,
       'modelId': _modelId,
+      'mode': _isModelLoaded ? 'model_inference' : 'heuristic_fallback',
       'accelerationStatus': _tfliteManager.getAccelerationStatus(),
       'activityClasses': _activityLabels,
     };
