@@ -6,7 +6,7 @@
       "description": "Implement seasonal, weekly, and habit pattern detection with anomaly identification - 100% on-device",
       "status": "pending",
       "priority": "high",
-      "dependencies": ["3"],
+      "dependencies": [],
       "details": "Build comprehensive pattern recognition using statistical analysis and time-series algorithms. Include seasonal pattern detection, weekly routine optimization, habit formation tracking, and anomaly detection for unusual days. Use 90-day rolling window in SQLite.",
       "testStrategy": "Test pattern detection accuracy with synthetic and real data. Verify seasonal detection across different time periods. Test anomaly detection with edge cases.",
       "subtasks": []
