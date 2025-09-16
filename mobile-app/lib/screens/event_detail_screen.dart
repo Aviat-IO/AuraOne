@@ -318,7 +318,7 @@ class EventDetailScreen extends ConsumerWidget {
         return Colors.blue;
       case EventType.work:
         return Colors.orange;
-      case EventType.meal:
+      case EventType.movement:
         return Colors.green;
       case EventType.social:
         return Colors.purple;
@@ -335,8 +335,8 @@ class EventDetailScreen extends ConsumerWidget {
         return 'Routine';
       case EventType.work:
         return 'Work';
-      case EventType.meal:
-        return 'Meal';
+      case EventType.movement:
+        return 'Movement';
       case EventType.social:
         return 'Social';
       case EventType.exercise:
@@ -352,8 +352,8 @@ class EventDetailScreen extends ConsumerWidget {
         return '30 minutes';
       case EventType.work:
         return '2-4 hours';
-      case EventType.meal:
-        return '30-45 minutes';
+      case EventType.movement:
+        return '15-30 minutes';
       case EventType.social:
         return '1-2 hours';
       case EventType.exercise:

@@ -48,7 +48,7 @@ class MediaPickerService {
       _logger.debug('All permissions granted: $hasAllPermissions');
       return hasAllPermissions;
     } catch (e, stack) {
-      _logger.error('Error checking/requesting permissions: $e');
+      _logger.error('Error checking/requesting permissions: $e', error: e, stackTrace: stack);
       return false;
     }
   }
@@ -87,7 +87,7 @@ class MediaPickerService {
 
       return null;
     } catch (e, stack) {
-      _logger.error('Error capturing photo: $e');
+      _logger.error('Error capturing photo: $e', error: e, stackTrace: stack);
       rethrow;
     }
   }
@@ -115,7 +115,7 @@ class MediaPickerService {
 
       return null;
     } catch (e, stack) {
-      _logger.error('Error picking photo from gallery: $e');
+      _logger.error('Error picking photo from gallery: $e', error: e, stackTrace: stack);
       rethrow;
     }
   }
@@ -143,7 +143,7 @@ class MediaPickerService {
 
       return null;
     } catch (e, stack) {
-      _logger.error('Error recording video: $e');
+      _logger.error('Error recording video: $e', error: e, stackTrace: stack);
       rethrow;
     }
   }
@@ -171,7 +171,7 @@ class MediaPickerService {
 
       return null;
     } catch (e, stack) {
-      _logger.error('Error picking video from gallery', e, stack);
+      _logger.error('Error picking video from gallery', error: e, stackTrace: stack);
       rethrow;
     }
   }
@@ -248,7 +248,7 @@ class MediaPickerService {
 
           _logger.debug('Image processed and marked as complete: $mediaId');
         } catch (e, stack) {
-          _logger.warning('Could not process image with PhotoService, marking as processed anyway', e, stack);
+          _logger.warning('Could not process image with PhotoService, marking as processed anyway', error: e, stackTrace: stack);
           await mediaManagement.markMediaProcessed(mediaId);
         }
       } else {
@@ -258,7 +258,7 @@ class MediaPickerService {
       }
 
     } catch (e, stack) {
-      _logger.error('Error processing and storing media', e, stack);
+      _logger.error('Error processing and storing media', error: e, stackTrace: stack);
       rethrow;
     }
   }

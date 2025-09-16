@@ -197,6 +197,25 @@ class JournalDatabase extends _$JournalDatabase {
         .watch();
   }
 
+  // Get activities for a specific date by first getting the journal entry
+  Future<List<JournalActivity>> getActivitiesForDate(DateTime date) async {
+    final journalEntry = await getJournalEntryForDate(date);
+    if (journalEntry == null) {
+      return [];
+    }
+    return getActivitiesForEntry(journalEntry.id);
+  }
+
+  // Watch activities for a specific date
+  Stream<List<JournalActivity>> watchActivitiesForDate(DateTime date) async* {
+    final journalEntry = await getJournalEntryForDate(date);
+    if (journalEntry == null) {
+      yield [];
+      return;
+    }
+    yield* watchActivitiesForEntry(journalEntry.id);
+  }
+
   // Journal Templates Methods
   Future<int> insertJournalTemplate(JournalTemplatesCompanion template) {
     return into(journalTemplates).insert(template);

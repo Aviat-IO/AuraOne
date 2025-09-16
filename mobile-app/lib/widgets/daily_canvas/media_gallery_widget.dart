@@ -161,7 +161,7 @@ class MediaGalleryWidget extends ConsumerWidget {
           // Gallery content
           Expanded(
             child: mediaItems.isEmpty
-                ? _buildEmptyState(theme)
+                ? _buildEmptyState(theme, context, ref)
                 : _buildGalleryContent(
                     mediaItems: mediaItems,
                     viewMode: viewMode,
@@ -255,7 +255,7 @@ class MediaGalleryWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(ThemeData theme) {
+  Widget _buildEmptyState(ThemeData theme, BuildContext context, WidgetRef ref) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

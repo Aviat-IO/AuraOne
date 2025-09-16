@@ -1,72 +1,114 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:go_router/go_router.dart';
+import '../../database/journal_database.dart';
+import '../../services/journal_service.dart';
 
-// Provider for timeline events with async loading simulation
+// Provider for timeline events from journal database
 final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTime>((ref, date) async {
-  // Simulate loading delay
-  await Future.delayed(const Duration(milliseconds: 600));
+  final journalDb = ref.watch(journalDatabaseProvider);
 
-  // TODO: Replace with actual data from storage
-  return [
-    TimelineEvent(
-      time: DateTime(date.year, date.month, date.day, 7, 30),
-      title: 'Morning Routine',
-      description: 'Wake up, meditation, and breakfast',
-      type: EventType.routine,
-      icon: Icons.wb_sunny,
-    ),
-    TimelineEvent(
-      time: DateTime(date.year, date.month, date.day, 9, 0),
-      title: 'Work Session',
-      description: 'Focus time on project tasks',
-      type: EventType.work,
-      icon: Icons.work,
-    ),
-    TimelineEvent(
-      time: DateTime(date.year, date.month, date.day, 12, 30),
-      title: 'Lunch Break',
-      description: 'Healthy meal and short walk',
-      type: EventType.meal,
-      icon: Icons.restaurant,
-    ),
-    TimelineEvent(
-      time: DateTime(date.year, date.month, date.day, 15, 0),
-      title: 'Meeting',
-      description: 'Team sync and planning',
-      type: EventType.social,
-      icon: Icons.people,
-    ),
-    TimelineEvent(
-      time: DateTime(date.year, date.month, date.day, 18, 0),
-      title: 'Exercise',
-      description: 'Gym workout - upper body',
-      type: EventType.exercise,
-      icon: Icons.fitness_center,
-    ),
-    TimelineEvent(
-      time: DateTime(date.year, date.month, date.day, 20, 0),
-      title: 'Dinner',
-      description: 'Family dinner at home',
-      type: EventType.meal,
-      icon: Icons.dinner_dining,
-    ),
-    TimelineEvent(
-      time: DateTime(date.year, date.month, date.day, 22, 0),
-      title: 'Evening Routine',
-      description: 'Reading and relaxation',
-      type: EventType.routine,
-      icon: Icons.book,
-    ),
-  ];
+  // Get activities from the journal database for the selected date
+  final activities = await journalDb.getActivitiesForDate(date);
+
+  // Convert JournalActivity to TimelineEvent
+  final events = activities.map((activity) {
+    // Parse metadata if available
+    Map<String, dynamic>? metadata;
+    if (activity.metadata != null) {
+      try {
+        metadata = jsonDecode(activity.metadata!);
+      } catch (_) {
+        metadata = null;
+      }
+    }
+
+    // Map activity type to EventType and icon
+    EventType eventType;
+    IconData icon;
+
+    switch (activity.activityType) {
+      case 'location':
+        eventType = EventType.routine;
+        icon = Icons.location_on;
+        break;
+      case 'photo':
+        eventType = EventType.leisure;
+        icon = Icons.photo_camera;
+        break;
+      case 'movement':
+        eventType = EventType.exercise;
+        icon = Icons.directions_walk;
+        break;
+      case 'calendar':
+        eventType = EventType.work;
+        icon = Icons.event;
+        break;
+      case 'manual':
+        eventType = EventType.routine;
+        icon = Icons.edit_note;
+        break;
+      default:
+        eventType = EventType.routine;
+        icon = Icons.circle;
+    }
+
+    // Extract title from description or use activity type
+    String title = activity.description;
+    if (title.length > 30) {
+      // Extract first part as title if description is long
+      final parts = title.split(' - ');
+      if (parts.length > 1) {
+        title = parts[0];
+      } else {
+        title = activity.activityType[0].toUpperCase() + activity.activityType.substring(1);
+      }
+    }
+
+    // Create detailed description from metadata
+    String description = activity.description;
+    if (metadata != null) {
+      final details = <String>[];
+      if (metadata['duration'] != null) {
+        details.add('Duration: ${metadata['duration']}');
+      }
+      if (metadata['distance'] != null) {
+        details.add('Distance: ${metadata['distance']}');
+      }
+      if (metadata['steps'] != null) {
+        details.add('Steps: ${metadata['steps']}');
+      }
+      if (metadata['count'] != null) {
+        details.add('Count: ${metadata['count']}');
+      }
+      if (details.isNotEmpty) {
+        description = details.join(', ');
+      }
+    }
+
+    return TimelineEvent(
+      time: activity.timestamp,
+      title: title,
+      description: description,
+      type: eventType,
+      icon: icon,
+    );
+  }).toList();
+
+  // Sort events by time
+  events.sort((a, b) => a.time.compareTo(b.time));
+
+  // If no events exist, return empty list (will show empty state)
+  return events;
 });
 
 // Provider for loading state
 final timelineLoadingProvider = StateProvider<bool>((ref) => false);
 
-enum EventType { routine, work, meal, social, exercise, leisure }
+enum EventType { routine, work, movement, social, exercise, leisure }
 
 class TimelineEvent {
   final DateTime time;
@@ -474,7 +516,7 @@ class TimelineWidget extends ConsumerWidget {
         return theme.colorScheme.primary;
       case EventType.work:
         return Colors.blue;
-      case EventType.meal:
+      case EventType.movement:
         return Colors.orange;
       case EventType.social:
         return Colors.purple;
