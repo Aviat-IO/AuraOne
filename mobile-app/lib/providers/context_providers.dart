@@ -2,6 +2,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/ai/personal_context_engine.dart';
 import '../services/data_fusion/multi_modal_fusion_engine.dart';
+import '../utils/logger.dart';
 import 'database_provider.dart';
 import 'fusion_providers.dart';
 
@@ -69,9 +70,13 @@ final dailyNarrativeProvider = FutureProvider.family<PersonalDailyNarrative?, Da
       includeRecommendations: true,
     );
     return narrative;
-  } catch (e) {
-    // Log error but don't crash
-    // TODO: Replace with proper logging
+  } catch (e, stackTrace) {
+    // Log error but don't crash - return safe fallback
+    appLogger.error(
+      'Failed to generate narrative for date: $date',
+      error: e,
+      stackTrace: stackTrace,
+    );
     return null;
   }
 });
