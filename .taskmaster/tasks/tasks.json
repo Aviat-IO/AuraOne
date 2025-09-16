@@ -1366,7 +1366,7 @@
         "description": "Implement crash reporting integration using Firebase Crashlytics or Sentry to replace the TODO in ErrorHandler and enable production error monitoring and debugging.",
         "details": "Replace the TODO comment in ErrorHandler class with a complete crash reporting implementation. First, analyze the existing error handling patterns in the codebase and choose between Firebase Crashlytics and Sentry based on project requirements. For Firebase Crashlytics: 1) Add firebase_crashlytics dependency to pubspec.yaml, 2) Configure Firebase project with google-services.json (Android) and GoogleService-Info.plist (iOS), 3) Initialize Crashlytics in main.dart before runApp(), 4) Implement crash reporting in ErrorHandler.logError() method to send exceptions with context including user ID, app version, and relevant metadata, 5) Add custom logging for non-fatal errors using FirebaseCrashlytics.instance.recordError(). For Sentry: 1) Add sentry_flutter dependency, 2) Initialize Sentry with DSN in main.dart using SentryFlutter.init(), 3) Wrap runApp() with Sentry.runWithChild(), 4) Implement error reporting in ErrorHandler using Sentry.captureException(). Ensure error reporting respects user privacy settings and includes relevant context like current screen, user actions, and device information. Add configuration to disable crash reporting in debug builds using kDebugMode flag.",
         "testStrategy": "Test crash reporting integration by triggering intentional crashes in debug builds and verifying they appear in the chosen service dashboard. Test non-fatal error logging by triggering various error scenarios throughout the app. Verify that user context and metadata are properly attached to crash reports. Test that crash reporting is disabled in debug mode and enabled in release builds. Validate that sensitive user data is not included in crash reports by reviewing the data sent to the service.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
         "subtasks": []
@@ -1394,7 +1394,7 @@
         "description": "Replace the TODO comment at line 74 in context_providers.dart with proper error logging implementation using the existing AppLogger utility for better error tracking and debugging in the PersonalContextEngine narrative generation.",
         "details": "Replace the TODO comment 'Replace with proper logging' at line 74 in context_providers.dart with proper error logging implementation. The project already has a comprehensive logging system using the logger package and AppLogger utility class in lib/utils/logger.dart. Implementation steps: 1) Import the existing AppLogger by adding 'import '../utils/logger.dart';' to the imports section of context_providers.dart, 2) Replace the TODO comment and basic print statement with proper error logging using appLogger.error() method that includes the error object, stackTrace, and contextual information about the narrative generation failure, 3) Add appropriate error context such as the date parameter and engine state to help with debugging, 4) Consider using appLogger.warning() for non-critical errors that shouldn't crash the app but should be tracked, 5) Ensure the logging follows the existing pattern used throughout the codebase where errors are logged but don't prevent the method from returning a safe fallback value (null in this case).",
         "testStrategy": "Test error logging by triggering narrative generation failures and verifying proper error messages appear in the console with appropriate log levels. Test that the logging doesn't interfere with the app's functionality and null is still returned when errors occur. Verify that logged errors include sufficient context information (date, error details, stack trace) for debugging purposes. Test both debug and release builds to ensure logging behaves correctly according to the AppLogger configuration (debug logs only in debug mode, warnings and errors in both modes).",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
         "subtasks": []
@@ -1415,7 +1415,7 @@
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-16T10:12:31.071Z",
+      "updated": "2025-09-16T10:28:10.516Z",
       "description": "Tasks for master context"
     }
   }

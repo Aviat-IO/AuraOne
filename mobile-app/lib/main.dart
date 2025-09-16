@@ -1,6 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:sentry/sentry.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:models/models.dart';
 import 'package:path/path.dart' as path;
@@ -21,28 +24,86 @@ import 'package:aura_one/providers/fusion_providers.dart';
 import 'package:aura_one/providers/context_providers.dart';
 import 'package:aura_one/providers/settings_providers.dart';
 import 'package:aura_one/services/journal_service.dart';
+import 'package:aura_one/config/sentry_config.dart';
 
-void main() {
-  // Initialize error handling first
-  ErrorHandler.initialize();
+void main() async {
+  // Ensure Flutter binding is initialized
+  WidgetsFlutterBinding.ensureInitialized();
 
   // Log app startup
   appLogger.info('Aura One starting...');
 
-  runZonedGuarded(() {
-    runApp(
-      ProviderScope(
-        overrides: [
-          storageNotifierProvider.overrideWith(
-            (ref) => PurplebaseStorageNotifier(ref),
+  // Initialize Sentry for crash reporting
+  await SentryFlutter.init(
+    (options) {
+      // Use DSN from configuration
+      options.dsn = SentryConfig.dsn;
+
+      // Set sample rates based on build mode
+      options.tracesSampleRate = kDebugMode
+          ? SentryConfig.debugTracesSampleRate
+          : SentryConfig.productionTracesSampleRate;
+      options.profilesSampleRate = kDebugMode
+          ? SentryConfig.debugProfilesSampleRate
+          : SentryConfig.productionProfilesSampleRate;
+
+      // Configure environment
+      options.environment = kDebugMode
+          ? SentryConfig.developmentEnvironment
+          : SentryConfig.productionEnvironment;
+
+      // Session tracking
+      options.enableAutoSessionTracking = SentryConfig.enableAutoSessionTracking && !kDebugMode;
+      options.autoSessionTrackingInterval = SentryConfig.autoSessionTrackingInterval;
+
+      // Set release version
+      options.release = SentryConfig.release;
+
+      // Privacy settings
+      options.sendDefaultPii = SentryConfig.sendDefaultPii;
+      options.attachScreenshot = SentryConfig.attachScreenshot;
+      options.attachViewHierarchy = SentryConfig.attachViewHierarchy;
+
+      // Breadcrumb configuration
+      options.maxBreadcrumbs = SentryConfig.maxBreadcrumbs;
+      options.enableAutoNativeBreadcrumbs = SentryConfig.enableAutoNativeBreadcrumbs;
+
+      // Configure before send callback for additional privacy filtering
+      options.beforeSend = (SentryEvent event, Hint hint) async {
+        // Skip sending if no DSN configured
+        if (SentryConfig.dsn.isEmpty) {
+          return null;
+        }
+
+        // Filter out sensitive error types if needed
+        if (event.throwable is NetworkImageLoadException) {
+          // Don't report image loading errors (might contain URLs with sensitive data)
+          return null;
+        }
+
+        return event;
+      };
+    },
+    appRunner: () {
+      // Initialize error handling after Sentry
+      ErrorHandler.initialize();
+
+      runZonedGuarded(() {
+        runApp(
+          ProviderScope(
+            overrides: [
+              storageNotifierProvider.overrideWith(
+                (ref) => PurplebaseStorageNotifier(ref),
+              ),
+            ],
+            child: const AuraOneApp(),
           ),
-        ],
-        child: const AuraOneApp(),
-      ),
-    );
-  }, (error, stack) {
-    ErrorHandler.handleError(error, stack);
-  });
+        );
+      }, (error, stack) {
+        ErrorHandler.handleError(error, stack);
+      });
+    },
+  );
 }
 
 class AuraOneApp extends ConsumerWidget {

@@ -89,6 +89,7 @@ dependencies:
   device_info_plus: ^11.5.0
   string_similarity: ^2.1.1
   fuzzy: ^0.5.1
+  sentry_flutter: ^9.6.0
   # flutter_gemma: ^0.1.0  # Temporarily commented due to dependency conflict
 
 dependency_overrides:
