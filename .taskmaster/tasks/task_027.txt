@@ -1,0 +1,11 @@
+# Task ID: 27
+# Title: Implement add media functionality for MediaGalleryWidget - camera/gallery picker integration
+# Status: pending
+# Dependencies: 20, 15
+# Priority: medium
+# Description: Implement the TODO at line 281 in MediaGalleryWidget by adding camera and gallery picker functionality to allow users to capture new photos or select existing ones from their device.
+# Details:
+Implement the missing 'Add Media' functionality in MediaGalleryWidget by: 1) Adding the `image_picker` package dependency to pubspec.yaml for camera and gallery access, 2) Creating a MediaPickerService that handles camera capture, gallery selection, and permission management using both image_picker and the existing photo_manager integration, 3) Implementing a bottom sheet or dialog that presents users with options to 'Take Photo', 'Choose from Gallery', and 'Cancel', 4) Integrating with the existing PhotoService and MediaDatabase infrastructure to store newly captured/selected media items, 5) Updating the MediaGalleryWidget's 'Add Media' button at line 281 to trigger the new picker functionality, 6) Adding proper error handling for permission denials, camera unavailability, and storage issues, 7) Ensuring new media items are immediately visible in the gallery view after selection/capture by refreshing the mediaItemsProvider. The implementation should leverage the existing robust media infrastructure including MediaDatabase for storage, PhotoService for processing, and the comprehensive metadata extraction capabilities already in place.
+
+# Test Strategy:
+Test the 'Add Media' button functionality by verifying the picker dialog/bottom sheet appears with camera and gallery options. Test camera capture functionality creates new photos that appear immediately in the MediaGalleryWidget. Test gallery selection allows picking existing photos that get added to the current day's media collection. Verify proper permission handling for camera and photo library access. Test error scenarios including permission denial, camera unavailability, and storage failures. Validate that new media items integrate properly with the existing MediaDatabase, appearing in the correct date's media collection with proper metadata extraction.

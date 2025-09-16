@@ -1232,11 +1232,190 @@
             "testStrategy": "Test backup creation and restoration across different cloud providers. Verify incremental backup functionality reduces transfer times and storage usage. Test backup verification system ensures data integrity after backup operations. Validate configuration management and provider switching works correctly."
           }
         ]
+      },
+      {
+        "id": 24,
+        "title": "Replace mock timeline data with actual storage implementation in TimelineWidget",
+        "description": "Remove hardcoded timeline events and implement integration with the journal database to fetch real activities and events for timeline display.",
+        "details": "Remove the mock hardcoded TimelineEvent data from the timelineEventsProvider (lines 13-63 in timeline_widget.dart) and replace it with actual storage integration. Implement queries to fetch JournalActivities from the journal database for the specified date using the existing JournalDatabase infrastructure. Create a mapping system to convert JournalActivity records to TimelineEvent objects, including proper activity type to icon/color mapping based on activityType field (location, photo, movement, calendar, manual). Update the provider to use ref.watch(journalServiceProvider) or direct database access to fetch activities for the given date. Ensure proper error handling for database queries and maintain the existing async loading behavior with skeleton states. Add proper sorting by timestamp to display events chronologically throughout the day. Consider implementing caching for better performance on frequently accessed dates. The timeline should display real user activities captured by various app sensors and services, providing an accurate daily timeline view.",
+        "testStrategy": "Verify that hardcoded mock data no longer appears in the timeline widget. Test timeline display with real journal entries containing activities from the database. Verify proper date filtering shows only activities for the selected date. Test that different activity types (location, photo, movement, calendar, manual) display with appropriate icons and colors. Validate proper chronological sorting of timeline events by timestamp. Test empty state behavior when no activities exist for a selected date. Verify loading states work correctly during database queries. Test error handling when database queries fail. Confirm performance remains smooth when loading timelines for different dates and that skeleton loading states display appropriately during data fetching.",
+        "status": "pending",
+        "dependencies": [
+          2,
+          3,
+          4
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 25,
+        "title": "Implement Timeline Event Details Click Handler",
+        "description": "Create event detail functionality for timeline events by implementing the TODO click handler at line 295 in timeline_widget.dart, including navigation to a detailed event view screen.",
+        "details": "Implement the missing click handler functionality for timeline events in the TimelineWidget. Currently at line 295 in timeline_widget.dart, there is a TODO comment for 'Open event details' in the InkWell onTap callback. This task involves: 1) Creating a new EventDetailScreen to display comprehensive event information including time, title, description, type, duration, related media, and contextual data, 2) Adding the new screen route '/event-detail' to router.dart with proper parameter passing for event data, 3) Implementing the onTap callback in timeline_widget.dart to navigate to EventDetailScreen using context.push() with event data as parameters, 4) Designing the event detail screen with Material 3 styling that shows event metadata, allows editing of event details, and provides options to add notes or media, 5) Adding proper error handling and loading states for the detail screen, 6) Implementing back navigation and proper screen transitions. The detail screen should follow the existing app's design patterns with appropriate use of Material 3 components, proper spacing, and responsive layout.",
+        "testStrategy": "Verify that tapping on any timeline event properly navigates to the event detail screen with correct event data passed. Test the event detail screen displays all event information accurately including time, title, description, and type. Validate back navigation works correctly from the detail screen. Test the screen layout and responsiveness across different device sizes and orientations. Verify Material 3 styling consistency with the rest of the app. Test error handling when invalid event data is passed. Validate screen transitions and animations are smooth and follow Material Design guidelines.",
+        "status": "pending",
+        "dependencies": [
+          15
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 26,
+        "title": "Replace mock media gallery with actual device media access",
+        "description": "Remove hardcoded picsum.photos placeholder URLs from MediaGalleryWidget and implement integration with the existing PhotoService and MediaDatabase to display real device photos and videos.",
+        "details": "Replace the mock data in the mediaItemsProvider (lines 13-65 in media_gallery_widget.dart) which currently uses hardcoded picsum.photos URLs and placeholder captions. Integrate with the existing PhotoService from photo_service.dart to access real device media through the photo_manager package. Implement a new provider that queries the MediaDatabase via mediaItemsProvider from media_database_provider.dart to fetch actual photos and videos for the specified date. Create a mapping function to convert MediaItem database records to the MediaItem model used by the widget, ensuring proper thumbnail generation using the PhotoService's generateThumbnail method. Update the widget to handle real media metadata including actual file paths, timestamps, GPS coordinates from EXIF data, and person tags from face detection. Implement proper error handling for media access permissions using the existing PhotoService permission system. Add support for displaying video thumbnails with play icons and proper duration formatting. Ensure the gallery properly filters media items by the selected date using the MediaDatabase date filtering capabilities.",
+        "testStrategy": "Verify that placeholder picsum.photos URLs no longer appear in the media gallery. Test media gallery displays real photos and videos from the device photo library when photo permissions are granted. Test proper date filtering shows only media items from the selected date. Verify thumbnail generation works correctly for both photos and videos using the PhotoService. Test that metadata display includes actual timestamps, locations (if available in EXIF), and file information. Validate proper handling of permission states (granted, limited, denied) with appropriate UI feedback. Test video thumbnails display with play icons and duration information. Verify performance with large media collections and proper pagination/loading states. Test empty state displays when no media exists for the selected date.",
+        "status": "pending",
+        "dependencies": [
+          2,
+          3
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 27,
+        "title": "Implement add media functionality for MediaGalleryWidget - camera/gallery picker integration",
+        "description": "Implement the TODO at line 281 in MediaGalleryWidget by adding camera and gallery picker functionality to allow users to capture new photos or select existing ones from their device.",
+        "details": "Implement the missing 'Add Media' functionality in MediaGalleryWidget by: 1) Adding the `image_picker` package dependency to pubspec.yaml for camera and gallery access, 2) Creating a MediaPickerService that handles camera capture, gallery selection, and permission management using both image_picker and the existing photo_manager integration, 3) Implementing a bottom sheet or dialog that presents users with options to 'Take Photo', 'Choose from Gallery', and 'Cancel', 4) Integrating with the existing PhotoService and MediaDatabase infrastructure to store newly captured/selected media items, 5) Updating the MediaGalleryWidget's 'Add Media' button at line 281 to trigger the new picker functionality, 6) Adding proper error handling for permission denials, camera unavailability, and storage issues, 7) Ensuring new media items are immediately visible in the gallery view after selection/capture by refreshing the mediaItemsProvider. The implementation should leverage the existing robust media infrastructure including MediaDatabase for storage, PhotoService for processing, and the comprehensive metadata extraction capabilities already in place.",
+        "testStrategy": "Test the 'Add Media' button functionality by verifying the picker dialog/bottom sheet appears with camera and gallery options. Test camera capture functionality creates new photos that appear immediately in the MediaGalleryWidget. Test gallery selection allows picking existing photos that get added to the current day's media collection. Verify proper permission handling for camera and photo library access. Test error scenarios including permission denial, camera unavailability, and storage failures. Validate that new media items integrate properly with the existing MediaDatabase, appearing in the correct date's media collection with proper metadata extraction.",
+        "status": "pending",
+        "dependencies": [
+          20,
+          15
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 28,
+        "title": "Replace mock map with real map integration using flutter_map and GPS data",
+        "description": "Replace the placeholder map UI in MapWidget with a real interactive map using flutter_map package and integrate with existing location database to display actual GPS tracking data and location points.",
+        "details": "Remove the mock placeholder map UI from MapWidget (lines 100-133) and replace it with a real interactive map implementation using the existing flutter_map package (already in pubspec.yaml at line 69). The implementation should: 1) Replace the placeholder Container with a FlutterMap widget configured with OpenStreetMap tiles, 2) Integrate with the existing LocationDatabase to query LocationPoints for the selected date using the locationDatabaseProvider, 3) Display location points as markers on the map with proper icons based on activity type (walking, driving, stationary), 4) Add polyline connections between consecutive location points to show movement paths with different colors for different activity types, 5) Implement the TODO functionalities for map controls including zoom in/out (lines 144-155) and center on current location (lines 158-163), 6) Update the location card tap handler (line 428) to center the map on the selected location, 7) Calculate real distance traveled using the Haversine formula between consecutive GPS points instead of mock data (line 36), 8) Integrate with existing GeofenceAreas to display named locations and boundaries on the map, 9) Handle loading states properly while GPS data is being fetched from the database, 10) Add proper error handling for map loading failures and missing GPS data scenarios. The map should maintain the existing UI structure with location stats and horizontal location list while replacing only the placeholder map area with the real interactive map functionality.",
+        "testStrategy": "Verify that the placeholder map UI is completely replaced with an interactive flutter_map widget displaying OpenStreetMap tiles. Test that real GPS location points from the LocationDatabase are displayed as markers on the map with correct icons for different activity types. Verify polylines connect consecutive location points showing actual movement paths with appropriate colors. Test map controls functionality including zoom in/out and center on current location. Confirm that tapping location cards in the horizontal list centers the map on the selected location. Verify real distance calculations using GPS points instead of mock distance values. Test geofence areas display correctly as boundaries on the map. Validate proper loading states while location data is being fetched and error handling for map loading failures or missing GPS data.",
+        "status": "pending",
+        "dependencies": [
+          3,
+          2
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 29,
+        "title": "Implement map controls - Zoom in/out buttons and center on location functionality",
+        "description": "Implement the three TODO items at lines 144, 152, and 160 in map_widget.dart by adding zoom in/out functionality and center on current location capability using flutter_map MapController.",
+        "details": "Implement the missing map control functionality in the MapWidget by: 1) Adding a MapController from the flutter_map package to manage map interactions and state, 2) Creating a provider or state management solution to handle the MapController instance and zoom level state, 3) Implementing zoom in functionality that increases the zoom level by 1 and animates to the new zoom level using mapController.move(), 4) Implementing zoom out functionality that decreases the zoom level by 1 with smooth animation, 5) Implementing center on location functionality that gets the user's current location using the existing location services and animates the map to center on that position, 6) Adding proper error handling for location permissions and GPS availability, 7) Integrating with the existing location data from the LocationService to show actual user location data on the map instead of the current placeholder, 8) Adding visual feedback during location centering operations with loading states, and 9) Ensuring the map controls work smoothly with the existing map placeholder and integrate properly with the flutter_map widget when the actual map implementation is added.",
+        "testStrategy": "Test zoom in button increases map zoom level smoothly with proper animation. Test zoom out button decreases zoom level with smooth transition. Test that zoom controls respect minimum and maximum zoom limits. Test center on location button triggers location permission request if needed and centers map on user's current location. Verify that location centering shows loading state while fetching GPS coordinates. Test error handling when location services are disabled or permission is denied. Validate that map controls maintain proper visual styling and positioning across different screen sizes. Test integration with existing location data providers and ensure map state persists correctly during widget rebuilds.",
+        "status": "pending",
+        "dependencies": [
+          3,
+          15
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 30,
+        "title": "Implement focus on location map functionality - location card tap handler",
+        "description": "Implement the TODO at line 428 in map_widget.dart to enable focusing/centering on a specific location when tapping location cards in the daily canvas map widget.",
+        "details": "Implement the missing 'Focus on location on map' functionality in the MapWidget's location card tap handler by: 1) Creating a MapController provider or state management solution to coordinate between the MapWidget and any actual FlutterMap instances (similar to the existing implementation in home_screen.dart), 2) Adding a callback parameter to MapWidget that can be triggered when location cards are tapped, passing the LocationPoint data including latitude, longitude, and location details, 3) Implementing the onTap handler in _buildLocationCard to trigger map focus functionality that will center the map view on the selected location's coordinates, 4) Adding smooth animation when centering on the location using MapController.move() with appropriate zoom level (e.g., zoom level 16-18 for detailed location view), 5) Adding visual feedback such as highlighting the selected location card and/or showing a temporary marker or pulse effect on the map at the focused location, 6) Ensuring proper integration with the existing location data structure (LocationPoint class) and MapData provider, 7) Adding proper error handling for edge cases like invalid coordinates or map controller not being available. The implementation should work seamlessly with the existing map placeholder and be ready to integrate with the actual FlutterMap implementation when the placeholder is replaced.",
+        "testStrategy": "Test that tapping on location cards in the horizontal scrollable list triggers the focus functionality. Verify that the map view centers on the correct coordinates for each location card tapped. Test smooth animation when centering occurs and ensure appropriate zoom level for location details. Test that visual feedback (card highlighting or map markers) appears correctly when locations are focused. Validate that the functionality works with various location types (home, work, food, etc.) and handles edge cases like missing coordinates gracefully. Test integration with existing MapController and ensure no conflicts with other map controls from Task 29.",
+        "status": "pending",
+        "dependencies": [
+          29,
+          15
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 31,
+        "title": "Replace photo provider placeholders with real implementations",
+        "description": "Replace the hardcoded picsum.photos placeholder URLs in MediaGalleryWidget's mediaItemsProvider with actual photo service integration using existing PhotoService and MediaDatabase infrastructure.",
+        "details": "Remove the mock data in the mediaItemsProvider (lines 13-65 in media_gallery_widget.dart) which currently returns hardcoded MediaItem objects with picsum.photos URLs and placeholder captions. Replace this with real implementation that: 1) Integrates with the existing PhotoService from photo_service_provider.dart to access device media through the photo_manager package, 2) Queries the MediaDatabase via mediaItemsProvider from media_database_provider.dart to fetch actual photos and videos for the specified date, 3) Creates a mapping function to convert MediaItem database records and AssetEntity objects to the MediaItem model used by the widget, 4) Maintains the same provider interface but returns real device photos filtered by the selected date, 5) Uses actual thumbnails from PhotoService.getThumbnail() instead of placeholder URLs, 6) Populates captions and metadata from stored media metadata in the database, 7) Handles permission states properly by checking PhotoService.hasAccess before querying media, 8) Implements proper error handling for cases where photo access is denied or media files are unavailable. The implementation should preserve the existing MediaItem model structure and widget functionality while replacing placeholder data with real photo library integration.",
+        "testStrategy": "Verify that placeholder picsum.photos URLs no longer appear in the media gallery. Test media gallery displays real photos and videos from the device photo library when photo permissions are granted. Test proper date filtering shows only media items from the selected date. Verify thumbnail generation works correctly using PhotoService methods. Test error handling displays appropriate messages when photo permissions are denied. Verify loading states work properly while scanning device media. Test that media metadata and captions are populated from stored database records when available.",
+        "status": "pending",
+        "dependencies": [
+          2,
+          3,
+          26
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 32,
+        "title": "Remove development seed data from production builds",
+        "description": "Ensure that DevSeedData class and all its usages are excluded from production builds by implementing proper debug-only guards and removing any references that could leak into release builds.",
+        "details": "Remove the DevSeedData class entirely from production builds by implementing proper build configuration exclusions. Currently, DevSeedData is used in journal_service.dart (lines 46-49), journal_debug_screen.dart (lines 198-201, 231), and has test files that reference it. While the class already has kDebugMode guards internally, the import statements and class references still exist in production code. Implementation steps: 1) Wrap all DevSeedData imports with conditional compilation using #if DEBUG preprocessor directives or move to separate debug-only files, 2) Create a debug-only version of journal_service.dart initialization that excludes seeding logic in release builds, 3) Ensure journal_debug_screen.dart is completely excluded from production builds via build configuration, 4) Remove or conditionally exclude any test files that might be included in production bundles, 5) Add build-time verification to ensure no DevSeedData references exist in release builds, 6) Update any debug utilities to gracefully handle the absence of seeding functionality in production.",
+        "testStrategy": "Build the app in release mode and verify that DevSeedData class is not included in the final bundle by checking the compiled bytecode or using Flutter's build analysis tools. Test that journal service initialization works correctly in release mode without attempting to seed data. Verify that all debug screens are properly excluded from production builds. Run static analysis to ensure no references to DevSeedData exist in production code paths. Test app functionality in release mode to ensure removal of dev seed data doesn't break core journal functionality.",
+        "status": "pending",
+        "dependencies": [
+          2,
+          3
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 33,
+        "title": "Integrate crash reporting service for production error monitoring",
+        "description": "Implement crash reporting integration using Firebase Crashlytics or Sentry to replace the TODO in ErrorHandler and enable production error monitoring and debugging.",
+        "details": "Replace the TODO comment in ErrorHandler class with a complete crash reporting implementation. First, analyze the existing error handling patterns in the codebase and choose between Firebase Crashlytics and Sentry based on project requirements. For Firebase Crashlytics: 1) Add firebase_crashlytics dependency to pubspec.yaml, 2) Configure Firebase project with google-services.json (Android) and GoogleService-Info.plist (iOS), 3) Initialize Crashlytics in main.dart before runApp(), 4) Implement crash reporting in ErrorHandler.logError() method to send exceptions with context including user ID, app version, and relevant metadata, 5) Add custom logging for non-fatal errors using FirebaseCrashlytics.instance.recordError(). For Sentry: 1) Add sentry_flutter dependency, 2) Initialize Sentry with DSN in main.dart using SentryFlutter.init(), 3) Wrap runApp() with Sentry.runWithChild(), 4) Implement error reporting in ErrorHandler using Sentry.captureException(). Ensure error reporting respects user privacy settings and includes relevant context like current screen, user actions, and device information. Add configuration to disable crash reporting in debug builds using kDebugMode flag.",
+        "testStrategy": "Test crash reporting integration by triggering intentional crashes in debug builds and verifying they appear in the chosen service dashboard. Test non-fatal error logging by triggering various error scenarios throughout the app. Verify that user context and metadata are properly attached to crash reports. Test that crash reporting is disabled in debug mode and enabled in release builds. Validate that sensitive user data is not included in crash reports by reviewing the data sent to the service.",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 34,
+        "title": "Implement privacy preset application logic for PrivacyQuickStart screen",
+        "description": "Complete the privacy preset implementation in PrivacyQuickStart screen by adding actual preset configuration logic and persistence for different privacy levels (Minimal, Balanced, Maximum).",
+        "details": "Implement the missing privacy preset application logic in the PrivacyQuickStart screen by: 1) Creating a PrivacyPresetService that defines three preset configurations - Minimal (basic location tracking, limited data collection), Balanced (moderate privacy with essential features), and Maximum (comprehensive tracking for full functionality), 2) Adding preset data models that specify exact settings for each privacy level including location tracking frequency, data retention periods, backup destinations, AI processing preferences, and third-party integrations, 3) Implementing the applyPreset() method that updates app-wide privacy settings in SharedPreferences or secure storage, including location services permissions, calendar integration toggles, health data access, and backup method selections, 4) Creating a PrivacySettingsProvider using Riverpod to manage privacy state across the app and ensure all services respect the selected privacy level, 5) Adding validation logic to ensure preset changes properly update dependent services like LocationService, CalendarService, and BackupManager, 6) Implementing preset persistence so the selected privacy level survives app restarts and updates the UI accordingly, 7) Adding proper error handling for cases where preset application fails due to permission issues or service unavailability.",
+        "testStrategy": "Test each privacy preset selection properly applies the correct configuration settings across all app services. Verify Minimal preset disables non-essential tracking while maintaining core functionality. Test Balanced preset provides reasonable defaults with moderate privacy protection. Validate Maximum preset enables full feature set with appropriate user consent flows. Test preset persistence across app restarts and ensure UI reflects the currently active preset. Verify that changing presets properly updates all dependent services and their permission states. Test error scenarios where preset application might fail and ensure graceful fallback behavior.",
+        "status": "pending",
+        "dependencies": [
+          2,
+          3,
+          5,
+          9,
+          23
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 35,
+        "title": "Replace logging TODO in context_providers.dart with proper error logging implementation",
+        "description": "Replace the TODO comment at line 74 in context_providers.dart with proper error logging implementation using the existing AppLogger utility for better error tracking and debugging in the PersonalContextEngine narrative generation.",
+        "details": "Replace the TODO comment 'Replace with proper logging' at line 74 in context_providers.dart with proper error logging implementation. The project already has a comprehensive logging system using the logger package and AppLogger utility class in lib/utils/logger.dart. Implementation steps: 1) Import the existing AppLogger by adding 'import '../utils/logger.dart';' to the imports section of context_providers.dart, 2) Replace the TODO comment and basic print statement with proper error logging using appLogger.error() method that includes the error object, stackTrace, and contextual information about the narrative generation failure, 3) Add appropriate error context such as the date parameter and engine state to help with debugging, 4) Consider using appLogger.warning() for non-critical errors that shouldn't crash the app but should be tracked, 5) Ensure the logging follows the existing pattern used throughout the codebase where errors are logged but don't prevent the method from returning a safe fallback value (null in this case).",
+        "testStrategy": "Test error logging by triggering narrative generation failures and verifying proper error messages appear in the console with appropriate log levels. Test that the logging doesn't interfere with the app's functionality and null is still returned when errors occur. Verify that logged errors include sufficient context information (date, error details, stack trace) for debugging purposes. Test both debug and release builds to ensure logging behaves correctly according to the AppLogger configuration (debug logs only in debug mode, warnings and errors in both modes).",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 36,
+        "title": "Implement HEIC metadata extraction - MediaFormatHandler has placeholder for HEIC support at line 362",
+        "description": "Replace the placeholder HEIC metadata extraction method in MediaFormatHandler with robust HEIC/HEIF metadata extraction using the exif package for direct binary parsing and improved format support.",
+        "details": "Enhance the `_extractHeicMetadata` method in MediaFormatHandler by: 1) Integrating the `exif` package directly for HEIC/HEIF format parsing instead of relying on the `image` package which has limited HEIC support, 2) Adding native binary EXIF parsing using `readExifFromBytes()` from the `exif` package to extract metadata directly from HEIC file bytes, 3) Implementing HEIC-specific metadata extraction that handles Apple's container format variations and embedded EXIF data structures, 4) Adding fallback mechanisms for different HEIC variants (HEIC, HEIF, and container formats) with proper error handling for corrupted or non-standard files, 5) Ensuring GPS coordinates, camera settings, timestamps, and device information are properly extracted from HEIC metadata, 6) Adding comprehensive logging and error recovery for HEIC processing failures, 7) Testing with various HEIC files from different Apple device generations to ensure compatibility, 8) Optimizing performance for HEIC metadata extraction to match processing times of JPEG files. The implementation should maintain the existing ExifData structure while providing more reliable HEIC support than the current placeholder.",
+        "testStrategy": "Test HEIC metadata extraction with files from various Apple devices (iPhone 7+, iPad Pro) including Live Photos and Portrait mode images. Verify GPS coordinates, timestamps, camera settings (aperture, ISO, focal length), and device info are correctly extracted. Test with corrupted HEIC files and ensure graceful error handling. Compare extraction accuracy against Photos.app metadata display. Benchmark processing performance against JPEG extraction times. Test edge cases like HEIC files without metadata, files with only partial EXIF data, and HEIF format variations. Validate that existing JPEG/PNG extraction remains unaffected.",
+        "status": "pending",
+        "dependencies": [
+          4
+        ],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-12T10:20:32.242Z",
+      "updated": "2025-09-16T10:12:31.071Z",
       "description": "Tasks for master context"
     }
   }

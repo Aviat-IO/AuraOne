@@ -1,0 +1,11 @@
+# Task ID: 24
+# Title: Replace mock timeline data with actual storage implementation in TimelineWidget
+# Status: pending
+# Dependencies: 2, 3, 4
+# Priority: medium
+# Description: Remove hardcoded timeline events and implement integration with the journal database to fetch real activities and events for timeline display.
+# Details:
+Remove the mock hardcoded TimelineEvent data from the timelineEventsProvider (lines 13-63 in timeline_widget.dart) and replace it with actual storage integration. Implement queries to fetch JournalActivities from the journal database for the specified date using the existing JournalDatabase infrastructure. Create a mapping system to convert JournalActivity records to TimelineEvent objects, including proper activity type to icon/color mapping based on activityType field (location, photo, movement, calendar, manual). Update the provider to use ref.watch(journalServiceProvider) or direct database access to fetch activities for the given date. Ensure proper error handling for database queries and maintain the existing async loading behavior with skeleton states. Add proper sorting by timestamp to display events chronologically throughout the day. Consider implementing caching for better performance on frequently accessed dates. The timeline should display real user activities captured by various app sensors and services, providing an accurate daily timeline view.
+
+# Test Strategy:
+Verify that hardcoded mock data no longer appears in the timeline widget. Test timeline display with real journal entries containing activities from the database. Verify proper date filtering shows only activities for the selected date. Test that different activity types (location, photo, movement, calendar, manual) display with appropriate icons and colors. Validate proper chronological sorting of timeline events by timestamp. Test empty state behavior when no activities exist for a selected date. Verify loading states work correctly during database queries. Test error handling when database queries fail. Confirm performance remains smooth when loading timelines for different dates and that skeleton loading states display appropriately during data fetching.

@@ -1,0 +1,11 @@
+# Task ID: 33
+# Title: Integrate crash reporting service for production error monitoring
+# Status: pending
+# Dependencies: None
+# Priority: medium
+# Description: Implement crash reporting integration using Firebase Crashlytics or Sentry to replace the TODO in ErrorHandler and enable production error monitoring and debugging.
+# Details:
+Replace the TODO comment in ErrorHandler class with a complete crash reporting implementation. First, analyze the existing error handling patterns in the codebase and choose between Firebase Crashlytics and Sentry based on project requirements. For Firebase Crashlytics: 1) Add firebase_crashlytics dependency to pubspec.yaml, 2) Configure Firebase project with google-services.json (Android) and GoogleService-Info.plist (iOS), 3) Initialize Crashlytics in main.dart before runApp(), 4) Implement crash reporting in ErrorHandler.logError() method to send exceptions with context including user ID, app version, and relevant metadata, 5) Add custom logging for non-fatal errors using FirebaseCrashlytics.instance.recordError(). For Sentry: 1) Add sentry_flutter dependency, 2) Initialize Sentry with DSN in main.dart using SentryFlutter.init(), 3) Wrap runApp() with Sentry.runWithChild(), 4) Implement error reporting in ErrorHandler using Sentry.captureException(). Ensure error reporting respects user privacy settings and includes relevant context like current screen, user actions, and device information. Add configuration to disable crash reporting in debug builds using kDebugMode flag.
+
+# Test Strategy:
+Test crash reporting integration by triggering intentional crashes in debug builds and verifying they appear in the chosen service dashboard. Test non-fatal error logging by triggering various error scenarios throughout the app. Verify that user context and metadata are properly attached to crash reports. Test that crash reporting is disabled in debug mode and enabled in release builds. Validate that sensitive user data is not included in crash reports by reviewing the data sent to the service.

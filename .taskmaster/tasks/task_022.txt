@@ -1,11 +1,31 @@
 # Task ID: 22
 # Title: UI Fix - Remove Duplicate Sparkle Icons from Today's Summary
-# Status: pending
+# Status: done
 # Dependencies: 8, 16, 17
 # Priority: high
 # Description: Fix the UI issue where multiple sparkle icons appear on the Today's Summary page when only one should be displayed.
 # Details:
-Investigate and fix the bug causing multiple sparkle icons to appear in the Today's Summary section of the Overview tab. Locate all instances where sparkle icons (likely Icons.auto_awesome, Icons.stars, or similar) are being rendered in the summary UI components. Review the widget tree and component hierarchy to identify where duplicate icon widgets are being instantiated. This could be caused by: 1) Multiple widgets each adding their own sparkle icon, 2) Icon being added both at parent and child widget levels, 3) Conditional rendering logic creating multiple instances, 4) State management issues causing icons to persist when they should be replaced, or 5) Animation or transition effects creating overlapping icon instances. Implement proper conditional rendering to ensure only one sparkle icon appears in the appropriate location within the summary header or title area. Consider the icon's semantic purpose and ensure it's positioned logically with respect to the 'Today's Summary' text or generated AI content. Update the component architecture to prevent this issue from recurring and add safeguards against duplicate icon rendering in the summary UI.
+Fixed the duplicate sparkle icon issue in Today's Summary section by implementing proper icon differentiation. Changed the generate button icon from Icons.auto_awesome to Icons.add_circle_outline when no journal entry exists, preventing duplicate sparkle icons from appearing in the UI. The solution maintains semantic clarity: the title section keeps its sparkle icon (Icons.auto_awesome) to indicate AI-generated content, while the action button uses a plus icon (Icons.add_circle_outline) for initial generation and a refresh icon for regeneration. This approach eliminates visual confusion while preserving the intended user experience and proper icon semantics for different UI elements.
 
 # Test Strategy:
-Verify that only one sparkle icon appears in the Today's Summary section across all UI states (loading, empty, populated with content). Test various screen sizes and orientations to ensure the fix works consistently. Validate the icon's positioning and alignment with surrounding text and UI elements. Test state transitions (empty to populated summary, loading states) to ensure the icon displays correctly during all phases. Verify that the remaining single icon maintains proper styling, animation, and accessibility attributes as intended in the original design.
+Verify that only one sparkle icon appears in the Today's Summary section - specifically on the title/header area only. Test that the generate button shows Icons.add_circle_outline (plus icon) when no journal entry exists and Icons.refresh when regenerating content. Validate proper icon differentiation across all UI states (loading, empty, populated with content). Test various screen sizes and orientations to ensure the fix works consistently. Verify that both icons maintain proper styling, animation, and accessibility attributes as intended in the design.
+
+# Subtasks:
+## 1. Implement icon differentiation logic [done]
+### Dependencies: None
+### Description: Update the generate button component to use Icons.add_circle_outline instead of Icons.auto_awesome to prevent duplicate sparkle icons
+### Details:
+
+
+## 2. Verify icon semantic clarity [done]
+### Dependencies: None
+### Description: Ensure title sparkle icon remains for AI content indication while button uses appropriate action icons (plus for generate, refresh for regenerate)
+### Details:
+
+
+## 3. Test UI states for icon consistency [done]
+### Dependencies: None
+### Description: Validate that the fix works across all Today's Summary states (empty, loading, populated) and verify no duplicate sparkle icons appear
+### Details:
+
+

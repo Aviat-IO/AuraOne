@@ -1,0 +1,11 @@
+# Task ID: 26
+# Title: Replace mock media gallery with actual device media access
+# Status: pending
+# Dependencies: 2, 3
+# Priority: medium
+# Description: Remove hardcoded picsum.photos placeholder URLs from MediaGalleryWidget and implement integration with the existing PhotoService and MediaDatabase to display real device photos and videos.
+# Details:
+Replace the mock data in the mediaItemsProvider (lines 13-65 in media_gallery_widget.dart) which currently uses hardcoded picsum.photos URLs and placeholder captions. Integrate with the existing PhotoService from photo_service.dart to access real device media through the photo_manager package. Implement a new provider that queries the MediaDatabase via mediaItemsProvider from media_database_provider.dart to fetch actual photos and videos for the specified date. Create a mapping function to convert MediaItem database records to the MediaItem model used by the widget, ensuring proper thumbnail generation using the PhotoService's generateThumbnail method. Update the widget to handle real media metadata including actual file paths, timestamps, GPS coordinates from EXIF data, and person tags from face detection. Implement proper error handling for media access permissions using the existing PhotoService permission system. Add support for displaying video thumbnails with play icons and proper duration formatting. Ensure the gallery properly filters media items by the selected date using the MediaDatabase date filtering capabilities.
+
+# Test Strategy:
+Verify that placeholder picsum.photos URLs no longer appear in the media gallery. Test media gallery displays real photos and videos from the device photo library when photo permissions are granted. Test proper date filtering shows only media items from the selected date. Verify thumbnail generation works correctly for both photos and videos using the PhotoService. Test that metadata display includes actual timestamps, locations (if available in EXIF), and file information. Validate proper handling of permission states (granted, limited, denied) with appropriate UI feedback. Test video thumbnails display with play icons and duration information. Verify performance with large media collections and proper pagination/loading states. Test empty state displays when no media exists for the selected date.

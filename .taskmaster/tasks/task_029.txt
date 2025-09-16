@@ -1,0 +1,11 @@
+# Task ID: 29
+# Title: Implement map controls - Zoom in/out buttons and center on location functionality
+# Status: pending
+# Dependencies: 3, 15
+# Priority: medium
+# Description: Implement the three TODO items at lines 144, 152, and 160 in map_widget.dart by adding zoom in/out functionality and center on current location capability using flutter_map MapController.
+# Details:
+Implement the missing map control functionality in the MapWidget by: 1) Adding a MapController from the flutter_map package to manage map interactions and state, 2) Creating a provider or state management solution to handle the MapController instance and zoom level state, 3) Implementing zoom in functionality that increases the zoom level by 1 and animates to the new zoom level using mapController.move(), 4) Implementing zoom out functionality that decreases the zoom level by 1 with smooth animation, 5) Implementing center on location functionality that gets the user's current location using the existing location services and animates the map to center on that position, 6) Adding proper error handling for location permissions and GPS availability, 7) Integrating with the existing location data from the LocationService to show actual user location data on the map instead of the current placeholder, 8) Adding visual feedback during location centering operations with loading states, and 9) Ensuring the map controls work smoothly with the existing map placeholder and integrate properly with the flutter_map widget when the actual map implementation is added.
+
+# Test Strategy:
+Test zoom in button increases map zoom level smoothly with proper animation. Test zoom out button decreases zoom level with smooth transition. Test that zoom controls respect minimum and maximum zoom limits. Test center on location button triggers location permission request if needed and centers map on user's current location. Verify that location centering shows loading state while fetching GPS coordinates. Test error handling when location services are disabled or permission is denied. Validate that map controls maintain proper visual styling and positioning across different screen sizes. Test integration with existing location data providers and ensure map state persists correctly during widget rebuilds.

@@ -1,0 +1,11 @@
+# Task ID: 32
+# Title: Remove development seed data from production builds
+# Status: pending
+# Dependencies: 2, 3
+# Priority: medium
+# Description: Ensure that DevSeedData class and all its usages are excluded from production builds by implementing proper debug-only guards and removing any references that could leak into release builds.
+# Details:
+Remove the DevSeedData class entirely from production builds by implementing proper build configuration exclusions. Currently, DevSeedData is used in journal_service.dart (lines 46-49), journal_debug_screen.dart (lines 198-201, 231), and has test files that reference it. While the class already has kDebugMode guards internally, the import statements and class references still exist in production code. Implementation steps: 1) Wrap all DevSeedData imports with conditional compilation using #if DEBUG preprocessor directives or move to separate debug-only files, 2) Create a debug-only version of journal_service.dart initialization that excludes seeding logic in release builds, 3) Ensure journal_debug_screen.dart is completely excluded from production builds via build configuration, 4) Remove or conditionally exclude any test files that might be included in production bundles, 5) Add build-time verification to ensure no DevSeedData references exist in release builds, 6) Update any debug utilities to gracefully handle the absence of seeding functionality in production.
+
+# Test Strategy:
+Build the app in release mode and verify that DevSeedData class is not included in the final bundle by checking the compiled bytecode or using Flutter's build analysis tools. Test that journal service initialization works correctly in release mode without attempting to seed data. Verify that all debug screens are properly excluded from production builds. Run static analysis to ensure no references to DevSeedData exist in production code paths. Test app functionality in release mode to ensure removal of dev seed data doesn't break core journal functionality.
