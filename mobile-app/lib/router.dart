@@ -19,6 +19,8 @@ import 'package:aura_one/screens/privacy/data_deletion_screen.dart';
 import 'package:aura_one/screens/font_size_settings_screen.dart';
 import 'package:aura_one/screens/about_screen.dart';
 import 'package:aura_one/screens/har_test_screen.dart';
+import 'package:aura_one/screens/event_detail_screen.dart';
+import 'package:aura_one/widgets/daily_canvas/timeline_widget.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -144,6 +146,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/test/har',
         builder: (context, state) => const HARTestScreen(),
+      ),
+
+      // Event detail screen
+      GoRoute(
+        path: '/event-detail',
+        builder: (context, state) {
+          final event = state.extra as TimelineEvent;
+          return EventDetailScreen(event: event);
+        },
       ),
     ],
   );

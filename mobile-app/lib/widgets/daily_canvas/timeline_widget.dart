@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:go_router/go_router.dart';
 import '../../theme/colors.dart';
 
 // Provider for timeline events with async loading simulation
@@ -292,7 +293,8 @@ class TimelineWidget extends ConsumerWidget {
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () {
-                      // TODO: Open event details
+                      // Navigate to event detail screen
+                      context.push('/event-detail', extra: event);
                     },
                     borderRadius: BorderRadius.circular(12),
                     child: Padding(
