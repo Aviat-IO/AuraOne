@@ -1,40 +1,57 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../theme/colors.dart';
+import '../../database/location_database.dart';
 
-// Provider for map data with async loading simulation
+// Provider for real location data from database
 final mapDataProvider = FutureProvider.family<MapData?, DateTime>((ref, date) async {
-  // Simulate loading delay
-  await Future.delayed(const Duration(milliseconds: 500));
+  final database = LocationDatabase();
 
-  // TODO: Replace with actual location data from storage
+  // Get start and end of the requested date
+  final startOfDay = DateTime(date.year, date.month, date.day);
+  final endOfDay = startOfDay.add(const Duration(days: 1));
+
+  // Fetch location points from database
+  final locationPoints = await database.getLocationPointsBetween(startOfDay, endOfDay);
+
+  if (locationPoints.isEmpty) {
+    return null;
+  }
+
+  // Calculate total distance
+  double totalDistance = 0;
+  for (int i = 1; i < locationPoints.length; i++) {
+    totalDistance += _calculateDistance(
+      locationPoints[i - 1].latitude,
+      locationPoints[i - 1].longitude,
+      locationPoints[i].latitude,
+      locationPoints[i].longitude,
+    );
+  }
+
+  // Convert database location points to MapData location points
+  final locations = locationPoints.map((point) => MapLocationPoint(
+    latitude: point.latitude,
+    longitude: point.longitude,
+    time: point.timestamp,
+    name: _inferLocationName(point),
+    type: _inferLocationType(point),
+  )).toList();
+
+  // Calculate total time span
+  final totalTime = locationPoints.isNotEmpty
+      ? locationPoints.last.timestamp.difference(locationPoints.first.timestamp)
+      : Duration.zero;
+
   return MapData(
-    locations: [
-      LocationPoint(
-        latitude: 37.7749,
-        longitude: -122.4194,
-        time: DateTime(date.year, date.month, date.day, 7, 30),
-        name: 'Home',
-        type: LocationType.home,
-      ),
-      LocationPoint(
-        latitude: 37.7849,
-        longitude: -122.4094,
-        time: DateTime(date.year, date.month, date.day, 9, 0),
-        name: 'Office',
-        type: LocationType.work,
-      ),
-      LocationPoint(
-        latitude: 37.7949,
-        longitude: -122.3994,
-        time: DateTime(date.year, date.month, date.day, 12, 30),
-        name: 'Lunch Spot',
-        type: LocationType.food,
-      ),
-    ],
-    totalDistance: 5.2,
-    totalTime: Duration(hours: 14, minutes: 30),
+    locations: locations,
+    totalDistance: totalDistance / 1000, // Convert to kilometers
+    totalTime: totalTime,
   );
 });
 
@@ -43,14 +60,14 @@ final mapLoadingProvider = StateProvider<bool>((ref) => false);
 
 enum LocationType { home, work, food, shopping, exercise, social, other }
 
-class LocationPoint {
+class MapLocationPoint {
   final double latitude;
   final double longitude;
   final DateTime time;
   final String name;
   final LocationType type;
 
-  LocationPoint({
+  MapLocationPoint({
     required this.latitude,
     required this.longitude,
     required this.time,
@@ -60,7 +77,7 @@ class LocationPoint {
 }
 
 class MapData {
-  final List<LocationPoint> locations;
+  final List<MapLocationPoint> locations;
   final double totalDistance;
   final Duration totalTime;
 
@@ -95,77 +112,14 @@ class MapWidget extends ConsumerWidget {
   Widget _buildMapContent(MapData? mapData, ThemeData theme, bool isLight) {
     return Column(
       children: [
-        // Map placeholder (will be replaced with flutter_map)
+        // Real FlutterMap implementation
         Expanded(
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             ),
-            child: Stack(
-              children: [
-                // Map placeholder
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.map,
-                        size: 64,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Map View',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Interactive map will be displayed here',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Map controls
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: Column(
-                    children: [
-                      _buildMapControl(
-                        icon: Icons.add,
-                        onTap: () {
-                          // TODO: Zoom in
-                        },
-                        theme: theme,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildMapControl(
-                        icon: Icons.remove,
-                        onTap: () {
-                          // TODO: Zoom out
-                        },
-                        theme: theme,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildMapControl(
-                        icon: Icons.my_location,
-                        onTap: () {
-                          // TODO: Center on current location
-                        },
-                        theme: theme,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            clipBehavior: Clip.hardEdge,
+            child: _buildFlutterMap(mapData, theme),
           ),
         ),
 
@@ -213,7 +167,7 @@ class MapWidget extends ConsumerWidget {
         // Location list
         if (mapData != null && mapData.locations.isNotEmpty) ...[
           const SizedBox(height: 16),
-          Container(
+          SizedBox(
             height: 120,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
@@ -292,7 +246,7 @@ class MapWidget extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           // Location list skeleton
-          Container(
+          SizedBox(
             height: 120,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
@@ -343,29 +297,181 @@ class MapWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildMapControl({
-    required IconData icon,
-    required VoidCallback onTap,
-    required ThemeData theme,
-  }) {
-    return Material(
-      color: theme.colorScheme.surface.withValues(alpha: 0.9),
-      borderRadius: BorderRadius.circular(8),
-      elevation: 2,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          child: Icon(
-            icon,
-            size: 20,
-            color: theme.colorScheme.primary,
+  Widget _buildFlutterMap(MapData? mapData, ThemeData theme) {
+    if (mapData == null || mapData.locations.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.location_off,
+              size: 64,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No location data',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Enable location services to track your journey',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Calculate map center based on location points
+    final locations = mapData.locations;
+    final avgLat = locations.map((l) => l.latitude).reduce((a, b) => a + b) / locations.length;
+    final avgLng = locations.map((l) => l.longitude).reduce((a, b) => a + b) / locations.length;
+
+    return Stack(
+      children: [
+        FlutterMap(
+          options: MapOptions(
+            initialCenter: LatLng(avgLat, avgLng),
+            initialZoom: 13.0,
+            minZoom: 3.0,
+            maxZoom: 18.0,
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.auraone.app',
+            ),
+
+            // Draw route polyline if we have multiple points
+            if (locations.length > 1)
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: locations.map((loc) => LatLng(loc.latitude, loc.longitude)).toList(),
+                    color: theme.colorScheme.primary,
+                    strokeWidth: 3.0,
+                  ),
+                ],
+              ),
+
+            // Add markers for significant locations
+            MarkerLayer(
+              markers: [
+                // Start marker
+                if (locations.isNotEmpty)
+                  Marker(
+                    point: LatLng(locations.first.latitude, locations.first.longitude),
+                    width: 40,
+                    height: 40,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.play_arrow, color: Colors.white, size: 20),
+                    ),
+                  ),
+
+                // End marker
+                if (locations.length > 1)
+                  Marker(
+                    point: LatLng(locations.last.latitude, locations.last.longitude),
+                    width: 40,
+                    height: 40,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.stop, color: Colors.white, size: 20),
+                    ),
+                  ),
+
+                // Significant location markers (every nth point to avoid clutter)
+                ...locations
+                    .asMap()
+                    .entries
+                    .where((entry) => entry.key % (locations.length ~/ 5 + 1) == 0 &&
+                           entry.key != 0 && entry.key != locations.length - 1)
+                    .map((entry) {
+                  final location = entry.value;
+                  final color = _getLocationColor(location.type, theme);
+
+                  return Marker(
+                    point: LatLng(location.latitude, location.longitude),
+                    width: 32,
+                    height: 32,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 3,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        _getLocationIcon(location.type),
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ],
+        ),
+
+        // Map attribution
+        Positioned(
+          bottom: 4,
+          right: 4,
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              '© OpenStreetMap',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 10,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
+
 
   Widget _buildStat({
     required IconData icon,
@@ -398,7 +504,7 @@ class MapWidget extends ConsumerWidget {
   }
 
   Widget _buildLocationCard({
-    required LocationPoint location,
+    required MapLocationPoint location,
     required ThemeData theme,
     required bool isLight,
   }) {
@@ -506,4 +612,55 @@ class MapWidget extends ConsumerWidget {
         return Colors.grey;
     }
   }
+}
+
+// Helper functions for location inference
+String _inferLocationName(LocationPoint point) {
+  // Simple heuristic based on activity type
+  switch (point.activityType?.toLowerCase()) {
+    case 'stationary':
+      return 'Location';
+    case 'walking':
+      return 'Walk Route';
+    case 'driving':
+      return 'Drive Route';
+    default:
+      return 'Unknown Location';
+  }
+}
+
+LocationType _inferLocationType(LocationPoint point) {
+  // Simple heuristic - can be enhanced with geofencing data
+  final hour = point.timestamp.hour;
+
+  if (hour >= 22 || hour <= 6) {
+    return LocationType.home;
+  } else if (hour >= 9 && hour <= 17) {
+    return LocationType.work;
+  } else if (hour >= 12 && hour <= 14) {
+    return LocationType.food;
+  } else {
+    return LocationType.other;
+  }
+}
+
+// Distance calculation helper
+double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+  const double earthRadius = 6371000; // meters
+  final double dLat = _toRadians(lat2 - lat1);
+  final double dLon = _toRadians(lon2 - lon1);
+
+  final double a =
+      math.sin(dLat / 2) * math.sin(dLat / 2) +
+      math.cos(_toRadians(lat1)) *
+      math.cos(_toRadians(lat2)) *
+      math.sin(dLon / 2) *
+      math.sin(dLon / 2);
+
+  final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+  return earthRadius * c;
+}
+
+double _toRadians(double degrees) {
+  return degrees * (math.pi / 180);
 }
