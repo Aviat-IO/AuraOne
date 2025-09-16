@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,10 +6,6 @@ import 'package:aura_one/screens/main_layout_screen.dart';
 import 'package:aura_one/screens/onboarding_screen.dart';
 import 'package:aura_one/screens/privacy_settings_screen.dart';
 import 'package:aura_one/screens/location_history_screen.dart';
-import 'package:aura_one/screens/photo_test_screen.dart';
-import 'package:aura_one/screens/debug/data_viewer_screen.dart';
-import 'package:aura_one/screens/debug/database_viewer_screen.dart';
-import 'package:aura_one/screens/debug/journal_debug_screen.dart';
 import 'package:aura_one/screens/export_screen.dart';
 import 'package:aura_one/screens/import_screen.dart';
 import 'package:aura_one/screens/backup_settings_screen.dart';
@@ -18,10 +15,16 @@ import 'package:aura_one/screens/privacy_dashboard_screen.dart';
 import 'package:aura_one/screens/privacy/data_deletion_screen.dart';
 import 'package:aura_one/screens/font_size_settings_screen.dart';
 import 'package:aura_one/screens/about_screen.dart';
-import 'package:aura_one/screens/har_test_screen.dart';
 import 'package:aura_one/screens/event_detail_screen.dart';
-import 'package:aura_one/screens/debug_screen.dart';
 import 'package:aura_one/widgets/daily_canvas/timeline_widget.dart';
+
+// Debug-only imports - excluded from production builds via kDebugMode guards
+import 'package:aura_one/screens/photo_test_screen.dart';
+import 'package:aura_one/screens/debug/data_viewer_screen.dart';
+import 'package:aura_one/screens/debug/database_viewer_screen.dart';
+import 'package:aura_one/screens/debug/journal_debug_screen.dart';
+import 'package:aura_one/screens/har_test_screen.dart';
+import 'package:aura_one/screens/debug_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -79,25 +82,28 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const DataDeletionScreen(),
       ),
 
-      // Photo service test screen (for development)
-      GoRoute(
-        path: '/test/photos',
-        builder: (context, state) => const PhotoTestScreen(),
-      ),
+      // Debug-only routes - excluded from production builds
+      if (kDebugMode) ...[
+        // Photo service test screen (for development)
+        GoRoute(
+          path: '/test/photos',
+          builder: (context, state) => const PhotoTestScreen(),
+        ),
 
-      // Debug screens
-      GoRoute(
-        path: '/debug/data-viewer',
-        builder: (context, state) => const DataViewerScreen(),
-      ),
-      GoRoute(
-        path: '/debug/database-viewer',
-        builder: (context, state) => const DatabaseViewerScreen(),
-      ),
-      GoRoute(
-        path: '/debug/journal',
-        builder: (context, state) => const JournalDebugScreen(),
-      ),
+        // Debug screens
+        GoRoute(
+          path: '/debug/data-viewer',
+          builder: (context, state) => const DataViewerScreen(),
+        ),
+        GoRoute(
+          path: '/debug/database-viewer',
+          builder: (context, state) => const DatabaseViewerScreen(),
+        ),
+        GoRoute(
+          path: '/debug/journal',
+          builder: (context, state) => const JournalDebugScreen(),
+        ),
+      ],
 
       // Export screen
       GoRoute(
@@ -143,18 +149,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
 
-      // Debug screen
-      GoRoute(
-        path: '/settings/debug',
-        builder: (context, state) => const DebugScreen(),
-      ),
+      // Additional debug-only routes - excluded from production builds
+      if (kDebugMode) ...[
+        // Debug screen
+        GoRoute(
+          path: '/settings/debug',
+          builder: (context, state) => const DebugScreen(),
+        ),
 
-
-      // HAR Model test screen
-      GoRoute(
-        path: '/test/har',
-        builder: (context, state) => const HARTestScreen(),
-      ),
+        // HAR Model test screen
+        GoRoute(
+          path: '/test/har',
+          builder: (context, state) => const HARTestScreen(),
+        ),
+      ],
 
       // Event detail screen
       GoRoute(
