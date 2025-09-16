@@ -1405,7 +1405,7 @@
         "description": "Replace the placeholder HEIC metadata extraction method in MediaFormatHandler with robust HEIC/HEIF metadata extraction using the exif package for direct binary parsing and improved format support.",
         "details": "Enhance the `_extractHeicMetadata` method in MediaFormatHandler by: 1) Integrating the `exif` package directly for HEIC/HEIF format parsing instead of relying on the `image` package which has limited HEIC support, 2) Adding native binary EXIF parsing using `readExifFromBytes()` from the `exif` package to extract metadata directly from HEIC file bytes, 3) Implementing HEIC-specific metadata extraction that handles Apple's container format variations and embedded EXIF data structures, 4) Adding fallback mechanisms for different HEIC variants (HEIC, HEIF, and container formats) with proper error handling for corrupted or non-standard files, 5) Ensuring GPS coordinates, camera settings, timestamps, and device information are properly extracted from HEIC metadata, 6) Adding comprehensive logging and error recovery for HEIC processing failures, 7) Testing with various HEIC files from different Apple device generations to ensure compatibility, 8) Optimizing performance for HEIC metadata extraction to match processing times of JPEG files. The implementation should maintain the existing ExifData structure while providing more reliable HEIC support than the current placeholder.",
         "testStrategy": "Test HEIC metadata extraction with files from various Apple devices (iPhone 7+, iPad Pro) including Live Photos and Portrait mode images. Verify GPS coordinates, timestamps, camera settings (aperture, ISO, focal length), and device info are correctly extracted. Test with corrupted HEIC files and ensure graceful error handling. Compare extraction accuracy against Photos.app metadata display. Benchmark processing performance against JPEG extraction times. Test edge cases like HEIC files without metadata, files with only partial EXIF data, and HEIF format variations. Validate that existing JPEG/PNG extraction remains unaffected.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           4
         ],
@@ -1415,7 +1415,7 @@
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-16T10:33:45.961Z",
+      "updated": "2025-09-16T10:47:08.188Z",
       "description": "Tasks for master context"
     }
   }
