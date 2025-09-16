@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import '../theme/colors.dart';
 import '../widgets/daily_canvas/timeline_widget.dart';
 import '../widgets/daily_canvas/map_widget.dart';
@@ -23,12 +24,26 @@ final activeSectionProvider = StateProvider<JournalSection?>((ref) => null);
 enum JournalSection { timeline, map, media, journal }
 
 class DailyCanvasScreen extends HookConsumerWidget {
-  const DailyCanvasScreen({super.key});
+  final DateTime? date;
+
+  const DailyCanvasScreen({super.key, this.date});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
+
+    // Use the provided date if available, otherwise use the provider value
+    useEffect(() {
+      if (date != null) {
+        // Set the initial date when the screen is created
+        Future.microtask(() {
+          ref.read(selectedDateProvider.notifier).state = date!;
+        });
+      }
+      return null;
+    }, [date]);
+
     final selectedDate = ref.watch(selectedDateProvider);
     final viewMode = ref.watch(viewModeProvider);
     final activeSection = ref.watch(activeSectionProvider);
@@ -140,6 +155,15 @@ class DailyCanvasScreen extends HookConsumerWidget {
       ),
       child: Row(
         children: [
+          // Back button to return to History screen
+          IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              context.pop();
+            },
+            tooltip: 'Back to History',
+          ),
+
           // Date navigation
           IconButton(
             icon: const Icon(Icons.chevron_left),

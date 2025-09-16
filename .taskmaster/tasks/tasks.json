@@ -1239,7 +1239,7 @@
         "description": "Remove hardcoded timeline events and implement integration with the journal database to fetch real activities and events for timeline display.",
         "details": "Remove the mock hardcoded TimelineEvent data from the timelineEventsProvider (lines 13-63 in timeline_widget.dart) and replace it with actual storage integration. Implement queries to fetch JournalActivities from the journal database for the specified date using the existing JournalDatabase infrastructure. Create a mapping system to convert JournalActivity records to TimelineEvent objects, including proper activity type to icon/color mapping based on activityType field (location, photo, movement, calendar, manual). Update the provider to use ref.watch(journalServiceProvider) or direct database access to fetch activities for the given date. Ensure proper error handling for database queries and maintain the existing async loading behavior with skeleton states. Add proper sorting by timestamp to display events chronologically throughout the day. Consider implementing caching for better performance on frequently accessed dates. The timeline should display real user activities captured by various app sensors and services, providing an accurate daily timeline view.",
         "testStrategy": "Verify that hardcoded mock data no longer appears in the timeline widget. Test timeline display with real journal entries containing activities from the database. Verify proper date filtering shows only activities for the selected date. Test that different activity types (location, photo, movement, calendar, manual) display with appropriate icons and colors. Validate proper chronological sorting of timeline events by timestamp. Test empty state behavior when no activities exist for a selected date. Verify loading states work correctly during database queries. Test error handling when database queries fail. Confirm performance remains smooth when loading timelines for different dates and that skeleton loading states display appropriately during data fetching.",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [
           2,
           3,
@@ -1416,7 +1416,7 @@
         "description": "Ensure that DevSeedData class and all its usages are excluded from production builds by implementing proper debug-only guards and removing any references that could leak into release builds.",
         "details": "Remove the DevSeedData class entirely from production builds by implementing proper build configuration exclusions. Currently, DevSeedData is used in journal_service.dart (lines 46-49), journal_debug_screen.dart (lines 198-201, 231), and has test files that reference it. While the class already has kDebugMode guards internally, the import statements and class references still exist in production code. Implementation steps: 1) Wrap all DevSeedData imports with conditional compilation using #if DEBUG preprocessor directives or move to separate debug-only files, 2) Create a debug-only version of journal_service.dart initialization that excludes seeding logic in release builds, 3) Ensure journal_debug_screen.dart is completely excluded from production builds via build configuration, 4) Remove or conditionally exclude any test files that might be included in production bundles, 5) Add build-time verification to ensure no DevSeedData references exist in release builds, 6) Update any debug utilities to gracefully handle the absence of seeding functionality in production.",
         "testStrategy": "Build the app in release mode and verify that DevSeedData class is not included in the final bundle by checking the compiled bytecode or using Flutter's build analysis tools. Test that journal service initialization works correctly in release mode without attempting to seed data. Verify that all debug screens are properly excluded from production builds. Run static analysis to ensure no references to DevSeedData exist in production code paths. Test app functionality in release mode to ensure removal of dev seed data doesn't break core journal functionality.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           2,
           3
@@ -1479,7 +1479,7 @@
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-16T12:54:23.941Z",
+      "updated": "2025-09-16T13:06:28.252Z",
       "description": "Tasks for master context"
     }
   }

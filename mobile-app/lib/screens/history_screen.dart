@@ -3,10 +3,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import '../theme/colors.dart';
 import '../widgets/page_header.dart';
-import '../widgets/common/journal_entry_editor.dart';
-import '../widgets/daily_canvas/journal_editor_widget.dart';
 import '../database/journal_database.dart';
 import '../services/journal_service.dart';
 import 'home_screen.dart'; // Import for historySelectedDateProvider
@@ -176,15 +175,8 @@ class HistoryScreen extends HookConsumerWidget {
 
               const SizedBox(height: 16),
 
-              // Journal entry section
-              if (selectedDay.value != null)
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _buildJournalEntry(context, theme, ref, selectedDay.value!),
-                  ),
-                )
-              else if (!isCalendarExpanded)
+              // Show empty state when calendar is collapsed
+              if (!isCalendarExpanded && selectedDay.value == null)
                 // Show placeholder when calendar is collapsed but no date selected
                 Expanded(
                   child: Center(
@@ -247,6 +239,8 @@ class HistoryScreen extends HookConsumerWidget {
       onDaySelected: (selected, focused) {
         selectedDay.value = selected;
         focusedDay.value = focused;
+        // Navigate to Daily Canvas when a date is selected
+        context.push('/daily-canvas', extra: selected);
       },
       eventLoader: (day) {
         // Return a list with one item if this day has an entry
@@ -313,7 +307,13 @@ class HistoryScreen extends HookConsumerWidget {
   ) {
     return GestureDetector(
       onTap: () {
-        ref.read(calendarExpandedProvider.notifier).state = true;
+        if (selectedDate != null) {
+          // If a date is selected, navigate to Daily Canvas
+          context.push('/daily-canvas', extra: selectedDate);
+        } else {
+          // Otherwise, expand the calendar to select a date
+          ref.read(calendarExpandedProvider.notifier).state = true;
+        }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -342,72 +342,6 @@ class HistoryScreen extends HookConsumerWidget {
                 ref.read(calendarExpandedProvider.notifier).state = true;
               },
               tooltip: 'Expand calendar',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildJournalEntry(
-    BuildContext context,
-    ThemeData theme,
-    WidgetRef ref,
-    DateTime selectedDate,
-  ) {
-    final journalEntryAsync = ref.watch(journalEntryProvider(selectedDate));
-
-    return journalEntryAsync.when(
-      data: (journalEntry) {
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: theme.brightness == Brightness.light
-                ? AuraColors.lightCardGradient
-                : AuraColors.darkCardGradient,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: theme.brightness == Brightness.light
-                  ? AuraColors.lightPrimary.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.2),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: JournalEntryEditor(
-              entry: journalEntry,
-              date: selectedDate,
-              onSaved: () {
-                // Refresh the entry after saving
-                ref.invalidate(journalEntryProvider(selectedDate));
-              },
-            ),
-          ),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: theme.colorScheme.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Error loading journal entry',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.error,
-              ),
             ),
           ],
         ),

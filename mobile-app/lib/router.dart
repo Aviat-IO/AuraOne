@@ -16,6 +16,7 @@ import 'package:aura_one/screens/privacy/data_deletion_screen.dart';
 import 'package:aura_one/screens/font_size_settings_screen.dart';
 import 'package:aura_one/screens/about_screen.dart';
 import 'package:aura_one/screens/event_detail_screen.dart';
+import 'package:aura_one/screens/daily_canvas_screen.dart';
 import 'package:aura_one/widgets/daily_canvas/timeline_widget.dart';
 
 // Debug-only imports - excluded from production builds via kDebugMode guards
@@ -170,6 +171,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final event = state.extra as TimelineEvent;
           return EventDetailScreen(event: event);
+        },
+      ),
+
+      // Daily Canvas screen for viewing a specific day's full canvas
+      GoRoute(
+        path: '/daily-canvas',
+        builder: (context, state) {
+          final date = state.extra as DateTime? ?? DateTime.now();
+          return DailyCanvasScreen(date: date);
         },
       ),
     ],
