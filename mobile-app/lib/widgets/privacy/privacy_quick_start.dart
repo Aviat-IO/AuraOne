@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../models/privacy_settings.dart';
+import '../../providers/privacy_providers.dart';
+import '../../services/privacy_service.dart';
 
 /// Quick-start guide for new users to understand and configure privacy settings
 /// Provides a guided setup experience with clear explanations
@@ -265,7 +268,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
               'Location off, minimal permissions, 1 week retention',
               Icons.lock,
               theme.colorScheme.error,
-              () => _applyMaxPrivacyPreset(context),
+              () => _applyMaxPrivacyPreset(context, ref),
             ),
 
             _buildPresetOption(
@@ -274,7 +277,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
               'Approximate location, essential permissions, 6 month retention',
               Icons.balance,
               theme.colorScheme.primary,
-              () => _applyBalancedPreset(context),
+              () => _applyBalancedPreset(context, ref),
             ),
 
             _buildPresetOption(
@@ -283,7 +286,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
               'Precise location, all permissions, 1 year retention',
               Icons.all_inclusive,
               theme.colorScheme.secondary,
-              () => _applyFullFeaturesPreset(context),
+              () => _applyFullFeaturesPreset(context, ref),
             ),
           ],
         ),
@@ -537,46 +540,52 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
     );
   }
 
-  void _applyMaxPrivacyPreset(BuildContext context) {
-    _showPresetConfirmation(
-      context,
-      'Maximum Privacy Preset',
-      'This will set:\n\n'
-      '• Location tracking: OFF\n'
-      '• Data retention: 1 Week\n'
-      '• All permissions: OFF\n'
-      '• Automatic cleanup: ON\n\n'
-      'You can adjust these later if needed.',
-    );
+  void _applyMaxPrivacyPreset(BuildContext context, WidgetRef ref) {
+    final preset = ref.read(privacyPresetProvider(PrivacyPresetLevel.minimal));
+    if (preset != null) {
+      _showPresetConfirmation(
+        context,
+        ref,
+        preset.title,
+        'This will set:\n\n${preset.features.map((f) => '• $f').join('\n')}\n\nYou can adjust these later if needed.',
+        PrivacyPresetLevel.minimal,
+      );
+    }
   }
 
-  void _applyBalancedPreset(BuildContext context) {
-    _showPresetConfirmation(
-      context,
-      'Balanced Preset',
-      'This will set:\n\n'
-      '• Location tracking: Approximate\n'
-      '• Data retention: 6 Months\n'
-      '• Essential permissions: ON\n'
-      '• Automatic cleanup: ON\n\n'
-      'Recommended for most users.',
-    );
+  void _applyBalancedPreset(BuildContext context, WidgetRef ref) {
+    final preset = ref.read(privacyPresetProvider(PrivacyPresetLevel.balanced));
+    if (preset != null) {
+      _showPresetConfirmation(
+        context,
+        ref,
+        preset.title,
+        'This will set:\n\n${preset.features.map((f) => '• $f').join('\n')}\n\nRecommended for most users.',
+        PrivacyPresetLevel.balanced,
+      );
+    }
   }
 
-  void _applyFullFeaturesPreset(BuildContext context) {
-    _showPresetConfirmation(
-      context,
-      'Full Features Preset',
-      'This will set:\n\n'
-      '• Location tracking: Precise\n'
-      '• Data retention: 1 Year\n'
-      '• All permissions: ON\n'
-      '• Automatic cleanup: ON\n\n'
-      'Provides the richest experience.',
-    );
+  void _applyFullFeaturesPreset(BuildContext context, WidgetRef ref) {
+    final preset = ref.read(privacyPresetProvider(PrivacyPresetLevel.maximum));
+    if (preset != null) {
+      _showPresetConfirmation(
+        context,
+        ref,
+        preset.title,
+        'This will set:\n\n${preset.features.map((f) => '• $f').join('\n')}\n\nProvides the richest experience.',
+        PrivacyPresetLevel.maximum,
+      );
+    }
   }
 
-  void _showPresetConfirmation(BuildContext context, String title, String description) {
+  void _showPresetConfirmation(
+    BuildContext context,
+    WidgetRef ref,
+    String title,
+    String description,
+    PrivacyPresetLevel presetLevel,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -590,7 +599,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
-              _applyPreset(context, title);
+              _applyPreset(context, ref, title, presetLevel);
             },
             child: const Text('Apply Preset'),
           ),
@@ -599,17 +608,65 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
     );
   }
 
-  void _applyPreset(BuildContext context, String presetName) {
-    // TODO: Implement actual preset application logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$presetName applied successfully!'),
-        backgroundColor: Colors.green,
-        action: SnackBarAction(
-          label: 'View Settings',
-          onPressed: () => context.push('/privacy/settings'),
+  Future<void> _applyPreset(
+    BuildContext context,
+    WidgetRef ref,
+    String presetName,
+    PrivacyPresetLevel presetLevel,
+  ) async {
+    try {
+      // Show loading state
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
         ),
-      ),
-    );
+      );
+
+      // Apply the preset using the privacy settings notifier
+      final notifier = ref.read(privacySettingsNotifierProvider.notifier);
+      await notifier.applyPreset(presetLevel);
+
+      // Hide loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Show success message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$presetName applied successfully!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'View Settings',
+              onPressed: () => context.push('/privacy/settings'),
+            ),
+          ),
+        );
+      }
+    } catch (error) {
+      // Hide loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Show error message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to apply preset: ${error.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () => _applyPreset(context, ref, presetName, presetLevel),
+            ),
+          ),
+        );
+      }
+    }
   }
 }

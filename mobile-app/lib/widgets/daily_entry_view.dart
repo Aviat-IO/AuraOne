@@ -12,6 +12,7 @@ import '../database/journal_database.dart';
 import '../providers/media_database_provider.dart';
 import '../providers/location_database_provider.dart';
 import '../providers/photo_service_provider.dart';
+import '../providers/location_clustering_provider.dart';
 import '../services/journal_service.dart';
 import '../services/ai/enhanced_simple_ai_service.dart';
 import '../services/ai/narrative_generation.dart';
@@ -218,15 +219,12 @@ class _JournalTab extends HookConsumerWidget {
     }).toList() ?? [];
     final photosCount = dayPhotos.length;
 
-    // Get locations count from database for this specific date
-    final locationStream = ref.watch(recentLocationPointsProvider(const Duration(days: 7)));
-    final locationHistory = locationStream.maybeWhen(
-      data: (locations) => locations,
-      orElse: () => <loc_db.LocationPoint>[],
+    // Get unique locations count using DBSCAN clustering for this specific date
+    final locationsCountAsync = ref.watch(uniqueLocationsCountProvider(date));
+    final locationsCount = locationsCountAsync.maybeWhen(
+      data: (count) => count,
+      orElse: () => 0,
     );
-    final locationsCount = locationHistory
-        .where((loc) => loc.timestamp.isAfter(dayStart) && loc.timestamp.isBefore(dayEnd))
-        .length;
 
     // Function to generate AI summary for this specific date
     Future<void> generateSummary() async {
