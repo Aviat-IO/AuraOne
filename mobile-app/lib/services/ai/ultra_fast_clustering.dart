@@ -12,8 +12,8 @@ class UltraFastClustering {
   /// This is MUCH faster and often more meaningful for daily activity
   static List<LocationCluster> timeBasedClustering(
     List<LocationPoint> points, {
-    Duration stayDuration = const Duration(minutes: 5),
-    double mergeRadius = 100, // meters
+    Duration stayDuration = const Duration(minutes: 10), // Increased gap tolerance
+    double mergeRadius = 150, // Increased merge radius to 150m
   }) {
     if (points.isEmpty) return [];
 

@@ -2,6 +2,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../database/location_database.dart' as loc_db;
 import '../services/ai/dbscan_clustering.dart';
 import '../services/ai/ultra_fast_clustering.dart';
+import '../services/ai/cluster_merger.dart';
 import '../utils/logger.dart';
 import '../utils/performance_monitor.dart';
 import 'location_database_provider.dart';
@@ -129,16 +130,25 @@ final clusteredLocationsProvider = FutureProvider.family<List<LocationCluster>, 
       // Automatically selects best algorithm based on data characteristics
       final result = await HybridClustering.smartCluster(
         clusteringPoints,
-        eps: 50.0,  // 50 meters radius
-        minPts: 8,   // Minimum 8 points to form a cluster
+        eps: 100.0,  // Increased to 100 meters radius to merge nearby locations
+        minPts: 3,   // Reduced to 3 points to form a cluster (more aggressive grouping)
       );
 
       // Filter clusters to only include those with significant duration
       // This filters out places you just drove through slowly
-      final significantClusters = result.clusters.where((cluster) {
-        // Only count as a visited place if you stayed for at least 3 minutes
-        return cluster.duration.inMinutes >= 3;
+      var significantClusters = result.clusters.where((cluster) {
+        // Only count as a visited place if you stayed for at least 2 minutes
+        // Reduced threshold to capture shorter visits
+        return cluster.duration.inMinutes >= 2;
       }).toList();
+
+      // Merge clusters that are at the same location
+      // This prevents multiple entries for the same place
+      significantClusters = ClusterMerger.smartMerge(
+        significantClusters,
+        locationRadius: 100, // 100 meters radius for same location
+        timeGap: const Duration(hours: 4), // Merge visits within 4 hours
+      );
 
       // Cache the result
       _clusteringCache.put(cacheKey, significantClusters, result.journeys);
