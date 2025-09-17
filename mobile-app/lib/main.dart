@@ -3,17 +3,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:sentry/sentry.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:models/models.dart';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import 'package:purplebase/purplebase.dart';
 import 'package:aura_one/router.dart';
 import 'package:aura_one/theme.dart';
 import 'package:aura_one/theme/colors.dart';
-import 'package:aura_one/widgets/simple_theme_switcher.dart';
 import 'package:aura_one/widgets/privacy_screen_overlay.dart';
 import 'package:aura_one/screens/app_lock_screen.dart';
 import 'package:aura_one/utils/error_handler.dart';
@@ -26,6 +21,9 @@ import 'package:aura_one/providers/context_providers.dart';
 import 'package:aura_one/providers/settings_providers.dart';
 import 'package:aura_one/services/journal_service.dart';
 import 'package:aura_one/config/sentry_config.dart';
+import 'package:aura_one/services/background_init_service.dart';
+import 'package:aura_one/screens/optimized_splash_screen.dart';
+import 'package:aura_one/utils/performance_monitor.dart';
 
 void main() async {
   // Ensure Flutter binding is initialized
@@ -33,6 +31,11 @@ void main() async {
 
   // Log app startup
   appLogger.info('Aura One starting...');
+
+  // Enable performance monitoring in debug mode
+  if (kDebugMode) {
+    PerformanceMonitor().startMonitoring();
+  }
 
   // Load saved theme preference before app starts
   await BrightnessNotifier.loadInitialBrightness();
@@ -122,7 +125,7 @@ class AuraOneApp extends ConsumerWidget {
       AsyncLoading() => MaterialApp(
         title: title,
         theme: theme,
-        home: const AuraOneSplashScreen(),
+        home: const OptimizedSplashScreen(),
         debugShowCheckedModeBanner: false,
       ),
       AsyncError(:final error) => MaterialApp(
@@ -314,13 +317,21 @@ class AuraOneSplashScreen extends StatelessWidget {
 
 final appInitializationProvider = FutureProvider<void>((ref) async {
   try {
-    appLogger.info('Initializing app storage...');
-    final dir = await getApplicationDocumentsDirectory();
+    appLogger.info('Starting optimized app initialization...');
 
+    // Use background initialization service for better performance
+    final initService = BackgroundInitService();
+    final initResult = await initService.initializeInBackground();
+
+    if (!initResult.success) {
+      throw Exception('Initialization failed: ${initResult.error}');
+    }
+
+    // Initialize storage with the database path from background init
     await ref.read(
       initializationProvider(
         StorageConfiguration(
-          databasePath: path.join(dir.path, 'aura_one.db'),
+          databasePath: initResult.dbPath!,
           relayGroups: {
             'default': {
               'wss://relay.damus.io',
@@ -333,99 +344,87 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
       ).future,
     );
 
-    // Initialize location service
-    appLogger.info('Initializing location service...');
-    final locationService = ref.read(simpleLocationServiceProvider);
-    await locationService.initialize();
+    // Services are now initialized lazily in background
+    // Heavy operations are deferred to after UI is ready
 
-    // Location tracking will be started after onboarding completion
-    // Do not check permissions during app initialization
+    appLogger.info('App initialization complete (optimized)');
 
-    // Initialize movement tracking service
-    appLogger.info('Initializing movement tracking service...');
-    final movementService = ref.read(movementTrackingServiceProvider);
-    await movementService.initialize();
+    // Post-initialization tasks (non-blocking)
+    _schedulePostInitializationTasks(ref, initResult.onboardingCompleted);
 
-    // Initialize background data collection service
-    appLogger.info('Initializing background data collection service...');
-    final backgroundService = ref.read(backgroundDataServiceProvider);
-    await backgroundService.initialize();
-
-    // Check if onboarding has been completed and start location tracking if needed
-    appLogger.info('Checking if location tracking should be started...');
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
-
-      if (onboardingCompleted) {
-        appLogger.info('Onboarding already completed, checking location permissions...');
-
-        // Check if we have location permissions
-        final hasPermission = await locationService.checkLocationPermission();
-
-        if (hasPermission) {
-          appLogger.info('Location permissions granted, starting tracking...');
-          await locationService.startTracking();
-          await movementService.startTracking();
-          appLogger.info('Location tracking started successfully');
-        } else {
-          appLogger.info('Location permissions not granted, tracking not started');
-        }
-      } else {
-        appLogger.info('Onboarding not completed, location tracking will start after onboarding');
-      }
-    } catch (e) {
-      appLogger.error('Error checking location tracking status', error: e);
-      // Don't fail initialization if location tracking check fails
-    }
-    
-    // Start background data collection with optimized battery usage
-    await backgroundService.startBackgroundDataCollection(
-      frequency: const Duration(minutes: 15), // Collect data every 15 minutes
-      includeLocation: true,
-      includeBle: true,
-      includeMovement: true,
-    );
-    appLogger.info('Background data collection started');
-
-    // Initialize Multi-Modal AI Fusion Engine (if enabled by default)
-    appLogger.info('Initializing Multi-Modal AI Fusion Engine...');
-    final fusionEnabled = ref.read(fusionEngineRunningProvider);
-    if (fusionEnabled) {
-      final fusionController = ref.read(fusionEngineControllerProvider);
-      await fusionController.start();
-      appLogger.info('Multi-Modal AI Fusion Engine started');
-    }
-
-    // Initialize Personal Context Engine (if enabled by default)
-    appLogger.info('Initializing Personal Context Engine...');
-    final contextEnabled = ref.read(contextEngineEnabledProvider);
-    if (contextEnabled) {
-      final contextEngine = ref.read(personalContextEngineProvider);
-      await contextEngine.learnUserPatterns();
-      appLogger.info('Personal Context Engine started learning patterns');
-    }
-
-    // Initialize Notification Service for daily reminders
-    appLogger.info('Initializing Notification Service...');
-    final notificationService = ref.read(notificationServiceProvider);
-    await notificationService.initialize();
-    appLogger.info('Notification Service initialized');
-
-    // Initialize daily reminders (this will schedule them if enabled)
-    appLogger.info('Setting up daily reminders...');
-    final dailyRemindersEnabled = ref.read(dailyRemindersEnabledProvider);
-    appLogger.info('Daily reminders ${dailyRemindersEnabled ? 'enabled' : 'disabled'}');
-
-    // Initialize Journal Service for daily entry creation
-    appLogger.info('Initializing Journal Service...');
-    final journalService = ref.read(journalServiceProvider);
-    await journalService.initialize();
-    appLogger.info('Journal Service initialized and daily entries will be created automatically');
-
-    appLogger.info('App initialization complete');
   } catch (error, stackTrace) {
     appLogger.error('Failed to initialize app', error: error, stackTrace: stackTrace);
     rethrow;
   }
 });
+
+/// Schedule post-initialization tasks that don't block the UI
+void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
+  // These run after the UI is ready
+  Future.delayed(const Duration(milliseconds: 500), () async {
+    try {
+      // Initialize location service if needed
+      if (onboardingCompleted) {
+        final locationService = ref.read(simpleLocationServiceProvider);
+        await locationService.initialize();
+
+        final hasPermission = await locationService.checkLocationPermission();
+        if (hasPermission) {
+          await locationService.startTracking();
+          appLogger.info('Location tracking started (post-init)');
+        }
+      }
+
+      // Initialize movement tracking
+      final movementService = ref.read(movementTrackingServiceProvider);
+      await movementService.initialize();
+      if (onboardingCompleted) {
+        await movementService.startTracking();
+      }
+
+      // Initialize background data collection
+      final backgroundService = ref.read(backgroundDataServiceProvider);
+      await backgroundService.initialize();
+      await backgroundService.startBackgroundDataCollection(
+        frequency: const Duration(minutes: 15),
+        includeLocation: true,
+        includeBle: true,
+        includeMovement: true,
+      );
+
+      // Initialize notification service
+      final notificationService = ref.read(notificationServiceProvider);
+      await notificationService.initialize();
+
+      // Initialize journal service
+      final journalService = ref.read(journalServiceProvider);
+      await journalService.initialize();
+
+    } catch (e) {
+      appLogger.error('Post-initialization task failed', error: e);
+    }
+  });
+
+  // Heavy AI initialization happens even later
+  Future.delayed(const Duration(seconds: 2), () async {
+    try {
+      // Initialize fusion engine if enabled
+      final fusionEnabled = ref.read(fusionEngineRunningProvider);
+      if (fusionEnabled) {
+        final fusionController = ref.read(fusionEngineControllerProvider);
+        await fusionController.start();
+        appLogger.info('Fusion engine started (post-init)');
+      }
+
+      // Initialize context engine if enabled
+      final contextEnabled = ref.read(contextEngineEnabledProvider);
+      if (contextEnabled) {
+        final contextEngine = ref.read(personalContextEngineProvider);
+        await contextEngine.learnUserPatterns();
+        appLogger.info('Context engine started (post-init)');
+      }
+    } catch (e) {
+      appLogger.error('AI initialization failed', error: e);
+    }
+  });
+}
