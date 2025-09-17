@@ -9,6 +9,7 @@ import '../widgets/daily_canvas/timeline_widget.dart';
 import '../widgets/daily_canvas/map_widget.dart';
 import '../widgets/daily_canvas/media_gallery_widget.dart';
 import '../widgets/daily_canvas/journal_editor_widget.dart';
+import '../widgets/common/pill_tab_bar.dart';
 
 // Provider for selected date
 final selectedDateProvider = StateProvider<DateTime>((ref) => DateTime.now());
@@ -317,27 +318,14 @@ class DailyCanvasScreen extends HookConsumerWidget {
       // Expanded view - tabbed interface
       return Column(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              border: Border(
-                bottom: BorderSide(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-                ),
-              ),
-            ),
-            child: TabBar(
-              controller: tabController,
-              tabs: const [
-                Tab(icon: Icon(Icons.timeline), text: 'Timeline'),
-                Tab(icon: Icon(Icons.map), text: 'Map'),
-                Tab(icon: Icon(Icons.photo_library), text: 'Media'),
-                Tab(icon: Icon(Icons.edit_note), text: 'Journal'),
-              ],
-              indicatorColor: theme.colorScheme.primary,
-              labelColor: theme.colorScheme.primary,
-              unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
+          PillTabBar(
+            controller: tabController,
+            items: const [
+              PillTabItem(icon: Icons.timeline, label: 'Timeline'),
+              PillTabItem(icon: Icons.map, label: 'Map'),
+              PillTabItem(icon: Icons.photo_library, label: 'Media'),
+              PillTabItem(icon: Icons.edit_note, label: 'Journal'),
+            ],
           ),
           Expanded(
             child: TabBarView(

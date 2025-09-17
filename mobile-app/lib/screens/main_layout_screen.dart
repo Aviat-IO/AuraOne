@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../widgets/animated_bottom_nav_bar.dart';
+import '../widgets/common/pill_nav_bar.dart';
+import '../widgets/common/pill_tab_bar.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'history_screen.dart';
@@ -31,38 +32,22 @@ class MainLayoutScreen extends ConsumerWidget {
         index: selectedIndex,
         children: screens,
       ),
-      bottomNavigationBar: AnimatedBottomNavBar(
+      bottomNavigationBar: PillNavBar(
         selectedIndex: selectedIndex,
-        isLight: isLight,
-        onItemTapped: (index) {
+        items: const [
+          PillTabItem(icon: Icons.search, label: 'Search'),
+          PillTabItem(icon: Icons.history, label: 'History'),
+          PillTabItem(icon: Icons.home, label: 'Home'),
+          PillTabItem(icon: Icons.privacy_tip, label: 'Privacy'),
+          PillTabItem(icon: Icons.settings, label: 'Settings'),
+        ],
+        onItemSelected: (index) {
           // If navigating to Home (index 2), reset to Overview tab
           if (index == 2) {
             ref.read(homeSubTabIndexProvider.notifier).state = 0;
           }
           ref.read(selectedTabIndexProvider.notifier).state = index;
         },
-        items: const [
-          AnimatedTabItem(
-            icon: Icons.search,
-            label: 'Search',
-          ),
-          AnimatedTabItem(
-            icon: Icons.history,
-            label: 'History',
-          ),
-          AnimatedTabItem(
-            icon: Icons.home,
-            label: 'Home',
-          ),
-          AnimatedTabItem(
-            icon: Icons.privacy_tip,
-            label: 'Privacy',
-          ),
-          AnimatedTabItem(
-            icon: Icons.settings,
-            label: 'Settings',
-          ),
-        ],
       ),
     );
   }
