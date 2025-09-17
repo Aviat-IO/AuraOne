@@ -4,14 +4,25 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/colors.dart';
 import 'providers/settings_providers.dart';
 
-// Persistent brightness provider
+// Persistent brightness provider with initial value loading
 final brightnessProvider = StateNotifierProvider<BrightnessNotifier, Brightness>((ref) {
   return BrightnessNotifier();
 });
 
 class BrightnessNotifier extends StateNotifier<Brightness> {
-  BrightnessNotifier() : super(Brightness.light) {
-    _loadBrightness();
+  static Brightness? _initialBrightness;
+
+  // Load initial brightness before app starts
+  static Future<void> loadInitialBrightness() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedValue = prefs.getBool('isDarkMode') ?? false;
+    _initialBrightness = savedValue ? Brightness.dark : Brightness.light;
+  }
+
+  BrightnessNotifier() : super(_initialBrightness ?? Brightness.light) {
+    if (_initialBrightness == null) {
+      _loadBrightness();
+    }
   }
 
   Future<void> _loadBrightness() async {

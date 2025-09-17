@@ -338,27 +338,24 @@ class SettingsScreen extends ConsumerWidget {
                                   context.push('/settings/about');
                                 },
                               ),
-                              // Only show Debug tile in debug mode
-                              if (kDebugMode) ...[
-                                Divider(
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-                                  height: 1,
+                              Divider(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                                height: 1,
+                              ),
+                              _buildSettingsTile(
+                                icon: Icons.bug_report_outlined,
+                                title: 'Debug',
+                                subtitle: 'Developer tools and diagnostics',
+                                trailing: Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                                 ),
-                                _buildSettingsTile(
-                                  icon: Icons.bug_report_outlined,
-                                  title: 'Debug',
-                                  subtitle: 'Developer tools and diagnostics',
-                                  trailing: Icon(
-                                    Icons.arrow_forward_ios,
-                                    size: 16,
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                                  ),
-                                  theme: theme,
-                                  onTap: () {
-                                    context.push('/settings/debug');
-                                  },
-                                ),
-                              ],
+                                theme: theme,
+                                onTap: () {
+                                  context.push('/settings/debug');
+                                },
+                              ),
                             ],
                           ),
                         ),

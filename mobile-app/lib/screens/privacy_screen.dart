@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../services/simple_location_service.dart';
 import '../theme/colors.dart';
-import '../widgets/common/help_tooltip.dart';
 import '../widgets/privacy/privacy_help_guide.dart';
 import '../widgets/privacy/privacy_quick_start.dart';
 
@@ -317,11 +316,11 @@ class PrivacyScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // Permission Settings with help
-                HelpSectionHeader(
+                // Permission Settings
+                _buildSectionHeader(
+                  context: context,
                   title: 'Permission Settings',
                   subtitle: 'Control what device features the app can access',
-                  helpText: 'These permissions enable specific features in the app. Location tracking helps provide context to your journal entries, while photo access lets you include images. You can enable or disable these anytime without affecting other app functionality.',
                   icon: Icons.tune,
                 ),
                 const SizedBox(height: 16),
@@ -360,14 +359,10 @@ class PrivacyScreen extends ConsumerWidget {
                         size: 20,
                       ),
                     ),
-                    title: HelpTooltip(
-                      message: 'Location tracking provides context for your journal entries',
-                      detailedHelp: 'When enabled, the app tracks your location to automatically provide context for your journal entries. This helps you remember where you were when you wrote specific entries. Location data is stored locally on your device and never shared with external servers.',
-                      child: Text(
-                        'Location Tracking',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                    title: Text(
+                      'Location Tracking',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     subtitle: Text(
@@ -425,14 +420,10 @@ class PrivacyScreen extends ConsumerWidget {
                         size: 20,
                       ),
                     ),
-                    title: HelpTooltip(
-                      message: 'Access device photos to include in journal entries',
-                      detailedHelp: 'Photo library access allows you to select existing photos from your device to include in journal entries. This makes it easy to add visual memories to your writing. The app only accesses photos you specifically select.',
-                      child: Text(
-                        'Photo Library Access',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                    title: Text(
+                      'Photo Library Access',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     subtitle: Text(
@@ -511,25 +502,23 @@ class PrivacyScreen extends ConsumerWidget {
 
                 const SizedBox(height: 24),
 
-                // Data & Privacy section with help
-                HelpSectionHeader(
+                // Data & Privacy section
+                _buildSectionHeader(
+                  context: context,
                   title: 'Data & Privacy',
                   subtitle: 'Manage your personal data and privacy settings',
-                  helpText: 'These options let you control your personal data. You can export a complete copy of your data, view our privacy policy, or delete all data from your device. All operations are performed locally and securely.',
                   icon: Icons.folder_shared,
                 ),
                 const SizedBox(height: 16),
 
                 // Privacy Guide option
-                _buildPrivacyOptionWithTooltip(
+                _buildPrivacyOption(
                   context: context,
                   theme: theme,
                   isLight: isLight,
                   icon: Icons.school,
                   title: 'Privacy Guide',
                   subtitle: 'Complete guide to privacy controls and settings',
-                  helpMessage: 'Learn about all privacy features',
-                  detailedHelp: 'A comprehensive guide explaining all privacy features, settings, and best practices for protecting your personal data.',
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => const PrivacyHelpGuide(),
@@ -539,15 +528,13 @@ class PrivacyScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
 
                 // Quick Start Guide option
-                _buildPrivacyOptionWithTooltip(
+                _buildPrivacyOption(
                   context: context,
                   theme: theme,
                   isLight: isLight,
                   icon: Icons.rocket_launch,
                   title: 'Quick Start Guide',
                   subtitle: 'Guided setup for new users',
-                  helpMessage: 'Configure privacy settings with guided setup',
-                  detailedHelp: 'A step-by-step guide to help you configure your privacy settings quickly and easily.',
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => const PrivacyQuickStartGuide(),
@@ -556,15 +543,13 @@ class PrivacyScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
 
-                _buildPrivacyOptionWithTooltip(
+                _buildPrivacyOption(
                   context: context,
                   theme: theme,
                   isLight: isLight,
                   icon: Icons.folder_shared,
                   title: 'Export Your Data',
                   subtitle: 'Download a copy of your journal entries and settings',
-                  helpMessage: 'Download a copy of all your personal data',
-                  detailedHelp: 'Export creates a complete backup of your journal entries, settings, and preferences. You can choose different formats (JSON, CSV) and decide what data to include. This is useful for backups or transferring to another device.',
                   onTap: () {
                     // TODO: Implement data export
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -574,15 +559,13 @@ class PrivacyScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
 
-                _buildPrivacyOptionWithTooltip(
+                _buildPrivacyOption(
                   context: context,
                   theme: theme,
                   isLight: isLight,
                   icon: Icons.delete_forever,
                   title: 'Delete All Data',
                   subtitle: 'Permanently remove all your data from this device',
-                  helpMessage: 'Permanently remove all data from this device',
-                  detailedHelp: 'This action permanently deletes all your journal entries, photos, settings, and app data from this device. This cannot be undone. Consider exporting your data first as a backup.',
                   isDestructive: true,
                   onTap: () {
                     _showDeleteDataDialog(context);
@@ -590,15 +573,13 @@ class PrivacyScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
 
-                _buildPrivacyOptionWithTooltip(
+                _buildPrivacyOption(
                   context: context,
                   theme: theme,
                   isLight: isLight,
                   icon: Icons.article,
                   title: 'Privacy Policy',
                   subtitle: 'Read our complete privacy policy and terms',
-                  helpMessage: 'Read our complete privacy policy and terms',
-                  detailedHelp: 'Our privacy policy explains how we handle your data, what information we collect, and your rights. We believe in transparency and your right to understand how your personal information is used.',
                   onTap: () {
                     _showPrivacyPolicyDialog(context);
                   },
@@ -612,78 +593,45 @@ class PrivacyScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPrivacyOptionWithTooltip({
+  Widget _buildSectionHeader({
     required BuildContext context,
-    required ThemeData theme,
-    required bool isLight,
-    required IconData icon,
     required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    required String helpMessage,
-    String? detailedHelp,
-    bool isDestructive = false,
+    String? subtitle,
+    IconData? icon,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isLight
-            ? AuraColors.lightCardGradient
-            : AuraColors.darkCardGradient,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isLight
-              ? AuraColors.lightPrimary.withValues(alpha: 0.05)
-              : Colors.black.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    final theme = Theme.of(context);
+
+    return Semantics(
+      header: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: isDestructive
-              ? Colors.red.withValues(alpha: 0.1)
-              : theme.colorScheme.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            color: isDestructive
-              ? Colors.red
-              : theme.colorScheme.primary,
-            size: 20,
-          ),
-        ),
-        title: HelpTooltip(
-          message: helpMessage,
-          detailedHelp: detailedHelp,
-          child: Text(
-            title,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: isDestructive ? Colors.red : null,
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-          ),
-        ),
-        trailing: Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-        ),
-        onTap: onTap,
+          ],
+        ],
       ),
     );
   }

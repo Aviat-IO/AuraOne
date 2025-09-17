@@ -8,13 +8,16 @@ import '../database/journal_database.dart';
 import '../services/journal_service.dart';
 import '../widgets/daily_entry_view.dart';
 import 'home_screen.dart'; // Import for historySelectedDateProvider
-
+import 'main_layout_screen.dart'; // Import for selectedTabIndexProvider
 
 // Provider for recent journal entries to show dots on calendar
 final recentJournalEntriesProvider = StreamProvider<List<JournalEntry>>((ref) {
   final journalService = ref.watch(journalServiceProvider);
   return journalService.watchRecentEntries(limit: 100); // Get more entries for calendar dots
 });
+
+// Provider for persistent selected date in history
+final historySelectedDatePersistentProvider = StateProvider<DateTime>((ref) => DateTime.now());
 
 class HistoryScreen extends HookConsumerWidget {
   const HistoryScreen({super.key});
@@ -24,10 +27,35 @@ class HistoryScreen extends HookConsumerWidget {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
 
-    // State management
-    final selectedDay = useState<DateTime>(DateTime.now());
-    final focusedDay = useState(DateTime.now());
+    // State management - use persistent provider for selected date
+    final persistentSelectedDate = ref.watch(historySelectedDatePersistentProvider);
+    final selectedDay = useState<DateTime>(persistentSelectedDate);
+    final focusedDay = useState<DateTime>(persistentSelectedDate);
+    final hasShownCalendar = useState<bool>(false);
 
+    // Update local state when persistent state changes
+    useEffect(() {
+      selectedDay.value = persistentSelectedDate;
+      focusedDay.value = persistentSelectedDate;
+      return null;
+    }, [persistentSelectedDate]);
+
+    // Listen for tab changes to auto-show calendar when navigating to History tab
+    ref.listen<int>(selectedTabIndexProvider, (previous, current) {
+      if (current == 1 && previous != 1) { // History tab is at index 1
+        // Reset to Journal subtab when navigating to History
+        ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
+        // Reset the flag when navigating to history tab
+        hasShownCalendar.value = false;
+        // Show calendar after a brief delay to allow the screen to render
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (context.mounted && !hasShownCalendar.value) {
+            hasShownCalendar.value = true;
+            _showCalendarPicker(context, ref, selectedDay, focusedDay);
+          }
+        });
+      }
+    });
 
     // Check if we have a date from media navigation
     useEffect(() {
@@ -35,6 +63,10 @@ class HistoryScreen extends HookConsumerWidget {
       if (dateFromMedia != null) {
         selectedDay.value = dateFromMedia;
         focusedDay.value = dateFromMedia;
+        // Update persistent provider
+        ref.read(historySelectedDatePersistentProvider.notifier).state = dateFromMedia;
+        // Reset to Journal subtab
+        ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
         // Clear the navigation date
         Future.microtask(() {
           ref.read(historySelectedDateProvider.notifier).state = null;
@@ -48,6 +80,10 @@ class HistoryScreen extends HookConsumerWidget {
       if (next != null) {
         selectedDay.value = next;
         focusedDay.value = next;
+        // Update persistent provider
+        ref.read(historySelectedDatePersistentProvider.notifier).state = next;
+        // Reset to Journal subtab
+        ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
         // Clear the navigation date
         Future.microtask(() {
           ref.read(historySelectedDateProvider.notifier).state = null;
@@ -124,8 +160,13 @@ class HistoryScreen extends HookConsumerWidget {
           IconButton(
             icon: const Icon(Icons.chevron_left),
             onPressed: () {
-              selectedDay.value = selectedDay.value.subtract(const Duration(days: 1));
-              focusedDay.value = selectedDay.value;
+              final newDate = selectedDay.value.subtract(const Duration(days: 1));
+              selectedDay.value = newDate;
+              focusedDay.value = newDate;
+              // Update persistent provider
+              ref.read(historySelectedDatePersistentProvider.notifier).state = newDate;
+              // Reset to Journal subtab
+              ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
             },
             tooltip: 'Previous day',
           ),
@@ -166,8 +207,13 @@ class HistoryScreen extends HookConsumerWidget {
             icon: const Icon(Icons.chevron_right),
             onPressed: () {
               if (selectedDay.value.isBefore(DateTime.now())) {
-                selectedDay.value = selectedDay.value.add(const Duration(days: 1));
-                focusedDay.value = selectedDay.value;
+                final newDate = selectedDay.value.add(const Duration(days: 1));
+                selectedDay.value = newDate;
+                focusedDay.value = newDate;
+                // Update persistent provider
+                ref.read(historySelectedDatePersistentProvider.notifier).state = newDate;
+                // Reset to Journal subtab
+                ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
               }
             },
             tooltip: 'Next day',
@@ -232,6 +278,10 @@ class HistoryScreen extends HookConsumerWidget {
                       onDaySelected: (selected, focused) {
                         selectedDay.value = selected;
                         focusedDay.value = focused;
+                        // Update persistent provider
+                        ref.read(historySelectedDatePersistentProvider.notifier).state = selected;
+                        // Reset to Journal subtab
+                        ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
                         Navigator.of(context).pop();
                       },
                       eventLoader: (day) {

@@ -34,6 +34,9 @@ void main() async {
   // Log app startup
   appLogger.info('Aura One starting...');
 
+  // Load saved theme preference before app starts
+  await BrightnessNotifier.loadInitialBrightness();
+
   // Initialize Sentry for crash reporting
   await SentryFlutter.init(
     (options) {
@@ -189,22 +192,13 @@ class AuraOneSplashScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Stack(
-            children: [
-              // Theme switcher at the top right
-              Positioned(
-                top: 16,
-                right: 16,
-                child: const SimpleThemeSwitcher(),
-              ),
-              // Main content - Center vertically in available space
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 // Aura One Logo - a mindful, circular design
                 Container(
                   width: 120,
@@ -307,11 +301,9 @@ class AuraOneSplashScreen extends StatelessWidget {
                     color: colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
-                    ],
-                  ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

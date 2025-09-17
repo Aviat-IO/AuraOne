@@ -17,7 +17,7 @@ import '../services/journal_service.dart';
 import '../services/ai/enhanced_simple_ai_service.dart';
 import '../services/ai/narrative_generation.dart';
 
-// Provider for sub-tab index in DailyEntryView
+// Provider for sub-tab index in DailyEntryView - default to Journal (index 0)
 final dailyEntrySubTabIndexProvider = StateProvider<int>((ref) => 0);
 
 class DailyEntryView extends HookConsumerWidget {

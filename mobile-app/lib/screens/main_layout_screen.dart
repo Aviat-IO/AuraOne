@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../widgets/common/pill_nav_bar.dart';
 import '../widgets/common/pill_tab_bar.dart';
+import '../widgets/daily_entry_view.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'history_screen.dart';
@@ -42,9 +43,10 @@ class MainLayoutScreen extends ConsumerWidget {
           PillTabItem(icon: Icons.settings, label: 'Settings'),
         ],
         onItemSelected: (index) {
-          // If navigating to Home (index 2), reset to Overview tab
+          // If navigating to Home (index 2), reset to Journal subtab
           if (index == 2) {
             ref.read(homeSubTabIndexProvider.notifier).state = 0;
+            ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0; // Reset to Journal tab
           }
           ref.read(selectedTabIndexProvider.notifier).state = index;
         },

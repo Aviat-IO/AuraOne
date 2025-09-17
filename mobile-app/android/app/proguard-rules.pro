@@ -27,3 +27,20 @@
 
 # Keep all classes that might be loaded dynamically
 -keep class * implements org.tensorflow.lite.Delegate { *; }
+
+# Play Core missing classes - ignore them since we don't use Play Store features
+-dontwarn com.google.android.play.core.**
+
+# Flutter Map networking for tile loading
+-keep class io.flutter.plugins.flutter_map.** { *; }
+-dontwarn io.flutter.plugins.flutter_map.**
+
+# HTTP networking classes needed for map tiles
+-keep class java.net.HttpURLConnection { *; }
+-keep class javax.net.ssl.HttpsURLConnection { *; }
+-keep class java.net.URL { *; }
+
+# Keep Flutter platform channels for plugins
+-keep class io.flutter.plugin.common.MethodChannel { *; }
+-keep class io.flutter.plugin.common.StandardMessageCodec { *; }
+-keep class io.flutter.plugin.common.EventChannel { *; }

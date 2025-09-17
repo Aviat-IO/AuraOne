@@ -4,7 +4,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'dart:io';
-import '../../theme/colors.dart';
 import '../../providers/media_database_provider.dart';
 import '../../providers/media_thumbnail_provider.dart' show CachedThumbnailWidget;
 
@@ -87,7 +86,7 @@ final mediaLoadingProvider = StateProvider<bool>((ref) => false);
 final galleryViewModeProvider = StateProvider<GalleryViewMode>((ref) => GalleryViewMode.grid);
 
 enum MediaType { photo, video, audio }
-enum GalleryViewMode { grid, list, carousel }
+enum GalleryViewMode { grid, carousel }
 
 class MediaItem {
   final String id;
@@ -169,14 +168,6 @@ class MediaGalleryWidget extends ConsumerWidget {
                       mode: GalleryViewMode.grid,
                       currentMode: viewMode,
                       onTap: () => ref.read(galleryViewModeProvider.notifier).state = GalleryViewMode.grid,
-                      theme: theme,
-                    ),
-                    const SizedBox(width: 8),
-                    _buildViewModeButton(
-                      icon: Icons.view_list,
-                      mode: GalleryViewMode.list,
-                      currentMode: viewMode,
-                      onTap: () => ref.read(galleryViewModeProvider.notifier).state = GalleryViewMode.list,
                       theme: theme,
                     ),
                     const SizedBox(width: 8),
@@ -332,8 +323,6 @@ class MediaGalleryWidget extends ConsumerWidget {
     switch (viewMode) {
       case GalleryViewMode.grid:
         return _buildGridView(mediaItems, theme, isLight, context, ref);
-      case GalleryViewMode.list:
-        return _buildListView(mediaItems, theme, isLight, context, ref);
       case GalleryViewMode.carousel:
         return _buildCarouselView(mediaItems, theme, isLight, context, ref);
     }
@@ -370,34 +359,6 @@ class MediaGalleryWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildListView(
-    List<MediaItem> mediaItems,
-    ThemeData theme,
-    bool isLight,
-    BuildContext context,
-    WidgetRef ref,
-  ) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      cacheExtent: 500, // Cache items off-screen
-      itemCount: mediaItems.length,
-      addAutomaticKeepAlives: false, // Disable automatic keep alives
-      addRepaintBoundaries: true, // Add repaint boundaries
-      itemBuilder: (context, index) {
-        final item = mediaItems[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _buildMediaListItem(
-            item: item,
-            onTap: () => _openImageViewer(context, mediaItems, index),
-            theme: theme,
-            isLight: isLight,
-            ref: ref,
-          ),
-        );
-      },
-    );
-  }
 
   Widget _buildCarouselView(
     List<MediaItem> mediaItems,
@@ -536,91 +497,6 @@ class MediaGalleryWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildMediaListItem({
-    required MediaItem item,
-    required VoidCallback onTap,
-    required ThemeData theme,
-    required bool isLight,
-    required WidgetRef ref,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: enableSelection
-            ? () => _toggleMediaSelection(item, ref)
-            : onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isLight
-                  ? AuraColors.lightCardGradient
-                  : AuraColors.darkCardGradient,
-            ),
-          ),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: _buildOptimizedThumbnail(
-                  url: item.thumbnailUrl,
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                  theme: theme,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (item.caption != null)
-                      Text(
-                        item.caption!,
-                        style: theme.textTheme.titleSmall,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${item.timestamp.hour.toString().padLeft(2, '0')}:${item.timestamp.minute.toString().padLeft(2, '0')}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    if (item.type == MediaType.video && item.duration != null) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.videocam,
-                            size: 14,
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _formatDuration(item.duration!),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildMediaCarouselItem({
     required MediaItem item,
@@ -792,11 +668,6 @@ class MediaGalleryWidget extends ConsumerWidget {
   }
 
 
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
 
   Widget _buildOptimizedThumbnail({
     required String url,
