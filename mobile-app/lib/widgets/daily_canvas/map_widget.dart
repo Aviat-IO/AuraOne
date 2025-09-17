@@ -12,6 +12,7 @@ import '../../theme/colors.dart';
 import '../../database/location_database.dart';
 import '../../providers/location_database_provider.dart';
 import '../../providers/location_clustering_provider.dart';
+import '../../providers/location_clustering_memoization.dart';
 import '../../services/ai/dbscan_clustering.dart' as clustering;
 import '../../services/simple_location_service.dart' as location_service;
 import '../../services/reverse_geocoding_service.dart';

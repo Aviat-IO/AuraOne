@@ -48,11 +48,27 @@ final _clusteringCache = _ClusteringCache();
 final _logger = AppLogger('LocationClusteringProvider');
 
 // Provider for cache invalidation - invalidates cache when new location data arrives
+// Using manual invalidation to prevent excessive cache clearing
 final cacheInvalidationProvider = Provider<void>((ref) {
+  // Only invalidate cache on significant changes, not every update
+  // This prevents cache thrashing during continuous location updates
   ref.listen(recentLocationPointsProvider(const Duration(days: 7)), (previous, next) {
     if (previous != next && next.hasValue) {
-      _logger.info('Invalidating clustering cache due to new location data');
-      _clusteringCache.invalidate();
+      if (previous?.hasValue == true) {
+        // Only invalidate if there's a significant change in data count
+        final prevCount = previous?.value?.length ?? 0;
+        final nextCount = next.value?.length ?? 0;
+        final percentChange = prevCount > 0 ? ((nextCount - prevCount).abs() / prevCount) : 1.0;
+
+        // Invalidate only if more than 10% change or more than 100 new points
+        if (percentChange > 0.1 || (nextCount - prevCount).abs() > 100) {
+          _logger.info('Significant location data change detected ($prevCount -> $nextCount), invalidating cache');
+          _clusteringCache.invalidate();
+        }
+      } else {
+        // Initial data load - invalidate to ensure fresh start
+        _clusteringCache.invalidate();
+      }
     }
   });
 });

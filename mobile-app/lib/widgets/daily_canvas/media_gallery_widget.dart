@@ -4,12 +4,20 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'dart:io';
+import 'dart:async';
 import '../../providers/media_database_provider.dart';
 import '../../providers/media_thumbnail_provider.dart' show CachedThumbnailWidget;
 
 // Provider for media items from device storage
 // Using autoDispose to clean up when not needed
+// Adding keepAlive to prevent unnecessary recomputation
 final mediaItemsProvider = FutureProvider.family.autoDispose<List<MediaItem>, ({DateTime date, bool includeDeleted})>((ref, params) async {
+  // Keep alive for 5 minutes to prevent rebuild jank
+  ref.keepAlive();
+  final timer = Timer(const Duration(minutes: 5), () {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(() => timer.cancel());
   final mediaDb = ref.watch(mediaDatabaseProvider);
 
   // Calculate date range for the selected day
@@ -48,11 +56,11 @@ final mediaItemsProvider = FutureProvider.family.autoDispose<List<MediaItem>, ({
       String? fileUrl;
       String? thumbnailUrl;
 
-      // Optimize file existence check - avoid sync I/O in loop
+      // Skip file existence check entirely - let image loading handle it
+      // This avoids sync I/O that can cause jank
       if (item.filePath != null) {
-        fileUrl = item.filePath!; // Use direct path for local files
-        thumbnailUrl = item.filePath!; // Use same path for thumbnails
-        // File existence will be checked during image loading
+        fileUrl = item.filePath!;
+        thumbnailUrl = item.filePath!;
       }
 
       if (fileUrl != null) {
@@ -335,27 +343,37 @@ class MediaGalleryWidget extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
   ) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      cacheExtent: 500, // Cache items off-screen for smoother scrolling
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: mediaItems.length,
-      addAutomaticKeepAlives: false, // Disable automatic keep alives
-      addRepaintBoundaries: true, // Add repaint boundaries for performance
-      itemBuilder: (context, index) {
-        final item = mediaItems[index];
-        return _buildMediaThumbnail(
-          item: item,
-          onTap: () => _openImageViewer(context, mediaItems, index, ref),
-          theme: theme,
-          isLight: isLight,
-          ref: ref,
-        );
-      },
+    // Use custom scroll view with slivers for better performance
+    return CustomScrollView(
+      cacheExtent: 500, // Cache items off-screen
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final item = mediaItems[index];
+                return _buildMediaThumbnail(
+                  item: item,
+                  onTap: () => _openImageViewer(context, mediaItems, index, ref),
+                  theme: theme,
+                  isLight: isLight,
+                  ref: ref,
+                );
+              },
+              childCount: mediaItems.length,
+              addAutomaticKeepAlives: false,
+              addRepaintBoundaries: true,
+              addSemanticIndexes: false, // Disable semantic indexes for performance
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -731,10 +749,12 @@ class MediaGalleryWidget extends ConsumerWidget {
       fit: fit,
       width: width,
       height: height,
-      memCacheWidth: width != null ? (width * 2).toInt() : 400,
-      memCacheHeight: height != null ? (height * 2).toInt() : 400,
-      fadeInDuration: const Duration(milliseconds: 200),
-      fadeOutDuration: const Duration(milliseconds: 100),
+      // Reduce memory cache size to prevent OOM and improve performance
+      memCacheWidth: width != null ? width.toInt() : 200,
+      memCacheHeight: height != null ? height.toInt() : 200,
+      // Disable fade animations to reduce jank
+      fadeInDuration: Duration.zero,
+      fadeOutDuration: Duration.zero,
       placeholder: (context, url) => Container(
         color: theme.colorScheme.surfaceContainerHighest,
         child: const Center(
