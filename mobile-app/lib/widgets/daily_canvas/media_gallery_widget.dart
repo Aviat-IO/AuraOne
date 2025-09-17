@@ -350,7 +350,7 @@ class MediaGalleryWidget extends ConsumerWidget {
         final item = mediaItems[index];
         return _buildMediaThumbnail(
           item: item,
-          onTap: () => _openImageViewer(context, mediaItems, index),
+          onTap: () => _openImageViewer(context, mediaItems, index, ref),
           theme: theme,
           isLight: isLight,
           ref: ref,
@@ -377,7 +377,7 @@ class MediaGalleryWidget extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
           child: _buildMediaCarouselItem(
             item: item,
-            onTap: () => _openImageViewer(context, mediaItems, index),
+            onTap: () => _openImageViewer(context, mediaItems, index, ref),
             theme: theme,
             isLight: isLight,
             ref: ref,
@@ -622,7 +622,7 @@ class MediaGalleryWidget extends ConsumerWidget {
     );
   }
 
-  void _openImageViewer(BuildContext context, List<MediaItem> mediaItems, int initialIndex) {
+  void _openImageViewer(BuildContext context, List<MediaItem> mediaItems, int initialIndex, WidgetRef ref) {
     // Filter to only photo items and track their original indices
     final photoItems = <MediaItem>[];
     final photoIndices = <int>[];
@@ -645,18 +645,43 @@ class MediaGalleryWidget extends ConsumerWidget {
       }
     }
 
-    final imageProviders = photoItems
-        .map((item) => _getImageProvider(item.url))
-        .toList();
+    // If in selection mode, show custom viewer with inclusion controls
+    if (enableSelection) {
+      Navigator.of(context).push(
+        PageRouteBuilder(
+          opaque: false,
+          barrierDismissible: true,
+          barrierColor: Colors.black.withValues(alpha: 0.9),
+          pageBuilder: (context, animation, secondaryAnimation) {
+            return _MediaSelectionViewer(
+              items: photoItems,
+              initialIndex: photoIndex,
+              onToggleSelection: (item) => _toggleMediaSelection(item, ref),
+            );
+          },
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: child,
+            );
+          },
+        ),
+      );
+    } else {
+      // Normal viewer without selection controls
+      final imageProviders = photoItems
+          .map((item) => _getImageProvider(item.url))
+          .toList();
 
-    final imageProvider = MultiImageProvider(imageProviders, initialIndex: photoIndex);
-    showImageViewerPager(
-      context,
-      imageProvider,
-      onPageChanged: (page) {},
-      onViewerDismissed: (page) {},
-      backgroundColor: Colors.black.withValues(alpha: 0.9),
-    );
+      final imageProvider = MultiImageProvider(imageProviders, initialIndex: photoIndex);
+      showImageViewerPager(
+        context,
+        imageProvider,
+        onPageChanged: (page) {},
+        onViewerDismissed: (page) {},
+        backgroundColor: Colors.black.withValues(alpha: 0.9),
+      );
+    }
   }
 
   ImageProvider _getImageProvider(String url) {
@@ -723,6 +748,238 @@ class MediaGalleryWidget extends ConsumerWidget {
           color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
           size: 24,
         ),
+      ),
+    );
+  }
+}
+
+// Custom image viewer with selection controls
+class _MediaSelectionViewer extends StatefulWidget {
+  final List<MediaItem> items;
+  final int initialIndex;
+  final Function(MediaItem) onToggleSelection;
+
+  const _MediaSelectionViewer({
+    required this.items,
+    required this.initialIndex,
+    required this.onToggleSelection,
+  });
+
+  @override
+  State<_MediaSelectionViewer> createState() => _MediaSelectionViewerState();
+}
+
+class _MediaSelectionViewerState extends State<_MediaSelectionViewer> {
+  late PageController _pageController;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          // Image viewer
+          PageView.builder(
+            controller: _pageController,
+            itemCount: widget.items.length,
+            onPageChanged: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            itemBuilder: (context, index) {
+              final item = widget.items[index];
+              return InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Center(
+                  child: item.url.startsWith('http')
+                      ? CachedNetworkImage(
+                          imageUrl: item.url,
+                          fit: BoxFit.contain,
+                          placeholder: (context, url) => const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                          errorWidget: (context, url, error) => Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error, size: 48, color: Colors.white),
+                                const SizedBox(height: 8),
+                                Text('Failed to load image', style: TextStyle(color: Colors.white)),
+                              ],
+                            ),
+                          ),
+                        )
+                      : Image.file(
+                          File(item.url),
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error, size: 48, color: Colors.white),
+                                const SizedBox(height: 8),
+                                Text('Failed to load image', style: TextStyle(color: Colors.white)),
+                              ],
+                            ),
+                          ),
+                        ),
+                ),
+              );
+            },
+          ),
+
+          // Top bar with close button and inclusion status
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.6),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Close button
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+
+                    // Page indicator
+                    Text(
+                      '${_currentIndex + 1} / ${widget.items.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+
+                    // Inclusion status indicator
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: widget.items[_currentIndex].isDeleted
+                            ? Colors.red.withValues(alpha: 0.8)
+                            : Colors.green.withValues(alpha: 0.8),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            widget.items[_currentIndex].isDeleted
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            widget.items[_currentIndex].isDeleted ? 'Excluded' : 'Included',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Bottom bar with toggle button
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.6),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                child: Center(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      await widget.onToggleSelection(widget.items[_currentIndex]);
+                      setState(() {
+                        // Toggle the isDeleted state locally for immediate feedback
+                        widget.items[_currentIndex] = MediaItem(
+                          id: widget.items[_currentIndex].id,
+                          type: widget.items[_currentIndex].type,
+                          url: widget.items[_currentIndex].url,
+                          thumbnailUrl: widget.items[_currentIndex].thumbnailUrl,
+                          timestamp: widget.items[_currentIndex].timestamp,
+                          caption: widget.items[_currentIndex].caption,
+                          duration: widget.items[_currentIndex].duration,
+                          isDeleted: !widget.items[_currentIndex].isDeleted,
+                        );
+                      });
+                    },
+                    icon: Icon(
+                      widget.items[_currentIndex].isDeleted
+                          ? Icons.add_circle
+                          : Icons.remove_circle,
+                    ),
+                    label: Text(
+                      widget.items[_currentIndex].isDeleted
+                          ? 'Include in Canvas'
+                          : 'Exclude from Canvas',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: widget.items[_currentIndex].isDeleted
+                          ? Colors.green
+                          : Colors.red.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

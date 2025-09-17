@@ -39,17 +39,23 @@ final clusteredLocationsProvider = FutureProvider.family<List<LocationCluster>, 
     }).toList();
 
     // Perform DBSCAN clustering
-    // Using 50 meters radius and minimum 3 points for a cluster
-    // This means if you stay in roughly the same 50m area for 3+ location samples,
-    // it counts as one location
+    // Using 50 meters radius and minimum points for a cluster
+    // Increased minPts to filter out brief stops like traffic lights
     final dbscan = DBSCANClustering(
       eps: 50.0,  // 50 meters radius
-      minPts: 3,   // Minimum 3 points to form a cluster
+      minPts: 8,   // Minimum 8 points to form a cluster (roughly 1.5-2 minutes at typical sampling rate)
     );
 
     final clusters = dbscan.cluster(clusteringPoints);
 
-    return clusters;
+    // Filter clusters to only include those with significant duration
+    // This filters out places you just drove through slowly
+    final significantClusters = clusters.where((cluster) {
+      // Only count as a visited place if you stayed for at least 3 minutes
+      return cluster.duration.inMinutes >= 3;
+    }).toList();
+
+    return significantClusters;
   },
 );
 
@@ -99,7 +105,7 @@ final journeySegmentsProvider = FutureProvider.family<List<JourneySegment>, Date
     // Perform DBSCAN clustering to identify noise points (journey points)
     final dbscan = DBSCANClustering(
       eps: 50.0,  // 50 meters radius
-      minPts: 3,   // Minimum 3 points to form a cluster
+      minPts: 8,   // Minimum 8 points to form a cluster (matches clusteredLocationsProvider)
     );
 
     // Cluster the points

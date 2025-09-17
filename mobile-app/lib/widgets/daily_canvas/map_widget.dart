@@ -14,6 +14,8 @@ import '../../providers/location_database_provider.dart';
 import '../../providers/location_clustering_provider.dart';
 import '../../services/ai/dbscan_clustering.dart' as clustering;
 import '../../services/simple_location_service.dart' as location_service;
+import '../../services/reverse_geocoding_service.dart';
+import '../../providers/smart_place_provider.dart';
 
 // Provider for real location data from database
 final mapDataProvider = FutureProvider.family<MapData?, DateTime>((ref, date) async {
@@ -57,14 +59,57 @@ final mapDataProvider = FutureProvider.family<MapData?, DateTime>((ref, date) as
     totalDistance += journey.totalDistance;
   }
 
-  // Convert clusters to MapData location points (one per unique location)
-  final locations = clusters.map((cluster) => MapLocationPoint(
-    latitude: cluster.centerLatitude,
-    longitude: cluster.centerLongitude,
-    time: cluster.startTime,
-    name: _inferLocationNameFromCluster(cluster),
-    type: _inferLocationTypeFromCluster(cluster),
-  )).toList();
+  // Check if smart place recognition is enabled
+  final smartPlaceEnabled = ref.watch(smartPlaceRecognitionProvider);
+
+  // Convert clusters to MapData location points with optional geocoding
+  final locations = <MapLocationPoint>[];
+
+  for (final cluster in clusters) {
+    PlaceInfo? placeInfo;
+    String locationName;
+    LocationType locationType;
+
+    // Only use reverse geocoding if smart place recognition is enabled
+    if (smartPlaceEnabled) {
+      // Try to get actual place information via reverse geocoding
+      try {
+        placeInfo = await ReverseGeocodingService.getPlaceInfo(
+          latitude: cluster.centerLatitude,
+          longitude: cluster.centerLongitude,
+          useCache: true,
+        );
+      } catch (e) {
+        print('Failed to geocode location: $e');
+      }
+
+      // Use geocoded name if available, otherwise use inferred name
+      if (placeInfo != null && placeInfo.name != null && placeInfo.name!.isNotEmpty) {
+        locationName = placeInfo.displayName;
+        // Map PlaceCategory to LocationType
+        locationType = _mapPlaceCategoryToLocationType(placeInfo.category);
+      } else {
+        // Fallback to inference if geocoding didn't provide a specific place
+        locationName = _inferLocationNameFromCluster(cluster);
+        locationType = _inferLocationTypeFromCluster(cluster);
+      }
+    } else {
+      // When smart place recognition is disabled, use only generic inferred names
+      locationName = _inferLocationNameFromCluster(cluster);
+      locationType = _inferLocationTypeFromCluster(cluster);
+      placeInfo = null; // Don't store place info when disabled
+    }
+
+    locations.add(MapLocationPoint(
+      latitude: cluster.centerLatitude,
+      longitude: cluster.centerLongitude,
+      time: cluster.startTime,
+      name: locationName,
+      type: locationType,
+      placeInfo: placeInfo,
+      duration: cluster.duration,
+    ));
+  }
 
   // Calculate total active time (sum of time spent at each location)
   Duration totalTime = Duration.zero;
@@ -94,6 +139,8 @@ class MapLocationPoint {
   final DateTime time;
   final String name;
   final LocationType type;
+  final PlaceInfo? placeInfo; // Actual place information from geocoding
+  final Duration duration; // How long stayed at this location
 
   MapLocationPoint({
     required this.latitude,
@@ -101,6 +148,8 @@ class MapLocationPoint {
     required this.time,
     required this.name,
     required this.type,
+    this.placeInfo,
+    this.duration = Duration.zero,
   });
 }
 
@@ -220,7 +269,7 @@ class MapWidget extends HookConsumerWidget {
         if (mapData != null && mapData.locations.isNotEmpty) ...[
           const SizedBox(height: 16),
           SizedBox(
-            height: 120,
+            height: 130,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -730,7 +779,7 @@ class MapWidget extends HookConsumerWidget {
         focusedLocation.time == location.time;
 
     return Container(
-      width: 150,
+      width: 160,
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -793,15 +842,48 @@ class MapWidget extends HookConsumerWidget {
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${location.time.hour.toString().padLeft(2, '0')}:${location.time.minute.toString().padLeft(2, '0')}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                const SizedBox(height: 2),
+                if (location.placeInfo?.address.shortAddress.isNotEmpty == true)
+                  Text(
+                    location.placeInfo!.address.shortAddress,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      fontSize: 10,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.access_time,
+                      size: 12,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${location.time.hour.toString().padLeft(2, '0')}:${location.time.minute.toString().padLeft(2, '0')}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        fontSize: 11,
+                      ),
+                    ),
+                    if (location.duration.inMinutes > 0) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        '${location.duration.inMinutes}m',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
@@ -850,6 +932,29 @@ class MapWidget extends HookConsumerWidget {
   }
 }
 
+// Helper function to map PlaceCategory to LocationType
+LocationType _mapPlaceCategoryToLocationType(PlaceCategory category) {
+  switch (category) {
+    case PlaceCategory.home:
+      return LocationType.home;
+    case PlaceCategory.work:
+      return LocationType.work;
+    case PlaceCategory.food:
+      return LocationType.food;
+    case PlaceCategory.shopping:
+      return LocationType.shopping;
+    case PlaceCategory.fitness:
+      return LocationType.exercise;
+    case PlaceCategory.healthcare:
+    case PlaceCategory.education:
+    case PlaceCategory.entertainment:
+      return LocationType.social;
+    case PlaceCategory.transport:
+    case PlaceCategory.other:
+      return LocationType.other;
+  }
+}
+
 // Helper functions for location inference
 String _inferLocationName(LocationPoint point) {
   // Simple heuristic based on activity type
@@ -884,15 +989,40 @@ LocationType _inferLocationType(LocationPoint point) {
 String _inferLocationNameFromCluster(clustering.LocationCluster cluster) {
   // Generate name based on duration spent at location
   final minutes = cluster.duration.inMinutes;
+  final hour = cluster.startTime.hour;
 
-  if (minutes < 5) {
-    return 'Brief Stop';
-  } else if (minutes < 30) {
-    return 'Quick Visit';
-  } else if (minutes < 120) {
-    return 'Location Visit';
+  // More descriptive names based on time and duration
+  if (minutes >= 240) {
+    // 4+ hours
+    if ((hour >= 20 || hour <= 7)) {
+      return 'Home';
+    } else if (hour >= 9 && hour <= 17) {
+      return 'Work/Office';
+    } else {
+      return 'Extended Visit';
+    }
+  } else if (minutes >= 60) {
+    // 1-4 hours
+    if ((hour >= 11 && hour <= 14) || (hour >= 18 && hour <= 20)) {
+      return 'Restaurant/Dining';
+    } else if (hour >= 9 && hour <= 17) {
+      return 'Meeting/Appointment';
+    } else {
+      return 'Social Visit';
+    }
+  } else if (minutes >= 20) {
+    // 20-60 minutes
+    if ((hour >= 6 && hour <= 9) || (hour >= 17 && hour <= 19)) {
+      return 'Gym/Exercise';
+    } else {
+      return 'Shopping/Errand';
+    }
+  } else if (minutes >= 5) {
+    // 5-20 minutes
+    return 'Quick Stop';
   } else {
-    return 'Extended Stay';
+    // 3-5 minutes (minimum threshold)
+    return 'Brief Stop';
   }
 }
 
@@ -900,29 +1030,34 @@ LocationType _inferLocationTypeFromCluster(clustering.LocationCluster cluster) {
   // Use the average time of the cluster to infer type
   final hour = cluster.startTime.hour;
   final duration = cluster.duration;
+  final isWeekend = cluster.startTime.weekday >= 6;
 
   // Long stays in evening/night are likely home
   if ((hour >= 20 || hour <= 7) && duration.inHours >= 4) {
     return LocationType.home;
   }
-  // Long stays during work hours are likely work
-  else if (hour >= 9 && hour <= 17 && duration.inHours >= 2) {
+  // Long stays during work hours on weekdays are likely work
+  else if (!isWeekend && hour >= 9 && hour <= 17 && duration.inHours >= 2) {
     return LocationType.work;
   }
-  // Short stays around meal times might be food
+  // Stays around meal times are likely food
   else if ((hour >= 11 && hour <= 14) || (hour >= 18 && hour <= 20)) {
-    if (duration.inMinutes >= 20 && duration.inMinutes <= 90) {
+    if (duration.inMinutes >= 20 && duration.inMinutes <= 120) {
       return LocationType.food;
     }
   }
-  // Morning/evening short stops might be exercise
-  else if ((hour >= 5 && hour <= 8) || (hour >= 17 && hour <= 19)) {
-    if (duration.inMinutes >= 30 && duration.inMinutes <= 120) {
+  // Morning/evening stops might be exercise
+  else if ((hour >= 5 && hour <= 9) || (hour >= 17 && hour <= 20)) {
+    if (duration.inMinutes >= 20 && duration.inMinutes <= 90) {
       return LocationType.exercise;
     }
   }
-  // Weekend afternoon activities might be social
-  else if (cluster.startTime.weekday >= 6 && hour >= 12 && hour <= 20) {
+  // Shorter daytime stops are likely shopping
+  else if (hour >= 10 && hour <= 18 && duration.inMinutes >= 5 && duration.inMinutes <= 45) {
+    return LocationType.shopping;
+  }
+  // Weekend or evening longer stays might be social
+  else if ((isWeekend || hour >= 19) && duration.inMinutes >= 30) {
     return LocationType.social;
   }
 

@@ -304,3 +304,9 @@ final isLocationTrackingEnabledProvider = Provider<bool>((ref) {
     error: (_, __) => false,
   );
 });
+
+/// Provider for smart place recognition setting (enabled by default)
+final smartPlaceRecognitionProvider = StateProvider<bool>((ref) {
+  // Load from SharedPreferences in the future if needed
+  return true; // Enabled by default
+});
