@@ -83,26 +83,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const DataDeletionScreen(),
       ),
 
+      // Debug screens - available in all builds for developer tools
+      GoRoute(
+        path: '/debug/data-viewer',
+        builder: (context, state) => const DataViewerScreen(),
+      ),
+      GoRoute(
+        path: '/debug/database-viewer',
+        builder: (context, state) => const DatabaseViewerScreen(),
+      ),
+      GoRoute(
+        path: '/debug/journal',
+        builder: (context, state) => const JournalDebugScreen(),
+      ),
+
       // Debug-only routes - excluded from production builds
       if (kDebugMode) ...[
         // Photo service test screen (for development)
         GoRoute(
           path: '/test/photos',
           builder: (context, state) => const PhotoTestScreen(),
-        ),
-
-        // Debug screens
-        GoRoute(
-          path: '/debug/data-viewer',
-          builder: (context, state) => const DataViewerScreen(),
-        ),
-        GoRoute(
-          path: '/debug/database-viewer',
-          builder: (context, state) => const DatabaseViewerScreen(),
-        ),
-        GoRoute(
-          path: '/debug/journal',
-          builder: (context, state) => const JournalDebugScreen(),
         ),
       ],
 
@@ -155,14 +155,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const DebugScreen(),
       ),
 
-      // Additional debug-only routes - excluded from production builds
-      if (kDebugMode) ...[
-        // HAR Model test screen
-        GoRoute(
-          path: '/test/har',
-          builder: (context, state) => const HARTestScreen(),
-        ),
-      ],
+      // HAR Model test screen - available in all builds for testing
+      GoRoute(
+        path: '/test/har',
+        builder: (context, state) => const HARTestScreen(),
+      ),
 
       // Event detail screen
       GoRoute(
