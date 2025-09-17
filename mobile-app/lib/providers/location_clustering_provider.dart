@@ -1,6 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../database/location_database.dart' as loc_db;
 import '../services/ai/dbscan_clustering.dart';
+import '../services/ai/ultra_fast_clustering.dart';
 import '../utils/logger.dart';
 import '../utils/performance_monitor.dart';
 import 'location_database_provider.dart';
@@ -124,15 +125,13 @@ final clusteredLocationsProvider = FutureProvider.family<List<LocationCluster>, 
         );
       }).toList();
 
-      // Perform DBSCAN clustering asynchronously
-      // Using 50 meters radius and minimum points for a cluster
-      // Increased minPts to filter out brief stops like traffic lights
-      final dbscan = DBSCANClustering(
+      // Use hybrid smart clustering for optimal performance
+      // Automatically selects best algorithm based on data characteristics
+      final result = await HybridClustering.smartCluster(
+        clusteringPoints,
         eps: 50.0,  // 50 meters radius
-        minPts: 8,   // Minimum 8 points to form a cluster (roughly 1.5-2 minutes at typical sampling rate)
+        minPts: 8,   // Minimum 8 points to form a cluster
       );
-
-      final result = await dbscan.clusterAsync(clusteringPoints);
 
       // Filter clusters to only include those with significant duration
       // This filters out places you just drove through slowly
