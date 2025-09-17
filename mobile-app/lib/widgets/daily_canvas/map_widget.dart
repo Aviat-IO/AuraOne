@@ -16,10 +16,16 @@ import '../../services/ai/dbscan_clustering.dart' as clustering;
 import '../../services/simple_location_service.dart' as location_service;
 import '../../services/reverse_geocoding_service.dart';
 import '../../providers/smart_place_provider.dart';
+import '../../utils/performance_monitor.dart';
+import '../../utils/logger.dart';
 
 // Provider for real location data from database
 final mapDataProvider = FutureProvider.family<MapData?, DateTime>((ref, date) async {
-  final database = ref.watch(locationDatabaseProvider);
+  final timer = PerformanceTimer('mapDataProvider');
+  final logger = AppLogger('MapDataProvider');
+
+  try {
+    final database = ref.watch(locationDatabaseProvider);
 
   // Get start and end of the requested date
   final startOfDay = DateTime(date.year, date.month, date.day);
@@ -65,50 +71,88 @@ final mapDataProvider = FutureProvider.family<MapData?, DateTime>((ref, date) as
   // Convert clusters to MapData location points with optional geocoding
   final locations = <MapLocationPoint>[];
 
-  for (final cluster in clusters) {
-    PlaceInfo? placeInfo;
-    String locationName;
-    LocationType locationType;
+  // Process geocoding in parallel if enabled
+  if (smartPlaceEnabled && clusters.isNotEmpty) {
+    // Group nearby clusters to reduce geocoding calls
+    final clusterGroups = _groupNearbyClusters(clusters, radiusMeters: 100.0);
+    logger.info('Grouped ${clusters.length} locations into ${clusterGroups.length} geocoding groups');
 
-    // Only use reverse geocoding if smart place recognition is enabled
-    if (smartPlaceEnabled) {
-      // Try to get actual place information via reverse geocoding
+    final geocodingTimer = PerformanceTimer('geocoding');
+
+    // Geocode only one representative point per group
+    final geocodingFutures = clusterGroups.map((group) async {
+      // Use the centroid of the group for geocoding
+      final centroid = _calculateGroupCentroid(group);
+
+      // Round coordinates to improve cache hit rate (roughly 10-meter precision)
+      // This prevents tiny GPS variations from causing cache misses
+      final roundedLat = (centroid.latitude * 10000).round() / 10000;
+      final roundedLon = (centroid.longitude * 10000).round() / 10000;
+
       try {
-        placeInfo = await ReverseGeocodingService.getPlaceInfo(
-          latitude: cluster.centerLatitude,
-          longitude: cluster.centerLongitude,
+        final placeInfo = await ReverseGeocodingService.getPlaceInfo(
+          latitude: roundedLat,
+          longitude: roundedLon,
           useCache: true,
         );
+        // Return the same place info for all clusters in the group
+        return group.map((cluster) => MapEntry(cluster, placeInfo)).toList();
       } catch (e) {
-        print('Failed to geocode location: $e');
+        print('Failed to geocode location group: $e');
+        // Return null for all clusters in the group
+        return group.map((cluster) => MapEntry(cluster, null)).toList();
       }
+    }).toList();
+
+    // Wait for all geocoding operations to complete in parallel
+    final geocodingResultGroups = await Future.wait(geocodingFutures);
+
+    // Flatten the results
+    final geocodingResults = geocodingResultGroups.expand((group) => group).toList();
+
+    geocodingTimer.stop();
+    logger.info('Completed ${clusterGroups.length} geocoding requests (saved ${clusters.length - clusterGroups.length} API calls)');
+
+    // Build location points with geocoding results
+    for (final result in geocodingResults) {
+      final cluster = result.key;
+      final placeInfo = result.value;
+
+      String locationName;
+      LocationType locationType;
 
       // Use geocoded name if available, otherwise use inferred name
       if (placeInfo != null && placeInfo.name != null && placeInfo.name!.isNotEmpty) {
         locationName = placeInfo.displayName;
-        // Map PlaceCategory to LocationType
         locationType = _mapPlaceCategoryToLocationType(placeInfo.category);
       } else {
-        // Fallback to inference if geocoding didn't provide a specific place
         locationName = _inferLocationNameFromCluster(cluster);
         locationType = _inferLocationTypeFromCluster(cluster);
       }
-    } else {
-      // When smart place recognition is disabled, use only generic inferred names
-      locationName = _inferLocationNameFromCluster(cluster);
-      locationType = _inferLocationTypeFromCluster(cluster);
-      placeInfo = null; // Don't store place info when disabled
-    }
 
-    locations.add(MapLocationPoint(
-      latitude: cluster.centerLatitude,
-      longitude: cluster.centerLongitude,
-      time: cluster.startTime,
-      name: locationName,
+      locations.add(MapLocationPoint(
+        latitude: cluster.centerLatitude,
+        longitude: cluster.centerLongitude,
+        time: cluster.startTime,
+        name: locationName,
       type: locationType,
       placeInfo: placeInfo,
       duration: cluster.duration,
     ));
+    }
+  } else {
+    // When smart place recognition is disabled, use only generic inferred names
+    for (final cluster in clusters) {
+      locations.add(MapLocationPoint(
+        latitude: cluster.centerLatitude,
+        longitude: cluster.centerLongitude,
+        time: cluster.startTime,
+        name: _inferLocationNameFromCluster(cluster),
+        type: _inferLocationTypeFromCluster(cluster),
+        placeInfo: null,
+        duration: cluster.duration,
+      ));
+    }
   }
 
   // Calculate total active time (sum of time spent at each location)
@@ -117,12 +161,18 @@ final mapDataProvider = FutureProvider.family<MapData?, DateTime>((ref, date) as
     totalTime += cluster.duration;
   }
 
+  timer.stop();
   return MapData(
     locations: locations,
     totalDistance: totalDistance / 1000, // Convert to kilometers
     totalTime: totalTime,
     allPoints: locationPoints, // Keep all points for drawing the path
   );
+  } catch (e) {
+    timer.stop();
+    logger.warning('Error in mapDataProvider: $e');
+    rethrow;
+  }
 });
 
 // Provider for loading state
@@ -1062,6 +1112,87 @@ LocationType _inferLocationTypeFromCluster(clustering.LocationCluster cluster) {
   }
 
   return LocationType.other;
+}
+
+// Group nearby clusters to reduce geocoding API calls
+List<List<clustering.LocationCluster>> _groupNearbyClusters(
+  List<clustering.LocationCluster> clusters,
+  {required double radiusMeters}
+) {
+  if (clusters.isEmpty) return [];
+
+  final groups = <List<clustering.LocationCluster>>[];
+  final used = <bool>[];
+
+  for (int i = 0; i < clusters.length; i++) {
+    used.add(false);
+  }
+
+  for (int i = 0; i < clusters.length; i++) {
+    if (used[i]) continue;
+
+    final group = <clustering.LocationCluster>[clusters[i]];
+    used[i] = true;
+
+    // Find all nearby clusters within radius
+    for (int j = i + 1; j < clusters.length; j++) {
+      if (used[j]) continue;
+
+      final distance = _calculateDistance(
+        clusters[i].centerLatitude,
+        clusters[i].centerLongitude,
+        clusters[j].centerLatitude,
+        clusters[j].centerLongitude,
+      );
+
+      if (distance <= radiusMeters) {
+        group.add(clusters[j]);
+        used[j] = true;
+      }
+    }
+
+    groups.add(group);
+  }
+
+  return groups;
+}
+
+// Calculate the centroid of a group of clusters
+({double latitude, double longitude}) _calculateGroupCentroid(
+  List<clustering.LocationCluster> group,
+) {
+  if (group.isEmpty) {
+    return (latitude: 0.0, longitude: 0.0);
+  }
+
+  double sumLat = 0.0;
+  double sumLon = 0.0;
+  double totalWeight = 0.0;
+
+  for (final cluster in group) {
+    // Weight by duration spent at each location
+    final weight = cluster.duration.inMinutes.toDouble();
+    sumLat += cluster.centerLatitude * weight;
+    sumLon += cluster.centerLongitude * weight;
+    totalWeight += weight;
+  }
+
+  // If all durations are zero, use simple average
+  if (totalWeight == 0) {
+    for (final cluster in group) {
+      sumLat += cluster.centerLatitude;
+      sumLon += cluster.centerLongitude;
+    }
+    return (
+      latitude: sumLat / group.length,
+      longitude: sumLon / group.length,
+    );
+  }
+
+  return (
+    latitude: sumLat / totalWeight,
+    longitude: sumLon / totalWeight,
+  );
 }
 
 // Distance calculation helper

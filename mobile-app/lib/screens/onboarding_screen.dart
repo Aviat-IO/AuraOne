@@ -294,71 +294,96 @@ class OnboardingScreen extends HookConsumerWidget {
           const SizedBox(height: 32),
 
           Expanded(
-            child: ListView(
+            child: Column(
               children: [
-                _buildPermissionTile(
-                  context,
-                  theme,
-                  ref,
-                  Icons.notifications,
-                  'Notifications',
-                  'Daily reminders to write in your journal',
-                  Permission.notification,
-                  permissionsGranted,
-                  isRequired: true,
+                Expanded(
+                  child: ListView(
+                    children: [
+                      _buildPermissionTile(
+                        context,
+                        theme,
+                        ref,
+                        Icons.notifications,
+                        'Notifications',
+                        'Daily reminders to write in your journal',
+                        Permission.notification,
+                        permissionsGranted,
+                        isRequired: true,
+                      ),
+
+                      _buildPermissionTile(
+                        context,
+                        theme,
+                        ref,
+                        Icons.location_on,
+                        'Location',
+                        'Track your journeys and places visited. Tap "Allow While Using App" then change to "Allow All the Time" in Settings for background tracking.',
+                        Permission.locationAlways,
+                        permissionsGranted,
+                        isRequired: true,
+                        onPressed: () {
+                          locationButtonPressCount.value++;
+                          if (locationButtonPressCount.value >= 3) {
+                            showSkipButton.value = true;
+                          }
+                        },
+                      ),
+
+                      _buildPermissionTile(
+                        context,
+                        theme,
+                        ref,
+                        Icons.photo_library,
+                        'Photo Library',
+                        'Include photos in your daily entries. Please choose "Allow All".',
+                        Permission.photos,
+                        permissionsGranted,
+                      ),
+
+                      _buildPermissionTile(
+                        context,
+                        theme,
+                        ref,
+                        Icons.calendar_today,
+                        'Calendar',
+                        'Import events and appointments for your daily summaries',
+                        Permission.calendar,
+                        permissionsGranted,
+                        isRequired: false,
+                      ),
+
+                      _buildPermissionTile(
+                        context,
+                        theme,
+                        ref,
+                        Icons.directions_walk,
+                        'Motion & Fitness',
+                        'Track activities and movement patterns',
+                        Permission.activityRecognition,
+                        permissionsGranted,
+                      ),
+
+                      // Add some bottom padding to ensure last items are visible
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
 
-                _buildPermissionTile(
-                  context,
-                  theme,
-                  ref,
-                  Icons.location_on,
-                  'Location',
-                  'Track your journeys and places visited. Tap "Allow While Using App" then change to "Allow All the Time" in Settings for background tracking.',
-                  Permission.locationAlways,
-                  permissionsGranted,
-                  isRequired: true,
-                  onPressed: () {
-                    locationButtonPressCount.value++;
-                    if (locationButtonPressCount.value >= 3) {
-                      showSkipButton.value = true;
-                    }
-                  },
+                // Scroll indicator hint
+                Container(
+                  height: 3,
+                  margin: const EdgeInsets.symmetric(horizontal: 80),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.colorScheme.primary.withValues(alpha: 0.3),
+                        theme.colorScheme.primary.withValues(alpha: 0.1),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-
-                _buildPermissionTile(
-                  context,
-                  theme,
-                  ref,
-                  Icons.photo_library,
-                  'Photo Library',
-                  'Include photos in your daily entries. Please choose "Allow All".',
-                  Permission.photos,
-                  permissionsGranted,
-                ),
-
-                _buildPermissionTile(
-                  context,
-                  theme,
-                  ref,
-                  Icons.calendar_today,
-                  'Calendar',
-                  'Import events and appointments for your daily summaries',
-                  Permission.calendar,
-                  permissionsGranted,
-                  isRequired: false,
-                ),
-
-                _buildPermissionTile(
-                  context,
-                  theme,
-                  ref,
-                  Icons.directions_walk,
-                  'Motion & Fitness',
-                  'Track activities and movement patterns',
-                  Permission.activityRecognition,
-                  permissionsGranted,
-                ),
+                const SizedBox(height: 8),
               ],
             ),
           ),
@@ -781,6 +806,22 @@ class OnboardingScreen extends HookConsumerWidget {
     final canContinueFromPermissions = hasAllRequiredPermissions || showSkipButton;
 
     return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: theme.colorScheme.outline.withValues(alpha: 0.2),
+            width: 1,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.shadow.withValues(alpha: 0.05),
+            offset: const Offset(0, -2),
+            blurRadius: 4,
+          ),
+        ],
+      ),
       padding: const EdgeInsets.all(24.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
