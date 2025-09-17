@@ -174,7 +174,7 @@ class SimpleLocationService {
 
   // Start tracking
   Future<bool> startTracking({
-    Duration interval = const Duration(seconds: 10),
+    Duration interval = const Duration(minutes: 1),
     double distanceFilter = 10,
   }) async {
     // Check permissions first
@@ -251,8 +251,8 @@ class SimpleLocationService {
   }
 
   void _startGeofenceChecking() {
-    // Check geofences every 30 seconds
-    _geofenceCheckTimer = Timer.periodic(Duration(seconds: 30), (_) async {
+    // Check geofences every minute
+    _geofenceCheckTimer = Timer.periodic(Duration(minutes: 1), (_) async {
       final position = await getCurrentLocation();
       if (position != null) {
         _checkGeofences(position);

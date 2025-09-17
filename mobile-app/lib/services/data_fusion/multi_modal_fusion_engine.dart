@@ -191,9 +191,9 @@ class MultiModalFusionEngine {
     // Start location monitoring
     _startLocationMonitoring();
 
-    // Start fusion timer (process data every 30 seconds)
+    // Start fusion timer (process data every minute)
     _fusionTimer = Timer.periodic(
-      const Duration(seconds: 30),
+      const Duration(minutes: 1),
       (_) => _processFusedData(),
     );
   }
