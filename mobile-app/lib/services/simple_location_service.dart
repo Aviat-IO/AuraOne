@@ -397,26 +397,64 @@ class SimpleLocationService {
 
   // Check and request location permissions
   Future<bool> checkLocationPermission() async {
+    debugPrint('Checking location permissions...');
+
+    // First check if location services are enabled
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      // Location services are not enabled
-      return false;
+      debugPrint('Location services are disabled');
+      // Try to open location settings
+      try {
+        await Geolocator.openLocationSettings();
+        // Re-check after user potentially enables it
+        serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (!serviceEnabled) {
+          debugPrint('Location services still disabled after prompt');
+          return false;
+        }
+      } catch (e) {
+        debugPrint('Could not open location settings: $e');
+        return false;
+      }
     }
 
+    // Check current permission status
     LocationPermission permission = await Geolocator.checkPermission();
+    debugPrint('Current location permission: $permission');
+
+    // Request permission if denied
     if (permission == LocationPermission.denied) {
+      debugPrint('Requesting location permission...');
       permission = await Geolocator.requestPermission();
+      debugPrint('Permission after request: $permission');
+
       if (permission == LocationPermission.denied) {
+        debugPrint('Location permission denied by user');
         return false;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      // Permissions are denied forever
-      return false;
+      debugPrint('Location permission denied forever, opening app settings...');
+      // Permissions are denied forever, prompt user to open settings
+      try {
+        await Geolocator.openAppSettings();
+        // Give user time to change settings and return
+        // Note: We can't detect if they actually changed it without re-checking later
+        return false;
+      } catch (e) {
+        debugPrint('Could not open app settings: $e');
+        return false;
+      }
     }
 
-    return true;
+    // For Android, we have whileInUse or always permission
+    // Both are acceptable for basic tracking
+    final hasPermission = permission == LocationPermission.whileInUse ||
+                          permission == LocationPermission.always;
+
+    debugPrint('Location permission granted: $hasPermission (permission: $permission)');
+    return hasPermission;
   }
 
   // Private helper methods

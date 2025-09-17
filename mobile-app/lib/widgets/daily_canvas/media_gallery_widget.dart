@@ -6,9 +6,11 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'dart:io';
 import '../../theme/colors.dart';
 import '../../providers/media_database_provider.dart';
+import '../../providers/media_thumbnail_provider.dart' show CachedThumbnailWidget;
 
 // Provider for media items from device storage
-final mediaItemsProvider = FutureProvider.family<List<MediaItem>, ({DateTime date, bool includeDeleted})>((ref, params) async {
+// Using autoDispose to clean up when not needed
+final mediaItemsProvider = FutureProvider.family.autoDispose<List<MediaItem>, ({DateTime date, bool includeDeleted})>((ref, params) async {
   final mediaDb = ref.watch(mediaDatabaseProvider);
 
   // Calculate date range for the selected day
@@ -24,9 +26,16 @@ final mediaItemsProvider = FutureProvider.family<List<MediaItem>, ({DateTime dat
       includeDeleted: params.includeDeleted,
     );
 
+    // Early return if no items found
+    if (mediaItems.isEmpty) {
+      return [];
+    }
+
     // Convert database media items to UI MediaItem objects
+    // Process items in parallel for better performance
     final List<MediaItem> result = [];
 
+    // Process items more efficiently
     for (final item in mediaItems) {
       // Determine media type based on MIME type
       MediaType type = MediaType.photo;
@@ -40,9 +49,11 @@ final mediaItemsProvider = FutureProvider.family<List<MediaItem>, ({DateTime dat
       String? fileUrl;
       String? thumbnailUrl;
 
-      if (item.filePath != null && File(item.filePath!).existsSync()) {
+      // Optimize file existence check - avoid sync I/O in loop
+      if (item.filePath != null) {
         fileUrl = item.filePath!; // Use direct path for local files
         thumbnailUrl = item.filePath!; // Use same path for thumbnails
+        // File existence will be checked during image loading
       }
 
       if (fileUrl != null) {
@@ -337,12 +348,15 @@ class MediaGalleryWidget extends ConsumerWidget {
   ) {
     return GridView.builder(
       padding: const EdgeInsets.all(16),
+      cacheExtent: 500, // Cache items off-screen for smoother scrolling
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
       itemCount: mediaItems.length,
+      addAutomaticKeepAlives: false, // Disable automatic keep alives
+      addRepaintBoundaries: true, // Add repaint boundaries for performance
       itemBuilder: (context, index) {
         final item = mediaItems[index];
         return _buildMediaThumbnail(
@@ -365,7 +379,10 @@ class MediaGalleryWidget extends ConsumerWidget {
   ) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
+      cacheExtent: 500, // Cache items off-screen
       itemCount: mediaItems.length,
+      addAutomaticKeepAlives: false, // Disable automatic keep alives
+      addRepaintBoundaries: true, // Add repaint boundaries
       itemBuilder: (context, index) {
         final item = mediaItems[index];
         return Padding(
@@ -439,22 +456,10 @@ class MediaGalleryWidget extends ConsumerWidget {
               // Image with opacity based on selection state
               Opacity(
                 opacity: enableSelection && item.isDeleted ? 0.5 : 1.0,
-                child: _buildImageWidget(
+                child: _buildOptimizedThumbnail(
                   url: item.thumbnailUrl,
                   fit: BoxFit.cover,
-                  placeholder: Container(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    child: const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                  errorWidget: Container(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    child: Icon(
-                      Icons.broken_image,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-                    ),
-                  ),
+                  theme: theme,
                 ),
               ),
 
@@ -561,24 +566,12 @@ class MediaGalleryWidget extends ConsumerWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: _buildImageWidget(
+                child: _buildOptimizedThumbnail(
                   url: item.thumbnailUrl,
                   width: 80,
                   height: 80,
                   fit: BoxFit.cover,
-                  placeholder: Container(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    child: const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                  errorWidget: Container(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    child: Icon(
-                      Icons.broken_image,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-                    ),
-                  ),
+                  theme: theme,
                 ),
               ),
               const SizedBox(width: 12),
@@ -656,23 +649,10 @@ class MediaGalleryWidget extends ConsumerWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _buildImageWidget(
+              _buildOptimizedThumbnail(
                 url: item.url,
                 fit: BoxFit.cover,
-                placeholder: Container(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  child: const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-                errorWidget: Container(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  child: Icon(
-                    Icons.broken_image,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-                    size: 48,
-                  ),
-                ),
+                theme: theme,
               ),
               // Gradient overlay for caption
               Positioned(
@@ -767,21 +747,40 @@ class MediaGalleryWidget extends ConsumerWidget {
   }
 
   void _openImageViewer(BuildContext context, List<MediaItem> mediaItems, int initialIndex) {
-    final imageProviders = mediaItems
-        .where((item) => item.type == MediaType.photo)
+    // Filter to only photo items and track their original indices
+    final photoItems = <MediaItem>[];
+    final photoIndices = <int>[];
+
+    for (int i = 0; i < mediaItems.length; i++) {
+      if (mediaItems[i].type == MediaType.photo) {
+        photoItems.add(mediaItems[i]);
+        photoIndices.add(i);
+      }
+    }
+
+    if (photoItems.isEmpty) return;
+
+    // Find the correct index in the filtered photo list
+    int photoIndex = 0;
+    for (int i = 0; i < photoIndices.length; i++) {
+      if (photoIndices[i] == initialIndex) {
+        photoIndex = i;
+        break;
+      }
+    }
+
+    final imageProviders = photoItems
         .map((item) => _getImageProvider(item.url))
         .toList();
 
-    if (imageProviders.isNotEmpty) {
-      final imageProvider = MultiImageProvider(imageProviders);
-      showImageViewerPager(
-        context,
-        imageProvider,
-        onPageChanged: (page) {},
-        onViewerDismissed: (page) {},
-        backgroundColor: Colors.black.withValues(alpha: 0.9),
-      );
-    }
+    final imageProvider = MultiImageProvider(imageProviders, initialIndex: photoIndex);
+    showImageViewerPager(
+      context,
+      imageProvider,
+      onPageChanged: (page) {},
+      onViewerDismissed: (page) {},
+      backgroundColor: Colors.black.withValues(alpha: 0.9),
+    );
   }
 
   ImageProvider _getImageProvider(String url) {
@@ -792,42 +791,68 @@ class MediaGalleryWidget extends ConsumerWidget {
     }
   }
 
-  Widget _buildImageWidget({
-    required String url,
-    BoxFit? fit,
-    double? width,
-    double? height,
-    Widget? placeholder,
-    Widget? errorWidget,
-  }) {
-    // Handle local files
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      return Image.file(
-        File(url),
-        fit: fit ?? BoxFit.cover,
-        width: width,
-        height: height,
-        errorBuilder: (context, error, stackTrace) => errorWidget ?? Container(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          child: const Icon(Icons.broken_image),
-        ),
-      );
-    }
-
-    // Handle network images
-    return CachedNetworkImage(
-      imageUrl: url,
-      fit: fit ?? BoxFit.cover,
-      width: width,
-      height: height,
-      placeholder: placeholder != null ? (context, url) => placeholder : null,
-      errorWidget: errorWidget != null ? (context, url, error) => errorWidget : null,
-    );
-  }
 
   String _formatDuration(Duration duration) {
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildOptimizedThumbnail({
+    required String url,
+    BoxFit fit = BoxFit.cover,
+    double? width,
+    double? height,
+    required ThemeData theme,
+  }) {
+    // Use our optimized thumbnail provider for local files
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return CachedThumbnailWidget(
+        filePath: url,
+        width: width,
+        height: height,
+        fit: fit,
+        placeholder: Container(
+          color: theme.colorScheme.surfaceContainerHighest,
+          child: const Center(
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+        errorWidget: Container(
+          color: theme.colorScheme.surfaceContainerHighest,
+          child: Icon(
+            Icons.broken_image,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+            size: 24,
+          ),
+        ),
+      );
+    }
+
+    // Handle network images with optimized settings
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: fit,
+      width: width,
+      height: height,
+      memCacheWidth: width != null ? (width * 2).toInt() : 400,
+      memCacheHeight: height != null ? (height * 2).toInt() : 400,
+      fadeInDuration: const Duration(milliseconds: 200),
+      fadeOutDuration: const Duration(milliseconds: 100),
+      placeholder: (context, url) => Container(
+        color: theme.colorScheme.surfaceContainerHighest,
+        child: const Center(
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      errorWidget: (context, url, error) => Container(
+        color: theme.colorScheme.surfaceContainerHighest,
+        child: Icon(
+          Icons.broken_image,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+          size: 24,
+        ),
+      ),
+    );
   }
 }

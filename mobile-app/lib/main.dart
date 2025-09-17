@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:sentry/sentry.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:models/models.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -357,6 +358,34 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
     appLogger.info('Initializing background data collection service...');
     final backgroundService = ref.read(backgroundDataServiceProvider);
     await backgroundService.initialize();
+
+    // Check if onboarding has been completed and start location tracking if needed
+    appLogger.info('Checking if location tracking should be started...');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+
+      if (onboardingCompleted) {
+        appLogger.info('Onboarding already completed, checking location permissions...');
+
+        // Check if we have location permissions
+        final hasPermission = await locationService.checkLocationPermission();
+
+        if (hasPermission) {
+          appLogger.info('Location permissions granted, starting tracking...');
+          await locationService.startTracking();
+          await movementService.startTracking();
+          appLogger.info('Location tracking started successfully');
+        } else {
+          appLogger.info('Location permissions not granted, tracking not started');
+        }
+      } else {
+        appLogger.info('Onboarding not completed, location tracking will start after onboarding');
+      }
+    } catch (e) {
+      appLogger.error('Error checking location tracking status', error: e);
+      // Don't fail initialization if location tracking check fails
+    }
     
     // Start background data collection with optimized battery usage
     await backgroundService.startBackgroundDataCollection(

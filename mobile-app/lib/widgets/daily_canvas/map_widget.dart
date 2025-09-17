@@ -13,6 +13,7 @@ import '../../database/location_database.dart';
 import '../../providers/location_database_provider.dart';
 import '../../providers/location_clustering_provider.dart';
 import '../../services/ai/dbscan_clustering.dart' as clustering;
+import '../../services/simple_location_service.dart' as location_service;
 
 // Provider for real location data from database
 final mapDataProvider = FutureProvider.family<MapData?, DateTime>((ref, date) async {
@@ -133,6 +134,25 @@ class MapWidget extends HookConsumerWidget {
 
     // Use hook to create and maintain MapController
     final mapController = useMemoized(() => MapController(), []);
+
+    // Check if location tracking is running and try to start it if not
+    useEffect(() {
+      Future<void> checkAndStartTracking() async {
+        final isTracking = ref.read(location_service.isTrackingProvider);
+        if (!isTracking) {
+          debugPrint('MapWidget: Location tracking not active, attempting to start...');
+          final locationService = ref.read(location_service.simpleLocationServiceProvider);
+          final started = await locationService.startTracking();
+          if (started) {
+            debugPrint('MapWidget: Location tracking started successfully');
+          } else {
+            debugPrint('MapWidget: Could not start location tracking');
+          }
+        }
+      }
+      checkAndStartTracking();
+      return null;
+    }, []);
 
     return mapDataAsync.when(
       data: (mapData) => _buildMapContent(mapData, theme, isLight, mapController, ref),

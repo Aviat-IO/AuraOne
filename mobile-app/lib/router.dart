@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -149,15 +149,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AboutScreen(),
       ),
 
+      // Debug screen - now available in all builds
+      GoRoute(
+        path: '/settings/debug',
+        builder: (context, state) => const DebugScreen(),
+      ),
 
       // Additional debug-only routes - excluded from production builds
       if (kDebugMode) ...[
-        // Debug screen
-        GoRoute(
-          path: '/settings/debug',
-          builder: (context, state) => const DebugScreen(),
-        ),
-
         // HAR Model test screen
         GoRoute(
           path: '/test/har',

@@ -3,7 +3,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/privacy_settings.dart';
 import '../../providers/privacy_providers.dart';
-import '../../services/privacy_service.dart';
 
 /// Quick-start guide for new users to understand and configure privacy settings
 /// Provides a guided setup experience with clear explanations
@@ -35,7 +34,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
               const SizedBox(height: 24),
 
               // Quick setup buttons
-              _buildQuickSetupSection(context),
+              _buildQuickSetupSection(context, ref),
               const SizedBox(height: 24),
 
               // Next steps
@@ -238,7 +237,7 @@ class PrivacyQuickStartGuide extends HookConsumerWidget {
     );
   }
 
-  Widget _buildQuickSetupSection(BuildContext context) {
+  Widget _buildQuickSetupSection(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
     return Card(
