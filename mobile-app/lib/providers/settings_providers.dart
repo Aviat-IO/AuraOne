@@ -154,3 +154,26 @@ class ReminderTimeNotifier extends StateNotifier<DateTime> {
     }
   }
 }
+
+// Reverse geocoding provider - OFF BY DEFAULT for privacy
+final reverseGeocodingEnabledProvider = StateNotifierProvider<ReverseGeocodingNotifier, bool>((ref) {
+  return ReverseGeocodingNotifier();
+});
+
+class ReverseGeocodingNotifier extends StateNotifier<bool> {
+  ReverseGeocodingNotifier() : super(false) {
+    _loadState();
+  }
+
+  Future<void> _loadState() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Default to false for privacy - users must explicitly opt-in
+    state = prefs.getBool('reverseGeocodingEnabled') ?? false;
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('reverseGeocodingEnabled', enabled);
+  }
+}

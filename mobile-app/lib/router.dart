@@ -14,6 +14,8 @@ import 'package:aura_one/screens/privacy_dashboard_screen.dart';
 import 'package:aura_one/screens/privacy/data_deletion_screen.dart';
 import 'package:aura_one/screens/font_size_settings_screen.dart';
 import 'package:aura_one/screens/about_screen.dart';
+import 'package:aura_one/screens/terms_screen.dart';
+import 'package:aura_one/screens/privacy_policy_screen.dart';
 import 'package:aura_one/screens/event_detail_screen.dart';
 import 'package:aura_one/screens/daily_canvas_screen.dart';
 import 'package:aura_one/widgets/daily_canvas/timeline_widget.dart';
@@ -140,6 +142,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/about',
         builder: (context, state) => const AboutScreen(),
+      ),
+
+      // Terms of Use screen
+      GoRoute(
+        path: '/settings/terms',
+        builder: (context, state) => const TermsScreen(),
+      ),
+
+      // Privacy Policy screen
+      GoRoute(
+        path: '/settings/privacy-policy',
+        builder: (context, state) => const PrivacyPolicyScreen(),
       ),
 
       // Debug screen - now available in all builds

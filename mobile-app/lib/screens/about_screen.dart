@@ -176,16 +176,16 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                       icon: Icons.policy,
                       title: 'Privacy Policy',
                       onTap: () {
-                        // Navigate to privacy policy
+                        context.push('/settings/privacy-policy');
                       },
                     ),
                     const Divider(height: 1),
                     _buildLinkTile(
                       context,
                       icon: Icons.description,
-                      title: 'Terms of Service',
+                      title: 'Terms of Use',
                       onTap: () {
-                        // Navigate to terms
+                        context.push('/settings/terms');
                       },
                     ),
                     const Divider(height: 1),

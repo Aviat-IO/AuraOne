@@ -29,6 +29,22 @@ class ReverseGeocodingService {
     required double longitude,
     bool useCache = true,
   }) async {
+    // Check if reverse geocoding is enabled
+    final prefs = await SharedPreferences.getInstance();
+    final isEnabled = prefs.getBool('reverseGeocodingEnabled') ?? false;
+
+    if (!isEnabled) {
+      // Return a basic location without reverse geocoding
+      return PlaceInfo(
+        displayName: 'Location',
+        name: null,
+        category: PlaceCategory.other,
+        address: PlaceAddress(),
+        latitude: latitude,
+        longitude: longitude,
+      );
+    }
+
     final cacheKey = '${latitude.toStringAsFixed(6)}_${longitude.toStringAsFixed(6)}';
 
     // Check memory cache first

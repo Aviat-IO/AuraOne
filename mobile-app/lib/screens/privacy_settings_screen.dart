@@ -8,6 +8,7 @@ import 'package:health/health.dart';
 import '../services/simple_location_service.dart';
 import '../services/movement_tracking_service.dart';
 import '../providers/smart_place_provider.dart';
+import '../providers/settings_providers.dart';
 
 // Battery optimization enum
 enum BatteryOptimization {
@@ -112,6 +113,10 @@ class PrivacySettingsScreen extends HookConsumerWidget {
 
               // Smart place recognition section
               _buildSmartPlaceRecognitionSection(context, ref),
+              const SizedBox(height: 24),
+
+              // Reverse geocoding section
+              _buildReverseGeocodingSection(context, ref),
               const SizedBox(height: 24),
 
               // Movement tracking section
@@ -1574,6 +1579,217 @@ class PrivacySettingsScreen extends HookConsumerWidget {
             onChanged: onChanged,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildReverseGeocodingSection(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final reverseGeocodingEnabled = ref.watch(reverseGeocodingEnabledProvider);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.language,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Location Name Services',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Convert GPS coordinates to readable place names using OpenStreetMap\'s Nominatim service.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Reverse geocoding toggle
+            SwitchListTile(
+              title: const Text('Enable Location Names'),
+              subtitle: Text(
+                reverseGeocodingEnabled
+                  ? 'GPS coordinates are sent to OpenStreetMap to get place names'
+                  : 'Your locations remain as generic "Location" markers',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              value: reverseGeocodingEnabled,
+              onChanged: (bool value) async {
+                if (value) {
+                  // Show warning dialog before enabling
+                  final shouldEnable = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Row(
+                        children: [
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            color: theme.colorScheme.error,
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text('Privacy Notice'),
+                          ),
+                        ],
+                      ),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Enabling this feature will:',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            '• Send your GPS coordinates to OpenStreetMap\'s Nominatim service\n'
+                            '• Require an internet connection\n'
+                            '• Convert locations like "47.6062, -122.3321" to "Space Needle, Seattle"\n\n'
+                            'This is the ONLY feature in Aura One that transmits location data externally.',
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.errorContainer.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: theme.colorScheme.error.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: theme.colorScheme.error,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Your GPS data will leave your device',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.error,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Are you sure you want to enable location name services?',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text('Keep Disabled'),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: theme.colorScheme.error,
+                          ),
+                          child: const Text('Enable Anyway'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (shouldEnable == true) {
+                    await ref.read(reverseGeocodingEnabledProvider.notifier).setEnabled(true);
+                  }
+                } else {
+                  // Disable without warning
+                  await ref.read(reverseGeocodingEnabledProvider.notifier).setEnabled(false);
+                }
+              },
+              secondary: Icon(
+                reverseGeocodingEnabled ? Icons.cloud : Icons.cloud_off,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+
+            // Privacy warning/info
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: reverseGeocodingEnabled
+                  ? theme.colorScheme.errorContainer.withValues(alpha: 0.1)
+                  : theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: reverseGeocodingEnabled
+                    ? theme.colorScheme.error.withValues(alpha: 0.2)
+                    : theme.colorScheme.primary.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    reverseGeocodingEnabled ? Icons.warning_amber : Icons.lock,
+                    color: reverseGeocodingEnabled
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      reverseGeocodingEnabled
+                        ? 'GPS coordinates are being sent to OpenStreetMap for place name resolution'
+                        : 'All location data stays on your device - complete privacy maintained',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: reverseGeocodingEnabled
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Learn more button
+            OutlinedButton.icon(
+              onPressed: () {
+                context.push('/settings/privacy-policy');
+              },
+              icon: const Icon(Icons.info_outline, size: 20),
+              label: const Text('Read Full Privacy Policy'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 40),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

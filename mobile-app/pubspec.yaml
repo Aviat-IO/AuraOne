@@ -146,6 +146,7 @@ flutter:
     - assets/models/preprocessing/
     - assets/images/
     - assets/icons/
+    - assets/legal/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
