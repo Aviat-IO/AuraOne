@@ -68,12 +68,14 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
   Future<void> _loadBackupSettings() async {
     final config = await BackupScheduler.getConfig();
     if (config != null) {
-      setState(() {
-        _enableAutoBackup = config.frequency != BackupFrequency.disabled;
-        _backupFrequency = config.frequency;
-        _enableEncryption = config.enableEncryption;
-        _includeMedia = config.includeMedia;
-      });
+      if (mounted) {
+        setState(() {
+          _enableAutoBackup = config.frequency != BackupFrequency.disabled;
+          _backupFrequency = config.frequency;
+          _enableEncryption = config.enableEncryption;
+          _includeMedia = config.includeMedia;
+        });
+      }
     }
   }
   
@@ -780,14 +782,21 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
         ],
       ),
     );
-    
+
     if (confirm != true) return;
-    
-    // TODO: Implement backup deletion
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Backup deleted')),
-    );
-    
+
+    final backupManager = ref.read(backupManagerProvider);
+    final deleted = await backupManager.deleteBackup(backup);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(deleted ? 'Backup deleted' : 'Failed to delete backup'),
+          backgroundColor: deleted ? Colors.green : Colors.red,
+        ),
+      );
+    }
+
     // Refresh backup history
     ref.invalidate(backupHistoryProvider);
   }

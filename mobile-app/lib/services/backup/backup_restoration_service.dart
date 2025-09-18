@@ -11,6 +11,9 @@ import '../export/export_schema.dart';
 import '../export/encryption_service.dart' as legacy_encryption;
 import '../export/enhanced_encryption_service.dart';
 import 'backup_manager.dart';
+import '../../database/journal_database.dart';
+import '../../database/media_database.dart';
+import '../../database/location_database.dart';
 
 /// Backup restoration strategies
 enum RestoreStrategy {
@@ -55,8 +58,6 @@ class RestoreProgress {
 
 /// Service for restoring backups to the app storage
 class BackupRestorationService {
-  static const String _journalEntriesKey = 'journal_entries';
-  static const String _mediaReferencesKey = 'media_references';
   
   final StreamController<RestoreProgress> _progressController = 
       StreamController<RestoreProgress>.broadcast();
@@ -103,9 +104,12 @@ class BackupRestorationService {
         progress: 0.3,
         onProgress: onProgress,
       );
-      
-      final totalEntries = (backupData['journal']?['entries'] as List?)?.length ?? 0;
-      final totalMedia = (backupData['media']?['references'] as List?)?.length ?? 0;
+
+      // Support both old and new backup formats
+      final totalEntries = (backupData['journalEntries'] as List?)?.length ??
+                          (backupData['journal']?['entries'] as List?)?.length ?? 0;
+      final totalMedia = (backupData['mediaReferences'] as List?)?.length ??
+                        (backupData['media']?['references'] as List?)?.length ?? 0;
       
       // Phase 4: Restore data based on strategy
       _updateProgress(
@@ -133,29 +137,8 @@ class BackupRestorationService {
         },
       );
       
-      // Phase 5: Restore media files
-      _updateProgress(
-        phase: 'Restoring media',
-        progress: 0.9,
-        processedEntries: restoredCounts['entries'] ?? 0,
-        totalEntries: totalEntries,
-        onProgress: onProgress,
-      );
-      
-      final mediaCount = await _restoreMediaFiles(
-        backupData['media']?['references'] as List<dynamic>? ?? [],
-        onProgress: (processed, total) {
-          _updateProgress(
-            phase: 'Restoring media',
-            progress: 0.9 + (0.1 * (processed / total)),
-            processedEntries: restoredCounts['entries'] ?? 0,
-            totalEntries: totalEntries,
-            processedMedia: processed,
-            totalMedia: total,
-            onProgress: onProgress,
-          );
-        },
-      );
+      // Phase 5: Complete (media restoration handled in executeRestore)
+      final mediaCount = restoredCounts['media'] ?? 0;
       
       // Phase 6: Complete
       _updateProgress(
@@ -382,175 +365,301 @@ class BackupRestorationService {
     required ConflictResolution conflictResolution,
     required void Function(int processed, int total, String? item) onProgress,
   }) async {
-    final entries = backupData['journal']?['entries'] as List<dynamic>? ?? [];
-    final totalEntries = entries.length;
-    int restoredCount = 0;
-    
-    final prefs = await SharedPreferences.getInstance();
-    
-    // Handle strategy-specific preparation
-    if (strategy == RestoreStrategy.replace) {
-      // Clear existing data
-      await prefs.remove(_journalEntriesKey);
-    }
-    
-    // Get existing entries
-    final existingData = prefs.getString(_journalEntriesKey);
-    final existingEntries = existingData != null 
-        ? (json.decode(existingData) as List).cast<Map<String, dynamic>>()
-        : <Map<String, dynamic>>[];
-    
-    // Restore each entry
-    for (int i = 0; i < entries.length; i++) {
-      final entry = entries[i] as Map<String, dynamic>;
-      
-      try {
-        final restored = await _restoreJournalEntry(
-          entry,
-          existingEntries: existingEntries,
-          strategy: strategy,
-          conflictResolution: conflictResolution,
-        );
-        
-        if (restored) {
-          restoredCount++;
-        }
-        
-        onProgress(i + 1, totalEntries, entry['id']?.toString());
-        
-      } catch (e) {
-        debugPrint('Failed to restore entry ${entry['id']}: $e');
+    // Support both old and new backup formats
+    // New format: direct lists at root level
+    // Old format: nested in journal/media objects
+    final journalEntries = (backupData['journalEntries'] as List<dynamic>?) ??
+                          (backupData['journal']?['entries'] as List<dynamic>?) ?? [];
+    final journalActivities = backupData['journalActivities'] as List<dynamic>? ?? [];
+    final mediaReferences = (backupData['mediaReferences'] as List<dynamic>?) ??
+                           (backupData['media']?['references'] as List<dynamic>?) ?? [];
+    final locationSummaries = backupData['locationSummaries'] as List<dynamic>? ?? [];
+    final locationNotes = backupData['locationNotes'] as List<dynamic>? ?? [];
+
+    final totalItems = journalEntries.length + mediaReferences.length + locationSummaries.length + locationNotes.length;
+    int processedItems = 0;
+    int restoredEntries = 0;
+    int restoredMedia = 0;
+    int restoredLocations = 0;
+
+    // Initialize databases
+    final journalDb = JournalDatabase();
+    final mediaDb = MediaDatabase();
+    final locationDb = LocationDatabase();
+
+    try {
+      // Handle strategy-specific preparation
+      if (strategy == RestoreStrategy.replace) {
+        // Clear existing data from all databases
+        await journalDb.delete(journalDb.journalActivities).go();
+        await journalDb.delete(journalDb.journalEntries).go();
+        await mediaDb.delete(mediaDb.mediaItems).go();
+        await locationDb.delete(locationDb.locationVisits).go();
       }
-    }
-    
-    // Save updated entries
-    await prefs.setString(_journalEntriesKey, json.encode(existingEntries));
-    
-    return {'entries': restoredCount};
-  }
-  
-  Future<bool> _restoreJournalEntry(
-    Map<String, dynamic> entryData,
-    {required List<Map<String, dynamic>> existingEntries,
-    required RestoreStrategy strategy,
-    required ConflictResolution conflictResolution}
-  ) async {
-    final id = entryData['id']?.toString() ?? '';
-    final date = DateTime.tryParse(entryData['date'] ?? '') ?? DateTime.now();
-    
-    // Check for existing entry
-    final existingIndex = existingEntries.indexWhere(
-      (e) => e['id'] == id,
-    );
-    final existing = existingIndex >= 0 ? existingEntries[existingIndex] : null;
-    
-    if (existing != null) {
-      // Handle conflict based on strategy
-      if (strategy == RestoreStrategy.merge) {
-        switch (conflictResolution) {
-          case ConflictResolution.keepExisting:
-            return false;
-          case ConflictResolution.useBackup:
-            existingEntries[existingIndex] = entryData;
-            return true;
-          case ConflictResolution.useNewer:
-            final existingDate = DateTime.tryParse(
-              existing['timestamps']?['updated'] ?? existing['date'] ?? ''
-            ) ?? date;
-            final backupDate = DateTime.tryParse(
-              entryData['timestamps']?['updated'] ?? entryData['date'] ?? ''
-            ) ?? date;
-            if (backupDate.isAfter(existingDate)) {
-              existingEntries[existingIndex] = entryData;
-              return true;
+
+      // Restore journal entries
+      final entryIdMapping = <String, int>{}; // Map old IDs to new IDs
+
+      for (final entryData in journalEntries) {
+        try {
+          final entry = entryData as Map<String, dynamic>;
+          final date = DateTime.parse(entry['date']);
+
+          // Check for existing entry on this date
+          final existing = await journalDb.getJournalEntryForDate(date);
+
+          bool shouldRestore = false;
+          JournalEntriesCompanion? companion;
+
+          if (existing != null) {
+            // Handle conflict based on strategy and resolution
+            if (strategy == RestoreStrategy.merge) {
+              switch (conflictResolution) {
+                case ConflictResolution.keepExisting:
+                  shouldRestore = false;
+                  entryIdMapping[entry['id'].toString()] = existing.id;
+                  break;
+                case ConflictResolution.useBackup:
+                  shouldRestore = true;
+                  companion = JournalEntriesCompanion(
+                    id: Value(existing.id),
+                    date: Value(date),
+                    title: Value(entry['title']),
+                    content: Value(entry['content']),
+                    mood: Value(entry['mood']),
+                    tags: Value(entry['tags'] != null ? json.encode(entry['tags']) : null),
+                    summary: Value(entry['summary']),
+                    isAutoGenerated: Value(entry['isAutoGenerated'] ?? true),
+                    isEdited: Value(entry['isEdited'] ?? false),
+                    createdAt: Value(DateTime.parse(entry['createdAt'])),
+                    updatedAt: Value(DateTime.now()),
+                  );
+                  break;
+                case ConflictResolution.useNewer:
+                  final existingUpdate = existing.updatedAt;
+                  final backupUpdate = DateTime.parse(entry['updatedAt']);
+                  if (backupUpdate.isAfter(existingUpdate)) {
+                    shouldRestore = true;
+                    companion = JournalEntriesCompanion(
+                      id: Value(existing.id),
+                      date: Value(date),
+                      title: Value(entry['title']),
+                      content: Value(entry['content']),
+                      mood: Value(entry['mood']),
+                      tags: Value(entry['tags'] != null ? json.encode(entry['tags']) : null),
+                      summary: Value(entry['summary']),
+                      isAutoGenerated: Value(entry['isAutoGenerated'] ?? true),
+                      isEdited: Value(entry['isEdited'] ?? false),
+                      createdAt: Value(DateTime.parse(entry['createdAt'])),
+                      updatedAt: Value(DateTime.now()),
+                    );
+                  } else {
+                    shouldRestore = false;
+                    entryIdMapping[entry['id'].toString()] = existing.id;
+                  }
+                  break;
+              }
+            } else if (strategy == RestoreStrategy.append) {
+              // For append, create new entry with different date
+              final newDate = date.add(Duration(microseconds: DateTime.now().microsecondsSinceEpoch % 1000));
+              shouldRestore = true;
+              companion = JournalEntriesCompanion.insert(
+                date: newDate,
+                title: entry['title'],
+                content: entry['content'],
+                mood: Value(entry['mood']),
+                tags: Value(entry['tags'] != null ? json.encode(entry['tags']) : null),
+                summary: Value(entry['summary']),
+                isAutoGenerated: Value(entry['isAutoGenerated'] ?? true),
+                isEdited: Value(entry['isEdited'] ?? false),
+                createdAt: Value(DateTime.parse(entry['createdAt'])),
+                updatedAt: Value(DateTime.now()),
+              );
             }
-            return false;
+          } else {
+            // No conflict, create new entry
+            shouldRestore = true;
+            companion = JournalEntriesCompanion.insert(
+              date: date,
+              title: entry['title'],
+              content: entry['content'],
+              mood: Value(entry['mood']),
+              tags: Value(entry['tags'] != null ? json.encode(entry['tags']) : null),
+              summary: Value(entry['summary']),
+              isAutoGenerated: Value(entry['isAutoGenerated'] ?? true),
+              isEdited: Value(entry['isEdited'] ?? false),
+              createdAt: Value(DateTime.parse(entry['createdAt'])),
+              updatedAt: Value(DateTime.now()),
+            );
+          }
+
+          if (shouldRestore && companion != null) {
+            final newId = await journalDb.insertJournalEntry(companion);
+            entryIdMapping[entry['id'].toString()] = newId;
+            restoredEntries++;
+          }
+
+          processedItems++;
+          onProgress(processedItems, totalItems, 'Journal: ${entry['title']}');
+
+        } catch (e) {
+          debugPrint('Failed to restore journal entry: $e');
         }
-      } else if (strategy == RestoreStrategy.append) {
-        // Create new entry with different ID
-        final newEntry = Map<String, dynamic>.from(entryData);
-        newEntry['id'] = '${id}_restored_${DateTime.now().millisecondsSinceEpoch}';
-        existingEntries.add(newEntry);
-        return true;
       }
-    } else {
-      // No conflict, add new entry
-      existingEntries.add(entryData);
-      return true;
+
+      // Restore journal activities
+      for (final activityData in journalActivities) {
+        try {
+          final activity = activityData as Map<String, dynamic>;
+          final oldEntryId = activity['journalEntryId'].toString();
+          final newEntryId = entryIdMapping[oldEntryId];
+
+          if (newEntryId != null) {
+            await journalDb.insertJournalActivity(
+              JournalActivitiesCompanion.insert(
+                journalEntryId: newEntryId,
+                activityType: activity['activityType'],
+                description: activity['description'],
+                metadata: Value(activity['metadata']),
+                timestamp: DateTime.parse(activity['timestamp']),
+                createdAt: Value(DateTime.parse(activity['createdAt'])),
+              ),
+            );
+          }
+        } catch (e) {
+          debugPrint('Failed to restore journal activity: $e');
+        }
+      }
+
+      // Restore media items
+      for (final mediaData in mediaReferences) {
+        try {
+          final media = mediaData as Map<String, dynamic>;
+          final mediaId = media['id'].toString();
+
+          // Check if media already exists
+          final existing = await (mediaDb.select(mediaDb.mediaItems)
+            ..where((t) => t.id.equals(mediaId)))
+            .getSingleOrNull();
+
+          if (existing == null || strategy == RestoreStrategy.replace ||
+              (strategy == RestoreStrategy.merge && conflictResolution == ConflictResolution.useBackup)) {
+            await mediaDb.into(mediaDb.mediaItems).insertOnConflictUpdate(
+              MediaItemsCompanion(
+                id: Value(mediaId),
+                filePath: Value(media['filePath']),
+                fileName: Value(media['fileName']),
+                mimeType: Value(media['mimeType']),
+                fileSize: Value(media['fileSize']),
+                fileHash: Value(media['fileHash']),
+                createdDate: Value(DateTime.parse(media['createdDate'])),
+                modifiedDate: Value(DateTime.parse(media['modifiedDate'])),
+                addedDate: Value(DateTime.parse(media['addedDate'])),
+                width: Value(media['width']),
+                height: Value(media['height']),
+                duration: Value(media['duration']),
+              ),
+            );
+            restoredMedia++;
+          }
+
+          processedItems++;
+          onProgress(processedItems, totalItems, 'Media: ${media['fileName']}');
+
+        } catch (e) {
+          debugPrint('Failed to restore media item: $e');
+        }
+      }
+
+      // Restore location summaries
+      for (final summaryData in locationSummaries) {
+        try {
+          final summary = summaryData as Map<String, dynamic>;
+          final date = DateTime.parse(summary['date']);
+
+          // Check if summary for this date already exists
+          final existing = await (locationDb.select(locationDb.locationSummaries)
+            ..where((t) => t.date.equals(date)))
+            .getSingleOrNull();
+
+          if (existing == null || strategy == RestoreStrategy.replace ||
+              (strategy == RestoreStrategy.merge && conflictResolution == ConflictResolution.useBackup)) {
+            await locationDb.into(locationDb.locationSummaries).insertOnConflictUpdate(
+              LocationSummariesCompanion.insert(
+                date: date,
+                totalPoints: summary['totalPoints'],
+                totalDistance: summary['totalDistance'].toDouble(),
+                placesVisited: summary['placesVisited'],
+                mainLocations: summary['mainLocations'],
+                activeMinutes: Value(summary['activeMinutes']),
+                createdAt: Value(DateTime.parse(summary['createdAt'])),
+              ),
+            );
+            restoredLocations++;
+          }
+
+          processedItems++;
+          onProgress(processedItems, totalItems, 'Location summary');
+
+        } catch (e) {
+          debugPrint('Failed to restore location summary: $e');
+        }
+      }
+
+      // Restore location notes
+      for (final noteData in locationNotes) {
+        try {
+          final note = noteData as Map<String, dynamic>;
+
+          await locationDb.into(locationDb.locationNotes).insertOnConflictUpdate(
+            LocationNotesCompanion.insert(
+              noteId: Value(note['noteId']),
+              content: note['content'],
+              latitude: note['latitude'].toDouble(),
+              longitude: note['longitude'].toDouble(),
+              placeName: Value(note['placeName']),
+              geofenceId: Value(note['geofenceId']),
+              tags: Value(note['tags']),
+              timestamp: DateTime.parse(note['timestamp']),
+              isPublished: Value(note['isPublished'] ?? false),
+              createdAt: Value(DateTime.parse(note['createdAt'])),
+            ),
+          );
+          restoredLocations++;
+
+          processedItems++;
+          onProgress(processedItems, totalItems, 'Location note');
+
+        } catch (e) {
+          debugPrint('Failed to restore location note: $e');
+        }
+      }
+
+      // Rebuild search indices
+      await journalDb.rebuildSearchIndex();
+
+    } finally {
+      // Close database connections
+      await journalDb.close();
+      await mediaDb.close();
+      await locationDb.close();
     }
-    
-    return false;
+
+    return {
+      'entries': restoredEntries,
+      'media': restoredMedia,
+      'locations': restoredLocations,
+    };
   }
   
-  // Helper methods for managing journal entries in memory
-  Future<List<Map<String, dynamic>>> _loadJournalEntries() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString(_journalEntriesKey);
-    if (data != null) {
-      return (json.decode(data) as List).cast<Map<String, dynamic>>();
-    }
-    return [];
-  }
-  
-  Future<void> _saveJournalEntries(List<Map<String, dynamic>> entries) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_journalEntriesKey, json.encode(entries));
-  }
   
   Future<int> _restoreMediaFiles(
     List<dynamic> mediaReferences,
     {void Function(int processed, int total)? onProgress}
   ) async {
-    int restoredCount = 0;
-    
-    // Get app documents directory for media storage
-    final directory = await getApplicationDocumentsDirectory();
-    final mediaDir = Directory(path.join(directory.path, 'media'));
-    
-    if (!await mediaDir.exists()) {
-      await mediaDir.create(recursive: true);
-    }
-    
-    // Store media references in SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    final existingMedia = prefs.getString(_mediaReferencesKey);
-    final mediaList = existingMedia != null
-        ? (json.decode(existingMedia) as List).cast<Map<String, dynamic>>()
-        : <Map<String, dynamic>>[];
-    
-    for (int i = 0; i < mediaReferences.length; i++) {
-      final media = mediaReferences[i] as Map<String, dynamic>;
-      
-      try {
-        // Check if media already exists
-        final existingIndex = mediaList.indexWhere(
-          (m) => m['id'] == media['id'],
-        );
-        
-        if (existingIndex < 0) {
-          // Add new media reference
-          mediaList.add(media);
-          restoredCount++;
-        } else {
-          // Update existing media reference
-          mediaList[existingIndex] = media;
-          restoredCount++;
-        }
-        
-        // TODO: If backup includes actual media files,
-        // extract and save them to mediaDir
-        
-        onProgress?.call(i + 1, mediaReferences.length);
-        
-      } catch (e) {
-        debugPrint('Failed to restore media ${media['id']}: $e');
-      }
-    }
-    
-    // Save updated media references
-    await prefs.setString(_mediaReferencesKey, json.encode(mediaList));
-    
-    return restoredCount;
+    // This method is now handled in executeRestore
+    // Keeping for compatibility with old backup formats
+    return 0;
   }
   
   void _updateProgress({

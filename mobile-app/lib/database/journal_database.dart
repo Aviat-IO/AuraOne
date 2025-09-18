@@ -57,6 +57,9 @@ class JournalTemplates extends Table {
 class JournalDatabase extends _$JournalDatabase {
   JournalDatabase() : super(_openConnection());
 
+  // Constructor for testing with custom executor
+  JournalDatabase.forTesting(QueryExecutor e) : super(e);
+
   @override
   int get schemaVersion => 2;
 
