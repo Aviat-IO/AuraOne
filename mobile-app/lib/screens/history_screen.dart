@@ -304,6 +304,13 @@ class HistoryScreen extends HookConsumerWidget {
                         ),
                         markersMaxCount: 1,
                         markerSize: 6.0,
+                        // Make weekends look the same as weekdays
+                        weekendTextStyle: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        defaultTextStyle: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
                       headerStyle: HeaderStyle(
                         formatButtonVisible: false,

@@ -304,27 +304,6 @@ class SettingsScreen extends ConsumerWidget {
                           child: Column(
                             children: [
                               _buildSettingsTile(
-                                icon: Icons.help_outline,
-                                title: 'Help & Support',
-                                subtitle: 'Get help and contact support',
-                                trailing: Icon(
-                                  Icons.arrow_forward_ios,
-                                  size: 16,
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                                ),
-                                theme: theme,
-                                onTap: () {
-                                  // TODO: Navigate to help screen
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Help & Support coming soon')),
-                                  );
-                                },
-                              ),
-                              Divider(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-                                height: 1,
-                              ),
-                              _buildSettingsTile(
                                 icon: Icons.info_outline,
                                 title: 'About Aura One',
                                 subtitle: 'App version and information',
