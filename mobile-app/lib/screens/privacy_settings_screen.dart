@@ -138,10 +138,6 @@ class PrivacySettingsScreen extends HookConsumerWidget {
               _buildDevicePermissionsSection(context, ref),
               const SizedBox(height: 24),
 
-              // Location history management
-              _buildLocationHistorySection(context),
-              const SizedBox(height: 24),
-
               // Data export and opt-out
               _buildDataControlSection(context),
               const SizedBox(height: 24),
@@ -776,85 +772,6 @@ class PrivacySettingsScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _buildLocationHistorySection(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Location History',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'View and manage your stored location data.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            _buildLocationHistoryActions(context),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLocationHistoryActions(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Column(
-      children: [
-        ListTile(
-          leading: Icon(
-            Icons.timeline,
-            color: theme.colorScheme.primary,
-          ),
-          title: const Text('View Location Timeline'),
-          subtitle: const Text('Browse your location history with interactive timeline'),
-          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-          onTap: () {
-            context.push('/privacy/location-history');
-          },
-        ),
-
-        const Divider(),
-
-        ListTile(
-          leading: Icon(
-            Icons.map,
-            color: theme.colorScheme.primary,
-          ),
-          title: const Text('View on Map'),
-          subtitle: const Text('See your visited locations on a map'),
-          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-          onTap: () {
-            context.push('/privacy/location-map');
-          },
-        ),
-
-        const Divider(),
-
-        ListTile(
-          leading: Icon(
-            Icons.delete_sweep,
-            color: theme.colorScheme.error,
-          ),
-          title: const Text('Delete Selected Data'),
-          subtitle: const Text('Remove specific location entries'),
-          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-          onTap: () => _showSelectiveDeleteDialog(context),
-        ),
-      ],
-    );
-  }
 
   Widget _buildDataControlSection(BuildContext context) {
     final theme = Theme.of(context);
@@ -1108,31 +1025,6 @@ class PrivacySettingsScreen extends HookConsumerWidget {
         ref.read(locationTrackingGranularityProvider.notifier).state = LocationGranularity.off;
       }
     }
-  }
-
-  void _showSelectiveDeleteDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Location Data'),
-        content: const Text(
-          'Choose a date range to delete location data from your device. This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              context.push('/privacy/selective-delete');
-            },
-            child: const Text('Select Dates'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showExportDialog(BuildContext context) {

@@ -442,64 +442,6 @@ class PrivacyScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-
-                // View location history button
-                if (locationEnabled)
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: isLight
-                          ? AuraColors.lightCardGradient
-                          : AuraColors.darkCardGradient,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isLight
-                            ? AuraColors.lightPrimary.withValues(alpha: 0.05)
-                            : Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.secondary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.history,
-                          color: theme.colorScheme.secondary,
-                          size: 20,
-                        ),
-                      ),
-                      title: Text(
-                        'Location History',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: Text(
-                        'View and manage your location data',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ),
-                      trailing: Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                      ),
-                      onTap: () => context.push('/privacy/location-history'),
-                    ),
-                  ),
-
                 const SizedBox(height: 24),
 
                 // Data & Privacy section

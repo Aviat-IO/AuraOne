@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:aura_one/screens/main_layout_screen.dart';
 import 'package:aura_one/screens/onboarding_screen.dart';
 import 'package:aura_one/screens/privacy_settings_screen.dart';
-import 'package:aura_one/screens/location_history_screen.dart';
 import 'package:aura_one/screens/export_screen.dart';
 import 'package:aura_one/screens/import_screen.dart';
 import 'package:aura_one/screens/backup_settings_screen.dart';
@@ -69,12 +68,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/privacy/dashboard',
         builder: (context, state) => const PrivacyDashboardScreen(),
-      ),
-
-      // Location history management
-      GoRoute(
-        path: '/privacy/location-history',
-        builder: (context, state) => const LocationHistoryScreen(),
       ),
 
       // Data deletion screen
