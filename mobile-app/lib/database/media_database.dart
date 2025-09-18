@@ -164,6 +164,10 @@ class MediaDatabase extends _$MediaDatabase {
     return into(mediaItems).insert(item);
   }
 
+  Future<int> insertOrReplaceMediaItem(MediaItemsCompanion item) {
+    return into(mediaItems).insert(item, mode: InsertMode.insertOrReplace);
+  }
+
   Future<bool> updateMediaItem(MediaItemsCompanion item) {
     return update(mediaItems).replace(item);
   }

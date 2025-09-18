@@ -12,6 +12,7 @@ import 'exif_extractor.dart';
 import 'media_format_handler.dart';
 import 'face_detector.dart';
 import 'face_clustering.dart';
+import 'face_detection_types.dart';
 import 'person_service.dart';
 import 'media_processing_isolate.dart';
 import 'media_cache_service.dart';
@@ -652,14 +653,12 @@ class PhotoService {
       for (final photo in photos) {
         final createDate = photo.createDateTime;
         if (createDate.isAfter(todayStart) && createDate.isBefore(todayEnd)) {
-          // Check if already indexed
-          final existing = await mediaDatabase.getMediaItem(photo.id);
-          if (existing == null) {
-            // Index this photo
+          try {
+            // Index this photo using upsert to handle duplicates gracefully
             final file = await photo.file;
             if (file != null) {
               final fileName = file.path.split('/').last;
-              await mediaDatabase.insertMediaItem(
+              await mediaDatabase.insertOrReplaceMediaItem(
                 MediaItemsCompanion.insert(
                   id: photo.id,
                   filePath: Value(file.path),
@@ -673,6 +672,9 @@ class PhotoService {
                 ),
               );
             }
+          } catch (e) {
+            // Log individual photo indexing errors but continue with others
+            _logger.warning('Failed to index photo ${photo.id}: $e');
           }
         }
       }
@@ -750,10 +752,7 @@ class PhotoService {
 
     try {
       final faceDetector = FaceDetectionService(config: config);
-      final results = await faceDetector.detectFacesBatch(
-        imageAssets,
-        onProgress: onProgress,
-      );
+      final results = await faceDetector.detectFacesBatch(imageAssets);
 
       await faceDetector.dispose();
 

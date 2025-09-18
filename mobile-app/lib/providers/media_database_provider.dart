@@ -117,7 +117,7 @@ class MediaManagementService {
     int? height,
     int? duration,
   }) async {
-    await _db.insertMediaItem(
+    await _db.insertOrReplaceMediaItem(
       MediaItemsCompanion.insert(
         id: id,
         fileName: fileName,
