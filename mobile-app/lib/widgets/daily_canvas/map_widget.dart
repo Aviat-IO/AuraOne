@@ -503,7 +503,7 @@ class MapWidget extends HookConsumerWidget {
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.auraone.app',
+              userAgentPackageName: 'me.auraone.app',
             ),
 
             // Draw route polyline if we have multiple points
