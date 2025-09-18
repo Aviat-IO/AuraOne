@@ -5,6 +5,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/logger.dart';
+import 'database/database_provider.dart';
 
 /// Service to handle background initialization of heavy operations
 class BackgroundInitService {
@@ -40,6 +41,15 @@ class BackgroundInitService {
 
       // Heavy database initialization in background
       final dbInitResult = await compute(_initializeDatabase, dbPath);
+
+      _progressController.add(InitializationProgress(
+        step: 'Initializing database provider',
+        progress: 0.3,
+      ));
+
+      // Initialize database provider (shared instances)
+      await DatabaseProvider.instance.initialize();
+      appLogger.info('Database provider initialized');
 
       _progressController.add(InitializationProgress(
         step: 'Setting up services',

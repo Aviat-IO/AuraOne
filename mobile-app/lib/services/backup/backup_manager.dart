@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,6 +17,7 @@ import '../export/encryption_service.dart' as legacy_encryption;
 import '../export/enhanced_encryption_service.dart';
 import '../export/syncthing_service.dart';
 import '../export/blossom_storage_service.dart';
+import '../database/database_provider.dart';
 import 'backup_restoration_service.dart';
 import '../../database/journal_database.dart';
 import '../../database/media_database.dart';
@@ -352,10 +354,10 @@ class BackupManager {
   Future<Map<String, dynamic>> _prepareBackupData({
     required bool incremental,
   }) async {
-    // Import required databases
-    final journalDb = JournalDatabase();
-    final mediaDb = MediaDatabase();
-    final locationDb = LocationDatabase();
+    // Get database instances from provider
+    final journalDb = await DatabaseProvider.instance.journalDatabase;
+    final mediaDb = await DatabaseProvider.instance.mediaDatabase;
+    final locationDb = await DatabaseProvider.instance.locationDatabase;
 
     Map<String, dynamic>? lastIncremental;
     DateTime? lastBackupDate;
@@ -365,7 +367,7 @@ class BackupManager {
       final lastData = prefs.getString(_lastIncrementalKey);
       if (lastData != null) {
         lastIncremental = json.decode(lastData);
-        lastBackupDate = DateTime.tryParse(lastIncremental['timestamp'] ?? '');
+        lastBackupDate = DateTime.tryParse(lastIncremental?['timestamp'] ?? '');
       }
     }
 
@@ -379,9 +381,9 @@ class BackupManager {
       );
     } else {
       // Get all entries for full backup
-      final firstEntry = await journalDb.select(journalDb.journalEntries)
-        .orderBy([(t) => OrderingTerm.asc(t.date)])
-        .limit(1)
+      final firstEntry = await (journalDb.select(journalDb.journalEntries)
+        ..orderBy([(t) => OrderingTerm.asc(t.date)])
+        ..limit(1))
         .getSingleOrNull();
 
       if (firstEntry != null) {
@@ -434,7 +436,7 @@ class BackupManager {
     if (incremental && lastBackupDate != null) {
       // Only get media added after last backup
       mediaItems = await (mediaDb.select(mediaDb.mediaItems)
-        ..where((t) => t.addedDate.isBiggerThanValue(lastBackupDate))
+        ..where((t) => t.addedDate.isBiggerThan(Variable(lastBackupDate)))
         ..where((t) => t.isDeleted.equals(false)))
         .get();
     } else {
@@ -467,7 +469,7 @@ class BackupManager {
     final locationSummaries = <Map<String, dynamic>>[];
     if (incremental && lastBackupDate != null) {
       final summaries = await (locationDb.select(locationDb.locationSummaries)
-        ..where((t) => t.date.isBiggerThanValue(lastBackupDate)))
+        ..where((t) => t.date.isBiggerThan(Variable(lastBackupDate))))
         .get();
 
       for (final summary in summaries) {
@@ -503,7 +505,7 @@ class BackupManager {
     final locationNotes = <Map<String, dynamic>>[];
     if (incremental && lastBackupDate != null) {
       final notes = await (locationDb.select(locationDb.locationNotes)
-        ..where((t) => t.createdAt.isBiggerThanValue(lastBackupDate)))
+        ..where((t) => t.createdAt.isBiggerThan(Variable(lastBackupDate))))
         .get();
 
       for (final note in notes) {
@@ -561,10 +563,7 @@ class BackupManager {
       exportReason: incremental ? 'Incremental backup' : 'Full backup',
     );
 
-    // Close database connections
-    await journalDb.close();
-    await mediaDb.close();
-    await locationDb.close();
+    // Note: Don't close database connections since they're shared instances
 
     return {
       'journalEntries': journalEntries,
@@ -664,9 +663,12 @@ class BackupManager {
     
     final backupContent = json.encode(fullBackupData);
     final backupBytes = utf8.encode(backupContent);
-    
+
+    // Calculate checksum on unencrypted data for verification
+    final checksum = sha256.convert(backupBytes).toString();
+
     onProgress?.call(0.6);
-    
+
     // Use enhanced encryption for large file optimization
     final encryptedBytes = await EnhancedEncryptionService.encryptLargeFile(
       backupBytes,
@@ -675,8 +677,6 @@ class BackupManager {
         onProgress?.call(0.6 + progress * 0.3);
       },
     );
-    
-    final checksum = sha256.convert(encryptedBytes).toString();
     
     await backupFile.writeAsBytes(encryptedBytes);
     
@@ -818,67 +818,83 @@ class BackupManager {
     if (metadata.location == null) {
       throw Exception('No file path for local backup');
     }
-    
+
     final file = File(metadata.location!);
     if (!await file.exists()) {
       throw Exception('Backup file not found');
     }
-    
+
     var bytes = await file.readAsBytes();
-    
-    // Check if this is an enhanced encrypted backup (.aura file)
-    if (metadata.location!.endsWith('.aura') || 
-        (bytes.isNotEmpty && (bytes[0] == 2 || bytes[0] == 3))) {
-      // Enhanced encryption format
-      final keyInfo = await EnhancedEncryptionService.getStoredBackupKey();
-      
-      if (keyInfo == null) {
-        throw Exception('Backup encryption key not available');
-      }
-      
-      // Decrypt using enhanced service
-      final decryptedBytes = await EnhancedEncryptionService.decryptLargeFile(
-        bytes,
-        keyInfo,
-      );
-      
-      final content = utf8.decode(decryptedBytes);
-      final data = Map<String, dynamic>.from(json.decode(content));
-      
-      // Decrypt metadata if present
-      if (data.containsKey('encryptedMetadata')) {
+
+    try {
+      // Check if this is an enhanced encrypted backup (.aura file)
+      if (metadata.location!.endsWith('.aura') ||
+          (bytes.isNotEmpty && (bytes[0] == 2 || bytes[0] == 3))) {
+        // Enhanced encryption format
+        final keyInfo = await EnhancedEncryptionService.getStoredBackupKey();
+
+        if (keyInfo == null) {
+          throw Exception('Backup encryption key not available - please check your encryption settings');
+        }
+
         try {
-          final encryptedMeta = data['encryptedMetadata'];
-          final encryptedData = EncryptedData(
-            ciphertext: base64.decode(encryptedMeta['ciphertext']),
-            iv: base64.decode(encryptedMeta['iv']),
+          // Decrypt using enhanced service
+          final decryptedBytes = await EnhancedEncryptionService.decryptLargeFile(
+            bytes,
+            keyInfo,
           );
-          
-          final encryptedMetadata = EncryptedBackupMetadata(
-            encryptedData: encryptedData,
-            keyInfo: keyInfo,
-          );
-          
-          final decryptedMetadata = await EnhancedEncryptionService
-              .decryptBackupMetadata(encryptedMetadata);
-          
-          data['metadata'] = decryptedMetadata;
+
+          final content = utf8.decode(decryptedBytes);
+          final data = Map<String, dynamic>.from(json.decode(content));
+
+          // Decrypt metadata if present
+          if (data.containsKey('encryptedMetadata')) {
+            try {
+              final encryptedMeta = data['encryptedMetadata'];
+              final encryptedData = EncryptedData(
+                ciphertext: base64.decode(encryptedMeta['ciphertext']),
+                iv: base64.decode(encryptedMeta['iv']),
+              );
+
+              final encryptedMetadata = EncryptedBackupMetadata(
+                encryptedData: encryptedData,
+                keyInfo: keyInfo,
+              );
+
+              final decryptedMetadata = await EnhancedEncryptionService
+                  .decryptBackupMetadata(encryptedMetadata);
+
+              data['metadata'] = decryptedMetadata;
+            } catch (e) {
+              debugPrint('Failed to decrypt backup metadata: $e');
+              // Continue without decrypted metadata
+            }
+          }
+
+          return data;
         } catch (e) {
-          debugPrint('Failed to decrypt backup metadata: $e');
-          // Continue without decrypted metadata
+          throw Exception('Failed to decrypt backup: ${e.toString()}');
+        }
+
+      } else {
+        // Try to parse as unencrypted JSON first
+        try {
+          final content = utf8.decode(bytes);
+          return json.decode(content);
+        } catch (e) {
+          // If JSON parsing fails, it might be legacy encrypted
+          throw Exception('Failed to decode backup data: The file may be corrupted or in an unsupported format');
         }
       }
-      
-      return data;
-      
-    } else if (bytes.isNotEmpty && bytes[0] != 123) { // 123 is '{'
-      // Legacy encrypted format - fall back to old encryption
-      throw Exception('Legacy encrypted backup - please upgrade encryption');
-      
-    } else {
-      // Unencrypted backup
-      final content = utf8.decode(bytes);
-      return json.decode(content);
+    } catch (e) {
+      // Provide more specific error messages
+      if (e.toString().contains('Backup encryption key not available')) {
+        rethrow;
+      } else if (e.toString().contains('Failed to decrypt')) {
+        rethrow;
+      } else {
+        throw Exception('Failed to read backup file: ${e.toString()}');
+      }
     }
   }
   
@@ -933,11 +949,24 @@ class BackupManager {
     required Map<String, dynamic> data,
     required String expectedChecksum,
   }) async {
-    final content = json.encode(data);
-    final bytes = utf8.encode(content);
-    final actualChecksum = sha256.convert(bytes).toString();
-    
-    return actualChecksum == expectedChecksum;
+    try {
+      // For verification, recreate the exact format that was used for checksum generation
+      final content = json.encode(data);
+      final bytes = utf8.encode(content);
+      final actualChecksum = sha256.convert(bytes).toString();
+
+      final isValid = actualChecksum == expectedChecksum;
+      if (!isValid) {
+        debugPrint('Backup verification failed:');
+        debugPrint('Expected: $expectedChecksum');
+        debugPrint('Actual: $actualChecksum');
+      }
+
+      return isValid;
+    } catch (e) {
+      debugPrint('Error during backup verification: $e');
+      return false;
+    }
   }
   
   Future<Map<String, dynamic>> _restoreBackupData(

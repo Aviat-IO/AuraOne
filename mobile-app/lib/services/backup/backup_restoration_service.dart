@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +11,7 @@ import 'package:http/http.dart' as http;
 import '../export/export_schema.dart';
 import '../export/encryption_service.dart' as legacy_encryption;
 import '../export/enhanced_encryption_service.dart';
+import '../database/database_provider.dart';
 import 'backup_manager.dart';
 import '../../database/journal_database.dart';
 import '../../database/media_database.dart';
@@ -296,37 +298,69 @@ class BackupRestorationService {
     BackupMetadata metadata,
     String? encryptionPassword,
   ) async {
-    // Download backup data based on provider
-    Map<String, dynamic> data;
-    
-    if (metadata.provider == BackupProvider.local) {
-      final file = File(metadata.location!);
-      final content = await file.readAsString();
-      data = json.decode(content);
-    } else if (metadata.provider == BackupProvider.blossom) {
-      // Download from Blossom using HTTP
-      final response = await http.get(Uri.parse(metadata.location!));
-      if (response.statusCode != 200) {
-        throw Exception('Failed to download backup: HTTP ${response.statusCode}');
+    try {
+      // Download backup data based on provider
+      Map<String, dynamic> data;
+
+      if (metadata.provider == BackupProvider.local) {
+        final file = File(metadata.location!);
+        if (!await file.exists()) {
+          throw Exception('Backup file not found at ${metadata.location}');
+        }
+
+        var bytes = await file.readAsBytes();
+
+        // Check if this is an enhanced encrypted backup (.aura file)
+        if (metadata.location!.endsWith('.aura') ||
+            (bytes.isNotEmpty && (bytes[0] == 2 || bytes[0] == 3))) {
+          // Enhanced encryption format
+          final keyInfo = await EnhancedEncryptionService.getStoredBackupKey();
+
+          if (keyInfo == null) {
+            throw Exception('Backup encryption key not available');
+          }
+
+          // Decrypt using enhanced service
+          final decryptedBytes = await EnhancedEncryptionService.decryptLargeFile(
+            bytes,
+            keyInfo,
+          );
+
+          final content = utf8.decode(decryptedBytes);
+          data = json.decode(content);
+        } else {
+          // Try unencrypted first
+          try {
+            final content = utf8.decode(bytes);
+            data = json.decode(content);
+          } catch (e) {
+            throw Exception('Failed to decode backup data: ${e.toString()}');
+          }
+        }
+
+      } else if (metadata.provider == BackupProvider.blossom) {
+        // Download from Blossom using HTTP
+        final response = await http.get(Uri.parse(metadata.location!));
+        if (response.statusCode != 200) {
+          throw Exception('Failed to download backup: HTTP ${response.statusCode}');
+        }
+
+        try {
+          data = json.decode(response.body);
+        } catch (e) {
+          throw Exception('Failed to parse backup data from Blossom: ${e.toString()}');
+        }
+
+      } else {
+        throw UnsupportedError('Provider ${metadata.provider} not supported for restoration');
       }
-      data = json.decode(response.body);
-    } else {
-      throw UnsupportedError('Provider ${metadata.provider} not supported for restoration');
+
+      return data;
+
+    } catch (e) {
+      debugPrint('Error downloading backup data: $e');
+      rethrow;
     }
-    
-    // Handle encrypted data
-    if (encryptionPassword != null) {
-      final jsonStr = json.encode(data);
-      final encrypted = utf8.encode(jsonStr);
-      // Try enhanced encryption first
-      final keyInfo = await EnhancedEncryptionService.getStoredBackupKey();
-      final decrypted = keyInfo != null
-          ? await EnhancedEncryptionService.decryptLargeFile(Uint8List.fromList(encrypted), keyInfo)
-          : await legacy_encryption.EncryptionService.decryptFile(Uint8List.fromList(encrypted), password: encryptionPassword);
-      data = json.decode(utf8.decode(decrypted));
-    }
-    
-    return data;
   }
   
   Future<BackupValidation> _validateBackupData(Map<String, dynamic> data) async {
@@ -382,10 +416,10 @@ class BackupRestorationService {
     int restoredMedia = 0;
     int restoredLocations = 0;
 
-    // Initialize databases
-    final journalDb = JournalDatabase();
-    final mediaDb = MediaDatabase();
-    final locationDb = LocationDatabase();
+    // Get database instances from provider
+    final journalDb = await DatabaseProvider.instance.journalDatabase;
+    final mediaDb = await DatabaseProvider.instance.mediaDatabase;
+    final locationDb = await DatabaseProvider.instance.locationDatabase;
 
     try {
       // Handle strategy-specific preparation
@@ -394,7 +428,9 @@ class BackupRestorationService {
         await journalDb.delete(journalDb.journalActivities).go();
         await journalDb.delete(journalDb.journalEntries).go();
         await mediaDb.delete(mediaDb.mediaItems).go();
-        await locationDb.delete(locationDb.locationVisits).go();
+        await locationDb.delete(locationDb.locationPoints).go();
+        await locationDb.delete(locationDb.locationSummaries).go();
+        await locationDb.delete(locationDb.locationNotes).go();
       }
 
       // Restore journal entries
@@ -639,10 +675,7 @@ class BackupRestorationService {
       await journalDb.rebuildSearchIndex();
 
     } finally {
-      // Close database connections
-      await journalDb.close();
-      await mediaDb.close();
-      await locationDb.close();
+      // Note: Don't close database connections since they're shared instances
     }
 
     return {
