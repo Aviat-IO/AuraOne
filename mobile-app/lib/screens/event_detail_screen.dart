@@ -35,8 +35,9 @@ class EventDetailScreen extends HookConsumerWidget {
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: Text(isEditing.value ? 'Edit Event' : 'Event Details'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: eventColor.withValues(alpha: 0.1),
         elevation: 0,
+        foregroundColor: eventColor,
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -49,6 +50,7 @@ class EventDetailScreen extends HookConsumerWidget {
                 titleController.text = event.title;
                 descriptionController.text = event.description;
               },
+              style: TextButton.styleFrom(foregroundColor: eventColor),
               child: Text('Cancel'),
             ),
             TextButton(
@@ -60,17 +62,19 @@ class EventDetailScreen extends HookConsumerWidget {
                 isSaving,
                 isEditing,
               ),
+              style: TextButton.styleFrom(foregroundColor: eventColor),
               child: isSaving.value
                 ? SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2)
+                    child: CircularProgressIndicator(strokeWidth: 2, color: eventColor)
                   )
                 : Text('Save'),
             ),
           ] else ...[
             IconButton(
               icon: Icon(Icons.edit),
+              color: eventColor,
               onPressed: () => isEditing.value = true,
             ),
           ],
@@ -631,15 +635,15 @@ class EventDetailScreen extends HookConsumerWidget {
   Color _getEventColor(EventType type, ColorScheme colorScheme) {
     switch (type) {
       case EventType.routine:
-        return Colors.blue;
+        return colorScheme.primary;
       case EventType.work:
-        return Colors.orange;
+        return Colors.blue;
       case EventType.movement:
-        return Colors.green;
+        return Colors.orange;
       case EventType.social:
         return Colors.purple;
       case EventType.exercise:
-        return Colors.red;
+        return Colors.green;
       case EventType.leisure:
         return Colors.teal;
     }
