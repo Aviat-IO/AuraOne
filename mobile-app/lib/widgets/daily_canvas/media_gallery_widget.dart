@@ -442,18 +442,6 @@ class MediaGalleryWidget extends ConsumerWidget {
                 ),
               ),
 
-              // Excluded overlay
-              if (enableSelection && item.isDeleted)
-                Container(
-                  color: Colors.black.withValues(alpha: 0.4),
-                  child: const Center(
-                    child: Icon(
-                      Icons.remove_circle,
-                      color: Colors.red,
-                      size: 32,
-                    ),
-                  ),
-                ),
 
               // Video play button
               if (item.type == MediaType.video && (!enableSelection || !item.isDeleted))

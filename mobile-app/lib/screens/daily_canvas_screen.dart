@@ -6,9 +6,9 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/colors.dart';
 import '../widgets/daily_canvas/timeline_widget.dart';
+import '../widgets/daily_canvas/summary_widget.dart';
 import '../widgets/daily_canvas/map_widget.dart';
 import '../widgets/daily_canvas/media_gallery_widget.dart';
-import '../widgets/daily_canvas/journal_editor_widget.dart';
 import '../widgets/common/pill_tab_bar.dart';
 
 // Provider for selected date
@@ -20,9 +20,9 @@ final viewModeProvider = StateProvider<ViewMode>((ref) => ViewMode.expanded);
 enum ViewMode { compact, expanded }
 
 // Provider for active section
-final activeSectionProvider = StateProvider<JournalSection?>((ref) => null);
+final activeSectionProvider = StateProvider<CanvasSection?>((ref) => null);
 
-enum JournalSection { timeline, map, media, journal }
+enum CanvasSection { timeline, summary, map, media }
 
 class DailyCanvasScreen extends HookConsumerWidget {
   final DateTime? date;
@@ -243,7 +243,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
     ThemeData theme,
     bool isLight,
     DateTime selectedDate,
-    JournalSection? activeSection,
+    CanvasSection? activeSection,
     ViewMode viewMode,
     ScrollController scrollController,
     TabController tabController,
@@ -265,9 +265,23 @@ class DailyCanvasScreen extends HookConsumerWidget {
               ),
               theme: theme,
               isLight: isLight,
-              isActive: activeSection == JournalSection.timeline,
+              isActive: activeSection == CanvasSection.timeline,
               onTap: () => ref.read(activeSectionProvider.notifier).state =
-                activeSection == JournalSection.timeline ? null : JournalSection.timeline,
+                activeSection == CanvasSection.timeline ? null : CanvasSection.timeline,
+            ),
+            const SizedBox(height: 16),
+            _buildSectionCard(
+              title: 'Summary',
+              icon: Icons.insights,
+              child: SizedBox(
+                height: 200,
+                child: SummaryWidget(date: selectedDate),
+              ),
+              theme: theme,
+              isLight: isLight,
+              isActive: activeSection == CanvasSection.summary,
+              onTap: () => ref.read(activeSectionProvider.notifier).state =
+                activeSection == CanvasSection.summary ? null : CanvasSection.summary,
             ),
             const SizedBox(height: 16),
             _buildSectionCard(
@@ -279,9 +293,9 @@ class DailyCanvasScreen extends HookConsumerWidget {
               ),
               theme: theme,
               isLight: isLight,
-              isActive: activeSection == JournalSection.map,
+              isActive: activeSection == CanvasSection.map,
               onTap: () => ref.read(activeSectionProvider.notifier).state =
-                activeSection == JournalSection.map ? null : JournalSection.map,
+                activeSection == CanvasSection.map ? null : CanvasSection.map,
             ),
             const SizedBox(height: 16),
             _buildSectionCard(
@@ -293,23 +307,9 @@ class DailyCanvasScreen extends HookConsumerWidget {
               ),
               theme: theme,
               isLight: isLight,
-              isActive: activeSection == JournalSection.media,
+              isActive: activeSection == CanvasSection.media,
               onTap: () => ref.read(activeSectionProvider.notifier).state =
-                activeSection == JournalSection.media ? null : JournalSection.media,
-            ),
-            const SizedBox(height: 16),
-            _buildSectionCard(
-              title: 'Journal',
-              icon: Icons.edit_note,
-              child: SizedBox(
-                height: 300,
-                child: JournalEditorWidget(date: selectedDate),
-              ),
-              theme: theme,
-              isLight: isLight,
-              isActive: activeSection == JournalSection.journal,
-              onTap: () => ref.read(activeSectionProvider.notifier).state =
-                activeSection == JournalSection.journal ? null : JournalSection.journal,
+                activeSection == CanvasSection.media ? null : CanvasSection.media,
             ),
           ],
         ),
@@ -322,9 +322,9 @@ class DailyCanvasScreen extends HookConsumerWidget {
             controller: tabController,
             items: const [
               PillTabItem(icon: Icons.timeline, label: 'Timeline'),
+              PillTabItem(icon: Icons.insights, label: 'Summary'),
               PillTabItem(icon: Icons.map, label: 'Map'),
               PillTabItem(icon: Icons.photo_library, label: 'Media'),
-              PillTabItem(icon: Icons.edit_note, label: 'Journal'),
             ],
           ),
           Expanded(
@@ -337,15 +337,15 @@ class DailyCanvasScreen extends HookConsumerWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.all(16),
+                  child: SummaryWidget(date: selectedDate),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
                   child: MapWidget(date: selectedDate),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: MediaGalleryWidget(date: selectedDate),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: JournalEditorWidget(date: selectedDate),
                 ),
               ],
             ),
@@ -360,7 +360,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
     ThemeData theme,
     bool isLight,
     DateTime selectedDate,
-    JournalSection? activeSection,
+    CanvasSection? activeSection,
     ViewMode viewMode,
     WidgetRef ref,
   ) {
@@ -381,9 +381,9 @@ class DailyCanvasScreen extends HookConsumerWidget {
                     child: TimelineWidget(date: selectedDate),
                     theme: theme,
                     isLight: isLight,
-                    isActive: activeSection == JournalSection.timeline,
+                    isActive: activeSection == CanvasSection.timeline,
                     onTap: () => ref.read(activeSectionProvider.notifier).state =
-                      activeSection == JournalSection.timeline ? null : JournalSection.timeline,
+                      activeSection == CanvasSection.timeline ? null : CanvasSection.timeline,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -394,44 +394,44 @@ class DailyCanvasScreen extends HookConsumerWidget {
                     child: MapWidget(date: selectedDate),
                     theme: theme,
                     isLight: isLight,
-                    isActive: activeSection == JournalSection.map,
+                    isActive: activeSection == CanvasSection.map,
                     onTap: () => ref.read(activeSectionProvider.notifier).state =
-                      activeSection == JournalSection.map ? null : JournalSection.map,
+                      activeSection == CanvasSection.map ? null : CanvasSection.map,
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 16),
-          // Right column - Media and Journal
+          // Right column - Summary and Media
           Expanded(
             child: Column(
               children: [
                 Expanded(
                   flex: viewMode == ViewMode.compact ? 1 : 2,
                   child: _buildSectionCard(
-                    title: 'Media',
-                    icon: Icons.photo_library,
-                    child: MediaGalleryWidget(date: selectedDate),
+                    title: 'Summary',
+                    icon: Icons.insights,
+                    child: SummaryWidget(date: selectedDate),
                     theme: theme,
                     isLight: isLight,
-                    isActive: activeSection == JournalSection.media,
+                    isActive: activeSection == CanvasSection.summary,
                     onTap: () => ref.read(activeSectionProvider.notifier).state =
-                      activeSection == JournalSection.media ? null : JournalSection.media,
+                      activeSection == CanvasSection.summary ? null : CanvasSection.summary,
                   ),
                 ),
                 const SizedBox(height: 16),
                 Expanded(
                   flex: viewMode == ViewMode.compact ? 2 : 3,
                   child: _buildSectionCard(
-                    title: 'Journal',
-                    icon: Icons.edit_note,
-                    child: JournalEditorWidget(date: selectedDate),
+                    title: 'Media',
+                    icon: Icons.photo_library,
+                    child: MediaGalleryWidget(date: selectedDate),
                     theme: theme,
                     isLight: isLight,
-                    isActive: activeSection == JournalSection.journal,
+                    isActive: activeSection == CanvasSection.media,
                     onTap: () => ref.read(activeSectionProvider.notifier).state =
-                      activeSection == JournalSection.journal ? null : JournalSection.journal,
+                      activeSection == CanvasSection.media ? null : CanvasSection.media,
                   ),
                 ),
               ],
@@ -447,7 +447,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
     ThemeData theme,
     bool isLight,
     DateTime selectedDate,
-    JournalSection? activeSection,
+    CanvasSection? activeSection,
     WidgetRef ref,
   ) {
     // 3-column layout for desktop
@@ -465,17 +465,30 @@ class DailyCanvasScreen extends HookConsumerWidget {
               child: TimelineWidget(date: selectedDate),
               theme: theme,
               isLight: isLight,
-              isActive: activeSection == JournalSection.timeline,
+              isActive: activeSection == CanvasSection.timeline,
               onTap: () => ref.read(activeSectionProvider.notifier).state =
-                activeSection == JournalSection.timeline ? null : JournalSection.timeline,
+                activeSection == CanvasSection.timeline ? null : CanvasSection.timeline,
             ),
           ),
           const SizedBox(width: 16),
-          // Middle column - Map and Media
+          // Middle column - Summary and Map
           Expanded(
             flex: 4,
             child: Column(
               children: [
+                Expanded(
+                  child: _buildSectionCard(
+                    title: 'Summary',
+                    icon: Icons.insights,
+                    child: SummaryWidget(date: selectedDate),
+                    theme: theme,
+                    isLight: isLight,
+                    isActive: activeSection == CanvasSection.summary,
+                    onTap: () => ref.read(activeSectionProvider.notifier).state =
+                      activeSection == CanvasSection.summary ? null : CanvasSection.summary,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Expanded(
                   child: _buildSectionCard(
                     title: 'Map',
@@ -483,40 +496,27 @@ class DailyCanvasScreen extends HookConsumerWidget {
                     child: MapWidget(date: selectedDate),
                     theme: theme,
                     isLight: isLight,
-                    isActive: activeSection == JournalSection.map,
+                    isActive: activeSection == CanvasSection.map,
                     onTap: () => ref.read(activeSectionProvider.notifier).state =
-                      activeSection == JournalSection.map ? null : JournalSection.map,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: _buildSectionCard(
-                    title: 'Media',
-                    icon: Icons.photo_library,
-                    child: MediaGalleryWidget(date: selectedDate),
-                    theme: theme,
-                    isLight: isLight,
-                    isActive: activeSection == JournalSection.media,
-                    onTap: () => ref.read(activeSectionProvider.notifier).state =
-                      activeSection == JournalSection.media ? null : JournalSection.media,
+                      activeSection == CanvasSection.map ? null : CanvasSection.map,
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 16),
-          // Right column - Journal
+          // Right column - Media
           Expanded(
             flex: 5,
             child: _buildSectionCard(
-              title: 'Journal',
-              icon: Icons.edit_note,
-              child: JournalEditorWidget(date: selectedDate),
+              title: 'Media',
+              icon: Icons.photo_library,
+              child: MediaGalleryWidget(date: selectedDate),
               theme: theme,
               isLight: isLight,
-              isActive: activeSection == JournalSection.journal,
+              isActive: activeSection == CanvasSection.media,
               onTap: () => ref.read(activeSectionProvider.notifier).state =
-                activeSection == JournalSection.journal ? null : JournalSection.journal,
+                activeSection == CanvasSection.media ? null : CanvasSection.media,
             ),
           ),
         ],
@@ -764,7 +764,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
                     label: 'Note',
                     onTap: () {
                       Navigator.pop(context);
-                      ref.read(activeSectionProvider.notifier).state = JournalSection.journal;
+                      ref.read(activeSectionProvider.notifier).state = CanvasSection.timeline;
                     },
                     theme: theme,
                   ),
