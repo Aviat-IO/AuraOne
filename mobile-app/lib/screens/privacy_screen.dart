@@ -7,6 +7,7 @@ import '../theme/colors.dart';
 import '../widgets/privacy/privacy_help_guide.dart';
 import '../widgets/privacy/privacy_quick_start.dart';
 import '../providers/settings_providers.dart';
+import '../widgets/grouped_list_container.dart';
 
 // Providers for privacy settings
 final locationTrackingEnabledProvider = StateProvider<bool>((ref) => true);
@@ -326,190 +327,131 @@ class PrivacyScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Location tracking toggle
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: isLight
-                        ? AuraColors.lightCardGradient
-                        : AuraColors.darkCardGradient,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isLight
-                          ? AuraColors.lightPrimary.withValues(alpha: 0.05)
-                          : Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.location_on,
-                        color: theme.colorScheme.primary,
-                        size: 20,
-                      ),
-                    ),
-                    title: Text(
-                      'Location Tracking',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Track places you visit for journal context',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    trailing: Switch(
-                      value: locationEnabled,
-                      onChanged: (value) async {
-                        ref.read(locationTrackingEnabledProvider.notifier).state = value;
-                        if (value) {
-                          await locationService.startTracking();
-                        } else {
-                          await locationService.stopTracking();
-                        }
-                      },
-                    ),
-                  ),
-                ),
-                // Photo library access toggle
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: isLight
-                        ? AuraColors.lightCardGradient
-                        : AuraColors.darkCardGradient,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isLight
-                          ? AuraColors.lightPrimary.withValues(alpha: 0.05)
-                          : Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.photo_library,
-                        color: theme.colorScheme.primary,
-                        size: 20,
-                      ),
-                    ),
-                    title: Text(
-                      'Photo Library Access',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Access photos to enrich your journal entries',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    trailing: Switch(
-                      value: photoAccessEnabled,
-                      onChanged: (value) async {
-                        await ref.read(photoAccessEnabledProvider.notifier).toggle(value);
-                        // Refresh to check actual permission state
-                        await ref.read(photoAccessEnabledProvider.notifier).refresh();
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Reverse geocoding toggle
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: isLight
-                        ? AuraColors.lightCardGradient
-                        : AuraColors.darkCardGradient,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isLight
-                          ? AuraColors.lightPrimary.withValues(alpha: 0.05)
-                          : Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Consumer(
-                    builder: (context, ref, _) {
-                      final reverseGeocodingEnabled = ref.watch(reverseGeocodingEnabledProvider);
-                      return ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.explore,
-                            color: theme.colorScheme.primary,
-                            size: 20,
-                          ),
+                // Permission Settings items grouped
+                GroupedListContainer(
+                  isLight: isLight,
+                  children: [
+                    // Location tracking toggle
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        title: Text(
-                          'Location Names',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: Icon(
+                          Icons.location_on,
+                          color: theme.colorScheme.primary,
+                          size: 20,
                         ),
-                        subtitle: Text(
-                          'Convert coordinates to readable place names',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
+                      ),
+                      title: Text(
+                        'Location Tracking',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
-                        trailing: Switch(
-                          value: reverseGeocodingEnabled,
-                          onChanged: (value) async {
-                            if (value) {
-                              // Show privacy warning dialog
-                              final result = await _showReverseGeocodingWarning(context);
-                              if (result == true) {
-                                await ref.read(reverseGeocodingEnabledProvider.notifier).setEnabled(true);
+                      ),
+                      subtitle: Text(
+                        'Track places you visit for journal context',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      trailing: Switch(
+                        value: locationEnabled,
+                        onChanged: (value) async {
+                          ref.read(locationTrackingEnabledProvider.notifier).state = value;
+                          if (value) {
+                            await locationService.startTracking();
+                          } else {
+                            await locationService.stopTracking();
+                          }
+                        },
+                      ),
+                    ),
+                    // Photo library access toggle
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.photo_library,
+                          color: theme.colorScheme.primary,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        'Photo Library Access',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Access photos to enrich your journal entries',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      trailing: Switch(
+                        value: photoAccessEnabled,
+                        onChanged: (value) async {
+                          await ref.read(photoAccessEnabledProvider.notifier).toggle(value);
+                          // Refresh to check actual permission state
+                          await ref.read(photoAccessEnabledProvider.notifier).refresh();
+                        },
+                      ),
+                    ),
+                    // Reverse geocoding toggle
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final reverseGeocodingEnabled = ref.watch(reverseGeocodingEnabledProvider);
+                        return ListTile(
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.explore,
+                              color: theme.colorScheme.primary,
+                              size: 20,
+                            ),
+                          ),
+                          title: Text(
+                            'Location Names',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Convert coordinates to readable place names',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
+                          ),
+                          trailing: Switch(
+                            value: reverseGeocodingEnabled,
+                            onChanged: (value) async {
+                              if (value) {
+                                // Show privacy warning dialog
+                                final result = await _showReverseGeocodingWarning(context);
+                                if (result == true) {
+                                  await ref.read(reverseGeocodingEnabledProvider.notifier).setEnabled(true);
+                                }
+                              } else {
+                                // No warning needed to turn off
+                                await ref.read(reverseGeocodingEnabledProvider.notifier).setEnabled(false);
                               }
-                            } else {
-                              // No warning needed to turn off
-                              await ref.read(reverseGeocodingEnabledProvider.notifier).setEnabled(false);
-                            }
-                          },
-                        ),
-                      );
-                    },
-                  ),
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
 
@@ -522,70 +464,71 @@ class PrivacyScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Privacy Guide option
-                _buildPrivacyOption(
-                  context: context,
-                  theme: theme,
+                // Data & Privacy items grouped
+                GroupedListContainer(
                   isLight: isLight,
-                  icon: Icons.school,
-                  title: 'Privacy Guide',
-                  subtitle: 'Complete guide to privacy controls and settings',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const PrivacyHelpGuide(),
+                  children: [
+                    // Privacy Guide option
+                    _buildPrivacyListTile(
+                      context: context,
+                      theme: theme,
+                      icon: Icons.school,
+                      title: 'Privacy Guide',
+                      subtitle: 'Complete guide to privacy controls and settings',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const PrivacyHelpGuide(),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                // Quick Start Guide option
-                _buildPrivacyOption(
-                  context: context,
-                  theme: theme,
-                  isLight: isLight,
-                  icon: Icons.rocket_launch,
-                  title: 'Quick Start Guide',
-                  subtitle: 'Guided setup for new users',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const PrivacyQuickStartGuide(),
+                    // Quick Start Guide option
+                    _buildPrivacyListTile(
+                      context: context,
+                      theme: theme,
+                      icon: Icons.rocket_launch,
+                      title: 'Quick Start Guide',
+                      subtitle: 'Guided setup for new users',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const PrivacyQuickStartGuide(),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                _buildPrivacyOption(
-                  context: context,
-                  theme: theme,
-                  isLight: isLight,
-                  icon: Icons.folder_shared,
-                  title: 'Export Your Data',
-                  subtitle: 'Download a copy of your journal entries and settings',
-                  onTap: () {
-                    // TODO: Implement data export
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Data export feature coming soon')),
-                    );
-                  },
-                ),
-                _buildPrivacyOption(
-                  context: context,
-                  theme: theme,
-                  isLight: isLight,
-                  icon: Icons.delete_forever,
-                  title: 'Delete All Data',
-                  subtitle: 'Permanently remove all your data from this device',
-                  isDestructive: true,
-                  onTap: () {
-                    _showDeleteDataDialog(context);
-                  },
-                ),
-                _buildPrivacyOption(
-                  context: context,
-                  theme: theme,
-                  isLight: isLight,
-                  icon: Icons.article,
-                  title: 'Privacy Policy',
-                  subtitle: 'Read our complete privacy policy and terms',
-                  onTap: () {
-                    _showPrivacyPolicyDialog(context);
-                  },
+                    _buildPrivacyListTile(
+                      context: context,
+                      theme: theme,
+                      icon: Icons.folder_shared,
+                      title: 'Export Your Data',
+                      subtitle: 'Download a copy of your journal entries and settings',
+                      onTap: () {
+                        // TODO: Implement data export
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Data export feature coming soon')),
+                        );
+                      },
+                    ),
+                    _buildPrivacyListTile(
+                      context: context,
+                      theme: theme,
+                      icon: Icons.delete_forever,
+                      title: 'Delete All Data',
+                      subtitle: 'Permanently remove all your data from this device',
+                      isDestructive: true,
+                      onTap: () {
+                        _showDeleteDataDialog(context);
+                      },
+                    ),
+                    _buildPrivacyListTile(
+                      context: context,
+                      theme: theme,
+                      icon: Icons.article,
+                      title: 'Privacy Policy',
+                      subtitle: 'Read our complete privacy policy and terms',
+                      onTap: () {
+                        _showPrivacyPolicyDialog(context);
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 32),
               ],
@@ -639,37 +582,16 @@ class PrivacyScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPrivacyOption({
+  Widget _buildPrivacyListTile({
     required BuildContext context,
     required ThemeData theme,
-    required bool isLight,
     required IconData icon,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isLight
-            ? AuraColors.lightCardGradient
-            : AuraColors.darkCardGradient,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isLight
-              ? AuraColors.lightPrimary.withValues(alpha: 0.05)
-              : Colors.black.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
+    return ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -705,7 +627,6 @@ class PrivacyScreen extends ConsumerWidget {
           color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
         ),
         onTap: onTap,
-      ),
     );
   }
 
