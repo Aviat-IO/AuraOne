@@ -333,6 +333,7 @@ class PrivacyScreen extends ConsumerWidget {
                   children: [
                     // Location tracking toggle
                     ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -371,6 +372,7 @@ class PrivacyScreen extends ConsumerWidget {
                     ),
                     // Photo library access toggle
                     ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -409,6 +411,7 @@ class PrivacyScreen extends ConsumerWidget {
                       builder: (context, ref, _) {
                         final reverseGeocodingEnabled = ref.watch(reverseGeocodingEnabledProvider);
                         return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           leading: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
@@ -510,22 +513,22 @@ class PrivacyScreen extends ConsumerWidget {
                     _buildPrivacyListTile(
                       context: context,
                       theme: theme,
+                      icon: Icons.article,
+                      title: 'Privacy Policy',
+                      subtitle: 'Read our complete privacy policy and terms',
+                      onTap: () {
+                        _showPrivacyPolicyDialog(context);
+                      },
+                    ),
+                    _buildPrivacyListTile(
+                      context: context,
+                      theme: theme,
                       icon: Icons.delete_forever,
                       title: 'Delete All Data',
                       subtitle: 'Permanently remove all your data from this device',
                       isDestructive: true,
                       onTap: () {
                         _showDeleteDataDialog(context);
-                      },
-                    ),
-                    _buildPrivacyListTile(
-                      context: context,
-                      theme: theme,
-                      icon: Icons.article,
-                      title: 'Privacy Policy',
-                      subtitle: 'Read our complete privacy policy and terms',
-                      onTap: () {
-                        _showPrivacyPolicyDialog(context);
                       },
                     ),
                   ],
@@ -592,6 +595,7 @@ class PrivacyScreen extends ConsumerWidget {
     bool isDestructive = false,
   }) {
     return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
