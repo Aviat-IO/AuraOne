@@ -127,14 +127,28 @@ class OnDeviceAIService {
     final afternoon = <String>[];
     final evening = <String>[];
 
-    // Process calendar events with rich context
+    // Process calendar events and timeline activities with rich context
     if (calendarEvents.isNotEmpty) {
       narrativeParts.add('## Your Day\'s Journey\n');
 
-      for (final event in calendarEvents) {
+      // Sort events by time
+      final sortedEvents = List<Map<String, dynamic>>.from(calendarEvents);
+      sortedEvents.sort((a, b) {
+        final aTime = a['timestamp'] ?? a['startTime'];
+        final bTime = b['timestamp'] ?? b['startTime'];
+        if (aTime == null || bTime == null) return 0;
+        final aDateTime = DateTime.tryParse(aTime.toString());
+        final bDateTime = DateTime.tryParse(bTime.toString());
+        if (aDateTime == null || bDateTime == null) return 0;
+        return aDateTime.compareTo(bDateTime);
+      });
+
+      for (final event in sortedEvents) {
         final title = event['title'] ?? 'Event';
-        final startTime = event['startTime'] != null
-            ? DateTime.tryParse(event['startTime'].toString())
+        final activityType = event['activityType'] as String?;
+        final timestamp = event['timestamp'];
+        final startTime = (timestamp ?? event['startTime']) != null
+            ? DateTime.tryParse((timestamp ?? event['startTime']).toString())
             : null;
         final location = event['location'];
         final attendees = event['attendees'] as List<String>? ?? [];
@@ -142,18 +156,57 @@ class OnDeviceAIService {
         String eventNarrative = '';
         if (startTime != null) {
           final hour = startTime.hour;
-          if (hour < 12) {
-            eventNarrative = 'Your morning began with $title';
-          } else if (hour < 17) {
-            eventNarrative = 'The afternoon brought $title';
+          final timeStr = '${hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
+
+          // Handle different activity types for richer narrative
+          if (activityType == 'location') {
+            eventNarrative = 'At $timeStr, you $title';
+          } else if (activityType == 'photo') {
+            // Handle photo activities specially
+            final metadata = event['metadata'] as Map<String, dynamic>?;
+            final count = metadata?['count'] ?? 1;
+            if (count == 1) {
+              eventNarrative = 'You captured a moment at $timeStr';
+            } else {
+              eventNarrative = 'You captured $count moments at $timeStr';
+            }
+          } else if (activityType == 'movement') {
+            eventNarrative = 'At $timeStr, you were actively moving';
+            final metadata = event['metadata'] as Map<String, dynamic>?;
+            if (metadata?['steps'] != null) {
+              eventNarrative += ' (${metadata!['steps']} steps)';
+            }
           } else {
-            eventNarrative = 'Your evening included $title';
+            // Regular calendar events or manual entries
+            if (hour < 12) {
+              eventNarrative = 'Your morning included $title at $timeStr';
+            } else if (hour < 17) {
+              eventNarrative = 'The afternoon brought $title at $timeStr';
+            } else {
+              eventNarrative = 'Your evening featured $title at $timeStr';
+            }
           }
 
+          // Add location if available
           if (location != null && location.toString().isNotEmpty) {
             eventNarrative += ' at $location';
           }
 
+          // Add description if available for certain types
+          final description = event['description'] as String?;
+          if (description != null && description.isNotEmpty && activityType != 'photo') {
+            // Extract duration if mentioned in description
+            if (description.contains('Duration:')) {
+              final durationMatch = RegExp(r'Duration:\s*(\d+)\s*minutes').firstMatch(description);
+              if (durationMatch != null) {
+                eventNarrative += ' (${durationMatch.group(1)} minutes)';
+              }
+            } else if (!eventNarrative.contains(description)) {
+              eventNarrative += ' - $description';
+            }
+          }
+
+          // Add attendees for calendar events
           if (attendees.isNotEmpty) {
             if (attendees.length == 1) {
               eventNarrative += ', connecting with ${attendees.first}';
@@ -317,10 +370,36 @@ class OnDeviceAIService {
       ));
     }
 
-    // If still minimal content, use legacy generation as fallback
+    // If still minimal content, use enhanced fallback generation
     if (narrativeParts.length <= 2) {
-      return _generateDataDrivenContent(photosCount, locationsCount,
-          calendarEvents.map((e) => e['title']?.toString() ?? 'Event').toList(), date);
+      // Try to build a better narrative from available data
+      if (calendarEvents.length > 0) {
+        narrativeParts.add('\n## Activities and Events\n');
+        for (final event in calendarEvents.take(5)) {
+          final title = event['title']?.toString() ?? 'Activity';
+          final time = event['timestamp'] ?? event['startTime'];
+          if (time != null) {
+            final dt = DateTime.tryParse(time.toString());
+            if (dt != null) {
+              final timeStr = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+              narrativeParts.add('• $timeStr - $title');
+            } else {
+              narrativeParts.add('• $title');
+            }
+          } else {
+            narrativeParts.add('• $title');
+          }
+        }
+        if (calendarEvents.length > 5) {
+          narrativeParts.add('...and ${calendarEvents.length - 5} more activities');
+        }
+      }
+
+      // If we still have very little content, use the legacy fallback
+      if (narrativeParts.length <= 3) {
+        return _generateDataDrivenContent(photosCount, locationsCount,
+            calendarEvents.map((e) => e['title']?.toString() ?? 'Event').toList(), date);
+      }
     }
 
     return narrativeParts.join('\n').trim();
@@ -335,10 +414,27 @@ class OnDeviceAIService {
   }) {
     final highlights = <String>[];
 
-    // Key events
+    // Key events - prioritize meaningful events over generic photo captures
     if (calendarEvents.isNotEmpty) {
-      final keyEvent = calendarEvents.first['title'] ?? 'Key events';
-      highlights.add(keyEvent.toString());
+      // Look for non-photo events first
+      final meaningfulEvents = calendarEvents.where((e) =>
+        e['activityType'] != 'photo' &&
+        e['title'] != null &&
+        e['title'].toString().isNotEmpty &&
+        !e['title'].toString().contains('Captured')
+      ).toList();
+
+      if (meaningfulEvents.isNotEmpty) {
+        final keyEvent = meaningfulEvents.first['title'];
+        highlights.add(keyEvent.toString());
+        if (meaningfulEvents.length > 1) {
+          highlights.add('${meaningfulEvents.length} notable activities');
+        }
+      } else if (calendarEvents.isNotEmpty) {
+        // Fall back to any event
+        final keyEvent = calendarEvents.first['title'] ?? 'activities';
+        highlights.add(keyEvent.toString());
+      }
     }
 
     // Notable places

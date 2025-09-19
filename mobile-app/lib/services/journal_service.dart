@@ -437,6 +437,57 @@ class JournalService {
 
       context['calendarEvents'] = calendarEvents;
 
+      // Get existing timeline activities from database
+      // These are the activities shown in the timeline (manual entries, etc.)
+      final timelineActivities = <Map<String, dynamic>>[];
+      try {
+        final activities = await _journalDb.getActivitiesForDate(date);
+
+        for (final activity in activities) {
+          // Skip the automatic placeholder entry
+          if (activity.activityType == 'manual' &&
+              activity.description == 'Personal reflections and thoughts') {
+            continue;
+          }
+
+          // Parse metadata if available
+          Map<String, dynamic>? metadata;
+          if (activity.metadata != null) {
+            try {
+              metadata = jsonDecode(activity.metadata!);
+            } catch (_) {
+              metadata = null;
+            }
+          }
+
+          // Extract title and description from the activity
+          String title = activity.description;
+          String description = '';
+
+          // For manual entries, the description might be in format "Title - Description"
+          if (activity.description.contains(' - ')) {
+            final parts = activity.description.split(' - ');
+            title = parts[0];
+            description = parts.length > 1 ? parts.sublist(1).join(' - ') : '';
+          }
+
+          timelineActivities.add({
+            'title': title,
+            'description': description,
+            'activityType': activity.activityType,
+            'timestamp': activity.timestamp.toIso8601String(),
+            'metadata': metadata,
+          });
+        }
+      } catch (e) {
+        _logger.warning('Failed to get timeline activities: $e');
+      }
+
+      // Merge timeline activities with calendar events for comprehensive event list
+      final allEvents = [...calendarEvents, ...timelineActivities];
+      context['calendarEvents'] = allEvents;
+      context['timelineActivities'] = timelineActivities;
+
       // Get clustered location data
       final locationClusters = <Map<String, dynamic>>[];
       try {
