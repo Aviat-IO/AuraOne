@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../theme/colors.dart';
@@ -10,6 +11,17 @@ final homeSubTabIndexProvider = StateProvider<int>((ref) => 0);
 // Provider for history screen selected date (used when navigating from media)
 final historySelectedDateProvider = StateProvider<DateTime?>((ref) => null);
 
+// Provider to force rebuilds when time changes
+final currentTimeProvider = StreamProvider.autoDispose<DateTime>((ref) async* {
+  // Emit current time immediately
+  yield DateTime.now();
+
+  // Then emit every minute to update greeting and date
+  await for (final _ in Stream.periodic(const Duration(minutes: 1))) {
+    yield DateTime.now();
+  }
+});
+
 class HomeScreen extends HookConsumerWidget {
   const HomeScreen({super.key});
 
@@ -17,6 +29,10 @@ class HomeScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
+
+    // Watch the current time provider to get updates
+    final currentTimeAsync = ref.watch(currentTimeProvider);
+    final currentTime = currentTimeAsync.valueOrNull ?? DateTime.now();
 
     return Scaffold(
       body: Container(
@@ -44,14 +60,15 @@ class HomeScreen extends HookConsumerWidget {
                 padding: const EdgeInsets.all(16),
                 child: PageHeader(
                   icon: Icons.home,
-                  title: _getGreeting(),
-                  subtitle: _getFormattedDate(),
+                  title: _getGreeting(currentTime),
+                  subtitle: _getFormattedDate(currentTime),
                 ),
               ),
               // Daily Entry View for today
               Expanded(
                 child: DailyEntryView(
-                  date: DateTime.now(),
+                  key: ValueKey(currentTime.day), // Force rebuild when day changes
+                  date: currentTime,
                   enableAI: true,
                   enableMediaSelection: true,
                 ),
@@ -63,8 +80,8 @@ class HomeScreen extends HookConsumerWidget {
     );
   }
 
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
+  String _getGreeting(DateTime currentTime) {
+    final hour = currentTime.hour;
     if (hour < 12) {
       return 'Good Morning';
     } else if (hour < 17) {
@@ -74,10 +91,9 @@ class HomeScreen extends HookConsumerWidget {
     }
   }
 
-  String _getFormattedDate() {
-    final now = DateTime.now();
-    final weekday = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][now.weekday - 1];
-    final month = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][now.month - 1];
-    return '$weekday, $month ${now.day}';
+  String _getFormattedDate(DateTime currentTime) {
+    final weekday = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][currentTime.weekday - 1];
+    final month = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][currentTime.month - 1];
+    return '$weekday, $month ${currentTime.day}';
   }
 }

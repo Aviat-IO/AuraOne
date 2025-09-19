@@ -479,9 +479,10 @@ class _JournalTab extends HookConsumerWidget {
   }
 
   Widget _buildEmptyState(ThemeData theme, bool hasDataForAI) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 32),
+    return Center(
       child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             hasDataForAI ? Icons.auto_awesome : Icons.edit_note,
