@@ -42,6 +42,11 @@ class HybridAIService {
       return _getFallbackResponse();
     }
 
+    // Add empty calendar events if not provided (for future integration)
+    if (!context.containsKey('calendarEvents')) {
+      context['calendarEvents'] = <String>[];
+    }
+
     try {
       // Always try on-device first for privacy
       if (_preferOnDevice && _onDeviceService.isAvailable) {
@@ -130,12 +135,28 @@ class HybridAIService {
   }
 
   Map<String, dynamic> _getFallbackResponse() {
+    final today = DateTime.now();
+    final dateStr = '${_getWeekday(today.weekday)}, ${_getMonth(today.month)} ${today.day}, ${today.year}';
+
     return {
-      'content': 'Today was a day of reflection and growth. I took time to appreciate the moments that mattered and found insights in my experiences.',
-      'summary': 'Daily reflection and mindfulness',
+      'content': '$dateStr\n\nToday\'s journal entry.',
+      'summary': 'Daily journal entry',
       'generated_on_device': true,
       'fallback_used': true,
     };
+  }
+
+  String _getWeekday(int weekday) {
+    const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    return weekdays[weekday - 1];
+  }
+
+  String _getMonth(int month) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1];
   }
 
   /// Check if service is ready to use
