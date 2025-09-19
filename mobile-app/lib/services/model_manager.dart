@@ -5,7 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
 import '../utils/logger.dart';
-import 'ai_service.dart';
+import 'ai/hybrid_ai_service.dart';
 
 /// Model metadata
 class ModelMetadata {

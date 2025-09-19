@@ -12,7 +12,7 @@ import '../providers/service_providers.dart';
 import 'calendar_service.dart';
 import 'health_service.dart';
 import 'photo_service.dart';
-import 'ai_service.dart';
+import 'ai/hybrid_ai_service.dart';
 import 'ble_scanning_service.dart';
 import 'movement_tracking_service.dart';
 import '../utils/logger.dart';
@@ -49,7 +49,7 @@ class DataAnalysisService {
   final CalendarService calendarService;
   final HealthService healthService;
   final PhotoService photoService;
-  final AIService aiService;
+  final HybridAIService aiService;
   final BleScanningService bleService;
   final MovementTrackingService movementService;
 

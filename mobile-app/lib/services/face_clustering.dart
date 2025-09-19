@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
-import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'face_detection_types.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'face_detector.dart';
 

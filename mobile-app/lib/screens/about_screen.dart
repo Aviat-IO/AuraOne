@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../theme/colors.dart';
 
 class AboutScreen extends ConsumerStatefulWidget {
@@ -193,8 +194,17 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                       context,
                       icon: Icons.code,
                       title: 'Source Code',
-                      onTap: () {
-                        // Open GitHub
+                      onTap: () async {
+                        const url = 'https://github.com/Aviat-IO/AuraOne';
+                        final Uri uri = Uri.parse(url);
+                        try {
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
+                        } catch (e) {
+                          // Handle error gracefully
+                          debugPrint('Could not launch URL: $e');
+                        }
                       },
                     ),
                     const Divider(height: 1),

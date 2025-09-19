@@ -449,15 +449,16 @@ class MultiModalFusionEngine {
           contexts.add(PhotoContext(
             photoPath: photo.filePath!,
             timestamp: photo.createdDate ?? DateTime.now(),
-            objects: analysis.objects
-              .where((o) => o.labels.isNotEmpty)
-              .map((o) => o.labels.first.text)
+            objects: (analysis['objects'] as List<dynamic>? ?? [])
+              .map((o) => o.toString())
               .toList(),
-            labels: analysis.labels,
-            faceCount: analysis.faceCount,
-            recognizedText: analysis.recognizedText,
-            sceneDescription: analysis.sceneDescription,
-            metadata: analysis.metadata,
+            labels: (analysis['labels'] as List<dynamic>? ?? [])
+              .map((l) => l.toString())
+              .toList(),
+            faceCount: analysis['faceCount'] as int? ?? 0,
+            recognizedText: analysis['recognizedText'] as String? ?? '',
+            sceneDescription: analysis['sceneDescription'] as String? ?? '',
+            metadata: analysis['metadata'] as Map<String, dynamic>? ?? {},
           ));
         }
       } catch (e) {

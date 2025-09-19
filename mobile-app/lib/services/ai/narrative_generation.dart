@@ -2,9 +2,44 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
-import 'package:tflite_flutter/tflite_flutter.dart';
+// import 'package:tflite_flutter/tflite_flutter.dart'; // Temporarily disabled for APK size optimization
 import '../../utils/logger.dart';
 import 'multimodal_fusion.dart';
+
+// Stub types for TFLite functionality
+class Interpreter {
+  final String address = 'stub_address';
+
+  static Future<Interpreter> fromAsset(String assetPath) async {
+    return Interpreter();
+  }
+
+  void run(dynamic input, dynamic output) {
+    // Stub - no actual inference
+  }
+
+  void close() {
+    // Stub - no cleanup needed
+  }
+
+  void dispose() {}
+}
+
+class IsolateInterpreter {
+  static Future<IsolateInterpreter> create({required String address}) async {
+    return IsolateInterpreter();
+  }
+
+  Future<void> run(dynamic input, dynamic output) async {
+    // Stub - no actual inference
+  }
+
+  void close() {
+    // Stub - no cleanup needed
+  }
+
+  void dispose() {}
+}
 
 /// Narrative style options
 enum NarrativeStyle {

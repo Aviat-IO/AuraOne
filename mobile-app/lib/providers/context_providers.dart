@@ -14,7 +14,7 @@ final personalContextEngineProvider = Provider<PersonalContextEngine>((ref) {
 
   return PersonalContextEngine(
     databaseService: databaseService,
-    fusionEngine: fusionEngine,
+    fusionEngine: null, // Disabled for APK size optimization
   );
 });
 

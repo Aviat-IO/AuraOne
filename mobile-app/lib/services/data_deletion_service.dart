@@ -14,29 +14,26 @@ import '../services/export/export_service.dart';
 enum DataType {
   journalEntries,
   locations,
-  photos,
-  videos,
   calendar,
   all,
+  // NOTE: photos and videos are NEVER deleted to preserve user media
+  // These enum values removed to prevent accidental deletion
 }
 
 class DeletionPreview {
   final int journalEntryCount;
   final int locationPointCount;
-  final int photoCount;
-  final int videoCount;
   final int calendarEventCount;
-  final int totalSizeMB;
   final DateTime? oldestDate;
   final DateTime? newestDate;
+
+  // NOTE: photoCount, videoCount, and totalSizeMB removed
+  // Photos and videos are NEVER deleted to preserve user media
 
   DeletionPreview({
     required this.journalEntryCount,
     required this.locationPointCount,
-    required this.photoCount,
-    required this.videoCount,
     required this.calendarEventCount,
-    required this.totalSizeMB,
     this.oldestDate,
     this.newestDate,
   });
@@ -44,8 +41,6 @@ class DeletionPreview {
   int get totalItemCount =>
       journalEntryCount +
       locationPointCount +
-      photoCount +
-      videoCount +
       calendarEventCount;
 
   bool get isEmpty => totalItemCount == 0;
@@ -61,7 +56,7 @@ class DataDeletionService {
   })  : _locationDb = locationDb,
         _mediaDb = mediaDb;
 
-  // Preview what will be deleted
+  // Preview what will be deleted (NEVER includes photos or videos)
   Future<DeletionPreview> previewDeletion({
     DateTime? startDate,
     DateTime? endDate,
@@ -70,10 +65,7 @@ class DataDeletionService {
   }) async {
     int journalEntryCount = 0;
     int locationPointCount = 0;
-    int photoCount = 0;
-    int videoCount = 0;
     int calendarEventCount = 0;
-    int totalSizeMB = 0;
     DateTime? oldestDate;
     DateTime? newestDate;
 
@@ -97,27 +89,6 @@ class DataDeletionService {
       }
     }
 
-    // Count media data
-    if (effectiveDataTypes.contains(DataType.photos) ||
-        effectiveDataTypes.contains(DataType.videos)) {
-      final media = await _getMediaBetween(startDate, endDate);
-
-      for (final item in media) {
-        if (item.mimeType.startsWith('image/') &&
-            effectiveDataTypes.contains(DataType.photos)) {
-          photoCount++;
-          totalSizeMB += (item.fileSize / (1024 * 1024)).round();
-        } else if (item.mimeType.startsWith('video/') &&
-            effectiveDataTypes.contains(DataType.videos)) {
-          videoCount++;
-          totalSizeMB += (item.fileSize / (1024 * 1024)).round();
-        }
-
-        oldestDate = _updateOldestDate(oldestDate, item.createdDate);
-        newestDate = _updateNewestDate(newestDate, item.createdDate);
-      }
-    }
-
     // Count calendar events (from location notes for now)
     if (effectiveDataTypes.contains(DataType.calendar)) {
       final notes = await _getLocationNotesBetween(startDate, endDate);
@@ -133,16 +104,13 @@ class DataDeletionService {
     return DeletionPreview(
       journalEntryCount: journalEntryCount,
       locationPointCount: locationPointCount,
-      photoCount: photoCount,
-      videoCount: videoCount,
       calendarEventCount: calendarEventCount,
-      totalSizeMB: totalSizeMB,
       oldestDate: oldestDate,
       newestDate: newestDate,
     );
   }
 
-  // Delete data with optional export
+  // Delete data with optional export (NEVER deletes photos or videos)
   Future<void> deleteData({
     DateTime? startDate,
     DateTime? endDate,
@@ -182,26 +150,8 @@ class DataDeletionService {
       onProgress?.call(progress);
     }
 
-    // Delete media data
-    if (effectiveDataTypes.contains(DataType.photos)) {
-      await _deleteMediaByType(
-        startDate,
-        endDate,
-        'image/',
-      );
-      progress += progressStep;
-      onProgress?.call(progress);
-    }
-
-    if (effectiveDataTypes.contains(DataType.videos)) {
-      await _deleteMediaByType(
-        startDate,
-        endDate,
-        'video/',
-      );
-      progress += progressStep;
-      onProgress?.call(progress);
-    }
+    // CRITICAL: Photos and videos are NEVER deleted to preserve user media
+    // These deletion blocks have been removed for user safety
 
     // Delete calendar/notes data
     if (effectiveDataTypes.contains(DataType.calendar)) {
@@ -215,7 +165,7 @@ class DataDeletionService {
     onProgress?.call(1.0);
   }
 
-  // Complete data wipe
+  // Complete data wipe (NEVER deletes photos or videos)
   Future<void> wipeAllData({
     bool exportBeforeDeletion = false,
     String? exportPath,
@@ -234,9 +184,8 @@ class DataDeletionService {
     await _locationDb.customStatement('DELETE FROM location_summaries');
     await _locationDb.customStatement('DELETE FROM movement_data');
 
-    // Clear all media data
-    await _mediaDb.customStatement('DELETE FROM media_items');
-    // Cascading deletes will handle related tables
+    // CRITICAL: Media data (photos/videos) is NEVER deleted to preserve user media
+    // This protects users from accidentally losing irreplaceable memories
 
     // Clear app cache
     await _clearAppCache();
@@ -269,35 +218,7 @@ class DataDeletionService {
     return await _locationDb.getLocationPointsBetween(effectiveStart, effectiveEnd);
   }
 
-  Future<List<MediaItem>> _getMediaBetween(
-    DateTime? startDate,
-    DateTime? endDate,
-  ) async {
-    if (startDate == null && endDate == null) {
-      // Use the existing method for getting recent media
-      return await _mediaDb.getRecentMedia(
-        duration: const Duration(days: 36500), // ~100 years to get all
-        limit: 100000,
-      );
-    }
-
-    // For date range queries, we'll use a simple approach
-    final effectiveStart = startDate ?? DateTime(1970);
-    final effectiveEnd = endDate ?? DateTime.now();
-
-    // Get recent media and filter by date
-    final allMedia = await _mediaDb.getRecentMedia(
-      duration: Duration(
-        days: DateTime.now().difference(effectiveStart).inDays + 1,
-      ),
-      limit: 100000,
-    );
-
-    return allMedia.where((item) =>
-      item.createdDate.isAfter(effectiveStart) &&
-      item.createdDate.isBefore(effectiveEnd)
-    ).toList();
-  }
+  // NOTE: _getMediaBetween method removed - media is never deleted to preserve user data
 
   Future<List<LocationNote>> _getLocationNotesBetween(
     DateTime? startDate,
@@ -362,34 +283,7 @@ class DataDeletionService {
     await _locationDb.delete(_locationDb.locationSummaries).go();
   }
 
-  Future<void> _deleteMediaByType(
-    DateTime? startDate,
-    DateTime? endDate,
-    String mimeTypePrefix,
-  ) async {
-    final media = await _getMediaBetween(startDate, endDate);
-    final mediaToDelete = media
-        .where((item) => item.mimeType.startsWith(mimeTypePrefix))
-        .toList();
-
-    for (final item in mediaToDelete) {
-      // Soft delete in database
-      await _mediaDb.softDeleteMediaItem(item.id);
-
-      // Try to delete actual file if it exists
-      if (item.filePath != null) {
-        final file = File(item.filePath!);
-        if (await file.exists()) {
-          try {
-            await file.delete();
-          } catch (e) {
-            // File might be in use or protected
-            debugPrint('Could not delete file: ${item.filePath}');
-          }
-        }
-      }
-    }
-  }
+  // NOTE: _deleteMediaByType method removed - media is never deleted to preserve user data
 
   Future<void> _deleteLocationNotes(
     DateTime? startDate,
@@ -438,22 +332,7 @@ class DataDeletionService {
       }
     }
 
-    // Get media data if requested
-    if (dataTypes.contains(DataType.photos) ||
-        dataTypes.contains(DataType.videos) ||
-        dataTypes.contains(DataType.all)) {
-      final media = await _getMediaBetween(startDate, endDate);
-      for (final item in media) {
-        mediaReferences.add({
-          'id': item.id,
-          'file_path': item.filePath,
-          'file_name': item.fileName,
-          'mime_type': item.mimeType,
-          'file_size': item.fileSize,
-          'created_date': item.createdDate.toIso8601String(),
-        });
-      }
-    }
+    // NOTE: Media export removed - photos/videos are never deleted so no need to export them
 
     final metadata = <String, dynamic>{
       'export_reason': 'pre_deletion_backup',

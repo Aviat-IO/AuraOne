@@ -4,13 +4,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:aura_one/screens/main_layout_screen.dart';
 import 'package:aura_one/screens/onboarding_screen.dart';
-import 'package:aura_one/screens/privacy_settings_screen.dart';
+// import 'package:aura_one/screens/privacy_settings_screen.dart';  // Temporarily disabled for APK size optimization
 import 'package:aura_one/screens/export_screen.dart';
 import 'package:aura_one/screens/import_screen.dart';
 import 'package:aura_one/screens/backup_settings_screen.dart';
 import 'package:aura_one/screens/syncthing_settings_screen.dart';
 import 'package:aura_one/screens/app_lock_settings_screen.dart';
-import 'package:aura_one/screens/privacy_dashboard_screen.dart';
+// import 'package:aura_one/screens/privacy_dashboard_screen.dart';  // Temporarily disabled for APK size optimization
 import 'package:aura_one/screens/privacy/data_deletion_screen.dart';
 import 'package:aura_one/screens/font_size_settings_screen.dart';
 import 'package:aura_one/screens/about_screen.dart';
@@ -21,7 +21,7 @@ import 'package:aura_one/screens/daily_canvas_screen.dart';
 import 'package:aura_one/widgets/daily_canvas/timeline_widget.dart';
 
 // Debug-only imports - excluded from production builds via kDebugMode guards
-import 'package:aura_one/screens/photo_test_screen.dart';
+// import 'package:aura_one/screens/photo_test_screen.dart';  // Temporarily disabled for APK size optimization
 import 'package:aura_one/screens/debug/data_viewer_screen.dart';
 import 'package:aura_one/screens/debug/database_viewer_screen.dart';
 import 'package:aura_one/screens/debug/journal_debug_screen.dart';
@@ -60,17 +60,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const OnboardingScreen(),
       ),
 
-      // Privacy and location settings
-      GoRoute(
-        path: '/privacy',
-        builder: (context, state) => const PrivacySettingsScreen(),
-      ),
+      // Privacy and location settings - Temporarily disabled for APK size optimization
+      // GoRoute(
+      //   path: '/privacy',
+      //   builder: (context, state) => const PrivacySettingsScreen(),
+      // ),
 
       // Privacy dashboard
-      GoRoute(
-        path: '/privacy/dashboard',
-        builder: (context, state) => const PrivacyDashboardScreen(),
-      ),
+      // GoRoute(  // Temporarily disabled for APK size optimization
+      //   path: '/privacy/dashboard',
+      //   builder: (context, state) => const PrivacyDashboardScreen(),
+      // ),
 
       // Data deletion screen
       GoRoute(
@@ -94,11 +94,11 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Debug-only routes - excluded from production builds
       if (kDebugMode) ...[
-        // Photo service test screen (for development)
-        GoRoute(
-          path: '/test/photos',
-          builder: (context, state) => const PhotoTestScreen(),
-        ),
+        // Photo service test screen (for development) - temporarily disabled for APK size optimization
+        // GoRoute(
+        //   path: '/test/photos',
+        //   builder: (context, state) => const PhotoTestScreen(),
+        // ),
       ],
 
       // Export screen

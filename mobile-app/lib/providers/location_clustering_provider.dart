@@ -130,24 +130,24 @@ final clusteredLocationsProvider = FutureProvider.family<List<LocationCluster>, 
       // Automatically selects best algorithm based on data characteristics
       final result = await HybridClustering.smartCluster(
         clusteringPoints,
-        eps: 100.0,  // Increased to 100 meters radius to merge nearby locations
-        minPts: 3,   // Reduced to 3 points to form a cluster (more aggressive grouping)
+        eps: 150.0,  // Increased to 150 meters radius to capture more locations (was 100)
+        minPts: 2,   // Reduced to 2 points to form a cluster (even more aggressive grouping)
       );
 
       // Filter clusters to only include those with significant duration
       // This filters out places you just drove through slowly
       var significantClusters = result.clusters.where((cluster) {
-        // Only count as a visited place if you stayed for at least 2 minutes
-        // Reduced threshold to capture shorter visits
-        return cluster.duration.inMinutes >= 2;
+        // Only count as a visited place if you stayed for at least 1 minute
+        // Further reduced threshold to capture very brief visits
+        return cluster.duration.inMinutes >= 1;
       }).toList();
 
       // Merge clusters that are at the same location
       // This prevents multiple entries for the same place
       significantClusters = ClusterMerger.smartMerge(
         significantClusters,
-        locationRadius: 100, // 100 meters radius for same location
-        timeGap: const Duration(hours: 4), // Merge visits within 4 hours
+        locationRadius: 150, // 150 meters radius for same location (increased from 100)
+        timeGap: const Duration(hours: 6), // Merge visits within 6 hours (increased from 4)
       );
 
       // Cache the result

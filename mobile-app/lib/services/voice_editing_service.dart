@@ -1,10 +1,39 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:speech_to_text/speech_to_text.dart';
-import 'package:speech_to_text/speech_recognition_result.dart';
-import 'package:flutter_tts/flutter_tts.dart';
+// Temporarily disabled for APK size optimization
+// import 'package:speech_to_text/speech_to_text.dart';
+// import 'package:speech_to_text/speech_recognition_result.dart';
+// import 'package:flutter_tts/flutter_tts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'permission_service.dart';
+
+// Stub types for speech functionality
+class SpeechToText {
+  bool get isAvailable => false;
+
+  Future<bool> initialize() async => false;
+  Future<void> listen() async {}
+  Future<void> stop() async {}
+  Future<void> cancel() async {}
+  Future<List<LocaleName>> locales() async => [];
+}
+
+class FlutterTts {
+  Future<void> setLanguage(String language) async {}
+  Future<void> speak(String text) async {}
+  Future<void> setSpeechRate(double rate) async {}
+  Future<void> setVolume(double volume) async {}
+  Future<void> setPitch(double pitch) async {}
+  Future<void> stop() async {}
+  void setCompletionHandler(Function() handler) {}
+  void setErrorHandler(Function(String) handler) {}
+}
+
+class LocaleName {
+  final String localeId;
+  final String name;
+  LocaleName(this.localeId, this.name);
+}
 
 /// Provider for the VoiceEditingService
 final voiceEditingServiceProvider = Provider<VoiceEditingService>((ref) {
@@ -63,22 +92,7 @@ class VoiceEditingService {
     if (_isInitialized) return true;
 
     try {
-      _isInitialized = await _speechToText.initialize(
-        onStatus: (status) {
-          debugPrint('Speech recognition status: $status');
-          if (status == 'done' || status == 'notListening') {
-            _isListening = false;
-            onListeningStateChanged?.call(false);
-          }
-        },
-        onError: (error) {
-          debugPrint('Speech recognition error: $error');
-          _isListening = false;
-          onListeningStateChanged?.call(false);
-          onError?.call(error.errorMsg);
-        },
-        debugLogging: kDebugMode,
-      );
+      _isInitialized = await _speechToText.initialize();
 
       return _isInitialized;
     } catch (e) {
@@ -150,21 +164,7 @@ class VoiceEditingService {
       _isListening = true;
       onListeningStateChanged?.call(true);
 
-      await _speechToText.listen(
-        onResult: (result) {
-          _currentTranscription = result.recognizedWords;
-          debugPrint('Recognized: $_currentTranscription (final: ${result.finalResult})');
-          onSpeechResult?.call(_currentTranscription);
-
-          if (result.finalResult) {
-            _isListening = false;
-            onListeningStateChanged?.call(false);
-          }
-        },
-        localeId: localeId ?? 'en_US',
-        listenFor: listenFor ?? const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 3),
-      );
+      await _speechToText.listen();
     } catch (e) {
       debugPrint('Error starting speech recognition: $e');
       _isListening = false;
