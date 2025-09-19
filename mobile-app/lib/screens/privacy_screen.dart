@@ -6,6 +6,7 @@ import '../services/simple_location_service.dart';
 import '../theme/colors.dart';
 import '../widgets/privacy/privacy_help_guide.dart';
 import '../widgets/privacy/privacy_quick_start.dart';
+import '../providers/settings_providers.dart';
 
 // Providers for privacy settings
 final locationTrackingEnabledProvider = StateProvider<bool>((ref) => true);
@@ -384,8 +385,6 @@ class PrivacyScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-
                 // Photo library access toggle
                 Container(
                   decoration: BoxDecoration(
@@ -442,6 +441,76 @@ class PrivacyScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 12),
+
+                // Reverse geocoding toggle
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: isLight
+                        ? AuraColors.lightCardGradient
+                        : AuraColors.darkCardGradient,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isLight
+                          ? AuraColors.lightPrimary.withValues(alpha: 0.05)
+                          : Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final reverseGeocodingEnabled = ref.watch(reverseGeocodingEnabledProvider);
+                      return ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.explore,
+                            color: theme.colorScheme.primary,
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          'Location Names',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Convert coordinates to readable place names',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        trailing: Switch(
+                          value: reverseGeocodingEnabled,
+                          onChanged: (value) async {
+                            if (value) {
+                              // Show privacy warning dialog
+                              final result = await _showReverseGeocodingWarning(context);
+                              if (result == true) {
+                                await ref.read(reverseGeocodingEnabledProvider.notifier).setEnabled(true);
+                              }
+                            } else {
+                              // No warning needed to turn off
+                              await ref.read(reverseGeocodingEnabledProvider.notifier).setEnabled(false);
+                            }
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 const SizedBox(height: 24),
 
                 // Data & Privacy section
@@ -467,8 +536,6 @@ class PrivacyScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-
                 // Quick Start Guide option
                 _buildPrivacyOption(
                   context: context,
@@ -483,8 +550,6 @@ class PrivacyScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-
                 _buildPrivacyOption(
                   context: context,
                   theme: theme,
@@ -499,8 +564,6 @@ class PrivacyScreen extends ConsumerWidget {
                     );
                   },
                 ),
-                const SizedBox(height: 12),
-
                 _buildPrivacyOption(
                   context: context,
                   theme: theme,
@@ -513,8 +576,6 @@ class PrivacyScreen extends ConsumerWidget {
                     _showDeleteDataDialog(context);
                   },
                 ),
-                const SizedBox(height: 12),
-
                 _buildPrivacyOption(
                   context: context,
                   theme: theme,
@@ -767,6 +828,62 @@ class PrivacyScreen extends ConsumerWidget {
               context.push('/privacy/settings');
             },
             child: const Text('Manage Settings'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> _showReverseGeocodingWarning(BuildContext context) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.warning_amber,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(width: 8),
+            const Text('Privacy Notice'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enabling location names will send GPS coordinates to our privacy-focused geocoding service to convert them into readable place names.',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Important:',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              '• Your location data will leave your device\n'
+              '• We use a privacy-first service that doesn\'t store or track your data\n'
+              '• Place names improve journal readability but are not required\n'
+              '• You can disable this feature at any time',
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Do you want to enable location names?',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Enable'),
           ),
         ],
       ),
