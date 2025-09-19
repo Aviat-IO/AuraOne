@@ -279,20 +279,8 @@ class DataDeletionScreen extends HookConsumerWidget {
                           dataType: DataType.locations,
                           selectedTypes: selectedDataTypes,
                         ),
-                        _DataTypeCheckbox(
-                          title: 'Photos',
-                          subtitle: 'Images from your gallery',
-                          icon: Icons.photo_library,
-                          dataType: DataType.photos,
-                          selectedTypes: selectedDataTypes,
-                        ),
-                        _DataTypeCheckbox(
-                          title: 'Videos',
-                          subtitle: 'Video recordings',
-                          icon: Icons.videocam,
-                          dataType: DataType.videos,
-                          selectedTypes: selectedDataTypes,
-                        ),
+                        // Photos and videos are never deleted to preserve user media
+                        // These options have been removed for safety
                         _DataTypeCheckbox(
                           title: 'Calendar & Notes',
                           subtitle: 'Events and location notes',
@@ -450,22 +438,7 @@ class DataDeletionScreen extends HookConsumerWidget {
                                           count: deletionPreview
                                               .value!.locationPointCount,
                                         ),
-                                      if (deletionPreview.value!.photoCount >
-                                          0)
-                                        _PreviewItem(
-                                          icon: Icons.photo,
-                                          label: 'Photos',
-                                          count:
-                                              deletionPreview.value!.photoCount,
-                                        ),
-                                      if (deletionPreview.value!.videoCount >
-                                          0)
-                                        _PreviewItem(
-                                          icon: Icons.videocam,
-                                          label: 'Videos',
-                                          count:
-                                              deletionPreview.value!.videoCount,
-                                        ),
+                                      // Photos and videos are never deleted
                                       if (deletionPreview
                                               .value!.calendarEventCount >
                                           0)
@@ -498,8 +471,8 @@ class DataDeletionScreen extends HookConsumerWidget {
                                           ),
                                         ],
                                       ),
-                                      if (deletionPreview.value!.totalSizeMB >
-                                          0) ...[
+                                      // Storage size calculation removed as photos/videos not deleted
+                                      if (false) ...[
                                         const SizedBox(height: 8),
                                         Row(
                                           mainAxisAlignment:
@@ -511,7 +484,7 @@ class DataDeletionScreen extends HookConsumerWidget {
                                                   theme.textTheme.bodyMedium,
                                             ),
                                             Text(
-                                              '~${deletionPreview.value!.totalSizeMB} MB',
+                                              'N/A',
                                               style:
                                                   theme.textTheme.bodyMedium,
                                             ),
