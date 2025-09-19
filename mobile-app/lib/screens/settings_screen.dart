@@ -195,40 +195,6 @@ class SettingsScreen extends ConsumerWidget {
                                 height: 1,
                               ),
                               _buildSettingsTile(
-                                icon: Icons.backup,
-                                title: 'Auto Backup',
-                                subtitle: 'Automatically backup your entries',
-                                trailing: Icon(
-                                  Icons.arrow_forward_ios,
-                                  size: 16,
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                                ),
-                                theme: theme,
-                                onTap: () {
-                                  context.push('/settings/backup');
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Wellness section
-                        Text(
-                          'Wellness',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        _buildSettingsCard(
-                          context: context,
-                          theme: theme,
-                          isLight: isLight,
-                          child: Column(
-                            children: [
-                              _buildSettingsTile(
                                 icon: Icons.merge_type,
                                 title: 'Multi-Modal AI Fusion',
                                 subtitle: 'Combine photos, location, and movement for richer summaries',
@@ -272,16 +238,18 @@ class SettingsScreen extends ConsumerWidget {
                                 height: 1,
                               ),
                               _buildSettingsTile(
-                                icon: Icons.insights,
-                                title: 'Wellness Insights',
-                                subtitle: 'Get personalized wellness recommendations',
-                                trailing: Switch(
-                                  value: true, // TODO: Connect to actual settings
-                                  onChanged: (value) {
-                                    // TODO: Implement insights settings
-                                  },
+                                icon: Icons.backup,
+                                title: 'Auto Backup',
+                                subtitle: 'Automatically backup your entries',
+                                trailing: Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                                 ),
                                 theme: theme,
+                                onTap: () {
+                                  context.push('/settings/backup');
+                                },
                               ),
                             ],
                           ),
