@@ -315,7 +315,7 @@ class SettingsScreen extends ConsumerWidget {
       ),
       trailing: trailing,
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     );
   }
 

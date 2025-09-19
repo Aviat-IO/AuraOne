@@ -333,7 +333,7 @@ class PrivacyScreen extends ConsumerWidget {
                   children: [
                     // Location tracking toggle
                     ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -372,7 +372,7 @@ class PrivacyScreen extends ConsumerWidget {
                     ),
                     // Photo library access toggle
                     ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -411,7 +411,7 @@ class PrivacyScreen extends ConsumerWidget {
                       builder: (context, ref, _) {
                         final reverseGeocodingEnabled = ref.watch(reverseGeocodingEnabledProvider);
                         return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                           leading: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
@@ -595,7 +595,7 @@ class PrivacyScreen extends ConsumerWidget {
     bool isDestructive = false,
   }) {
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
