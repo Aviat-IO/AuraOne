@@ -223,11 +223,16 @@ class JournalService {
       final entry = await getTodayEntry();
 
       // Add the activity
+      // Combine title and description only if description is not empty
+      final activityDescription = description.isEmpty
+        ? title
+        : '$title - $description';
+
       await _journalDb.insertJournalActivity(
         JournalActivitiesCompanion(
           journalEntryId: Value(entry.id),
           activityType: Value(activityType),
-          description: Value('$title - $description'),
+          description: Value(activityDescription),
           metadata: Value(jsonEncode({
             'manual': true,
             'user_created': true,
@@ -257,10 +262,20 @@ class JournalService {
 
       // For now, this creates a new manual activity since we don't have
       // a specific events table - this integrates with the existing activity system
+      // Construct description based on what content is available
+      String fullDescription = '';
+      if (description.isNotEmpty && notes.isNotEmpty) {
+        fullDescription = '$description\n\nNotes: $notes';
+      } else if (description.isNotEmpty) {
+        fullDescription = description;
+      } else if (notes.isNotEmpty) {
+        fullDescription = 'Notes: $notes';
+      }
+
       await addManualActivity(
         date: DateTime(timestamp.year, timestamp.month, timestamp.day),
         title: title,
-        description: '$description\n\nNotes: $notes',
+        description: fullDescription,
         timestamp: timestamp,
         activityType: 'manual',
       );

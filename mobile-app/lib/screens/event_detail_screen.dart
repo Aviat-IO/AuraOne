@@ -190,46 +190,43 @@ class EventDetailScreen extends HookConsumerWidget {
             const SizedBox(height: 16),
 
             // Event Description (if editing or exists)
-            if (isEditing.value || event.description.isNotEmpty)
-              Column(
-                children: [
-                  if (isEditing.value)
-                    TextField(
-                      controller: descriptionController,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        height: 1.4,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: 'Description',
-                        hintText: 'Add a brief description...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        contentPadding: EdgeInsets.all(12),
-                      ),
-                      maxLines: 3,
-                      minLines: 2,
-                    )
-                  else if (event.description.isNotEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: colorScheme.outline.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Text(
-                        event.description,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          height: 1.4,
-                        ),
-                      ),
+            if (isEditing.value || event.description.isNotEmpty) ...[
+              if (isEditing.value)
+                TextField(
+                  controller: descriptionController,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    height: 1.4,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    hintText: 'Add a brief description...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  const SizedBox(height: 16),
-                ],
-              ),
+                    contentPadding: EdgeInsets.all(12),
+                  ),
+                  maxLines: 3,
+                  minLines: 2,
+                )
+              else if (event.description.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: colorScheme.outline.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Text(
+                    event.description,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 16),
+            ],
 
             // Photo Memories Section (if photos exist)
             _buildPhotoMemoriesSection(ref, context, theme, colorScheme),
