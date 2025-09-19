@@ -4,10 +4,12 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../database/journal_database.dart';
 import '../database/dev_seed_data.dart';
 import '../services/ai/hybrid_ai_service.dart';
+import '../services/reverse_geocoding_service.dart';
 import '../providers/database_provider.dart';
 import '../providers/service_providers.dart';
 import '../utils/logger.dart';
@@ -25,6 +27,7 @@ final journalServiceProvider = Provider<JournalService>((ref) {
     ref.watch(journalDatabaseProvider),
     ref.watch(databaseServiceProvider),
     ref.watch(aiServiceProvider),
+    ref,
   );
 });
 
@@ -32,10 +35,11 @@ class JournalService {
   final JournalDatabase _journalDb;
   final DatabaseService _databaseService;
   final HybridAIService _aiService;
+  final Ref _ref;
 
   Timer? _dailyTimer;
 
-  JournalService(this._journalDb, this._databaseService, this._aiService);
+  JournalService(this._journalDb, this._databaseService, this._aiService, this._ref);
 
   /// Initialize the service and start daily entry generation
   Future<void> initialize() async {
@@ -105,10 +109,11 @@ class JournalService {
     _logger.info('Creating journal entry for ${date.toIso8601String()}');
 
     try {
-      // Generate AI journal entry using existing AI service
-      final aiEntry = await _aiService.generateJournalEntry({
-        'date': date.toIso8601String(),
-      });
+      // Gather rich context for AI generation
+      final context = await _gatherRichContext(date);
+
+      // Generate AI journal entry using rich context
+      final aiEntry = await _aiService.generateJournalEntry(context);
 
       // Extract activities from the day
       final activities = await _extractActivitiesForDate(date);
@@ -327,6 +332,290 @@ class JournalService {
     }
   }
 
+  /// Gather rich context for AI generation
+  Future<Map<String, dynamic>> _gatherRichContext(DateTime date) async {
+    final context = <String, dynamic>{
+      'date': date.toIso8601String(),
+    };
+
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    try {
+      // Get photos with metadata
+      final photos = <Map<String, dynamic>>[];
+      final mediaDb = _ref.read(mediaDatabaseProvider);
+      final mediaItems = await mediaDb.getMediaByDateRange(
+        startDate: startOfDay,
+        endDate: endOfDay,
+        processedOnly: true,
+      );
+
+      for (final item in mediaItems) {
+          final photoContext = <String, dynamic>{
+            'id': item.id,
+            'timestamp': item.createdDate.toIso8601String(),
+            'fileName': item.fileName,
+          };
+
+          // Try to get location from metadata
+          final locationMetadata = await mediaDb.getMetadataForMedia(
+            item.id,
+            'location'
+          );
+
+          if (locationMetadata.isNotEmpty) {
+            double? latitude, longitude;
+            for (final meta in locationMetadata) {
+              if (meta.key == 'gps_latitude') {
+                latitude = double.tryParse(meta.value);
+              } else if (meta.key == 'gps_longitude') {
+                longitude = double.tryParse(meta.value);
+              }
+            }
+
+            if (latitude != null && longitude != null) {
+              photoContext['latitude'] = latitude;
+              photoContext['longitude'] = longitude;
+
+              // Perform reverse geocoding if location names are enabled
+              final prefs = await SharedPreferences.getInstance();
+              final reverseGeocodingEnabled = prefs.getBool('reverseGeocodingEnabled') ?? false;
+              if (reverseGeocodingEnabled) {
+                final placeInfo = await ReverseGeocodingService.getPlaceInfo(
+                  latitude: latitude,
+                  longitude: longitude,
+                );
+                if (placeInfo != null) {
+                  photoContext['location'] = placeInfo.displayName;
+                }
+              }
+            }
+          }
+
+          photos.add(photoContext);
+      }
+
+      context['photos'] = photos;
+      context['photosCount'] = photos.length;
+
+      // Get calendar events
+      final calendarEvents = <Map<String, dynamic>>[];
+      try {
+        final calendarService = _ref.read(calendarServiceProvider);
+        final events = await calendarService.getEventsInRange(startOfDay, endOfDay);
+
+        for (final event in events) {
+          calendarEvents.add({
+            'title': event.title,
+            'description': event.description,
+            'startTime': event.startDate.toIso8601String(),
+            'endTime': event.endDate?.toIso8601String(),
+            'location': event.location,
+            'attendees': event.attendees,
+            'isAllDay': event.isAllDay,
+          });
+        }
+      } catch (e) {
+        _logger.warning('Failed to get calendar events: $e');
+      }
+
+      context['calendarEvents'] = calendarEvents;
+
+      // Get clustered location data
+      final locationClusters = <Map<String, dynamic>>[];
+      try {
+        // Get location points for the day
+        final locationPoints = await _databaseService.locationDb.getLocationPointsBetween(
+          startOfDay,
+          endOfDay,
+        );
+
+        if (locationPoints.isNotEmpty) {
+          // Use a simple clustering algorithm to group nearby locations
+          final clusters = _clusterLocations(locationPoints);
+
+          for (final cluster in clusters) {
+            final clusterContext = <String, dynamic>{
+              'latitude': cluster['centerLat'],
+              'longitude': cluster['centerLng'],
+              'duration': cluster['durationMinutes'],
+              'visitCount': cluster['visitCount'],
+              'timeOfDay': _getTimeOfDay(cluster['averageTime'] as DateTime),
+            };
+
+            // Reverse geocode if enabled
+            final prefs = await SharedPreferences.getInstance();
+            final reverseGeocodingEnabled = prefs.getBool('reverseGeocodingEnabled') ?? false;
+            if (reverseGeocodingEnabled) {
+              final placeInfo = await ReverseGeocodingService.getPlaceInfo(
+                latitude: cluster['centerLat'] as double,
+                longitude: cluster['centerLng'] as double,
+              );
+              if (placeInfo != null) {
+                clusterContext['name'] = placeInfo.displayName;
+              }
+            }
+
+            locationClusters.add(clusterContext);
+          }
+        }
+      } catch (e) {
+        _logger.warning('Failed to get location clusters: $e');
+      }
+
+      context['locationClusters'] = locationClusters;
+      context['locationsCount'] = locationClusters.length;
+
+      // Get movement data
+      final movements = <Map<String, dynamic>>[];
+      try {
+        final movementData = await _databaseService.locationDb.getMovementDataBetween(
+          startOfDay,
+          endOfDay,
+        );
+
+        int totalSteps = 0;
+        double totalDistance = 0;
+        int activeMinutes = 0;
+
+        for (final movement in movementData) {
+          // Estimate steps and distance from movement patterns
+          final estimatedSteps = (movement.sampleCount * 2.5).round(); // Rough estimate
+          final estimatedDistance = movement.sampleCount * 0.0008; // ~0.8m per sample
+
+          totalSteps += estimatedSteps;
+          totalDistance += estimatedDistance;
+
+          if (movement.stillPercentage < 50) {
+            activeMinutes += 5; // Each movement sample represents ~5 minutes
+          }
+
+          movements.add({
+            'timestamp': movement.timestamp.toIso8601String(),
+            'activityType': movement.state, // Use 'state' field instead of 'activityType'
+            'stillPercentage': movement.stillPercentage,
+            'steps': estimatedSteps,
+            'distance': estimatedDistance,
+            'activeMinutes': movement.stillPercentage < 50 ? 5 : 0,
+          });
+        }
+
+        // Add aggregated movement data
+        if (movements.isNotEmpty) {
+          context['totalSteps'] = totalSteps;
+          context['totalDistance'] = totalDistance;
+          context['activeMinutes'] = activeMinutes;
+        }
+      } catch (e) {
+        _logger.warning('Failed to get movement data: $e');
+      }
+
+      context['movements'] = movements;
+
+      // Also maintain legacy format for backward compatibility
+      context['locations'] = locationClusters.map((c) => {
+        'latitude': c['latitude'],
+        'longitude': c['longitude'],
+        'name': c['name'],
+      }).toList();
+
+    } catch (e, stack) {
+      _logger.error('Failed to gather rich context', error: e, stackTrace: stack);
+    }
+
+    return context;
+  }
+
+  /// Simple location clustering algorithm
+  List<Map<String, dynamic>> _clusterLocations(List<dynamic> locationPoints) {
+    if (locationPoints.isEmpty) return [];
+
+    final clusters = <Map<String, dynamic>>[];
+    final clusterRadius = 0.0005; // ~50 meters in degrees
+
+    for (final point in locationPoints) {
+      bool addedToCluster = false;
+
+      for (final cluster in clusters) {
+        final distance = _calculateDistance(
+          cluster['centerLat'] as double,
+          cluster['centerLng'] as double,
+          point.latitude as double,
+          point.longitude as double,
+        );
+
+        if (distance < clusterRadius) {
+          // Add to existing cluster
+          cluster['points'].add(point);
+          cluster['endTime'] = point.timestamp;
+
+          // Update center
+          final points = cluster['points'] as List;
+          double sumLat = 0, sumLng = 0;
+          for (final p in points) {
+            sumLat += p.latitude as double;
+            sumLng += p.longitude as double;
+          }
+          cluster['centerLat'] = sumLat / points.length;
+          cluster['centerLng'] = sumLng / points.length;
+
+          addedToCluster = true;
+          break;
+        }
+      }
+
+      if (!addedToCluster) {
+        // Create new cluster
+        clusters.add({
+          'points': [point],
+          'centerLat': point.latitude,
+          'centerLng': point.longitude,
+          'startTime': point.timestamp,
+          'endTime': point.timestamp,
+          'visitCount': 1,
+        });
+      }
+    }
+
+    // Calculate duration and other metrics for each cluster
+    for (final cluster in clusters) {
+      final startTime = cluster['startTime'] as DateTime;
+      final endTime = cluster['endTime'] as DateTime;
+      final duration = endTime.difference(startTime);
+
+      cluster['durationMinutes'] = duration.inMinutes;
+      cluster['averageTime'] = startTime.add(Duration(minutes: duration.inMinutes ~/ 2));
+
+      // Remove the points array to reduce memory
+      cluster.remove('points');
+    }
+
+    // Sort by duration (most significant places first)
+    clusters.sort((a, b) =>
+      (b['durationMinutes'] as int).compareTo(a['durationMinutes'] as int));
+
+    return clusters;
+  }
+
+  /// Calculate distance between two coordinates (simple approximation)
+  double _calculateDistance(double lat1, double lng1, double lat2, double lng2) {
+    final dLat = lat2 - lat1;
+    final dLng = lng2 - lng1;
+    return (dLat * dLat + dLng * dLng).abs();
+  }
+
+  /// Get time of day description
+  String _getTimeOfDay(DateTime time) {
+    final hour = time.hour;
+    if (hour < 6) return 'early morning';
+    if (hour < 12) return 'morning';
+    if (hour < 17) return 'afternoon';
+    if (hour < 21) return 'evening';
+    return 'night';
+  }
+
+
   /// Extract activities for a specific date
   Future<List<Map<String, dynamic>>> _extractActivitiesForDate(DateTime date) async {
     final activities = <Map<String, dynamic>>[];
@@ -374,23 +663,21 @@ class JournalService {
       }
 
       // Get media from the day
-      final mediaItems = await _databaseService.mediaDb.getRecentMedia(
-        duration: const Duration(days: 1),
-        limit: 50,
+      final mediaDb = _ref.read(mediaDatabaseProvider);
+      final mediaItems = await mediaDb.getMediaByDateRange(
+        startDate: startOfDay,
+        endDate: endOfDay,
+        processedOnly: false,
       );
-      final todayMedia = mediaItems.where((item) {
-        return item.createdDate.isAfter(startOfDay) && item.createdDate.isBefore(endOfDay);
-      }).toList();
-
-      if (todayMedia.isNotEmpty) {
+      if (mediaItems.isNotEmpty) {
         activities.add({
           'type': 'photo',
-          'description': 'Captured ${todayMedia.length} photos and memories',
+          'description': 'Captured ${mediaItems.length} photos and memories',
           'metadata': {
-            'media_count': todayMedia.length,
-            'first_photo': todayMedia.first.fileName,
+            'media_count': mediaItems.length,
+            'first_photo': mediaItems.first.fileName,
           },
-          'timestamp': todayMedia.first.createdDate,
+          'timestamp': mediaItems.first.createdDate,
         });
       }
 

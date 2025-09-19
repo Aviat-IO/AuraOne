@@ -35,9 +35,6 @@ class EventDetailScreen extends HookConsumerWidget {
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: Text(isEditing.value ? 'Edit Event' : 'Event Details'),
-        backgroundColor: eventColor.withValues(alpha: 0.1),
-        elevation: 0,
-        foregroundColor: eventColor,
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -50,7 +47,6 @@ class EventDetailScreen extends HookConsumerWidget {
                 titleController.text = event.title;
                 descriptionController.text = event.description;
               },
-              style: TextButton.styleFrom(foregroundColor: eventColor),
               child: Text('Cancel'),
             ),
             TextButton(
@@ -62,19 +58,17 @@ class EventDetailScreen extends HookConsumerWidget {
                 isSaving,
                 isEditing,
               ),
-              style: TextButton.styleFrom(foregroundColor: eventColor),
               child: isSaving.value
                 ? SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: eventColor)
+                    child: CircularProgressIndicator(strokeWidth: 2)
                   )
                 : Text('Save'),
             ),
           ] else ...[
             IconButton(
               icon: Icon(Icons.edit),
-              color: eventColor,
               onPressed: () => isEditing.value = true,
             ),
           ],
@@ -89,10 +83,9 @@ class EventDetailScreen extends HookConsumerWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerLow,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: eventColor.withValues(alpha: 0.3),
+                  color: colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
               child: Row(
@@ -222,7 +215,6 @@ class EventDetailScreen extends HookConsumerWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: colorScheme.outline.withValues(alpha: 0.2),
