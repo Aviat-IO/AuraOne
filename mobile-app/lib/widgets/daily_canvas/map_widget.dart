@@ -136,8 +136,8 @@ class MapWidget extends HookConsumerWidget {
                 MarkerLayer(
                   markers: _buildMarkers(clusters, theme),
                 ),
-                // Show helpful overlay for very few points
-                if (clusters.length <= 2)
+                // Show helpful overlay for very few location points (not clusters)
+                if (_getTotalLocationPoints(clusters) <= 2)
                   Container(
                     alignment: Alignment.topCenter,
                     padding: const EdgeInsets.all(8),
@@ -226,6 +226,10 @@ class MapWidget extends HookConsumerWidget {
         ),
       ],
     );
+  }
+
+  int _getTotalLocationPoints(List<LocationCluster> clusters) {
+    return clusters.fold(0, (sum, cluster) => sum + cluster.points.length);
   }
 
   LatLng _calculateMapCenter(List<LocationCluster> clusters) {
