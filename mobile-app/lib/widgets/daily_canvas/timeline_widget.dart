@@ -149,18 +149,30 @@ final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTi
   }).toList();
 
   // Get calendar events and convert them to TimelineEvent
-  final calendarEvents = await calendarEventsAsync.when(
-    data: (events) => events.map((calendarEvent) {
-      return TimelineEvent(
-        time: calendarEvent.startDate,
-        title: calendarEvent.title,
-        description: calendarEvent.description ?? '',
-        type: EventType.work, // Default calendar events to work type
-        icon: Icons.event,
-        isCalendarEvent: true,
-        calendarEventData: calendarEvent,
-      );
-    }).toList(),
+  final calendarEvents = calendarEventsAsync.when(
+    data: (events) => events
+        .where((calendarEvent) {
+          // For all-day events, check if they fall on the selected date
+          if (calendarEvent.isAllDay) {
+            final eventLocalDate = calendarEvent.startDate.toLocal();
+            return eventLocalDate.year == date.year &&
+                   eventLocalDate.month == date.month &&
+                   eventLocalDate.day == date.day;
+          }
+          // For timed events, they're already filtered by the query
+          return true;
+        })
+        .map((calendarEvent) {
+          return TimelineEvent(
+            time: calendarEvent.startDate,
+            title: calendarEvent.title,
+            description: calendarEvent.description ?? '',
+            type: EventType.work, // Default calendar events to work type
+            icon: Icons.event,
+            isCalendarEvent: true,
+            calendarEventData: calendarEvent,
+          );
+        }).toList(),
     loading: () => <TimelineEvent>[],
     error: (_, __) => <TimelineEvent>[],
   );

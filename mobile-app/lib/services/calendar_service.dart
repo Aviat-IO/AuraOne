@@ -592,6 +592,7 @@ class CalendarService {
       }
 
       // Create all-day journal entry
+      // Use plain DateTime without timezone info for all-day events
       final journalEvent = CalendarEventData(
         id: 'journal_${date.millisecondsSinceEpoch}',
         calendarId: calendarId,
@@ -636,6 +637,7 @@ class CalendarService {
         return false;
       }
 
+      // Use plain DateTime without timezone info for all-day events
       final updatedEvent = CalendarEventData(
         id: eventId,
         calendarId: calendarId,
