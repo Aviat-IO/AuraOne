@@ -13,6 +13,7 @@ import 'package:aura_one/screens/app_lock_settings_screen.dart';
 // import 'package:aura_one/screens/privacy_dashboard_screen.dart';  // Temporarily disabled for APK size optimization
 import 'package:aura_one/screens/privacy/data_deletion_screen.dart';
 import 'package:aura_one/screens/font_size_settings_screen.dart';
+import 'package:aura_one/screens/calendar_settings_screen.dart';
 import 'package:aura_one/screens/about_screen.dart';
 import 'package:aura_one/screens/terms_screen.dart';
 import 'package:aura_one/screens/privacy_policy_screen.dart';
@@ -136,6 +137,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/font-size',
         builder: (context, state) => const FontSizeSettingsScreen(),
+      ),
+
+      // Calendar settings screen
+      GoRoute(
+        path: '/settings/calendar',
+        builder: (context, state) => const CalendarSettingsScreen(),
       ),
 
       // About screen

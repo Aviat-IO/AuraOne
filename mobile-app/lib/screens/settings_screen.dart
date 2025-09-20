@@ -106,6 +106,20 @@ class SettingsScreen extends ConsumerWidget {
                           isLight: isLight,
                           children: [
                             _buildSettingsTile(
+                              icon: Icons.calendar_month,
+                              title: 'Calendars',
+                              subtitle: 'Choose which calendars to sync',
+                              trailing: Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                              ),
+                              theme: theme,
+                              onTap: () {
+                                context.push('/settings/calendar');
+                              },
+                            ),
+                            _buildSettingsTile(
                               icon: Icons.notifications,
                               title: 'Daily Reminders',
                               subtitle: 'Get reminded to write in your journal',
@@ -213,7 +227,7 @@ class SettingsScreen extends ConsumerWidget {
                             ),
                             _buildSettingsTile(
                               icon: Icons.backup,
-                              title: 'Auto Backup',
+                              title: 'Backups',
                               subtitle: 'Automatically backup your entries',
                               trailing: Icon(
                                 Icons.arrow_forward_ios,

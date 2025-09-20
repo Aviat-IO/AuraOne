@@ -177,3 +177,72 @@ class ReverseGeocodingNotifier extends StateNotifier<bool> {
     await prefs.setBool('reverseGeocodingEnabled', enabled);
   }
 }
+
+// Calendar settings provider
+final calendarSettingsProvider = StateNotifierProvider<CalendarSettingsNotifier, CalendarSettings>((ref) {
+  return CalendarSettingsNotifier();
+});
+
+class CalendarSettings {
+  final Set<String> enabledCalendarIds;
+
+  const CalendarSettings({
+    this.enabledCalendarIds = const {},
+  });
+
+  CalendarSettings copyWith({
+    Set<String>? enabledCalendarIds,
+  }) {
+    return CalendarSettings(
+      enabledCalendarIds: enabledCalendarIds ?? this.enabledCalendarIds,
+    );
+  }
+}
+
+class CalendarSettingsNotifier extends StateNotifier<CalendarSettings> {
+  CalendarSettingsNotifier() : super(const CalendarSettings()) {
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabledIds = prefs.getStringList('enabledCalendarIds') ?? [];
+    state = CalendarSettings(
+      enabledCalendarIds: enabledIds.toSet(),
+    );
+  }
+
+  Future<void> enableAllCalendarsIfFirstTime(List<String> allCalendarIds) async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSetInitialCalendars = prefs.getBool('hasSetInitialCalendars') ?? false;
+
+    if (!hasSetInitialCalendars && allCalendarIds.isNotEmpty) {
+      // First time loading calendars - enable all by default
+      state = state.copyWith(enabledCalendarIds: allCalendarIds.toSet());
+      await prefs.setStringList('enabledCalendarIds', allCalendarIds);
+      await prefs.setBool('hasSetInitialCalendars', true);
+    }
+  }
+
+  Future<void> setCalendarEnabled(String calendarId, bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentIds = Set<String>.from(state.enabledCalendarIds);
+
+    if (enabled) {
+      currentIds.add(calendarId);
+    } else {
+      currentIds.remove(calendarId);
+    }
+
+    state = state.copyWith(enabledCalendarIds: currentIds);
+    await prefs.setStringList('enabledCalendarIds', currentIds.toList());
+  }
+
+  Future<void> setAllCalendarsEnabled(List<String> calendarIds, bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    final newIds = enabled ? calendarIds.toSet() : <String>{};
+
+    state = state.copyWith(enabledCalendarIds: newIds);
+    await prefs.setStringList('enabledCalendarIds', newIds.toList());
+  }
+}

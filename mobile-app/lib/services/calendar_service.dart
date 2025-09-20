@@ -198,6 +198,7 @@ class CalendarService {
     DateTime start,
     DateTime end, {
     Set<String>? calendarIds,
+    Set<String>? enabledCalendarIds,
   }) async {
     if (!_hasPermissions) {
       // Silently return empty list when no permissions
@@ -212,9 +213,20 @@ class CalendarService {
       }
 
       final events = <CalendarEventData>[];
-      final calendarsToQuery = calendarIds != null
-          ? calendars.data!.where((c) => calendarIds.contains(c.id))
-          : calendars.data!;
+
+      // Determine which calendars to query based on provided filters and enabled calendars
+      Iterable<Calendar> calendarsToQuery;
+
+      if (calendarIds != null) {
+        // If specific calendar IDs are provided, use those
+        calendarsToQuery = calendars.data!.where((c) => calendarIds.contains(c.id));
+      } else if (enabledCalendarIds != null && enabledCalendarIds.isNotEmpty) {
+        // Otherwise, filter by enabled calendar IDs from settings
+        calendarsToQuery = calendars.data!.where((c) => enabledCalendarIds.contains(c.id));
+      } else {
+        // If no filters provided, return empty (no calendars enabled)
+        return [];
+      }
 
       for (final calendar in calendarsToQuery) {
         if (calendar.id == null) continue;

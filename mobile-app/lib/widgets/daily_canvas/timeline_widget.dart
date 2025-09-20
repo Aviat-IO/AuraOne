@@ -13,17 +13,23 @@ import '../../services/calendar_service.dart';
 import '../../providers/media_database_provider.dart';
 import '../../providers/media_thumbnail_provider.dart';
 import '../../providers/service_providers.dart';
+import '../../providers/settings_providers.dart';
 
 // Helper function to get calendar events for a specific date
 Future<List<CalendarEventData>> _getCalendarEventsForDate(
   CalendarService calendarService,
   DateTime date,
+  Set<String> enabledCalendarIds,
 ) async {
   final startDate = DateTime(date.year, date.month, date.day);
   final endDate = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
   try {
-    return await calendarService.getEventsInRange(startDate, endDate);
+    return await calendarService.getEventsInRange(
+      startDate,
+      endDate,
+      enabledCalendarIds: enabledCalendarIds,
+    );
   } catch (e) {
     // Return empty list if calendar access fails (no permissions, etc.)
     return [];
@@ -33,13 +39,18 @@ Future<List<CalendarEventData>> _getCalendarEventsForDate(
 // Provider for calendar events from device calendar
 final calendarEventsProvider = FutureProvider.family<List<CalendarEventData>, DateTime>((ref, date) async {
   final calendarService = ref.watch(calendarServiceProvider);
+  final calendarSettings = ref.watch(calendarSettingsProvider);
 
   // Get events for the selected date
   final startDate = DateTime(date.year, date.month, date.day);
   final endDate = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
   try {
-    final events = await calendarService.getEventsInRange(startDate, endDate);
+    final events = await calendarService.getEventsInRange(
+      startDate,
+      endDate,
+      enabledCalendarIds: calendarSettings.enabledCalendarIds,
+    );
     return events;
   } catch (e) {
     // Return empty list if calendar access fails (no permissions, etc.)
@@ -73,11 +84,12 @@ final calendarMetadataProvider = FutureProvider.autoDispose<Map<String, String>>
 final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTime>((ref, date) async {
   final journalDb = ref.watch(journalDatabaseProvider);
   final calendarService = ref.watch(calendarServiceProvider);
+  final calendarSettings = ref.watch(calendarSettingsProvider);
 
   // Load journal activities and calendar events in parallel
   final results = await Future.wait([
     journalDb.getActivitiesForDate(date),
-    _getCalendarEventsForDate(calendarService, date),
+    _getCalendarEventsForDate(calendarService, date, calendarSettings.enabledCalendarIds),
   ]);
 
   final activities = results[0] as List<JournalActivity>;

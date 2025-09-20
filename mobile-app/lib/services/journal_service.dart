@@ -12,6 +12,7 @@ import '../services/ai/hybrid_ai_service.dart';
 import '../services/reverse_geocoding_service.dart';
 import '../providers/database_provider.dart';
 import '../providers/service_providers.dart';
+import '../providers/settings_providers.dart';
 import '../utils/logger.dart';
 
 final _logger = AppLogger('JournalService');
@@ -418,7 +419,12 @@ class JournalService {
       final calendarEvents = <Map<String, dynamic>>[];
       try {
         final calendarService = _ref.read(calendarServiceProvider);
-        final events = await calendarService.getEventsInRange(startOfDay, endOfDay);
+        final calendarSettings = _ref.read(calendarSettingsProvider);
+        final events = await calendarService.getEventsInRange(
+          startOfDay,
+          endOfDay,
+          enabledCalendarIds: calendarSettings.enabledCalendarIds,
+        );
 
         for (final event in events) {
           calendarEvents.add({

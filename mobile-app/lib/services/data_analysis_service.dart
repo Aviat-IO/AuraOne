@@ -9,11 +9,12 @@ import '../database/media_database.dart';
 import '../providers/location_database_provider.dart';
 import '../providers/media_database_provider.dart';
 import '../providers/service_providers.dart';
+import '../providers/settings_providers.dart';
 import 'calendar_service.dart';
-import 'health_service.dart';
+// import 'health_service.dart';  // Temporarily disabled
 import 'photo_service.dart';
 import 'ai/hybrid_ai_service.dart';
-import 'ble_scanning_service.dart';
+// import 'ble_scanning_service.dart';  // Temporarily disabled
 import 'movement_tracking_service.dart';
 import '../utils/logger.dart';
 
@@ -22,21 +23,23 @@ final dataAnalysisServiceProvider = Provider<DataAnalysisService>((ref) {
   final locationDb = ref.watch(locationDatabaseProvider);
   final mediaDb = ref.watch(mediaDatabaseProvider);
   final calendarService = ref.watch(calendarServiceProvider);
-  final healthService = ref.watch(healthServiceProvider);
+  // final healthService = ref.watch(healthServiceProvider);  // Temporarily disabled
   final photoService = ref.watch(photoServiceProvider);
   final aiService = ref.watch(aiServiceProvider);
-  final bleService = BleScanningService();
+  // final bleService = BleScanningService();  // Temporarily disabled
   final movementService = ref.watch(movementTrackingServiceProvider);
+  final calendarSettings = ref.watch(calendarSettingsProvider);
 
   return DataAnalysisService(
     locationDb: locationDb,
     mediaDb: mediaDb,
     calendarService: calendarService,
-    healthService: healthService,
+    // healthService: healthService,  // Temporarily disabled
     photoService: photoService,
     aiService: aiService,
-    bleService: bleService,
+    // bleService: bleService,  // Temporarily disabled
     movementService: movementService,
+    enabledCalendarIds: calendarSettings.enabledCalendarIds,
   );
 });
 
@@ -47,21 +50,23 @@ class DataAnalysisService {
   final LocationDatabase locationDb;
   final MediaDatabase mediaDb;
   final CalendarService calendarService;
-  final HealthService healthService;
+  // final HealthService healthService;  // Temporarily disabled
   final PhotoService photoService;
   final HybridAIService aiService;
-  final BleScanningService bleService;
+  // final BleScanningService bleService;  // Temporarily disabled
   final MovementTrackingService movementService;
+  final Set<String> enabledCalendarIds;
 
   DataAnalysisService({
     required this.locationDb,
     required this.mediaDb,
     required this.calendarService,
-    required this.healthService,
+    // required this.healthService,  // Temporarily disabled
     required this.photoService,
     required this.aiService,
-    required this.bleService,
+    // required this.bleService,  // Temporarily disabled
     required this.movementService,
+    required this.enabledCalendarIds,
   });
 
   /// Generate a daily summary for the given date
@@ -201,7 +206,11 @@ class DataAnalysisService {
     DateTime endDate,
   ) async {
     try {
-      final events = await calendarService.getEventsInRange(startDate, endDate);
+      final events = await calendarService.getEventsInRange(
+        startDate,
+        endDate,
+        enabledCalendarIds: enabledCalendarIds,
+      );
 
       return {
         'event_count': events.length,

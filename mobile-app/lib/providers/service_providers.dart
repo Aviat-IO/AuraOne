@@ -5,6 +5,7 @@ import '../services/calendar_service.dart';
 // import '../services/ble_scanning_service.dart';  // Temporarily disabled for APK size optimization
 import '../services/ai/hybrid_ai_service.dart';  // Privacy-first hybrid AI service
 import '../services/background_data_service.dart';
+import './settings_providers.dart';
 
 // Data Attribution Service Provider - Temporarily disabled
 // final dataAttributionServiceProvider = Provider<DataAttributionService>((ref) {
@@ -13,7 +14,21 @@ import '../services/background_data_service.dart';
 
 // Calendar Service Provider
 final calendarServiceProvider = Provider<CalendarService>((ref) {
-  return CalendarService();
+  final service = CalendarService();
+
+  // Sync calendar settings with privacy settings
+  final calendarSettings = ref.watch(calendarSettingsProvider);
+  final currentPrivacySettings = service.privacySettings;
+
+  // Update privacy settings with enabled calendars
+  service.updatePrivacySettings(
+    currentPrivacySettings.copyWith(
+      syncEnabled: calendarSettings.enabledCalendarIds.isNotEmpty,
+      allowedCalendarIds: calendarSettings.enabledCalendarIds,
+    ),
+  );
+
+  return service;
 });
 
 // Health Service Provider - Temporarily disabled
