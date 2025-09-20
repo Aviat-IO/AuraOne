@@ -127,6 +127,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                   child: TextField(
                     controller: _searchController,
+                    autofocus: true,
                     onChanged: (value) {
                       setState(() {
                         _searchQuery = value;
