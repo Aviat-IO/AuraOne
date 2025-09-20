@@ -126,7 +126,13 @@ class MapWidget extends HookConsumerWidget {
                     : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
                   subdomains: const ['a', 'b', 'c', 'd'],
                   maxZoom: 19,
+                  additionalOptions: const {},
                 ),
+                // Add a semi-transparent overlay in dark mode to improve contrast
+                if (isDark)
+                  Container(
+                    color: Colors.white.withValues(alpha: 0.15),
+                  ),
                 MarkerLayer(
                   markers: _buildMarkers(clusters, theme),
                 ),
@@ -182,7 +188,13 @@ class MapWidget extends HookConsumerWidget {
             : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
           subdomains: const ['a', 'b', 'c', 'd'],
           maxZoom: 19,
+          additionalOptions: const {},
         ),
+        // Add a semi-transparent overlay in dark mode to improve contrast
+        if (isDark)
+          Container(
+            color: Colors.white.withValues(alpha: 0.15),
+          ),
         Container(
           color: Colors.black.withValues(alpha: 0.3),
           child: Center(
