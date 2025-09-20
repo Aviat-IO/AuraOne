@@ -44,3 +44,16 @@
 -keep class io.flutter.plugin.common.MethodChannel { *; }
 -keep class io.flutter.plugin.common.StandardMessageCodec { *; }
 -keep class io.flutter.plugin.common.EventChannel { *; }
+
+# Device Calendar plugin rules
+-keep class com.builttoroam.devicecalendar.** { *; }
+-keepclasseswithmembers class com.builttoroam.devicecalendar.** { *; }
+-dontwarn com.builttoroam.devicecalendar.**
+
+# Android Calendar Provider API
+-keep class android.provider.CalendarContract { *; }
+-keep class android.provider.CalendarContract$** { *; }
+
+# Permission Handler plugin
+-keep class com.baseflow.permissionhandler.** { *; }
+-keepclasseswithmembers class com.baseflow.permissionhandler.** { *; }

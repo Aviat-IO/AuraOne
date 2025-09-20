@@ -53,7 +53,7 @@ dependencies:
   drift_flutter: ^0.2.6
   photo_manager: ^3.5.4
   image: ^4.5.4
-  # google_mlkit_face_detection: ^0.13.1  # Removed to reduce APK size
+  google_mlkit_face_detection: ^0.13.1  # Re-enabled for people detection in AI journal
   shared_preferences: ^2.5.3
   device_calendar: ^4.3.2
   # flutter_blue_plus: ^1.35.0  # Removed to reduce APK size - Bluetooth not essential
@@ -78,12 +78,12 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   flutter_screen_lock: ^9.2.2+2
   local_auth: ^2.3.0
-  # google_mlkit_commons: ^0.11.0  # Removed to reduce APK size
-  # google_mlkit_image_labeling: ^0.14.1  # Removed to reduce APK size
+  google_mlkit_commons: ^0.11.0  # Re-enabled for ML Kit base functionality
+  google_mlkit_image_labeling: ^0.14.1  # Re-enabled for scene/object recognition in AI journal
   google_mlkit_text_recognition: ^0.15.0  # Re-enabled for on-device journal generation
   exif: ^3.3.0
   battery_plus: ^7.0.0
-  # google_mlkit_object_detection: ^0.15.0  # Removed to reduce APK size
+  google_mlkit_object_detection: ^0.15.0  # Re-enabled for activity recognition in AI journal
   google_generative_ai: ^0.4.7
   timezone: ^0.9.4
   device_info_plus: ^11.5.0

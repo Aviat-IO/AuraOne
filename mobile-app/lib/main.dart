@@ -25,92 +25,92 @@ import 'package:aura_one/services/background_init_service.dart';
 import 'package:aura_one/screens/optimized_splash_screen.dart';
 import 'package:aura_one/utils/performance_monitor.dart';
 
-void main() async {
-  // Ensure Flutter binding is initialized
-  WidgetsFlutterBinding.ensureInitialized();
+void main() {
+  // Run the entire app in a single zone to avoid zone mismatch issues
+  runZonedGuarded(() async {
+    // Ensure Flutter binding is initialized
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // Log app startup
-  appLogger.info('Aura One starting...');
+    // Log app startup
+    appLogger.info('Aura One starting...');
 
-  // Enable performance monitoring in debug mode
-  if (kDebugMode) {
-    PerformanceMonitor().startMonitoring();
-  }
+    // Enable performance monitoring in debug mode
+    if (kDebugMode) {
+      PerformanceMonitor().startMonitoring();
+    }
 
-  // Load saved theme preference before app starts
-  await BrightnessNotifier.loadInitialBrightness();
+    // Load saved theme preference before app starts
+    await BrightnessNotifier.loadInitialBrightness();
 
-  // Initialize Sentry for crash reporting
-  await SentryFlutter.init(
-    (options) {
-      // Use DSN from configuration
-      options.dsn = SentryConfig.dsn;
+    // Initialize Sentry for crash reporting
+    await SentryFlutter.init(
+      (options) {
+        // Use DSN from configuration
+        options.dsn = SentryConfig.dsn;
 
-      // Set sample rates based on build mode
-      options.tracesSampleRate = kDebugMode
-          ? SentryConfig.debugTracesSampleRate
-          : SentryConfig.productionTracesSampleRate;
-      options.profilesSampleRate = kDebugMode
-          ? SentryConfig.debugProfilesSampleRate
-          : SentryConfig.productionProfilesSampleRate;
+        // Set sample rates based on build mode
+        options.tracesSampleRate = kDebugMode
+            ? SentryConfig.debugTracesSampleRate
+            : SentryConfig.productionTracesSampleRate;
+        options.profilesSampleRate = kDebugMode
+            ? SentryConfig.debugProfilesSampleRate
+            : SentryConfig.productionProfilesSampleRate;
 
-      // Configure environment
-      options.environment = kDebugMode
-          ? SentryConfig.developmentEnvironment
-          : SentryConfig.productionEnvironment;
+        // Configure environment
+        options.environment = kDebugMode
+            ? SentryConfig.developmentEnvironment
+            : SentryConfig.productionEnvironment;
 
-      // Session tracking
-      options.enableAutoSessionTracking = SentryConfig.enableAutoSessionTracking && !kDebugMode;
-      options.autoSessionTrackingInterval = SentryConfig.autoSessionTrackingInterval;
+        // Session tracking
+        options.enableAutoSessionTracking = SentryConfig.enableAutoSessionTracking && !kDebugMode;
+        options.autoSessionTrackingInterval = SentryConfig.autoSessionTrackingInterval;
 
-      // Set release version
-      options.release = SentryConfig.release;
+        // Set release version
+        options.release = SentryConfig.release;
 
-      // Privacy settings
-      options.sendDefaultPii = SentryConfig.sendDefaultPii;
-      options.attachScreenshot = SentryConfig.attachScreenshot;
-      options.attachViewHierarchy = SentryConfig.attachViewHierarchy;
+        // Privacy settings
+        options.sendDefaultPii = SentryConfig.sendDefaultPii;
+        options.attachScreenshot = SentryConfig.attachScreenshot;
+        options.attachViewHierarchy = SentryConfig.attachViewHierarchy;
 
-      // Breadcrumb configuration
-      options.maxBreadcrumbs = SentryConfig.maxBreadcrumbs;
-      options.enableAutoNativeBreadcrumbs = SentryConfig.enableAutoNativeBreadcrumbs;
+        // Breadcrumb configuration
+        options.maxBreadcrumbs = SentryConfig.maxBreadcrumbs;
+        options.enableAutoNativeBreadcrumbs = SentryConfig.enableAutoNativeBreadcrumbs;
 
-      // Configure before send callback for additional privacy filtering
-      options.beforeSend = (SentryEvent event, Hint hint) async {
-        // Skip sending if no DSN configured
-        if (SentryConfig.dsn.isEmpty) {
-          return null;
-        }
+        // Configure before send callback for additional privacy filtering
+        options.beforeSend = (SentryEvent event, Hint hint) async {
+          // Skip sending if no DSN configured
+          if (SentryConfig.dsn.isEmpty) {
+            return null;
+          }
 
-        // Filter out sensitive error types if needed
-        if (event.throwable is NetworkImageLoadException) {
-          // Don't report image loading errors (might contain URLs with sensitive data)
-          return null;
-        }
+          // Filter out sensitive error types if needed
+          if (event.throwable is NetworkImageLoadException) {
+            // Don't report image loading errors (might contain URLs with sensitive data)
+            return null;
+          }
 
-        return event;
-      };
-    },
-    appRunner: () {
-      // Initialize error handling after Sentry
-      ErrorHandler.initialize();
+          return event;
+        };
+      },
+    );
 
-      runZonedGuarded(() {
-        runApp(
-          ProviderScope(
-            overrides: [
-              storageNotifierProvider.overrideWith(
-                (ref) => PurplebaseStorageNotifier(ref),
-              ),
-            ],
-            child: const AuraOneApp(),
+    // Initialize error handling after Sentry
+    ErrorHandler.initialize();
+
+    runApp(
+      ProviderScope(
+        overrides: [
+          storageNotifierProvider.overrideWith(
+            (ref) => PurplebaseStorageNotifier(ref),
           ),
-        );
-      }, (error, stack) {
-        ErrorHandler.handleError(error, stack);
-      });
-    },
-  );
+        ],
+        child: const AuraOneApp(),
+      ),
+    );
+  }, (error, stack) {
+    ErrorHandler.handleError(error, stack);
+  });
 }
 
 class AuraOneApp extends ConsumerWidget {
@@ -361,42 +361,45 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
 /// Schedule post-initialization tasks that don't block the UI
 void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
   // These run after the UI is ready
-  Future.delayed(const Duration(milliseconds: 500), () async {
+  Future.delayed(const Duration(milliseconds: 2000), () async {
     try {
-      // Initialize location service if needed
-      if (onboardingCompleted) {
-        final locationService = ref.read(simpleLocationServiceProvider);
-        await locationService.initialize();
+      // Temporarily disable location service to debug splash screen issue
+      appLogger.info('Post-initialization tasks temporarily disabled for debugging');
 
-        final hasPermission = await locationService.checkLocationPermission();
-        if (hasPermission) {
-          await locationService.startTracking();
-          appLogger.info('Location tracking started (post-init)');
-        }
-      }
+      // // Initialize location service if needed
+      // if (onboardingCompleted) {
+      //   final locationService = ref.read(simpleLocationServiceProvider);
+      //   await locationService.initialize();
 
-      // Initialize movement tracking
-      final movementService = ref.read(movementTrackingServiceProvider);
-      await movementService.initialize();
-      if (onboardingCompleted) {
-        await movementService.startTracking();
-      }
+      //   final hasPermission = await locationService.checkLocationPermission();
+      //   if (hasPermission) {
+      //     await locationService.startTracking();
+      //     appLogger.info('Location tracking started (post-init)');
+      //   }
+      // }
 
-      // Initialize background data collection
-      final backgroundService = ref.read(backgroundDataServiceProvider);
-      await backgroundService.initialize();
-      await backgroundService.startBackgroundDataCollection(
-        frequency: const Duration(minutes: 15),
-        includeLocation: true,
-        includeBle: true,
-        includeMovement: true,
-      );
+      // // Initialize movement tracking
+      // final movementService = ref.read(movementTrackingServiceProvider);
+      // await movementService.initialize();
+      // if (onboardingCompleted) {
+      //   await movementService.startTracking();
+      // }
 
-      // Initialize notification service
+      // // Initialize background data collection
+      // final backgroundService = ref.read(backgroundDataServiceProvider);
+      // await backgroundService.initialize();
+      // await backgroundService.startBackgroundDataCollection(
+      //   frequency: const Duration(minutes: 15),
+      //   includeLocation: true,
+      //   includeBle: true,
+      //   includeMovement: true,
+      // );
+
+      // Initialize notification service (keep this for basic functionality)
       final notificationService = ref.read(notificationServiceProvider);
       await notificationService.initialize();
 
-      // Initialize journal service
+      // Initialize journal service (keep this for basic functionality)
       final journalService = ref.read(journalServiceProvider);
       await journalService.initialize();
 

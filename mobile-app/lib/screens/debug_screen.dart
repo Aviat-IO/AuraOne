@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/colors.dart';
 import '../providers/settings_providers.dart';
+import '../debug/ai_pipeline_test.dart';
 
 class DebugScreen extends ConsumerWidget {
   const DebugScreen({super.key});
@@ -169,6 +170,22 @@ class DebugScreen extends ConsumerWidget {
                                   );
                                 }
                               },
+                            ),
+                            Divider(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                              height: 1,
+                            ),
+                            _buildDebugTile(
+                              icon: Icons.smart_toy,
+                              title: 'AI Pipeline Test',
+                              subtitle: 'Test AI feature extraction and context synthesis',
+                              trailing: Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                              ),
+                              theme: theme,
+                              onTap: () => testAIPipeline(context),
                             ),
                           ],
                         ),

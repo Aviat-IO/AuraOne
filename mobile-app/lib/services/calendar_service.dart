@@ -172,12 +172,23 @@ class CalendarService {
 
   factory CalendarService() => _instance;
   CalendarService._internal() {
-    _checkPermissions();
+    // Initialize permissions asynchronously
+    _initializePermissions();
   }
 
   final DeviceCalendarPlugin _plugin = DeviceCalendarPlugin();
   CalendarPrivacySettings _privacySettings = const CalendarPrivacySettings();
   bool _hasPermissions = false;
+  bool _isInitialized = false;
+
+  /// Initialize permissions asynchronously
+  Future<void> _initializePermissions() async {
+    if (!_isInitialized) {
+      _hasPermissions = await hasPermissions();
+      _isInitialized = true;
+      _logger.info('Calendar permissions initialized: $_hasPermissions');
+    }
+  }
 
   /// Cache for calendars and events
   final Map<String, CalendarMetadata> _calendarsCache = {};
@@ -200,6 +211,11 @@ class CalendarService {
     Set<String>? calendarIds,
     Set<String>? enabledCalendarIds,
   }) async {
+    // Ensure permissions are initialized
+    if (!_isInitialized) {
+      await _initializePermissions();
+    }
+
     if (!_hasPermissions) {
       // Silently return empty list when no permissions
       return [];
@@ -295,11 +311,6 @@ class CalendarService {
     }
   }
 
-  /// Check permissions on initialization
-  Future<void> _checkPermissions() async {
-    _hasPermissions = await hasPermissions();
-  }
-
   /// Check if calendar permissions are granted
   Future<bool> hasPermissions() async {
     try {
@@ -320,7 +331,12 @@ class CalendarService {
   /// Get all calendars on the device
   Future<List<CalendarMetadata>> getCalendars({bool forceRefresh = false}) async {
     try {
-      if (!await hasPermissions()) {
+      // Ensure permissions are initialized
+      if (!_isInitialized) {
+        await _initializePermissions();
+      }
+
+      if (!_hasPermissions) {
         _logger.warning('Calendar permissions not granted');
         return [];
       }

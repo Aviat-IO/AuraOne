@@ -19,6 +19,7 @@ import 'package:aura_one/screens/terms_screen.dart';
 import 'package:aura_one/screens/privacy_policy_screen.dart';
 import 'package:aura_one/screens/event_detail_screen.dart';
 import 'package:aura_one/screens/daily_canvas_screen.dart';
+import 'package:aura_one/screens/pattern_insights_screen.dart';
 import 'package:aura_one/widgets/daily_canvas/timeline_widget.dart';
 
 // Debug-only imports - excluded from production builds via kDebugMode guards
@@ -191,6 +192,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           final date = state.extra as DateTime? ?? DateTime.now();
           return DailyCanvasScreen(date: date);
         },
+      ),
+
+      // Pattern Insights screen for viewing weekly/monthly analysis
+      GoRoute(
+        path: '/pattern-insights',
+        builder: (context, state) => const PatternInsightsScreen(),
       ),
     ],
   );
