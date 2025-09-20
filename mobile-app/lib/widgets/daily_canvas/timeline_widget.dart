@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -5,7 +6,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../database/journal_database.dart';
 import '../../database/media_database.dart';
 import '../../services/journal_service.dart';
@@ -13,6 +13,22 @@ import '../../services/calendar_service.dart';
 import '../../providers/media_database_provider.dart';
 import '../../providers/media_thumbnail_provider.dart';
 import '../../providers/service_providers.dart';
+
+// Helper function to get calendar events for a specific date
+Future<List<CalendarEventData>> _getCalendarEventsForDate(
+  CalendarService calendarService,
+  DateTime date,
+) async {
+  final startDate = DateTime(date.year, date.month, date.day);
+  final endDate = DateTime(date.year, date.month, date.day, 23, 59, 59);
+
+  try {
+    return await calendarService.getEventsInRange(startDate, endDate);
+  } catch (e) {
+    // Return empty list if calendar access fails (no permissions, etc.)
+    return [];
+  }
+}
 
 // Provider for calendar events from device calendar
 final calendarEventsProvider = FutureProvider.family<List<CalendarEventData>, DateTime>((ref, date) async {
@@ -31,11 +47,18 @@ final calendarEventsProvider = FutureProvider.family<List<CalendarEventData>, Da
   }
 });
 
-// Provider for calendar metadata (names, colors, etc.)
-final calendarMetadataProvider = FutureProvider<Map<String, String>>((ref) async {
+// Provider for calendar metadata (names, colors, etc.) - cached and shared across all dates
+final calendarMetadataProvider = FutureProvider.autoDispose<Map<String, String>>((ref) async {
   final calendarService = ref.watch(calendarServiceProvider);
 
   try {
+    // Cache for 5 minutes to avoid frequent calendar queries
+    ref.keepAlive();
+    final timer = Timer(const Duration(minutes: 5), () {
+      ref.invalidateSelf();
+    });
+    ref.onDispose(() => timer.cancel());
+
     final calendars = await calendarService.getCalendars();
     return Map.fromEntries(
       calendars.map((calendar) => MapEntry(calendar.id, calendar.name))
@@ -49,10 +72,16 @@ final calendarMetadataProvider = FutureProvider<Map<String, String>>((ref) async
 // Provider for timeline events from journal database
 final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTime>((ref, date) async {
   final journalDb = ref.watch(journalDatabaseProvider);
-  final calendarEventsAsync = ref.watch(calendarEventsProvider(date));
+  final calendarService = ref.watch(calendarServiceProvider);
 
-  // Get activities from the journal database for the selected date
-  final activities = await journalDb.getActivitiesForDate(date);
+  // Load journal activities and calendar events in parallel
+  final results = await Future.wait([
+    journalDb.getActivitiesForDate(date),
+    _getCalendarEventsForDate(calendarService, date),
+  ]);
+
+  final activities = results[0] as List<JournalActivity>;
+  final calendarEvents = results[1] as List<CalendarEventData>;
 
   // Filter out the automatic "Personal reflections and thoughts" manual entry
   final filteredActivities = activities.where((activity) {
@@ -148,37 +177,33 @@ final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTi
     );
   }).toList();
 
-  // Get calendar events and convert them to TimelineEvent
-  final calendarEvents = calendarEventsAsync.when(
-    data: (events) => events
-        .where((calendarEvent) {
-          // For all-day events, check if they fall on the selected date
-          if (calendarEvent.isAllDay) {
-            final eventLocalDate = calendarEvent.startDate.toLocal();
-            return eventLocalDate.year == date.year &&
-                   eventLocalDate.month == date.month &&
-                   eventLocalDate.day == date.day;
-          }
-          // For timed events, they're already filtered by the query
-          return true;
-        })
-        .map((calendarEvent) {
-          return TimelineEvent(
-            time: calendarEvent.startDate,
-            title: calendarEvent.title,
-            description: calendarEvent.description ?? '',
-            type: EventType.work, // Default calendar events to work type
-            icon: Icons.event,
-            isCalendarEvent: true,
-            calendarEventData: calendarEvent,
-          );
-        }).toList(),
-    loading: () => <TimelineEvent>[],
-    error: (_, __) => <TimelineEvent>[],
-  );
+  // Convert calendar events to TimelineEvent and filter all-day events
+  final calendarTimelineEvents = calendarEvents
+      .where((calendarEvent) {
+        // For all-day events, check if they fall on the selected date
+        if (calendarEvent.isAllDay) {
+          final eventLocalDate = calendarEvent.startDate.toLocal();
+          return eventLocalDate.year == date.year &&
+                 eventLocalDate.month == date.month &&
+                 eventLocalDate.day == date.day;
+        }
+        // For timed events, they're already filtered by the query
+        return true;
+      })
+      .map((calendarEvent) {
+        return TimelineEvent(
+          time: calendarEvent.startDate,
+          title: calendarEvent.title,
+          description: calendarEvent.description ?? '',
+          type: EventType.work, // Default calendar events to work type
+          icon: Icons.event,
+          isCalendarEvent: true,
+          calendarEventData: calendarEvent,
+        );
+      }).toList();
 
   // Combine journal and calendar events
-  final allEvents = [...journalEvents, ...calendarEvents];
+  final allEvents = [...journalEvents, ...calendarTimelineEvents];
 
   // Sort events by time
   allEvents.sort((a, b) => a.time.compareTo(b.time));
