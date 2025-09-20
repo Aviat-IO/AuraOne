@@ -9,7 +9,7 @@ import 'history_screen.dart';
 import 'privacy_screen.dart';
 import 'settings_screen.dart';
 
-final selectedTabIndexProvider = StateProvider<int>((ref) => 2); // Default to Home (middle tab)
+final selectedTabIndexProvider = StateProvider<int>((ref) => 2); // Default to Today (middle tab)
 
 class MainLayoutScreen extends ConsumerWidget {
   const MainLayoutScreen({super.key});
@@ -38,12 +38,12 @@ class MainLayoutScreen extends ConsumerWidget {
         items: const [
           PillTabItem(icon: Icons.search, label: 'Search'),
           PillTabItem(icon: Icons.history, label: 'History'),
-          PillTabItem(icon: Icons.home, label: 'Home'),
+          PillTabItem(icon: Icons.today, label: 'Today'),
           PillTabItem(icon: Icons.privacy_tip, label: 'Privacy'),
           PillTabItem(icon: Icons.settings, label: 'Settings'),
         ],
         onItemSelected: (index) {
-          // If navigating to Home (index 2), reset to Journal subtab
+          // If navigating to Today (index 2), reset to Journal subtab
           if (index == 2) {
             ref.read(homeSubTabIndexProvider.notifier).state = 0;
             ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0; // Reset to Journal tab
