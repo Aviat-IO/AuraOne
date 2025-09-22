@@ -25,7 +25,6 @@ class EventDetailScreen extends HookConsumerWidget {
     final isEditing = useState(false);
     final titleController = useTextEditingController(text: event.title);
     final descriptionController = useTextEditingController(text: event.description);
-    final notesController = useTextEditingController();
     final isSaving = useState(false);
 
     // Get event type color
@@ -54,7 +53,6 @@ class EventDetailScreen extends HookConsumerWidget {
                 ref, context,
                 titleController.text,
                 descriptionController.text,
-                notesController.text,
                 isSaving,
                 isEditing,
               ),
@@ -189,130 +187,105 @@ class EventDetailScreen extends HookConsumerWidget {
 
             const SizedBox(height: 16),
 
-            // Event Description (if editing or exists)
-            if (isEditing.value || event.description.isNotEmpty) ...[
-              if (isEditing.value)
-                TextField(
-                  controller: descriptionController,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    height: 1.4,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: 'Description',
-                    hintText: 'Add a brief description...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: EdgeInsets.all(12),
-                  ),
-                  maxLines: 3,
-                  minLines: 2,
-                )
-              else if (event.description.isNotEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: colorScheme.outline.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Text(
-                    event.description,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 16),
-            ],
-
-            // Photo Memories Section (if photos exist)
-            _buildPhotoMemoriesSection(ref, context, theme, colorScheme),
-
-            // Journal-Style Notes Section
+            // Event Description Section
             Card(
-              elevation: 2,
+              elevation: 1,
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
                         Icon(
-                          Icons.auto_awesome,
+                          Icons.description,
                           color: colorScheme.primary,
+                          size: 20,
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Journal Entry',
-                          style: theme.textTheme.titleLarge?.copyWith(
+                          'Event Description',
+                          style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const Spacer(),
-                        if (!isEditing.value)
-                          TextButton.icon(
-                            onPressed: () => _generateAIContent(ref, context, notesController),
-                            icon: const Icon(Icons.auto_awesome, size: 16),
-                            label: const Text('AI Generate'),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                            ),
-                          ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Capture your thoughts, reflections, and insights about this moment',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: notesController,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        height: 1.6,
-                        fontSize: 16,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'What made this moment special? How did you feel? What thoughts came to mind?\n\nStart typing or use AI Generate to create a reflection based on this event...',
-                        hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurface.withValues(alpha: 0.4),
-                          height: 1.6,
+                    const SizedBox(height: 12),
+                    if (isEditing.value)
+                      TextField(
+                        controller: descriptionController,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          height: 1.5,
                         ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
+                        decoration: InputDecoration(
+                          hintText: 'Add details about this event (optional)...',
+                          hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurface.withValues(alpha: 0.4),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                              color: colorScheme.outline.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                              color: colorScheme.primary,
+                              width: 2,
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.all(12),
+                          filled: true,
+                          fillColor: colorScheme.surface,
+                        ),
+                        maxLines: 4,
+                        minLines: 3,
+                        textCapitalization: TextCapitalization.sentences,
+                      )
+                    else if (event.description.isNotEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          color: colorScheme.surfaceContainer,
+                        ),
+                        child: Text(
+                          event.description,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            height: 1.5,
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
                             color: colorScheme.outline.withValues(alpha: 0.2),
                           ),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: colorScheme.primary,
-                            width: 2,
+                        child: Text(
+                          'No description added',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurface.withValues(alpha: 0.4),
+                            fontStyle: FontStyle.italic,
                           ),
                         ),
-                        contentPadding: const EdgeInsets.all(20),
-                        filled: true,
-                        fillColor: colorScheme.surface,
                       ),
-                      maxLines: 12,
-                      minLines: 8,
-                      textInputAction: TextInputAction.newline,
-                      textCapitalization: TextCapitalization.sentences,
-                    ),
                   ],
                 ),
               ),
             ),
+
+            const SizedBox(height: 16),
+
+            // Photo Memories Section (if photos exist)
+            _buildPhotoMemoriesSection(ref, context, theme, colorScheme),
 
             const SizedBox(height: 24),
 
@@ -338,7 +311,6 @@ class EventDetailScreen extends HookConsumerWidget {
                         ref, context,
                         titleController.text,
                         descriptionController.text,
-                        notesController.text,
                         isSaving,
                         isEditing,
                       ),
@@ -354,32 +326,16 @@ class EventDetailScreen extends HookConsumerWidget {
                 ],
               )
             else
-              Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => isEditing.value = true,
-                      icon: const Icon(Icons.edit),
-                      label: const Text('Edit Event'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                    ),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => isEditing.value = true,
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Edit Event'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _saveNotes(ref, context, notesController.text),
-                      icon: const Icon(Icons.save),
-                      label: const Text('Save Journal Entry'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
           ],
         ),
@@ -392,7 +348,6 @@ class EventDetailScreen extends HookConsumerWidget {
     BuildContext context,
     String title,
     String description,
-    String notes,
     ValueNotifier<bool> isSaving,
     ValueNotifier<bool> isEditing,
   ) async {
@@ -413,7 +368,6 @@ class EventDetailScreen extends HookConsumerWidget {
         eventId: _getEventId(event),
         title: title.trim(),
         description: description.trim(),
-        notes: notes.trim(),
         timestamp: event.time,
       );
 
@@ -434,92 +388,6 @@ class EventDetailScreen extends HookConsumerWidget {
     }
   }
 
-  Future<void> _saveNotes(
-    WidgetRef ref,
-    BuildContext context,
-    String notes,
-  ) async {
-    try {
-      final journalService = ref.read(journalServiceProvider);
-
-      // Save just the notes for this event
-      await journalService.updateEventNotes(
-        eventId: _getEventId(event),
-        notes: notes.trim(),
-      );
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Journal entry saved successfully')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving journal entry: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _generateAIContent(
-    WidgetRef ref,
-    BuildContext context,
-    TextEditingController notesController,
-  ) async {
-    try {
-      // Show loading indicator
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              Text(
-                'Generating AI reflection...',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-          ),
-        ),
-      );
-
-      final journalService = ref.read(journalServiceProvider);
-
-      // Generate AI content based on the event
-      final aiEntry = await journalService.generateEventReflection(
-        event: event,
-        existingNotes: notesController.text,
-      );
-
-      if (context.mounted) {
-        Navigator.of(context).pop(); // Close loading dialog
-
-        // Update the notes field with AI generated content
-        notesController.text = aiEntry;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('AI reflection generated! You can edit it as needed.'),
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        Navigator.of(context).pop(); // Close loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error generating AI content: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
-    }
-  }
 
   String _getEventId(TimelineEvent event) {
     // Generate a consistent ID based on event time and title

@@ -255,7 +255,6 @@ class JournalService {
     required String eventId,
     required String title,
     required String description,
-    required String notes,
     required DateTime timestamp,
   }) async {
     try {
@@ -263,15 +262,7 @@ class JournalService {
 
       // For now, this creates a new manual activity since we don't have
       // a specific events table - this integrates with the existing activity system
-      // Construct description based on what content is available
-      String fullDescription = '';
-      if (description.isNotEmpty && notes.isNotEmpty) {
-        fullDescription = '$description\n\nNotes: $notes';
-      } else if (description.isNotEmpty) {
-        fullDescription = description;
-      } else if (notes.isNotEmpty) {
-        fullDescription = 'Notes: $notes';
-      }
+      String fullDescription = description.isNotEmpty ? description : '';
 
       await addManualActivity(
         date: DateTime(timestamp.year, timestamp.month, timestamp.day),
@@ -285,66 +276,6 @@ class JournalService {
     } catch (e, stack) {
       _logger.error('Failed to update event: $eventId', error: e, stackTrace: stack);
       rethrow;
-    }
-  }
-
-  /// Update an event's notes
-  Future<void> updateEventNotes({
-    required String eventId,
-    required String notes,
-  }) async {
-    try {
-      _logger.info('Updating event notes: $eventId');
-
-      // For now, create a note entry as a manual activity
-      final now = DateTime.now();
-      await addManualActivity(
-        date: DateTime(now.year, now.month, now.day),
-        title: 'Event Notes',
-        description: notes,
-        timestamp: now,
-        activityType: 'manual',
-      );
-
-      _logger.info('Successfully updated event notes: $eventId');
-    } catch (e, stack) {
-      _logger.error('Failed to update event notes: $eventId', error: e, stackTrace: stack);
-      rethrow;
-    }
-  }
-
-  /// Generate AI reflection for a specific event
-  Future<String> generateEventReflection({
-    required dynamic event,
-    String? existingNotes,
-  }) async {
-    try {
-      _logger.info('Generating AI reflection for event: ${event.title}');
-
-      // Prepare context for AI generation
-      final context = {
-        'event_title': event.title,
-        'event_description': event.description,
-        'event_type': event.type.toString(),
-        'event_time': event.time.toIso8601String(),
-        'existing_notes': existingNotes ?? '',
-        'generation_type': 'event_reflection',
-      };
-
-      // Generate AI reflection using existing AI service
-      final aiResult = await _aiService.generateJournalEntry(context);
-
-      // Extract the content from the AI response
-      final reflection = aiResult['content']?.toString() ??
-        'This was a meaningful moment that deserves reflection. Consider what made it special, how it made you feel, and what you might learn from it.';
-
-      _logger.info('Successfully generated AI reflection for event: ${event.title}');
-      return reflection;
-    } catch (e, stack) {
-      _logger.error('Failed to generate AI reflection for event: ${event.title}', error: e, stackTrace: stack);
-
-      // Return a fallback reflection
-      return 'This was a meaningful moment in your day. Take a moment to reflect on what made it special, how it made you feel, and what insights you might gain from this experience.';
     }
   }
 
