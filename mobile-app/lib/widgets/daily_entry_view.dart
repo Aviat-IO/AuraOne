@@ -179,6 +179,47 @@ class _JournalTab extends HookConsumerWidget {
     final controller = useTextEditingController();
     final isGenerating = useState(false);
     final aiService = useMemoized(() => HybridAIService(), []);
+    final textFieldFocusNode = useFocusNode();
+
+    // Add a flag to prevent any focus for the first 500ms after mount
+    final canFocus = useState(false);
+
+    // Prevent focus on first load - ensure edit mode is false and no keyboard
+    useEffect(() {
+      // Force edit mode to false on mount
+      isEditing.value = false;
+      canFocus.value = false;
+
+      // Ensure keyboard doesn't pop up on first load - unfocus multiple times to be sure
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        textFieldFocusNode.unfocus();
+        FocusManager.instance.primaryFocus?.unfocus();
+
+        // Double-check after a short delay
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (context.mounted) {
+            textFieldFocusNode.unfocus();
+            FocusManager.instance.primaryFocus?.unfocus();
+          }
+        });
+
+        // Additional check after a longer delay
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (context.mounted) {
+            textFieldFocusNode.unfocus();
+            FocusManager.instance.primaryFocus?.unfocus();
+          }
+        });
+
+        // Allow focus only after 500ms to prevent any auto-focus behavior
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (context.mounted) {
+            canFocus.value = true;
+          }
+        });
+      });
+      return null;
+    }, []);
 
     // Function to load existing journal entry for this date
     Future<void> loadEntry() async {
@@ -426,9 +467,17 @@ class _JournalTab extends HookConsumerWidget {
                               isEditing.value ? Icons.check : Icons.edit,
                               color: theme.colorScheme.primary,
                             ),
-                            onPressed: () async {
+                            onPressed: !canFocus.value ? null : () async {
+                              // Only allow editing after initial delay to prevent auto-focus
+                              if (!canFocus.value) return;
+
                               if (isEditing.value) {
                                 await saveEntry();
+                                // Unfocus when exiting edit mode
+                                textFieldFocusNode.unfocus();
+                              } else {
+                                // When entering edit mode, only focus if user explicitly wants to edit
+                                // Don't auto-focus to prevent unwanted keyboard popup
                               }
                               isEditing.value = !isEditing.value;
                             },
@@ -443,6 +492,10 @@ class _JournalTab extends HookConsumerWidget {
                     child: isEditing.value
                       ? TextField(
                           controller: controller,
+                          focusNode: textFieldFocusNode,
+                          autofocus: false,
+                          readOnly: !canFocus.value, // Prevent any interaction until ready
+                          enableInteractiveSelection: canFocus.value,
                           maxLines: null,
                           decoration: InputDecoration(
                             hintText: 'Write about this day...',

@@ -57,3 +57,16 @@
 # Permission Handler plugin
 -keep class com.baseflow.permissionhandler.** { *; }
 -keepclasseswithmembers class com.baseflow.permissionhandler.** { *; }
+
+# Photo Manager plugin rules
+-keep class com.fluttercandies.photo_manager.** { *; }
+-keepclasseswithmembers class com.fluttercandies.photo_manager.** { *; }
+-dontwarn com.fluttercandies.photo_manager.**
+
+# Android Media Store API
+-keep class android.provider.MediaStore { *; }
+-keep class android.provider.MediaStore$** { *; }
+
+# Location service rules
+-keep class com.google.android.gms.location.** { *; }
+-keep class com.google.android.gms.maps.** { *; }

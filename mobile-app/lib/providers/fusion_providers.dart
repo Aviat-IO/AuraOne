@@ -18,20 +18,23 @@ class MultiModalFusionEngine {
 
 // Stub Fusion Engine Controller
 class FusionEngineController {
-  bool _isRunning = false;
+  final Ref _ref;
 
-  bool get isRunning => _isRunning;
+  FusionEngineController(this._ref);
+
+  bool get isRunning => _ref.read(fusionEngineRunningProvider);
 
   Future<void> toggle() async {
-    _isRunning = !_isRunning;
+    final currentState = _ref.read(fusionEngineRunningProvider);
+    _ref.read(fusionEngineRunningProvider.notifier).state = !currentState;
   }
 
   Future<void> start() async {
-    _isRunning = true;
+    _ref.read(fusionEngineRunningProvider.notifier).state = true;
   }
 
   Future<void> stop() async {
-    _isRunning = false;
+    _ref.read(fusionEngineRunningProvider.notifier).state = false;
   }
 }
 
@@ -47,5 +50,5 @@ final fusionEngineRunningProvider = StateProvider<bool>((ref) {
 
 // Provider for fusion engine controller
 final fusionEngineControllerProvider = Provider<FusionEngineController>((ref) {
-  return FusionEngineController();
+  return FusionEngineController(ref);
 });

@@ -1,7 +1,7 @@
 # Makefile for Aura One mobile app development
 # Optimized for macOS development with Android emulator
 
-.PHONY: install dev emulators devices clean help
+.PHONY: install dev emulators devices clean help build-apk transfer-apk
 
 # Default target
 help:
@@ -119,6 +119,9 @@ build-apk:
 		grep -v "getter for minSdkVersion" | \
 		grep -v "Recompile with -Xlint" || true
 	@echo "✅ APK built! Find it in build/app/outputs/flutter-apk/"
+
+transfer-apk:
+	adb install build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 
 # Run tests
 test:

@@ -6,7 +6,12 @@
         <domain includeSubdomains="true">a.tile.openstreetmap.org</domain>
         <domain includeSubdomains="true">b.tile.openstreetmap.org</domain>
         <domain includeSubdomains="true">c.tile.openstreetmap.org</domain>
-        <!-- Add other tile servers if needed -->
+        <!-- CartoDB/CARTO tile servers for light and dark maps -->
+        <domain includeSubdomains="true">basemaps.cartocdn.com</domain>
+        <domain includeSubdomains="true">a.basemaps.cartocdn.com</domain>
+        <domain includeSubdomains="true">b.basemaps.cartocdn.com</domain>
+        <domain includeSubdomains="true">c.basemaps.cartocdn.com</domain>
+        <domain includeSubdomains="true">d.basemaps.cartocdn.com</domain>
     </domain-config>
 
     <!-- Default secure configuration for all other domains -->

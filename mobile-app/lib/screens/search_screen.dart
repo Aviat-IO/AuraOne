@@ -15,6 +15,7 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   String _searchQuery = '';
   List<JournalEntrySearchResult> _searchResults = [];
   bool _isSearching = false;
@@ -25,16 +26,23 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     super.initState();
     _searchService = OptimizedSearchService();
 
-    // Initialize FTS5 index on first load
+    // Initialize FTS5 index and autofocus search field
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Initialize search index
       final journalDatabase = ref.read(journalDatabaseProvider);
       await _searchService.initializeSearchIndex(journalDatabase);
+
+      // Autofocus the search field
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
     });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -127,7 +135,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                   child: TextField(
                     controller: _searchController,
-                    autofocus: true,
+                    focusNode: _searchFocusNode,
+                    autofocus: true,  // Enable autofocus for Search page only
                     onChanged: (value) {
                       setState(() {
                         _searchQuery = value;

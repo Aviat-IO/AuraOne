@@ -941,7 +941,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
         content: TextField(
           controller: controller,
           obscureText: true,
-          autofocus: true,
+          autofocus: false,
           decoration: const InputDecoration(
             labelText: 'Password',
             hintText: 'Enter password',

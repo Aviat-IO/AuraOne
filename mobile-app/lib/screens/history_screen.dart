@@ -19,6 +19,9 @@ final recentJournalEntriesProvider = StreamProvider<List<JournalEntry>>((ref) {
 // Provider for persistent selected date in history
 final historySelectedDatePersistentProvider = StateProvider<DateTime>((ref) => DateTime.now());
 
+// Provider to track if user has ever selected a date in history
+final hasUserSelectedHistoryDateProvider = StateProvider<bool>((ref) => false);
+
 class HistoryScreen extends HookConsumerWidget {
   const HistoryScreen({super.key});
 
@@ -37,6 +40,8 @@ class HistoryScreen extends HookConsumerWidget {
     useEffect(() {
       selectedDay.value = persistentSelectedDate;
       focusedDay.value = persistentSelectedDate;
+      // Ensure keyboard is hidden when date changes
+      FocusManager.instance.primaryFocus?.unfocus();
       return null;
     }, [persistentSelectedDate]);
 
@@ -45,15 +50,20 @@ class HistoryScreen extends HookConsumerWidget {
       if (current == 1 && previous != 1) { // History tab is at index 1
         // Reset to Journal subtab when navigating to History
         ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
-        // Reset the flag when navigating to history tab
-        hasShownCalendar.value = false;
-        // Show calendar after a brief delay to allow the screen to render
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (context.mounted && !hasShownCalendar.value) {
-            hasShownCalendar.value = true;
-            _showCalendarPicker(context, ref, selectedDay, focusedDay);
-          }
-        });
+
+        // Only show calendar automatically if user hasn't selected a date before
+        final hasSelectedDate = ref.read(hasUserSelectedHistoryDateProvider);
+        if (!hasSelectedDate) {
+          // Reset the flag when navigating to history tab
+          hasShownCalendar.value = false;
+          // Show calendar after a brief delay to allow the screen to render
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (context.mounted && !hasShownCalendar.value) {
+              hasShownCalendar.value = true;
+              _showCalendarPicker(context, ref, selectedDay, focusedDay);
+            }
+          });
+        }
       }
     });
 
@@ -65,6 +75,8 @@ class HistoryScreen extends HookConsumerWidget {
         focusedDay.value = dateFromMedia;
         // Update persistent provider
         ref.read(historySelectedDatePersistentProvider.notifier).state = dateFromMedia;
+        // Mark that user has selected a date (via media navigation)
+        ref.read(hasUserSelectedHistoryDateProvider.notifier).state = true;
         // Reset to Journal subtab
         ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
         // Clear the navigation date
@@ -82,6 +94,8 @@ class HistoryScreen extends HookConsumerWidget {
         focusedDay.value = next;
         // Update persistent provider
         ref.read(historySelectedDatePersistentProvider.notifier).state = next;
+        // Mark that user has selected a date (via media navigation)
+        ref.read(hasUserSelectedHistoryDateProvider.notifier).state = true;
         // Reset to Journal subtab
         ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
         // Clear the navigation date
@@ -117,10 +131,15 @@ class HistoryScreen extends HookConsumerWidget {
 
               // Daily Entry View for selected date
               Expanded(
-                child: DailyEntryView(
-                  date: selectedDay.value,
-                  enableAI: true, // Enable AI for history entries too
-                  enableMediaSelection: false, // Disable media selection for history (read-only)
+                child: GestureDetector(
+                  // Unfocus text fields when tapping outside
+                  onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                  behavior: HitTestBehavior.translucent,
+                  child: DailyEntryView(
+                    date: selectedDay.value,
+                    enableAI: true, // Enable AI for history entries too
+                    enableMediaSelection: false, // Disable media selection for history (read-only)
+                  ),
                 ),
               ),
             ],
@@ -165,6 +184,8 @@ class HistoryScreen extends HookConsumerWidget {
               focusedDay.value = newDate;
               // Update persistent provider
               ref.read(historySelectedDatePersistentProvider.notifier).state = newDate;
+              // Mark that user has selected a date
+              ref.read(hasUserSelectedHistoryDateProvider.notifier).state = true;
               // Reset to Journal subtab
               ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
             },
@@ -212,6 +233,8 @@ class HistoryScreen extends HookConsumerWidget {
                 focusedDay.value = newDate;
                 // Update persistent provider
                 ref.read(historySelectedDatePersistentProvider.notifier).state = newDate;
+                // Mark that user has selected a date
+                ref.read(hasUserSelectedHistoryDateProvider.notifier).state = true;
                 // Reset to Journal subtab
                 ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
               }
@@ -280,9 +303,16 @@ class HistoryScreen extends HookConsumerWidget {
                         focusedDay.value = focused;
                         // Update persistent provider
                         ref.read(historySelectedDatePersistentProvider.notifier).state = selected;
+                        // Mark that user has selected a date
+                        ref.read(hasUserSelectedHistoryDateProvider.notifier).state = true;
                         // Reset to Journal subtab
                         ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
+                        // Close the modal first
                         Navigator.of(context).pop();
+                        // Then ensure focus is cleared after modal animation completes
+                        Future.delayed(const Duration(milliseconds: 350), () {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                        });
                       },
                       eventLoader: (day) {
                         final normalizedDay = DateTime(day.year, day.month, day.day);

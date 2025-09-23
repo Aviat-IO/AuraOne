@@ -38,13 +38,9 @@ class JournalEntryEditor extends HookConsumerWidget {
     final titleFocusNode = useFocusNode();
     final contentFocusNode = useFocusNode();
 
-    // Auto-focus title when entering edit mode
+    // No auto-focus - removed to prevent keyboard popup
     useEffect(() {
-      if (isEditing.value) {
-        Future.delayed(const Duration(milliseconds: 100), () {
-          titleFocusNode.requestFocus();
-        });
-      }
+      // Auto-focus disabled
       return null;
     }, [isEditing.value]);
 
