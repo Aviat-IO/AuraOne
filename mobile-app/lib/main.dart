@@ -14,6 +14,7 @@ import 'package:aura_one/screens/app_lock_screen.dart';
 import 'package:aura_one/utils/error_handler.dart';
 import 'package:aura_one/utils/logger.dart';
 import 'package:aura_one/services/simple_location_service.dart';
+import 'package:aura_one/services/persistent_location_service.dart';
 import 'package:aura_one/services/movement_tracking_service.dart';
 import 'package:aura_one/services/background_data_service.dart';
 import 'package:aura_one/providers/fusion_providers.dart';
@@ -363,37 +364,53 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
   // These run after the UI is ready
   Future.delayed(const Duration(milliseconds: 2000), () async {
     try {
-      // Temporarily disable location service to debug splash screen issue
-      appLogger.info('Post-initialization tasks temporarily disabled for debugging');
+      // Initialize persistent location service first
+      if (onboardingCompleted) {
+        appLogger.info('Initializing persistent location service...');
+        final persistentLocationService = PersistentLocationService();
+        await persistentLocationService.initialize();
 
-      // // Initialize location service if needed
-      // if (onboardingCompleted) {
-      //   final locationService = ref.read(simpleLocationServiceProvider);
-      //   await locationService.initialize();
+        // Start persistent background location tracking
+        final trackingStarted = await persistentLocationService.startTracking(
+          intervalMinutes: 5, // Collect location every 5 minutes
+          distanceFilter: 50, // Or when user moves 50 meters
+        );
 
-      //   final hasPermission = await locationService.checkLocationPermission();
-      //   if (hasPermission) {
-      //     await locationService.startTracking();
-      //     appLogger.info('Location tracking started (post-init)');
-      //   }
-      // }
+        if (trackingStarted) {
+          appLogger.info('Persistent background location tracking started successfully');
+        } else {
+          appLogger.warning('Failed to start persistent location tracking');
+        }
+      }
 
-      // // Initialize movement tracking
-      // final movementService = ref.read(movementTrackingServiceProvider);
-      // await movementService.initialize();
-      // if (onboardingCompleted) {
-      //   await movementService.startTracking();
-      // }
+      // Initialize simple location service for real-time tracking
+      if (onboardingCompleted) {
+        final locationService = ref.read(simpleLocationServiceProvider);
+        await locationService.initialize();
 
-      // // Initialize background data collection
-      // final backgroundService = ref.read(backgroundDataServiceProvider);
-      // await backgroundService.initialize();
-      // await backgroundService.startBackgroundDataCollection(
-      //   frequency: const Duration(minutes: 15),
-      //   includeLocation: true,
-      //   includeBle: true,
-      //   includeMovement: true,
-      // );
+        final hasPermission = await locationService.checkLocationPermission();
+        if (hasPermission) {
+          await locationService.startTracking();
+          appLogger.info('Real-time location tracking started (post-init)');
+        }
+      }
+
+      // Initialize movement tracking
+      final movementService = ref.read(movementTrackingServiceProvider);
+      await movementService.initialize();
+      if (onboardingCompleted) {
+        await movementService.startTracking();
+      }
+
+      // Initialize background data collection with WorkManager
+      final backgroundService = ref.read(backgroundDataServiceProvider);
+      await backgroundService.initialize();
+      await backgroundService.startBackgroundDataCollection(
+        frequency: const Duration(minutes: 15),
+        includeLocation: true,
+        includeBle: true,
+        includeMovement: true,
+      );
 
       // Initialize notification service (keep this for basic functionality)
       final notificationService = ref.read(notificationServiceProvider);
