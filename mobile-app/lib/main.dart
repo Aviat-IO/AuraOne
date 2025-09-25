@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:models/models.dart';
@@ -47,31 +48,44 @@ void main() {
     // Load saved theme preference before app starts
     await BrightnessNotifier.loadInitialBrightness();
 
-    // Initialize Sentry for crash reporting
-    await SentryFlutter.init(
-      (options) {
-        // Use DSN from configuration
-        options.dsn = SentryConfig.dsn;
+    // Get package info for dynamic version
+    PackageInfo? packageInfo;
+    try {
+      packageInfo = await PackageInfo.fromPlatform();
+      // Set dynamic release version for Sentry
+      SentryConfig.release = 'aura-one@${packageInfo.version}+${packageInfo.buildNumber}';
+    } catch (e) {
+      appLogger.warning('Could not get package info for Sentry: $e');
+      // Fallback to a default version if package info fails
+      SentryConfig.release = 'aura-one@0.1.0+1';
+    }
 
-        // Set sample rates based on build mode
-        options.tracesSampleRate = kDebugMode
-            ? SentryConfig.debugTracesSampleRate
-            : SentryConfig.productionTracesSampleRate;
-        options.profilesSampleRate = kDebugMode
-            ? SentryConfig.debugProfilesSampleRate
-            : SentryConfig.productionProfilesSampleRate;
+    // Initialize Sentry for crash reporting only if enabled and DSN is configured
+    if (SentryConfig.enabled && SentryConfig.dsn.isNotEmpty) {
+      await SentryFlutter.init(
+        (options) {
+          // Use DSN from configuration
+          options.dsn = SentryConfig.dsn;
 
-        // Configure environment
-        options.environment = kDebugMode
-            ? SentryConfig.developmentEnvironment
-            : SentryConfig.productionEnvironment;
+          // Set sample rates based on build mode
+          options.tracesSampleRate = kDebugMode
+              ? SentryConfig.debugTracesSampleRate
+              : SentryConfig.productionTracesSampleRate;
+          options.profilesSampleRate = kDebugMode
+              ? SentryConfig.debugProfilesSampleRate
+              : SentryConfig.productionProfilesSampleRate;
 
-        // Session tracking
-        options.enableAutoSessionTracking = SentryConfig.enableAutoSessionTracking && !kDebugMode;
-        options.autoSessionTrackingInterval = SentryConfig.autoSessionTrackingInterval;
+          // Configure environment
+          options.environment = kDebugMode
+              ? SentryConfig.developmentEnvironment
+              : SentryConfig.productionEnvironment;
 
-        // Set release version
-        options.release = SentryConfig.release;
+          // Session tracking
+          options.enableAutoSessionTracking = SentryConfig.enableAutoSessionTracking && !kDebugMode;
+          options.autoSessionTrackingInterval = SentryConfig.autoSessionTrackingInterval;
+
+          // Set release version
+          options.release = SentryConfig.release;
 
         // Privacy settings
         options.sendDefaultPii = SentryConfig.sendDefaultPii;
@@ -99,6 +113,10 @@ void main() {
         };
       },
     );
+      appLogger.info('Sentry initialized with release: ${SentryConfig.release}');
+    } else {
+      appLogger.info('Sentry is disabled. Set enabled=true and configure DSN in SentryConfig to enable crash reporting.');
+    }
 
     // Initialize error handling after Sentry
     await ErrorHandler.initialize();

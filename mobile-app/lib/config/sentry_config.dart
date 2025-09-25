@@ -7,6 +7,10 @@
 /// 4. Update the release version when deploying
 
 class SentryConfig {
+  /// Enable or disable Sentry crash reporting
+  /// Set to false to completely disable Sentry initialization
+  static const bool enabled = false;
+
   /// Sentry DSN (Data Source Name)
   /// Format: https://[key]@[organization].ingest.sentry.io/[project]
   ///
@@ -17,9 +21,10 @@ class SentryConfig {
   /// Example DSN (DO NOT USE IN PRODUCTION):
   /// static const String dsn = 'https://examplekey123@o123456.ingest.sentry.io/1234567';
 
-  /// Release version - update this with each release
+  /// Release version - dynamically set from package info
   /// Format: app-name@version+build
-  static const String release = 'aura-one@1.0.0+1';
+  /// This will be set at runtime from package info
+  static String? release;
 
   /// Sample rates for production (0.0 to 1.0)
   static const double productionTracesSampleRate = 0.1; // 10% of transactions
