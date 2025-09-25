@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'logger.dart';
 
@@ -32,9 +33,19 @@ class ErrorHandler {
   }
 
   /// Initialize global error handling
-  static void initialize() {
+  static Future<void> initialize() async {
+    // Get package info for version information
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      setSafeContext('app_version', packageInfo.version);
+      setSafeContext('build_number', packageInfo.buildNumber);
+    } catch (e) {
+      // Fallback if package info fails
+      appLogger.warning('Could not get package info: $e');
+      setSafeContext('app_version', 'unknown');
+    }
+
     // Set up initial safe context
-    setSafeContext('app_version', '1.0.0'); // TODO: Get from package info
     setSafeContext('platform_os', Platform.operatingSystem);
     setSafeContext('locale', PlatformDispatcher.instance.locale.languageCode); // Only language code
     setSafeContext('screen_size', '${PlatformDispatcher.instance.views.first.physicalSize.width.toInt()}x${PlatformDispatcher.instance.views.first.physicalSize.height.toInt()}');

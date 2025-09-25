@@ -101,7 +101,7 @@ void main() {
     );
 
     // Initialize error handling after Sentry
-    ErrorHandler.initialize();
+    await ErrorHandler.initialize();
 
     runApp(
       ProviderScope(

@@ -2,7 +2,7 @@
   "master": {
     "tasks": [
       {
-        "id": 1,
+        "id": "1",
         "title": "App Initialization and Configuration",
         "description": "Setup the core application identity, branding, and configuration for the Aura One journaling app",
         "details": "Use the existing rename_app.dart script to change app name from 'Purplestack' to 'Aura One' and update package identifier from 'com.example.purplestack' to 'com.auraone.app'. Update app icon, splash screen, and basic branding elements. Configure app metadata and descriptions to reflect the journaling app purpose. Implement proper error handling and logging infrastructure for production use.",
@@ -18,7 +18,8 @@
             "dependencies": [],
             "details": "Use the rename_app.dart script in the tools/scripts directory to update all app identifiers, package names, and references throughout the Flutter project structure. This includes updating AndroidManifest.xml, iOS Info.plist, pubspec.yaml, and all other configuration files that contain the old app identity.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -29,7 +30,8 @@
             ],
             "details": "Create or obtain Aura One app icons in required sizes for Android (mipmap densities) and iOS (AppIcon.appiconset). Update splash screen images and colors to match the journaling app theme. Ensure icons are properly configured in platform-specific directories and manifest files.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -40,7 +42,8 @@
             ],
             "details": "Update app descriptions in pubspec.yaml, AndroidManifest.xml, and iOS Info.plist to describe Aura One as a journaling application. Configure appropriate app categories, permissions descriptions, and user-facing text to clearly communicate the app's purpose and data usage for journaling functionality.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -51,19 +54,20 @@
             ],
             "details": "Implement global error handling using Flutter's ErrorWidget.builder and PlatformDispatcher.instance.onError. Set up structured logging using packages like logger or similar. Configure crash reporting and error tracking for production builds. Add debug logging for development and filtered logging for release builds. Ensure sensitive journal data is never logged.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 2,
+        "id": "2",
         "title": "Core Database Schema and Models",
         "description": "Design and implement the local SQLite database schema for storing journal entries, media, and metadata",
         "details": "Extend the existing Purplebase SQLite configuration to include journal-specific tables: JournalEntry (id, date, content, metadata), MediaItem (id, type, path, timestamp, location), LocationEvent (id, timestamp, latitude, longitude, accuracy), CalendarEvent (id, title, start, end, source), and PersonTag (id, name, face_embedding). Implement Drift database models with proper relationships and foreign keys. Add indices for performance on date ranges and search queries.",
         "testStrategy": "Unit tests for all database operations (CRUD). Integration tests for complex queries and relationships. Test database migration scenarios and data integrity constraints.",
         "priority": "high",
         "dependencies": [
-          1
+          "1"
         ],
         "status": "done",
         "subtasks": [
@@ -74,7 +78,8 @@
             "dependencies": [],
             "details": "Create comprehensive database schema design including table definitions for JournalEntry, MediaItem, LocationEvent, CalendarEvent, and PersonTag. Define foreign key relationships between tables (MediaItem -> JournalEntry, LocationEvent -> JournalEntry, etc.). Plan data types, constraints, and normalization. Document schema relationships and ensure compatibility with existing Purplebase SQLite structure.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -85,7 +90,8 @@
             ],
             "details": "Create Drift table definition for JournalEntry with fields: id, date, content, metadata. Implement corresponding DAO (Data Access Object) with CRUD operations. Add methods for querying entries by date ranges and searching content. Ensure proper serialization of metadata JSON field and handle null values appropriately.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -97,7 +103,8 @@
             ],
             "details": "Create Drift table for MediaItem with fields: id, type, path, timestamp, location, journal_entry_id. Implement DAO with methods for media CRUD operations and querying by journal entry. Add support for various media types (photo, video, audio). Establish proper foreign key relationship to JournalEntry table with cascade delete behavior.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -109,7 +116,8 @@
             ],
             "details": "Create Drift table for LocationEvent with fields: id, timestamp, latitude, longitude, accuracy, journal_entry_id. Implement DAO with spatial query capabilities for location-based searches. Add methods for querying locations within date ranges and geographic bounds. Establish foreign key relationship to JournalEntry with proper indexing for performance.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -121,7 +129,8 @@
             ],
             "details": "Create Drift table for CalendarEvent with fields: id, title, start, end, source, journal_entry_id. Create PersonTag table with fields: id, name, face_embedding, media_item_id. Implement corresponding DAOs with appropriate query methods. Add support for calendar event synchronization and face embedding storage for person recognition. Establish proper foreign key relationships.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -135,19 +144,20 @@
             ],
             "details": "Create database indices for frequently queried fields: date ranges on JournalEntry and LocationEvent, timestamp on MediaItem, spatial indices on LocationEvent coordinates. Implement Drift migration system to handle schema updates between app versions. Add database initialization and upgrade logic. Test migration scenarios and ensure data integrity during schema changes.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 3,
+        "id": "3",
         "title": "Location Services Integration",
         "description": "Implement passive location tracking and geofencing for automatic day mapping",
         "details": "Integrate location package for background location services with proper permission handling. Implement LocationService class that monitors significant location changes and stores them in the database. Add geofencing capabilities to detect when users arrive/leave significant locations. Implement battery-efficient location tracking with configurable accuracy and frequency settings. Ensure compliance with platform background execution limits.",
         "testStrategy": "Test location permission flows. Verify background location tracking accuracy and battery impact. Test geofencing triggers and location history storage. Validate location data privacy and local storage.",
         "priority": "high",
         "dependencies": [
-          2
+          "2"
         ],
         "status": "done",
         "subtasks": [
@@ -158,7 +168,8 @@
             "dependencies": [],
             "details": "Add location package to pubspec.yaml. Configure location permissions in Android manifest (ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, ACCESS_BACKGROUND_LOCATION) and iOS Info.plist (NSLocationWhenInUseUsageDescription, NSLocationAlwaysAndWhenInUseUsageDescription). Set up permission request flows for runtime permission handling.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -169,7 +180,8 @@
             ],
             "details": "Implement LocationService with methods for starting/stopping background location tracking. Configure location stream listeners for significant location changes. Handle location accuracy settings and update frequency. Implement error handling for location service failures and GPS unavailability.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -180,7 +192,8 @@
             ],
             "details": "Add geofencing functionality to detect when users enter or exit predefined geographical areas. Implement geofence creation, monitoring, and event handling. Create system to identify and automatically create geofences for frequently visited locations. Handle geofence trigger events and notifications.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -191,7 +204,8 @@
             ],
             "details": "Configure location tracking for optimal battery usage with adjustable accuracy levels (high, medium, low power). Implement intelligent tracking frequency based on user movement patterns. Add settings for minimum distance and time intervals between location updates. Create adaptive tracking that reduces frequency when stationary.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -202,7 +216,8 @@
             ],
             "details": "Implement foreground service for Android background location tracking with proper notification. Handle iOS background app refresh limitations and significant location change APIs. Configure proper background modes in iOS Info.plist. Implement graceful degradation when background permissions are denied.\n<info added on 2025-09-08T18:42:38.634Z>\nSuccessfully implemented comprehensive platform-specific background location handling with EnhancedLocationService featuring Android foreground service support, iOS significant location changes, battery optimization modes (aggressive/balanced/performance), and graceful permission degradation. Added Android foreground service with customizable notifications, background permission checking, and battery optimization detection. Implemented iOS background location with significant changes, proper Info.plist configuration, and activity type for fitness tracking. Created LocationSettingsCard UI component with platform-specific controls and permission guidance. Features include automatic error recovery with reduced accuracy, Riverpod state management, platform-specific permission handling, battery-based update throttling, and comprehensive service status monitoring.\n</info added on 2025-09-08T18:42:38.634Z>",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -213,7 +228,8 @@
             ],
             "details": "Design and implement database tables for storing location points, geofences, and location events. Create data models for LocationPoint and GeofenceEvent. Implement efficient querying for location history by date/time ranges. Add data retention policies and cleanup for old location data.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 7,
@@ -225,19 +241,20 @@
             ],
             "details": "Create permission request UI with clear explanations of location usage. Implement privacy settings allowing users to control location tracking granularity and data retention. Add location history viewing and deletion capabilities. Create opt-out mechanisms and data export for location information.\n<info added on 2025-09-08T19:29:22.404Z>\nImplementation started with comprehensive privacy settings screen featuring location tracking granularity controls (precise/approximate/off), data retention period settings (1 week to forever), and automatic data deletion schedules. Built permission request dialog with clear explanations of how location data enhances journaling through automatic day mapping and memory triggers. Developed location history viewer with interactive timeline, map visualization, and selective deletion capabilities. Implemented data export functionality generating JSON/CSV formats of all location data with timestamps and metadata. Created complete opt-out mechanisms allowing users to disable location services while preserving existing journal entries, with one-click data purge option. Leveraging existing LocationSettingsCard architecture and expanding with dedicated privacy controls section in app settings.\n</info added on 2025-09-08T19:29:22.404Z>\n<info added on 2025-09-08T19:38:38.267Z>\nPrivacy controls and permission flows implementation fully completed. Successfully deployed comprehensive PrivacySettingsScreen with granular location tracking controls supporting off/approximate/balanced/precise modes, configurable data retention periods from 1 week to forever, and automated deletion scheduling. LocationPermissionFlow implementation includes detailed usage explanations, platform-specific guidance, and privacy assurance messaging. LocationHistoryScreen provides interactive timeline visualization with location entry management, selective deletion capabilities, and multi-format data export supporting JSON, CSV, and GPX formats. Complete opt-out mechanisms implemented with detailed privacy policy integration. Navigation routes established and main app interface updated with seamless settings access. All privacy requirements fulfilled with professional UI/UX design standards and user-centric privacy controls.\n</info added on 2025-09-08T19:38:38.267Z>",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 4,
+        "id": "4",
         "title": "Photo and Media Library Integration",
         "description": "Build automatic photo discovery and metadata extraction system",
         "details": "Use photo_manager package to access device media library. Implement PhotoService to scan for new photos/videos created each day. Extract EXIF metadata including GPS coordinates, timestamps, and camera settings using exif package. Implement on-device face detection using google_mlkit_face_detection and face clustering for person tagging. Store media references and metadata in database without copying actual files. Add support for various media formats (JPEG, HEIC, MP4, etc.).",
         "testStrategy": "Test media library access permissions and scanning performance. Verify EXIF data extraction accuracy. Test face detection and clustering algorithms with various image qualities. Validate metadata storage and retrieval.",
         "priority": "high",
         "dependencies": [
-          2
+          "2"
         ],
         "status": "done",
         "subtasks": [
@@ -248,7 +265,8 @@
             "dependencies": [],
             "details": "Install photo_manager package, configure platform-specific permissions (iOS Info.plist and Android manifest), implement permission request flow, and create basic media library connection with error handling\n<info added on 2025-09-08T20:01:24.610Z>\nPackage successfully integrated with v3.5.4 installed and added to pubspec.yaml. Platform permissions configured for both iOS (NSPhotoLibraryUsageDescription, NSPhotoLibraryAddUsageDescription, PHPhotoLibraryPreventAutomaticLimitedAccessAlert in Info.plist) and Android (READ_MEDIA_IMAGES, READ_MEDIA_VIDEO, READ_MEDIA_AUDIO, READ_MEDIA_VISUAL_USER_SELECTED for API 34+ with legacy fallbacks in AndroidManifest.xml). PhotoService class implemented with complete functionality including permission handling, photo scanning, album access, thumbnail generation, and change notifications. PhotoPermissionCard UI component created for permission status display and access requests. Service successfully integrated into HomeScreen for testing with providers for permission state, photo discovery stream, and today's photos scanning functionality.\n</info added on 2025-09-08T20:01:24.610Z>",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -259,7 +277,8 @@
             ],
             "details": "Build PhotoService with methods to scan device media library, filter by date ranges, track new media items, and implement efficient scanning algorithms with configurable intervals",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -270,7 +289,8 @@
             ],
             "details": "Integrate exif package, extract GPS coordinates, capture timestamps, camera settings (ISO, aperture, focal length), device information, and handle various EXIF data formats with error handling for corrupted metadata",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -281,7 +301,8 @@
             ],
             "details": "Configure google_mlkit_face_detection, implement face detection pipeline, optimize detection parameters for accuracy vs performance, handle various image sizes and qualities, and extract facial landmarks and bounding boxes",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -292,7 +313,8 @@
             ],
             "details": "Implement face embedding extraction, clustering algorithms (k-means or DBSCAN), similarity matching for person identification, handle face vector storage, and create person tagging workflow with confidence scoring",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -304,7 +326,8 @@
             ],
             "details": "Create MediaItem, MediaMetadata, and PersonTag database models using Drift, implement relationships between media and metadata, store file references without copying files, and add indices for efficient queries",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 7,
@@ -315,7 +338,8 @@
             ],
             "details": "Handle JPEG, HEIC, PNG image formats, support MP4, MOV video formats, implement format-specific metadata extraction, add thumbnail generation, and handle platform-specific format variations\n<info added on 2025-09-08T23:33:57.571Z>\nSuccessfully completed comprehensive media format handler implementation. Added support for 8 image formats (JPEG, PNG, HEIC, TIFF, WebP, GIF, BMP) and 5 video formats (MP4, MOV, AVI, MKV, WebM). Enhanced PhotoService with format-specific metadata extraction capabilities for both images and videos. Implemented thumbnail generation system with proper format handling. All format detection, metadata extraction, and thumbnail generation features tested and verified working correctly across supported formats.\n</info added on 2025-09-08T23:33:57.571Z>",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 8,
@@ -326,19 +350,20 @@
             ],
             "details": "Add pagination for media scanning, implement background processing with isolates, create efficient caching strategies, optimize database queries with proper indexing, and add progress tracking for long-running operations",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 5,
+        "id": "5",
         "title": "Calendar and System Integration",
         "description": "Implement automatic import of calendar events and system activities",
         "details": "Integrate with platform-specific calendar APIs (EventKit on iOS, Calendar Provider on Android) to automatically import daily appointments and events. Implement CalendarService to sync calendar data while respecting user privacy. Add integration with HealthKit (iOS) and Google Fit (Android) for fitness and health data. Implement Bluetooth Low Energy scanning using flutter_blue_plus for proximity detection. Store all integrated data locally with proper attribution to source apps.",
         "testStrategy": "Test calendar permission flows and data import accuracy. Verify health data integration across platforms. Test BLE scanning and proximity detection. Validate data attribution and source tracking.",
         "priority": "medium",
         "dependencies": [
-          2
+          "2"
         ],
         "status": "done",
         "subtasks": [
@@ -349,7 +374,8 @@
             "dependencies": [],
             "details": "Create iOS-specific calendar service using EventKit framework. Implement permission request flow for calendar access. Add methods to fetch calendar events with date range filtering. Handle event parsing and conversion to app models. Ensure proper error handling for permission denials.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -358,7 +384,8 @@
             "dependencies": [],
             "details": "Create Android-specific calendar service using Calendar Provider API. Implement permission request flow for calendar read access. Add methods to query calendar events from all user calendars. Handle event parsing and conversion to app models. Ensure proper error handling for permission denials.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -367,7 +394,8 @@
             "dependencies": [],
             "details": "Implement HealthKit integration for iOS using health package. Request permissions for relevant health data types (steps, workouts, heart rate). Create methods to fetch daily health summaries. Convert health data to app models with proper attribution. Handle privacy permissions and data access restrictions.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -376,7 +404,8 @@
             "dependencies": [],
             "details": "Implement Google Fit integration using fitness package or direct API calls. Set up Google Fit API credentials and permissions. Create methods to fetch daily fitness data (steps, activities, locations). Convert fitness data to app models with proper source attribution. Handle OAuth flow and API rate limits.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -385,7 +414,8 @@
             "dependencies": [],
             "details": "Integrate flutter_blue_plus for BLE functionality. Implement background BLE scanning with proper permission handling. Add device discovery and proximity detection logic. Store discovered devices with timestamps and signal strength. Implement battery-efficient scanning intervals and filters.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -397,7 +427,8 @@
             ],
             "details": "Create CalendarService class that abstracts platform-specific implementations. Add privacy controls for calendar data sync (enable/disable, selective calendar access). Implement data sync scheduling and background refresh. Add user preferences for sync frequency and data retention. Ensure local-only storage with optional cloud backup.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 7,
@@ -411,21 +442,22 @@
             ],
             "details": "Create data attribution system that tracks source applications and APIs for all imported data. Implement metadata fields for calendar events, health data, and BLE discoveries. Add source-specific icons and labels in UI. Create data management interface for users to control which sources are active. Implement data cleanup and source removal functionality.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 6,
+        "id": "6",
         "title": "On-Device AI Text Generation",
         "description": "Implement local AI model for generating daily journal summaries from collected data",
         "details": "Integrate tflite_flutter package with a mobile-optimized language model (quantized Gemma or similar). Implement AIService class that processes structured daily data (locations, photos, events) into coherent narrative summaries. Create data synthesis pipeline that converts raw database entries into JSON context for the AI model. Implement prompt engineering for consistent, personalized journal entry generation. Add fallback text templates for when AI processing fails.",
         "testStrategy": "Test AI model loading and inference performance on target devices. Verify text generation quality and coherence. Test with various data scenarios (minimal data, rich data, missing data). Benchmark processing time and memory usage.",
         "priority": "high",
         "dependencies": [
-          3,
-          4,
-          5
+          "3",
+          "4",
+          "5"
         ],
         "status": "done",
         "subtasks": [
@@ -436,7 +468,8 @@
             "dependencies": [],
             "details": "Add tflite_flutter package to pubspec.yaml and configure platform-specific setup for iOS and Android. Ensure proper native library linking and test basic package functionality.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -447,7 +480,8 @@
             ],
             "details": "Evaluate available quantized language models (Gemma, TinyLLaMA, etc.) for mobile deployment. Download selected model, convert to TensorFlow Lite format if needed, and optimize for mobile constraints (size, memory, inference speed).",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -458,7 +492,8 @@
             ],
             "details": "Design and implement AIService singleton class with methods for model initialization, text generation from structured data, and resource management. Include proper error handling and lifecycle management.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -467,7 +502,8 @@
             "dependencies": [],
             "details": "Implement data aggregation logic to collect daily activities (locations, photos, events, calendar items) and format them into structured JSON context that the AI model can process for narrative generation.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -478,7 +514,8 @@
             ],
             "details": "Create comprehensive prompt templates that guide the AI model to generate coherent, personalized journal summaries. Include templates for different data scenarios and user preferences.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -489,7 +526,8 @@
             ],
             "details": "Create template-based text generation system that can produce basic journal summaries using rule-based approaches when AI model fails or performs poorly. Ensure graceful degradation of functionality.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 7,
@@ -501,7 +539,8 @@
             ],
             "details": "Optimize model loading, caching strategies, and inference performance. Implement memory management to prevent OOM issues. Add performance monitoring and metrics collection for inference times and resource usage.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 8,
@@ -513,19 +552,20 @@
             ],
             "details": "Add robust error handling for model loading failures, inference errors, and resource constraints. Implement graceful fallbacks, user notifications, and recovery mechanisms. Include logging and debugging capabilities for AI-related issues.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 7,
+        "id": "7",
         "title": "Voice-to-Text Editing Interface",
         "description": "Build conversational editing system for modifying AI-generated journal entries",
         "details": "Implement on-device speech-to-text using speech_to_text package with offline capabilities. Create VoiceEditingService that interprets natural language editing commands like 'rewrite the morning section' or 'add more detail about lunch'. Implement NLP logic to parse editing intents and apply them to journal text. Build voice recording UI with proper microphone permissions and audio feedback. Add text-to-speech for reading back edited content.",
         "testStrategy": "Test speech recognition accuracy in various environments. Verify command interpretation and text editing accuracy. Test microphone permissions and audio quality. Validate voice editing workflows end-to-end.",
         "priority": "medium",
         "dependencies": [
-          6
+          "6"
         ],
         "status": "done",
         "subtasks": [
@@ -536,7 +576,8 @@
             "dependencies": [],
             "details": "Add speech_to_text package to pubspec.yaml. Configure platform-specific permissions (microphone access). Implement basic SpeechRecognitionService with offline capabilities. Test speech recognition accuracy and language support. Handle initialization and error states.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -547,7 +588,8 @@
             ],
             "details": "Build VoiceEditingService class to manage voice editing workflows. Implement text processing methods for applying edits to journal content. Create command validation and error handling. Add support for different editing modes (append, replace, insert). Integrate with journal data models.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -558,7 +600,8 @@
             ],
             "details": "Build NLP parser to extract editing intents from voice commands. Implement pattern matching for common commands like 'rewrite', 'add detail', 'remove section'. Create command classification system (rewrite, append, delete, modify). Handle ambiguous commands with clarification prompts. Map commands to specific text operations.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -569,7 +612,8 @@
             ],
             "details": "Design voice recording interface with recording button, waveform visualization, and status indicators. Implement real-time audio level feedback during recording. Add recording controls (start, stop, cancel, replay). Create proper loading states and error handling UI. Ensure accessibility compliance for voice controls.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -580,7 +624,8 @@
             ],
             "details": "Integrate flutter_tts package for text-to-speech functionality. Implement TtsService for reading journal content aloud. Add playback controls (play, pause, stop, speed adjustment). Create voice selection and configuration options. Implement reading back edited sections for user verification.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -591,19 +636,20 @@
             ],
             "details": "Implement microphone permission request flow for iOS and Android. Create permission status checking and re-request mechanisms. Add audio quality detection and noise cancellation if available. Implement background audio handling and interruption management. Create fallback options for denied permissions.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 8,
+        "id": "8",
         "title": "Home Page with Sub-tabs Interface",
         "description": "Create the home page interface with three sub-tabs (Overview, Map, Media) that appear above the main bottom tabs",
         "details": "Build home page with sub-tab navigation that appears directly above the main bottom tabs, only visible when Home is selected. Overview tab displays AI-generated text summary (editable with simple text editor - no formatting) plus daily stats (photos taken, distance traveled, active time). Map tab shows locations visited that day using flutter_map. Media tab displays photos taken that day in an optimized gallery. Sub-tabs should be visually distinct from main navigation. Add skeleton loading states with skeletonizer. Ensure responsive design for various screen sizes.",
         "testStrategy": "Test UI responsiveness across different screen sizes and orientations. Verify sub-tab navigation works correctly and only appears on home page. Test map integration and location visualization. Validate media gallery performance with large photo collections. Test simple text editing functionality.",
         "priority": "high",
         "dependencies": [
-          6
+          "6"
         ],
         "status": "done",
         "subtasks": [
@@ -614,7 +660,8 @@
             "dependencies": [],
             "details": "Design the main home page scaffold with sub-tab bar positioned above the bottom navigation tabs. Create responsive layout that adapts to different screen sizes. Define widget hierarchy and state management approach using Riverpod providers. Implement navigation between Overview, Map, and Media sub-tabs. Ensure sub-tabs only show when Home tab is selected.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -625,7 +672,8 @@
             ],
             "details": "Create Overview tab content with AI-generated daily summary displayed in a simple editable text field (no formatting/markdown). Add daily statistics section showing photos taken count, distance traveled, and active time. Implement simple text editing for the AI summary. Create clean layout with good typography and spacing.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -636,7 +684,8 @@
             ],
             "details": "Integrate flutter_map package with OpenStreetMap tiles. Implement location plotting from GPS metadata and location events. Add route visualization for daily movements. Create location markers and pop-ups for significant places. Handle map interactions, zoom controls, and location clustering for better performance.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -647,7 +696,8 @@
             ],
             "details": "Implement grid layout for media thumbnails using cached_network_image for performance. Integrate easy_image_viewer for full-screen photo viewing with gestures. Add video playback support using video_player or similar. Implement lazy loading and memory management for large media collections. Create smooth transitions and animations for media interactions.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -658,7 +708,8 @@
             ],
             "details": "Create TabBar widget for sub-tab navigation positioned above bottom navigation. Implement TabController for managing sub-tab state. Style sub-tabs to be visually distinct from main navigation. Add smooth transition animations between sub-tabs. Ensure sub-tabs only display when Home tab is active.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -672,7 +723,8 @@
             ],
             "details": "Create skeleton placeholders for Overview stats, Map, and Media gallery components. Implement loading states that match the actual component layouts. Add smooth transitions from skeleton to loaded content. Handle different loading scenarios (AI generation, location loading, media processing).",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 7,
@@ -687,19 +739,20 @@
             ],
             "details": "Implement responsive breakpoints for phone, tablet, and desktop layouts. Optimize component sizing and spacing for different screen densities. Handle orientation changes gracefully. Test and adjust layouts for accessibility requirements. Ensure touch targets meet platform guidelines across all screen sizes.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 9,
+        "id": "9",
         "title": "Data Export and Backup System",
         "description": "Implement comprehensive data export with multiple backup options including Nostr/Blossom integration",
         "details": "Create export system that packages complete journal database into documented JSON format with media files. Implement multiple backup destinations: local file system, Google Drive (using googleapis), Syncthing folder sync, and Blossom decentralized storage. Add client-side encryption for all backup methods using industry-standard encryption. Implement Nostr integration for selective sharing of journal entries using dart_nostr or similar package. Create backup scheduling and status monitoring. Ensure all exports include complete schema documentation.",
         "testStrategy": "Test export functionality with various data sizes and formats. Verify encryption/decryption of backup files. Test integration with Google Drive API and permissions. Validate Nostr publishing and Blossom storage. Test backup restoration and data integrity.",
         "priority": "medium",
         "dependencies": [
-          8
+          "8"
         ],
         "status": "done",
         "subtasks": [
@@ -710,7 +763,8 @@
             "dependencies": [],
             "details": "Define JSON structure for complete journal database export. Include schema for journal entries, media files, location data, calendar events, and metadata. Create documentation format that explains data structure and field meanings. Design versioning system for schema evolution. Ensure format supports partial and incremental exports.\n<info added on 2025-09-10T07:59:31.210Z>\nImplementation completed successfully. Created comprehensive JSON export schema with structured type definitions for all journal data models including metadata, media references, location events, calendar entries, and person tags. Schema includes version 1.0.0 with built-in documentation fields explaining data structure and field meanings. Supports both full and incremental export formats with proper timestamp tracking for synchronization.\n</info added on 2025-09-10T07:59:31.210Z>",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -721,7 +775,8 @@
             ],
             "details": "Use path_provider to access platform-specific directories. Implement export service that packages journal data into JSON format with accompanying media files. Create folder structure for organized export. Add progress tracking and error handling for large exports. Implement data integrity verification after export completion.\n<info added on 2025-09-10T08:00:27.931Z>\nImplementation completed successfully. ExportService created in /mobile-app/lib/services/export/export_service.dart with comprehensive functionality including ZIP archive creation using archive package, systematic media file inclusion with proper path resolution, real-time progress tracking through streams, and robust platform-specific directory handling via path_provider. Added complementary ImportService with flutter file picker integration for seamless data restoration. Created complete UI implementation with dedicated export and import screens featuring progress indicators, error handling, and intuitive user workflows. System supports full journal data packaging with media preservation and provides users with complete backup and restore capabilities through local file system operations.\n</info added on 2025-09-10T08:00:27.931Z>",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -732,7 +787,8 @@
             ],
             "details": "Integrate googleapis package for Google Drive API access. Implement OAuth2 authentication flow for Drive permissions. Create DriveBackupService to upload export packages to user's Drive folder. Add progress tracking for upload operations. Implement folder organization and file naming conventions for backups.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -743,7 +799,8 @@
             ],
             "details": "Research Syncthing API and folder monitoring capabilities. Implement SyncthingService to detect configured Syncthing folders. Add automatic export to designated Syncthing sync folders. Implement conflict resolution and file versioning. Create status monitoring for sync operations.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -754,7 +811,8 @@
             ],
             "details": "Research Blossom protocol specifications and available Dart implementations. Create BlossomService for decentralized storage operations. Implement file upload and retrieval using Blossom network. Add metadata tracking for stored files. Implement redundancy and availability verification.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -765,7 +823,8 @@
             ],
             "details": "Implement AES-256 encryption using pointycastle or crypto packages. Create EncryptionService with secure key derivation and management. Add encryption support to all export formats and backup destinations. Implement secure key storage using flutter_secure_storage. Create encryption status indicators and user controls.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 7,
@@ -777,7 +836,8 @@
             ],
             "details": "Integrate existing Nostr functionality for selective sharing. Create NostrSharingService to publish selected journal entries. Implement privacy controls and content filtering for shared entries. Add Nostr relay management and publishing status tracking. Create user interface for selecting entries to share publicly.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 8,
@@ -791,19 +851,20 @@
             ],
             "details": "Create BackupScheduler service with configurable intervals and conditions. Implement background task scheduling using workmanager or similar. Add backup status monitoring and success/failure tracking. Create notification system for backup completion and errors. Implement backup history and restoration capabilities.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 10,
+        "id": "10",
         "title": "Privacy Controls and Permissions Management",
         "description": "Build comprehensive privacy settings and transparent permission management interface",
         "details": "Create granular privacy settings screen where users can control each data source (location, photos, calendar, etc.). Implement just-in-time permission requests with clear explanations for each permission. Add privacy dashboard showing what data is being collected and stored locally. Implement data deletion tools for selective or complete journal history removal. Add security features like app lock with biometric authentication. Ensure all privacy controls are easily accessible and clearly explained.",
         "testStrategy": "Test all permission request flows and user experience. Verify data collection controls work correctly. Test privacy dashboard accuracy and data visualization. Validate data deletion functionality. Test security features like app lock across different devices.",
         "priority": "high",
         "dependencies": [
-          9
+          "9"
         ],
         "status": "done",
         "subtasks": [
@@ -814,7 +875,8 @@
             "dependencies": [],
             "details": "Design and implement privacy settings screen with toggle controls for location tracking, photo access, calendar integration, health data, and BLE scanning. Create categorized sections for different privacy aspects (data collection, storage, sharing). Implement clear labeling and explanations for each setting. Add visual indicators showing current privacy status and data collection activity.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -825,7 +887,8 @@
             ],
             "details": "Implement permission request dialogs that appear when users first attempt to use features requiring permissions. Create clear explanations for why each permission is needed and how data will be used. Build permission state management to track granted/denied permissions. Implement graceful degradation when permissions are denied. Add settings shortcuts to easily modify permissions later.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -836,7 +899,8 @@
             ],
             "details": "Create privacy dashboard that visualizes what data is being collected, how much is stored locally, and when it was last accessed. Implement charts showing data collection patterns over time. Add breakdown by data source (photos, location, calendar, etc.). Show storage usage statistics and data retention policies. Include timeline of recent data collection activities.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -847,7 +911,8 @@
             ],
             "details": "Build data deletion interface allowing users to selectively remove journal entries by date range, data type, or source. Implement complete data wipe functionality with confirmation dialogs. Add preview of what will be deleted before confirmation. Ensure proper deletion from database and file system including media files. Implement secure deletion that prevents data recovery. Add export option before deletion.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -856,7 +921,8 @@
             "dependencies": [],
             "details": "Integrate local_auth package for biometric authentication (fingerprint, face ID, etc.). Implement app lock screen that appears on app launch or after inactivity timeout. Add fallback PIN/password authentication when biometrics unavailable. Implement timeout settings for auto-lock (immediate, 1 min, 5 min, etc.). Add privacy screen overlay when app goes to background to hide sensitive content.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -871,161 +937,162 @@
             ],
             "details": "Add prominent privacy settings access from main menu and onboarding flow. Create comprehensive help documentation explaining each privacy control and its impact. Implement contextual help tooltips and info buttons throughout privacy settings. Add privacy policy and data handling documentation. Ensure all privacy controls are accessible with screen readers and follow accessibility guidelines. Create privacy quick-start guide for new users.",
             "status": "done",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 11,
+        "id": "11",
         "title": "Animated Bottom Navigation Tab Bar with Smart Titles",
         "description": "Implement an animated bottom navigation bar where tab titles only appear when selected, with smooth animations moving icons up and titles down for a cleaner minimal interface.",
         "details": "Create a custom bottom navigation bar widget that dynamically shows/hides tab titles based on selection state. When a tab is selected: animate the icon upward, fade in the title with a downward slide animation, and ensure proper spacing. When deselected: fade out the title with upward animation and move icon to center position. Use AnimationController with Tween animations for smooth transitions (duration ~300ms). Implement custom TabBarItem widget with separate icon and title containers. Use Transform.translate for vertical movement and FadeTransition for opacity changes. Ensure the navigation bar height adjusts smoothly to accommodate title text. Integrate with existing router configuration and maintain proper tab state management. Consider using AnimatedContainer for height changes and Positioned widgets for precise layout control. Add subtle spring physics to animations using Curves.elasticOut for modern feel.",
         "testStrategy": "Test animation smoothness across different devices and screen sizes. Verify tab selection state persistence during navigation. Test rapid tab switching to ensure animations don't conflict. Validate that the navigation bar integrates properly with the three sub-tabs (Overview, Map, Media) from the home page. Test accessibility features like screen readers with dynamic title visibility. Verify animation performance doesn't impact overall app responsiveness. Test on both iOS and Android for platform-specific behavior differences.",
         "status": "done",
         "dependencies": [
-          8
+          "8"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 12,
+        "id": "12",
         "title": "Android Microphone Permission Integration",
         "description": "Implement proper Android system microphone permission integration for voice-to-text features with runtime permission requests and graceful handling",
         "details": "Integrate Flutter's permission_handler package to manage microphone permissions properly on Android. Implement PermissionService class that handles runtime permission requests following Android's permission model. Create permission request flow that: 1) Checks current permission status before attempting voice recording, 2) Shows custom rationale dialog explaining why microphone access is needed for voice editing features, 3) Requests permission using permission_handler's requestPermission method, 4) Handles all permission states (granted, denied, permanently denied, restricted). Implement fallback behavior when permission is denied - disable voice editing UI elements and show informative message. Add permission status monitoring to update UI when permissions change. Create permission priming UI that explains the feature before first permission request. Implement deep linking to app settings when permission is permanently denied. Ensure integration with existing VoiceEditingService from Task 7, updating it to check permissions before initializing speech recognition. Add proper error handling and user feedback for all permission scenarios. Update AndroidManifest.xml with required RECORD_AUDIO permission declaration.",
         "testStrategy": "Test permission request flow on various Android versions (API 23+). Verify rationale dialog appears when appropriate. Test permission denial scenarios and verify graceful degradation. Test permanently denied state and settings redirect. Validate that voice features are properly disabled when permission is not granted. Test permission changes while app is running. Verify integration with existing voice editing functionality from Task 7.",
         "status": "done",
         "dependencies": [
-          7
+          "7"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 13,
+        "id": "13",
         "title": "UI Navigation Update: Bottom Navigation Tab Restructuring",
         "description": "Remove Canvas tab and restore Privacy tab in bottom navigation, then reorder all tabs to match the new specification: Search, History, Home, Privacy, Settings.",
         "details": "Update the bottom navigation configuration to remove the Canvas tab that was previously added and restore the Privacy tab to the navigation bar. Reorder all navigation tabs from left to right as: Search, History, Home, Privacy, Settings. This involves modifying the main navigation widget to update the tab definitions, ensuring proper routing is maintained for each tab, and verifying that the Privacy tab correctly navigates to the privacy settings screen from Task 10. Update any navigation-related constants or enums to reflect the new tab order. Ensure the Home tab remains as the default selected tab and that the sub-tabs (Overview, Map, Media) from Task 8 continue to function correctly. Update any hardcoded tab indices throughout the codebase to match the new ordering.",
         "testStrategy": "Verify that all five tabs (Search, History, Home, Privacy, Settings) appear in the correct order from left to right. Test navigation to each tab to ensure proper screen transitions. Confirm that the Privacy tab correctly navigates to the privacy settings screen. Verify that the Home tab's sub-tabs (Overview, Map, Media) still function correctly after the navigation changes. Test that any deep linking or programmatic navigation still works with the updated tab indices. Validate that the navigation bar visual design remains consistent and that tab icons and labels are properly aligned.",
         "status": "done",
         "dependencies": [
-          8,
-          10
+          "8",
+          "10"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 14,
+        "id": "14",
         "title": "Fix Home Screen Banner Scroll Behavior",
         "description": "Convert the fixed 'Good Morning/Evening' banner to a scrollable element that moves naturally with the content instead of remaining sticky at the top of the screen.",
         "details": "Modify the home screen layout to integrate the greeting banner into the main scroll view instead of using a fixed positioning approach. This involves: 1) Removing any Positioned or sticky positioning from the banner widget, 2) Moving the banner into the main ScrollView or ListView as the first item, 3) Ensuring proper spacing and padding around the banner content, 4) Updating any gesture detection or tap handling to work within the scroll context, 5) Adjusting the scroll physics to maintain smooth scrolling behavior, 6) Testing with various content lengths to ensure the banner scrolls out of view naturally when users scroll down through journal entries or other content. Consider using a SliverAppBar with flexibleSpace if more complex scroll behaviors are needed, or simply place the banner as a regular widget within the scrollable content area. Ensure the banner's styling and animations are preserved during this layout change.",
         "testStrategy": "Verify that the greeting banner appears at the top of the home screen content and scrolls out of view when scrolling down. Test scrolling behavior with different content lengths to ensure smooth performance. Validate that any interactive elements within the banner (if present) still function correctly within the scroll context. Test on different screen sizes to ensure proper spacing and layout. Confirm that the banner reappears when scrolling back to the top. Verify that the home screen's sub-tab navigation (Overview, Map, Media) still functions properly with the new scroll behavior. Test scroll physics and ensure no jarring transitions or unexpected scroll behavior occurs during normal usage.",
         "status": "done",
         "dependencies": [
-          8,
-          11
+          "8",
+          "11"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 15,
+        "id": "15",
         "title": "Implement Sticky Tab Navigation for Home Screen Sub-tabs",
         "description": "Create a sticky tab selector for Overview, Map, and Media tabs that remains fixed at the bottom of the home screen above the global navigation bar, preventing it from scrolling with content.",
         "details": "Implement a custom sticky tab navigation system for the home screen's three sub-tabs (Overview, Map, Media). This involves: 1) Creating a StickyTabBar widget that uses a Stack or Column layout to position the tab selector above the bottom navigation bar, 2) Using a TabController to manage tab state and content switching, 3) Implementing the main content area with TabBarView wrapped in appropriate scroll widgets, 4) Ensuring the sticky tabs have proper Material 3 styling with smooth tab switching animations, 5) Calculating proper bottom padding to account for both the sticky tabs and the global navigation bar height, 6) Using SafeArea and MediaQuery to handle different screen sizes and device insets correctly. The sticky tab bar should remain visible during content scrolling and maintain proper z-index layering. Consider using a Container with fixed height positioned using Positioned.bottom or similar approach within a Stack layout. Ensure touch targets meet accessibility guidelines (minimum 44px height) and implement proper focus management for keyboard navigation.",
         "testStrategy": "Verify that the Overview, Map, and Media tabs remain fixed at the bottom above the global navigation bar during content scrolling. Test tab switching functionality and ensure smooth animations between tabs. Validate proper spacing and positioning across different screen sizes and orientations. Test that content scrolling works correctly in each tab without interfering with the sticky navigation. Verify accessibility features including keyboard navigation and screen reader support. Test on various devices to ensure the sticky tabs don't overlap with system UI or the global navigation bar. Confirm that the tab selector maintains proper Material 3 styling and animation behavior consistent with the animated bottom navigation from Task 11.",
         "status": "done",
         "dependencies": [
-          11,
-          14
+          "11",
+          "14"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 16,
+        "id": "16",
         "title": "Replace Today's Summary placeholder with empty state",
         "description": "Remove all fake/placeholder data from Today's Summary section and implement an empty state message that informs users that data will be automatically collected.",
         "details": "Remove all hardcoded placeholder data from the Today's Summary section in the Overview tab. Implement a proper empty state UI that displays when no real data is available. The empty state should include: 1) A descriptive icon (such as Icons.auto_awesome or Icons.analytics), 2) A clear heading like 'No data yet today', 3) Explanatory text informing users that their daily summary will automatically appear as they use the app throughout the day, 4) Proper styling using Material 3 design tokens with appropriate spacing and typography. Use conditional rendering to show either the real data summary or the empty state based on whether actual user data exists. The empty state should be centered vertically within the available space and use muted colors from the theme's color scheme. Consider adding subtle animations or micro-interactions to make the empty state feel polished rather than broken.",
         "testStrategy": "Verify that placeholder data no longer appears in the Today's Summary section when the app has no real user data. Test the empty state message displays correctly with proper centering, typography, and spacing. Confirm the empty state uses appropriate Material 3 styling and theme colors. Test the conditional logic by simulating scenarios with and without real data to ensure the correct UI state is shown. Validate that the empty state is responsive across different screen sizes and orientations. Test the transition between empty state and populated data state when real user data becomes available.",
         "status": "done",
         "dependencies": [
-          8
+          "8"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 17,
+        "id": "17",
         "title": "Integrate on-device AI for Today's Summary generation",
         "description": "Implement local AI model integration to analyze collected sensor data and generate personalized daily summary text for users.",
         "details": "Build upon the existing on-device AI infrastructure from Task 6 to create a comprehensive daily summary generation system. Implement DataAnalysisService that aggregates data from multiple sources: location data from Task 3 (places visited, movement patterns), calendar events from Task 5 (appointments, activities), captured photos and media, and other sensor data. Create a data preprocessing pipeline that converts raw sensor data into structured context for AI analysis. Enhance the existing AI model with specialized prompts for daily summary generation that can identify patterns, significant events, and create coherent narrative summaries. Implement SummaryGenerationService that runs periodically (end of day or on-demand) to process accumulated data and generate personalized text. Add data filtering logic to identify meaningful activities and filter out noise. Create template-based fallback system for days with minimal data. Integrate with existing empty state from Task 16 to populate the Today's Summary section with generated content. Ensure privacy-first approach with all processing happening locally on device.",
         "testStrategy": "Test AI summary generation with various data scenarios including rich data days, minimal data days, and edge cases with missing data types. Verify that location data, calendar events, and media are properly incorporated into summaries. Test processing performance and memory usage during AI inference. Validate summary quality and personalization across different user activity patterns. Test fallback templates when AI processing fails. Verify integration with existing Today's Summary UI and proper replacement of empty states. Test periodic summary generation scheduling and on-demand generation triggers.",
         "status": "done",
         "dependencies": [
-          6,
-          16,
-          3,
-          5
+          "6",
+          "16",
+          "3",
+          "5"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 18,
+        "id": "18",
         "title": "Voice Command Interface for AI Summary Editing",
         "description": "Implement a voice command system that allows users to issue spoken commands to modify and update their AI-generated daily summary text through natural language instructions.",
         "details": "Build upon the existing voice-to-text editing system from Task 7 to create a comprehensive voice command interface specifically for AI summary editing. Implement an enhanced VoiceCommandProcessor that extends the existing VoiceEditingService to handle AI-specific editing commands such as 'make the summary more detailed', 'shorten the afternoon section', 'add more emotion to the description', or 'rewrite in a more professional tone'. Create a VoiceCommandInterpreter that uses natural language processing to parse voice commands and translate them into specific AI editing instructions. Integrate with the on-device AI system from Task 17 to apply these voice commands to modify the generated summary text. Implement a conversational feedback system where the AI reads back changes using text-to-speech and asks for confirmation before applying modifications. Add support for multi-turn voice conversations allowing users to refine edits through follow-up commands. Create a voice command help system that can be activated by saying 'what can I say' or similar phrases. Ensure the interface works seamlessly with the existing Today's Summary section in the Overview tab, providing visual feedback during voice processing and displaying real-time text changes as they occur.",
         "testStrategy": "Test voice command recognition accuracy for various AI editing instructions including tone changes, content additions/deletions, and style modifications. Verify that voice commands properly integrate with the AI summary generation system and produce appropriate text modifications. Test multi-turn conversations to ensure context is maintained across multiple voice commands. Validate text-to-speech feedback system reads back changes clearly and requests appropriate confirmations. Test voice command help system provides useful guidance on available commands. Verify visual feedback during voice processing and ensure seamless integration with the Overview tab's Today's Summary section. Test performance and responsiveness when processing complex editing commands through the AI system.",
         "status": "done",
         "dependencies": [
-          7,
-          17,
-          8
+          "7",
+          "17",
+          "8"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 19,
+        "id": "19",
         "title": "Standardized Bottom Navigation Tab Behavior with Consistent Visual States",
         "description": "Standardize the bottom navigation bar by removing unique home button styling and implementing consistent behavior where inactive tabs show only icons and active tabs display icon, text label, and background color with smooth transitions.",
         "details": "Implement a unified bottom navigation system that treats all tabs consistently. Remove any special styling from the home button that makes it appear different from other tabs. Create a custom BottomNavigationBarItem widget that handles two distinct states: 1) Inactive state - displays only the icon centered in the tab area with no text or background styling, 2) Active state - shows the icon, text label below it, and a subtle background color/highlight. Implement smooth AnimationController-based transitions (300-400ms duration) that handle: icon vertical position changes (slight upward movement when active), text opacity fade-in/out with slide animation, background color fade-in/out using ColorTween. Use Material 3 design tokens for colors, ensuring the active background uses theme.colorScheme.primaryContainer or secondaryContainer. Implement proper state management to ensure only one tab can be active at a time. Handle rapid tab switching by properly disposing/interrupting ongoing animations to prevent visual glitches. Consider using AnimatedSwitcher or custom AnimatedBuilder widgets for smooth state transitions. Ensure the animation timing follows Material Design motion principles with appropriate easing curves (Curves.easeInOut or Curves.fastOutSlowIn).",
         "testStrategy": "Test that all navigation tabs (Search, History, Home, Privacy, Settings) display consistently in inactive state with only icons visible and no text or special background. Verify active state shows icon, text label, and background highlight for each tab. Test smooth transitions when switching between tabs, ensuring animations complete properly without visual glitches. Validate that rapid tab switching doesn't cause animation conflicts or performance issues. Test animation performance across different device types and screen sizes. Verify that the standardized behavior maintains accessibility features like semantic labels and proper touch targets. Confirm that theme changes (light/dark mode) properly update the active tab background colors and maintain appropriate contrast ratios.",
         "status": "done",
         "dependencies": [
-          11,
-          13
+          "11",
+          "13"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 20,
+        "id": "20",
         "title": "Media Linking Feature - Make Home > Media Tab Photos Clickable and Linkable",
         "description": "Implement functionality to make photos in the Home > Media tab clickable and linkable to the corresponding day's journal entry.",
         "details": "Modify the Media tab in the Home screen to make all displayed photos interactive elements that link to their corresponding journal entries. Implement photo tap handling that navigates users to the specific day's journal entry where the photo was taken. Add visual feedback (such as subtle overlay or border highlighting) to indicate photos are tappable. Use proper gesture detection with InkWell or GestureDetector to handle tap events. Implement navigation logic that determines the correct journal entry date based on photo metadata (EXIF timestamp or database entry date) and routes to the appropriate journal entry screen. Add smooth transition animations when navigating from photo grid to journal entry. Consider implementing a hero animation for seamless photo transition if viewing the same photo in the journal entry. Ensure proper error handling for cases where journal entries might not exist for specific photos. Update the MediaItem database model if needed to store proper journal entry relationships for efficient querying.",
         "testStrategy": "Test photo tap detection and navigation across different photo grid layouts and screen sizes. Verify correct journal entry navigation based on photo timestamps and metadata. Test visual feedback indicators and ensure they follow Material 3 design guidelines. Validate smooth transition animations and hero animations if implemented. Test error scenarios where photos exist without corresponding journal entries. Verify that photo linking works correctly with various photo formats and dates.",
         "priority": "high",
         "dependencies": [
-          8,
-          4
+          "8",
+          "4"
         ],
         "status": "done",
         "subtasks": []
       },
       {
-        "id": 21,
+        "id": "21",
         "title": "Local AI Models for Daily Summary Generation (KEY FEATURE)",
         "description": "Implement comprehensive 4-stage on-device AI pipeline using AI-SPEC.md specifications for generating intelligent daily summaries from multimodal sensor, location, and photo data using Google Gemma 3 Nano.",
         "status": "done",
         "dependencies": [
-          6,
-          17,
-          3,
-          4,
-          5
+          "6",
+          "17",
+          "3",
+          "4",
+          "5"
         ],
         "priority": "critical",
         "details": "Build upon existing AI infrastructure from Task 6 and 17 to create a production-ready 4-stage AI pipeline following AI-SPEC.md specifications. Stage 1 (Spatiotemporal Analysis): Implement DBSCAN with grid-based optimization for location clustering and CNN-LSTM models for Human Activity Recognition, creating structured Stay/Journey events. Stage 2 (Visual Context): Deploy MobileNet/EfficientNet for scene recognition and object detection, plus LightCap model for image captioning. Stage 3&4 (Unified Multimodal Summarization): Use Google Gemma 3 Nano (2B/4B parameters) via flutter_gemma package for native multimodal processing of text, image, and audio inputs. Handle model download on first launch (not bundled) and implement Gemma Terms of Use licensing requirements. Use tflite_flutter for preprocessing models (HAR, vision) and flutter_gemma for narrative generation. Enable hardware acceleration (NNAPI on Android, Core ML on iOS). Implement model quantization, run inference in isolates to prevent UI blocking, add progressive fallback strategies, and consider optional differential privacy for GPS data. All processing remains strictly on-device with no external data transmission.",
@@ -1038,7 +1105,8 @@
             "status": "done",
             "dependencies": [],
             "details": "Install tflite_flutter package for preprocessing models (HAR, vision) and flutter_gemma package for Gemma 3 Nano integration. Configure native build files for Android (modify build.gradle to include TensorFlow Lite library and NNAPI delegate) and iOS (update Podfile for Core ML delegate, ensure minimum deployment target compatibility, adjust Strip Style setting). Create assets folder for preprocessing .tflite models only (Gemma models downloaded on first launch). Configure hardware acceleration delegates for optimal performance.\n<info added on 2025-09-12T07:39:38.614Z>\nAdd google_ml_kit packages (google_mlkit_commons, google_mlkit_face_detection, google_mlkit_image_labeling, google_mlkit_text_recognition) for rapid prototyping of vision tasks during development. Create ModelFileManager class to handle Gemma 3 Nano model downloading on first app launch with progress tracking and error handling (models ~2GB, not bundled with app). Implement basic AIService architecture with modular pipeline stages: SpatiotemporalProcessor, VisualContextProcessor, and SummaryGenerator for clean separation of concerns. Set up model storage directory structure with assets/models/preprocessing/ for bundled TFLite models and app_documents/models/ for downloaded Gemma models. Configure permissions in AndroidManifest.xml (CAMERA, WRITE_EXTERNAL_STORAGE, ACCESS_FINE_LOCATION) and Info.plist (NSCameraUsageDescription, NSLocationWhenInUseUsageDescription, NSPhotoLibraryUsageDescription) for required sensor data access.\n</info added on 2025-09-12T07:39:38.614Z>",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1049,7 +1117,8 @@
               1
             ],
             "details": "Process time-series GPS coordinates following AI-SPEC.md specifications to identify significant locations where user spent time. Implement grid-based optimized DBSCAN (Density-Based Spatial Clustering) algorithm in Dart to cluster GPS points into stay points and journeys with improved performance. Configure parameters: eps (distance in meters for neighborhood radius), MinPts (minimum GPS points within eps radius to define core point). Apply grid-based spatial indexing for O(n log n) complexity improvement. Output list of GPS points labeled with cluster ID (significant place) or noise (journey). Implement optional differential privacy for GPS data protection. Use existing location data from Task 3.\n<info added on 2025-09-12T07:40:17.643Z>\nDBSCAN implementation should output structured Event objects with type field set to either 'Stay' or 'Journey'. For Stay events: include precise location coordinates, start_time when user arrived, and end_time when user left the significant location. For Journey events: capture movement trajectory with start/end coordinates and timestamps representing travel between stay points. Grid-based preprocessing optimization must divide geographical coverage area into uniform cells, map each GPS point to its corresponding grid cell, calculate point density per cell, then apply DBSCAN algorithm only to high-density cells and their immediate neighbors. This reduces computational complexity from O(n²) to approximately O(n log n) making it feasible for processing 5-10K daily GPS points on mobile devices. Memory-efficient implementation should process GPS data in streaming fashion rather than loading entire dataset into memory simultaneously. Reference AI-SPEC Section 2.1 for specific parameter tuning guidelines and performance benchmarks.\n</info added on 2025-09-12T07:40:17.643Z>\n<info added on 2025-09-12T08:08:38.116Z>\nImplementation completed with SpatiotemporalProcessor class in spatiotemporal_processor.dart. The DBSCAN algorithm features grid-based spatial indexing for O(n log n) performance, Haversine distance calculations for accurate geospatial clustering, automatic cluster expansion using seed points, configurable parameters (eps=50 meters, MinPts=5 points), and dual-mode event classification outputting LocationCluster objects with Stay events containing precise location coordinates and time ranges, and Journey events capturing movement trajectories between significant locations.\n</info added on 2025-09-12T08:08:38.116Z>",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -1061,7 +1130,8 @@
               2
             ],
             "details": "Classify user's physical activity (stationary, walking, running) using accelerometer and gyroscope data following AI-SPEC.md HAR specifications. Obtain/train lightweight CNN-LSTM model optimized for time-series classification, convert to TensorFlow Lite format with post-training quantization. Load har_model.tflite using tflite_flutter with hardware acceleration delegates. Collect IMU data using sensors_plus plugin. Preprocess sensor data into fixed-length windows of 3-axis readings. Run inference using IsolateInterpreter to avoid blocking UI thread. Correlate with location clustering to create structured Stay and Journey events. Output stream of activity-enriched spatiotemporal events.\n<info added on 2025-09-12T07:40:55.385Z>\nCNN-LSTM architecture details: Design multi-layer CNN for spatial feature extraction from 3-axis sensor data (accelerometer X/Y/Z, gyroscope X/Y/Z), followed by LSTM layers for temporal sequence modeling. Target expanded activity classes: Stationary, Walking, Running, Driving, Cycling per AI-SPEC Table 1. Model optimization: Achieve 27KB quantized model size through INT8 post-training quantization and pruning techniques. Implement 128-sample sliding window (2.56 seconds at 50Hz sampling rate) with 50% overlap for continuous classification. Performance benchmarks: Target 92-97% accuracy with <50ms inference latency on mobile devices. Integration workflow: Correlate HAR classifications with DBSCAN location clusters to distinguish between stationary stays and mobile journeys. Use IsolateInterpreter for background inference processing to maintain UI responsiveness during real-time activity recognition.\n</info added on 2025-09-12T07:40:55.385Z>\n<info added on 2025-09-12T08:19:01.579Z>\nImplementation complete. Successfully built IMUDataCollector service that captures real-time accelerometer and gyroscope data at 50Hz sampling rate using sensors_plus package. Implemented sliding window preprocessing with 128-sample windows and 50% overlap for continuous activity classification. Created real-time HAR processing system with startRealtimeHAR() and stopRealtimeHAR() methods that classify activities into 5 categories (stationary, walking, running, driving, cycling) with confidence scoring. System maintains rolling buffer of recent activities for contextual analysis. HAR inference processes sensor windows in real-time, ready for integration with GPS clustering to generate complete spatiotemporal Stay/Journey events.\n</info added on 2025-09-12T08:19:01.579Z>",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -1072,7 +1142,8 @@
               1
             ],
             "details": "Deploy lightweight MobileNet or EfficientNet models for scene recognition and object detection following AI-SPEC.md vision specifications. Acquire quantized .tflite versions of scene classification and object detection models, add to assets folder. Load models using tflite_flutter with hardware acceleration. Access photos from gallery using existing photo_manager integration from Task 4, filtering by day's timestamps. Preprocess images to required tensor format (resizing, normalizing pixel values). Run inference using IsolateInterpreter for both scene recognition and object detection. Output structured visual context data including scene types and detected objects with confidence scores. Alternative rapid prototyping: Use Google ML Kit for initial implementation.\n<info added on 2025-09-12T07:41:34.248Z>\nComplete implementation of specialized MobileNet V3 and EfficientNet-Lite models following the model optimization requirements. Focus on depth-wise separable convolutions architecture to achieve computational efficiency. Apply INT8 quantization to reduce model size by 4x while maintaining accuracy thresholds. Ensure combined vision models stay under 50MB total size limit. Implement domain-specific OOI detection for daily life objects including food items, technology devices, people, and pets with high confidence scoring. Integrate EXIF metadata extraction from photos to capture precise timestamp and location data. Create correlation engine that matches photo timestamps with spatiotemporal events from Stage 1 HAR analysis. Output enriched event structures combining location clusters, activity recognition, and visual context labels for comprehensive daily life documentation. Performance target: Real-time inference on mid-range mobile devices with <200ms processing time per image.\n</info added on 2025-09-12T07:41:34.248Z>\n<info added on 2025-09-12T08:09:41.062Z>\nImplementation completed with production-ready visual_context_processor.dart delivering comprehensive computer vision capabilities. Successfully deployed MobileNet V3 scene classifier and EfficientNet-Lite object detector with ML Kit backup system for maximum device compatibility. Achieved sub-200ms inference performance through INT8 quantization and hardware acceleration using NNAPI delegates on Android and Core ML delegates on iOS. Enhanced with EXIF metadata parser extracting GPS coordinates and timestamps for precise spatiotemporal correlation. Integrated seamlessly with PhotoManager for efficient gallery access and implements intelligent photo-to-event correlation engine that matches visual context with location clusters from Stage 1 analysis. Ready for Stage 3 LightCap integration and production deployment.\n</info added on 2025-09-12T08:09:41.062Z>",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -1084,7 +1155,8 @@
               4
             ],
             "details": "Generate descriptive sentences for relevant photos using LightCap lightweight image captioning model as specified in AI-SPEC.md. Acquire quantized .tflite version of LightCap model and add to assets folder. Load caption_model.tflite using tflite_flutter with hardware acceleration. Integrate with scene recognition and object detection outputs from previous subtask. Preprocess images to LightCap's required tensor format. Run captioning model using IsolateInterpreter. Combine scene recognition, object detection, and natural language captions into rich visual context data. Correlate with spatiotemporal events from Stage 1 to create multimodal event representations.\n<info added on 2025-09-12T07:42:12.129Z>\nArchitecture specifications: CLIP visual encoder + TinyBERT cross-modal fusion architecture with 40M parameters, 9.8G FLOPs, ~112MB model size. Performance target: CIDEr score 136.6 with 188ms inference speed on mobile CPU. Convert LightCap model to quantized TensorFlow Lite format for on-device deployment. Integration workflow: process photos from Stage 2.4 scene recognition, transform spatiotemporal events with enriched captions (e.g., 'Stay at Cluster_D' becomes 'Had lunch at Italian restaurant'). Generate full descriptive sentences as ready-made narrative content for daily summaries. Execute inference using IsolateInterpreter to maintain UI responsiveness during caption generation.\n</info added on 2025-09-12T07:42:12.129Z>\n<info added on 2025-09-12T08:25:10.429Z>\nImplementation complete with ImageCaptioningProcessor service successfully integrated. CLIP visual encoder + TinyBERT cross-modal fusion architecture deployed with 40M parameter quantized .tflite model. Preprocessing pipeline handles 224x224 input tensor normalization correctly. Intelligent caption generation includes fallback mechanisms for model unavailability. Visual context integration combines scene recognition, object detection, and natural language captions via VisualContextProcessor. EnrichedVisualEvent data structure correlates photos with Stage 1 spatiotemporal events. Performance monitoring validates 188ms inference target with caching system to prevent reprocessing. Narrative caption generation merges AI captions with visual context and activity data producing rich descriptions for daily summary content. Stage 2 LightCap integration completed and ready for Stage 3 multimodal fusion pipeline.\n</info added on 2025-09-12T08:25:10.429Z>",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -1097,7 +1169,8 @@
               5
             ],
             "details": "Implement unified multimodal summarization using Google Gemma 3 Nano (2B or 4B parameters) following AI-SPEC.md Stage 3&4 specifications. Use flutter_gemma package for native multimodal support processing text, image, and audio inputs. Handle model download on first launch (models not bundled in app). Implement Gemma Terms of Use licensing requirements and user acceptance flow. Combine spatiotemporal events (Stay/Journey with HAR data) and visual context (scene recognition, object detection, captions) into structured prompts for Gemma. Create sophisticated prompt engineering system that adapts to data richness - detailed narratives for data-rich days, meaningful insights for minimal-data days. Run Gemma inference in isolates to prevent UI blocking. Implement progressive fallback strategies if Gemma fails. Output human-readable daily summary paragraphs with personality and tone customization options.\n<info added on 2025-09-12T07:42:55.757Z>\nCreate ModelFileManager class that handles Gemma 3 Nano model download and caching in app_documents/models/ directory. Implement download progress UI with percentage and cancellation options. Add model version checking and automatic updates. Handle network interruptions with resume capability. Implement proper error handling for download failures with retry logic. Create GemmaLicenseManager to display Gemma Terms of Use acceptance dialog on first use. Update app Terms of Use to include Gemma usage restrictions and content generation disclaimers. Initialize flutter_gemma with multimodal configuration enabling text, image, and audio input processing. Create structured prompt templates that combine spatiotemporal data from DBSCAN clustering and HAR models with visual context from scene recognition and image captions. Implement adaptive prompting that adjusts detail level based on available data richness. Run all Gemma inference operations in dedicated compute isolates with proper memory management and cleanup. Add fallback mechanisms if model fails to load or generate output. Output structured daily narratives in Markdown format with customizable tone and personality settings.\n</info added on 2025-09-12T07:42:55.757Z>\n<info added on 2025-09-12T08:40:36.971Z>\nSuccessfully completed Stage 3&4 implementation with multimodal_fusion_processor.dart and summary_generator.dart components. The MultimodalFusionProcessor class provides Gemma 3 Nano multimodal support with proper hardware acceleration and isolate-based processing. The SummaryGenerator implements four adaptive generation strategies (fullAI, hybridAI, template, simple) with progressive fallback mechanisms. Both components include comprehensive error handling, memory management, and follow AI-SPEC.md specifications. The PromptTemplateManager enables adaptive prompting that adjusts complexity based on available data richness from spatiotemporal clustering and visual context extraction.\n</info added on 2025-09-12T08:40:36.971Z>",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 7,
@@ -1113,19 +1186,20 @@
               6
             ],
             "details": "Enable hardware acceleration using delegates (NnApiDelegate for Android, CoreMLDelegate for iOS) when creating interpreters to offload computation from CPU. Ensure all preprocessing .tflite models are quantized (4-bit or 8-bit integer) to minimize memory footprint. Implement comprehensive permission handling logic for location access (always), motion sensors, and photo gallery access. Add robust error handling and graceful degradation for hardware acceleration failures, model loading issues, and inference errors. Implement model loading optimization and caching strategies. Add performance monitoring, memory usage tracking, and battery usage optimization. Implement differential privacy options for GPS data. Add comprehensive logging for debugging while ensuring no sensitive data is logged. Create fallback strategies: full AI generation → template-based summaries → simple activity lists.\n<info added on 2025-09-12T07:44:07.740Z>\nPerformance benchmarking suite implementation targeting different device tiers (flagship, mid-range, budget) with detailed metrics collection for NPU/GPU/DSP utilization rates. Post-training quantization pipeline using TensorFlow Lite's optimization toolkit to achieve target model sizes while maintaining accuracy thresholds. Model pruning implementation using structured pruning techniques to reduce parameter count by 30-50% without significant accuracy loss. Isolate lifecycle management with proper dispose patterns and memory cleanup schedules. Memory pressure monitoring integration with Android's ComponentCallbacks2 and iOS memory warning notifications to trigger adaptive processing mode. Tensor memory management with explicit deallocation after inference cycles. Differential privacy implementation using calibrated Laplacian noise injection for GPS coordinates with configurable epsilon values. Data obfuscation layer for temporal patterns and location clustering to prevent re-identification attacks. Federated Learning framework foundation with secure aggregation protocols for future privacy-preserving model updates. Progressive degradation hierarchy: Full AI pipeline → Reduced model complexity → Template-based generation → Simple activity logging. Exponential backoff retry mechanism with jitter for model loading failures and network-dependent operations. Adaptive quality scaling based on battery percentage thresholds (100-80% full quality, 80-50% medium quality, below 50% minimal processing). Charging state detection integration with scheduled heavy processing during power connection periods. Power consumption profiling using native battery statistics APIs for continuous optimization feedback.\n</info added on 2025-09-12T07:44:07.740Z>\n<info added on 2025-09-12T09:05:24.414Z>\nCompleted final optimizations and production readiness implementation. Created optimization_manager.dart with hardware acceleration support (NNAPI for Android, Core ML for iOS), device tier detection, battery monitoring, and memory pressure handling. Implemented privacy_manager.dart with differential privacy for GPS data using Laplacian noise, k-anonymity for location clusters, and temporal cloaking. Added fallback_manager.dart with progressive degradation strategies for all 4 pipeline stages, exponential backoff retry logic, and comprehensive fallback statistics. Integrated all managers into AIService with adaptive quality selection based on battery level and memory conditions. Production-ready optimization pipeline now complete with comprehensive error handling and privacy protection.\n</info added on 2025-09-12T09:05:24.414Z>",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 22,
+        "id": "22",
         "title": "UI Fix - Remove Duplicate Sparkle Icons from Today's Summary",
         "description": "Fix the UI issue where multiple sparkle icons appear on the Today's Summary page when only one should be displayed.",
         "status": "done",
         "dependencies": [
-          8,
-          16,
-          17
+          "8",
+          "16",
+          "17"
         ],
         "priority": "high",
         "details": "Fixed the duplicate sparkle icon issue in Today's Summary section by implementing proper icon differentiation. Changed the generate button icon from Icons.auto_awesome to Icons.add_circle_outline when no journal entry exists, preventing duplicate sparkle icons from appearing in the UI. The solution maintains semantic clarity: the title section keeps its sparkle icon (Icons.auto_awesome) to indicate AI-generated content, while the action button uses a plus icon (Icons.add_circle_outline) for initial generation and a refresh icon for regeneration. This approach eliminates visual confusion while preserving the intended user experience and proper icon semantics for different UI elements.",
@@ -1138,7 +1212,8 @@
             "status": "done",
             "dependencies": [],
             "details": "",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1147,7 +1222,8 @@
             "status": "done",
             "dependencies": [],
             "details": "",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -1156,21 +1232,22 @@
             "status": "done",
             "dependencies": [],
             "details": "",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 23,
+        "id": "23",
         "title": "Data Persistence - Implement Backup System for App Data Survival",
         "description": "Implement comprehensive data backup and restoration system using decentralized and privacy-preserving methods to ensure user journal data survives app reinstallation and device changes.",
         "status": "done",
         "dependencies": [
-          9,
-          2,
-          3,
-          4,
-          5
+          "9",
+          "2",
+          "3",
+          "4",
+          "5"
         ],
         "priority": "high",
         "details": "Enhance the existing data export system from Task 9 to create a robust backup solution that preserves all user data across app reinstalls and device transfers using only decentralized backup methods. Focus on Syncthing integration for peer-to-peer file synchronization across user's devices, and Blossom protocol for decentralized file storage on Nostr relays. Create a BackupManager service that handles automatic periodic backups (daily/weekly configurable) with incremental backup support to minimize storage usage and transfer time. Implement secure backup encryption using device keychain/keystore for backup passwords to ensure user privacy. Build backup verification system that validates backup integrity and completeness. Create restoration flow during app first-run that detects existing backups and offers seamless data restoration. Implement conflict resolution for scenarios where local data exists alongside available backups. Add backup status monitoring with user-visible indicators showing last backup date, backup size, and sync status. Create backup management UI allowing users to manually trigger backups, view backup history, manage Syncthing folders and Blossom servers, and restore from specific backup points. Implement cross-platform compatibility ensuring backups created on Android can be restored on iOS and vice versa. Add selective restore options allowing users to choose specific data types (journal entries, photos, settings, location data) to restore. Focus on local network backup options using Syncthing for peer-to-peer sync and Blossom protocol for decentralized storage without relying on centralized cloud providers.",
@@ -1185,7 +1262,8 @@
               1
             ],
             "details": "Build upon the existing Syncthing provider implementation to create a comprehensive peer-to-peer backup solution. Enhance the SyncthingService with automatic device discovery and pairing capabilities. Implement smart folder management that creates dedicated backup folders for different data types (journal entries, media, settings). Add Syncthing status monitoring with real-time sync progress and conflict resolution. Implement selective sync options allowing users to choose which devices sync which data types. Add network optimization for efficient large file transfers and bandwidth management. Create device trust management with secure device authentication and authorization.",
-            "testStrategy": "Test device discovery and automatic pairing between multiple devices. Verify folder synchronization works correctly with different data types. Test conflict resolution when same files are modified on different devices. Validate bandwidth optimization for large media file transfers."
+            "testStrategy": "Test device discovery and automatic pairing between multiple devices. Verify folder synchronization works correctly with different data types. Test conflict resolution when same files are modified on different devices. Validate bandwidth optimization for large media file transfers.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -1196,7 +1274,8 @@
               1
             ],
             "details": "Build upon the existing Blossom provider implementation to create a robust decentralized storage solution. Enhance the BlossomService with multi-relay redundancy for backup reliability. Implement smart relay selection based on performance, availability, and geographic distribution. Add backup sharding and reconstruction for large files across multiple relays. Implement relay health monitoring with automatic failover to backup relays. Create backup integrity verification using cryptographic proofs. Add bandwidth optimization and compression for efficient relay uploads. Implement backup versioning with deduplication across relays.\n<info added on 2025-09-12T09:26:45.968Z>\nImplemented comprehensive backup restoration system with BackupRestorationService. Features include: multiple restore strategies (replace, merge, append), conflict resolution options (keep existing, use backup, use newer), progress tracking with streaming updates, backup preview without restoration, support for encrypted backups, media file restoration, and atomic restore operations using SharedPreferences for data storage. The system integrates with the existing BackupManager and supports all three backup providers (local, Syncthing, Blossom).\n</info added on 2025-09-12T09:26:45.968Z>",
-            "testStrategy": "Test multi-relay backup distribution and redundancy. Verify backup reconstruction from sharded pieces across different relays. Test relay failover mechanisms and backup integrity verification. Validate bandwidth optimization and compression efficiency for large backups."
+            "testStrategy": "Test multi-relay backup distribution and redundancy. Verify backup reconstruction from sharded pieces across different relays. Test relay failover mechanisms and backup integrity verification. Validate bandwidth optimization and compression efficiency for large backups.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -1209,7 +1288,8 @@
               3
             ],
             "details": "Enhance existing BackupSettingsScreen to focus exclusively on decentralized backup methods. Create Syncthing device management interface with device discovery, pairing, and trust settings. Add Blossom relay configuration with relay selection, health monitoring, and performance metrics. Implement backup status dashboard showing sync progress across Syncthing devices and Blossom relay distribution. Add manual backup triggers with real-time progress indication for both providers. Create restore interface with backup source selection (specific device or relay set) and selective restore options. Implement backup health monitoring with alerts for sync conflicts or relay failures.\n<info added on 2025-09-12T09:31:33.090Z>\nCOMPLETED: Successfully implemented comprehensive backup management UI with three-tab navigation structure. The interface now includes provider selection supporting local, Syncthing, and Blossom backup methods with configurable options for media inclusion, encryption, and incremental backups. Added real-time progress tracking with visual indicators for backup operations. Implemented backup history management with action buttons for restore, verify, and delete operations. Created restore interface supporting multiple strategies including replace, merge, and append with built-in conflict resolution. Added automatic backup scheduling system with user-configurable intervals. Implemented storage management features with cleanup capabilities and backup size monitoring. Integrated password-protected encryption support for secure backup storage. The UI successfully connects with BackupManager and BackupRestorationService for full operational functionality.\n</info added on 2025-09-12T09:31:33.090Z>",
-            "testStrategy": "Test Syncthing device management interface allows easy device pairing and configuration. Verify Blossom relay management shows accurate health and performance metrics. Test backup status dashboard displays real-time sync progress across all devices and relays. Validate restore interface allows granular control over backup source selection."
+            "testStrategy": "Test Syncthing device management interface allows easy device pairing and configuration. Verify Blossom relay management shows accurate health and performance metrics. Test backup status dashboard displays real-time sync progress across all devices and relays. Validate restore interface allows granular control over backup source selection.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -1220,7 +1300,8 @@
               1
             ],
             "details": "Extend existing EncryptionService to integrate with device keychain (iOS) and keystore (Android) for secure backup password storage. Implement backup password generation and secure storage without user intervention. Add encryption key derivation using device-specific identifiers. Enhance backup metadata encryption to protect user privacy. Implement secure key recovery mechanisms for device transfers. Add encryption performance optimization for large media files.",
-            "testStrategy": "Test secure backup password storage and retrieval using device keychain/keystore. Verify encryption key derivation works consistently across device restarts. Test backup password recovery during device transfers. Validate encryption performance doesn't significantly impact backup creation time for large files."
+            "testStrategy": "Test secure backup password storage and retrieval using device keychain/keystore. Verify encryption key derivation works consistently across device restarts. Test backup password recovery during device transfers. Validate encryption performance doesn't significantly impact backup creation time for large files.",
+            "parentId": "undefined"
           },
           {
             "id": 1,
@@ -1229,74 +1310,75 @@
             "dependencies": [],
             "details": "Build the BackupManager class that coordinates between existing BackupScheduler and export services. Implement automatic periodic backups with configurable intervals, incremental backup logic to minimize storage usage and transfer time, and integrate with cloud storage providers. Add backup verification system that validates backup integrity and completeness. Extend existing BackupConfig to support cloud provider selection and credentials management.\n<info added on 2025-09-12T09:15:17.817Z>\n**IMPLEMENTATION COMPLETED**: Successfully implemented comprehensive BackupManager service with complete cloud provider ecosystem. Core features delivered: singleton BackupManager class coordinating all operations, multi-provider support (Google Drive with OAuth, iCloud/Dropbox placeholders, local, Syncthing, Blossom), BackupMetadata system with SHA256 checksums and incremental tracking, full backup verification and restore functionality with progress monitoring, seamless BackupScheduler integration for automatic operations, and unified API interface maintaining complete backup history across all providers.\n</info added on 2025-09-12T09:15:17.817Z>",
             "status": "done",
-            "testStrategy": "Test backup creation and restoration across different cloud providers. Verify incremental backup functionality reduces transfer times and storage usage. Test backup verification system ensures data integrity after backup operations. Validate configuration management and provider switching works correctly."
+            "testStrategy": "Test backup creation and restoration across different cloud providers. Verify incremental backup functionality reduces transfer times and storage usage. Test backup verification system ensures data integrity after backup operations. Validate configuration management and provider switching works correctly.",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 24,
+        "id": "24",
         "title": "Replace mock timeline data with actual storage implementation in TimelineWidget",
         "description": "Remove hardcoded timeline events and implement integration with the journal database to fetch real activities and events for timeline display.",
         "details": "Remove the mock hardcoded TimelineEvent data from the timelineEventsProvider (lines 13-63 in timeline_widget.dart) and replace it with actual storage integration. Implement queries to fetch JournalActivities from the journal database for the specified date using the existing JournalDatabase infrastructure. Create a mapping system to convert JournalActivity records to TimelineEvent objects, including proper activity type to icon/color mapping based on activityType field (location, photo, movement, calendar, manual). Update the provider to use ref.watch(journalServiceProvider) or direct database access to fetch activities for the given date. Ensure proper error handling for database queries and maintain the existing async loading behavior with skeleton states. Add proper sorting by timestamp to display events chronologically throughout the day. Consider implementing caching for better performance on frequently accessed dates. The timeline should display real user activities captured by various app sensors and services, providing an accurate daily timeline view.",
         "testStrategy": "Verify that hardcoded mock data no longer appears in the timeline widget. Test timeline display with real journal entries containing activities from the database. Verify proper date filtering shows only activities for the selected date. Test that different activity types (location, photo, movement, calendar, manual) display with appropriate icons and colors. Validate proper chronological sorting of timeline events by timestamp. Test empty state behavior when no activities exist for a selected date. Verify loading states work correctly during database queries. Test error handling when database queries fail. Confirm performance remains smooth when loading timelines for different dates and that skeleton loading states display appropriately during data fetching.",
         "status": "done",
         "dependencies": [
-          2,
-          3,
-          4
+          "2",
+          "3",
+          "4"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 25,
+        "id": "25",
         "title": "Implement Timeline Event Details Click Handler",
         "description": "Create event detail functionality for timeline events by implementing the TODO click handler at line 295 in timeline_widget.dart, including navigation to a detailed event view screen.",
         "details": "Implement the missing click handler functionality for timeline events in the TimelineWidget. Currently at line 295 in timeline_widget.dart, there is a TODO comment for 'Open event details' in the InkWell onTap callback. This task involves: 1) Creating a new EventDetailScreen to display comprehensive event information including time, title, description, type, duration, related media, and contextual data, 2) Adding the new screen route '/event-detail' to router.dart with proper parameter passing for event data, 3) Implementing the onTap callback in timeline_widget.dart to navigate to EventDetailScreen using context.push() with event data as parameters, 4) Designing the event detail screen with Material 3 styling that shows event metadata, allows editing of event details, and provides options to add notes or media, 5) Adding proper error handling and loading states for the detail screen, 6) Implementing back navigation and proper screen transitions. The detail screen should follow the existing app's design patterns with appropriate use of Material 3 components, proper spacing, and responsive layout.",
         "testStrategy": "Verify that tapping on any timeline event properly navigates to the event detail screen with correct event data passed. Test the event detail screen displays all event information accurately including time, title, description, and type. Validate back navigation works correctly from the detail screen. Test the screen layout and responsiveness across different device sizes and orientations. Verify Material 3 styling consistency with the rest of the app. Test error handling when invalid event data is passed. Validate screen transitions and animations are smooth and follow Material Design guidelines.",
         "status": "done",
         "dependencies": [
-          15
+          "15"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 26,
+        "id": "26",
         "title": "Replace mock media gallery with actual device media access",
         "description": "Remove hardcoded picsum.photos placeholder URLs from MediaGalleryWidget and implement integration with the existing PhotoService and MediaDatabase to display real device photos and videos.",
         "details": "Replace the mock data in the mediaItemsProvider (lines 13-65 in media_gallery_widget.dart) which currently uses hardcoded picsum.photos URLs and placeholder captions. Integrate with the existing PhotoService from photo_service.dart to access real device media through the photo_manager package. Implement a new provider that queries the MediaDatabase via mediaItemsProvider from media_database_provider.dart to fetch actual photos and videos for the specified date. Create a mapping function to convert MediaItem database records to the MediaItem model used by the widget, ensuring proper thumbnail generation using the PhotoService's generateThumbnail method. Update the widget to handle real media metadata including actual file paths, timestamps, GPS coordinates from EXIF data, and person tags from face detection. Implement proper error handling for media access permissions using the existing PhotoService permission system. Add support for displaying video thumbnails with play icons and proper duration formatting. Ensure the gallery properly filters media items by the selected date using the MediaDatabase date filtering capabilities.",
         "testStrategy": "Verify that placeholder picsum.photos URLs no longer appear in the media gallery. Test media gallery displays real photos and videos from the device photo library when photo permissions are granted. Test proper date filtering shows only media items from the selected date. Verify thumbnail generation works correctly for both photos and videos using the PhotoService. Test that metadata display includes actual timestamps, locations (if available in EXIF), and file information. Validate proper handling of permission states (granted, limited, denied) with appropriate UI feedback. Test video thumbnails display with play icons and duration information. Verify performance with large media collections and proper pagination/loading states. Test empty state displays when no media exists for the selected date.",
         "status": "done",
         "dependencies": [
-          2,
-          3
+          "2",
+          "3"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 27,
+        "id": "27",
         "title": "Implement add media functionality for MediaGalleryWidget - camera/gallery picker integration",
         "description": "Implement the TODO at line 281 in MediaGalleryWidget by adding camera and gallery picker functionality to allow users to capture new photos or select existing ones from their device.",
         "details": "Implement the missing 'Add Media' functionality in MediaGalleryWidget by: 1) Adding the `image_picker` package dependency to pubspec.yaml for camera and gallery access, 2) Creating a MediaPickerService that handles camera capture, gallery selection, and permission management using both image_picker and the existing photo_manager integration, 3) Implementing a bottom sheet or dialog that presents users with options to 'Take Photo', 'Choose from Gallery', and 'Cancel', 4) Integrating with the existing PhotoService and MediaDatabase infrastructure to store newly captured/selected media items, 5) Updating the MediaGalleryWidget's 'Add Media' button at line 281 to trigger the new picker functionality, 6) Adding proper error handling for permission denials, camera unavailability, and storage issues, 7) Ensuring new media items are immediately visible in the gallery view after selection/capture by refreshing the mediaItemsProvider. The implementation should leverage the existing robust media infrastructure including MediaDatabase for storage, PhotoService for processing, and the comprehensive metadata extraction capabilities already in place.",
         "testStrategy": "Test the 'Add Media' button functionality by verifying the picker dialog/bottom sheet appears with camera and gallery options. Test camera capture functionality creates new photos that appear immediately in the MediaGalleryWidget. Test gallery selection allows picking existing photos that get added to the current day's media collection. Verify proper permission handling for camera and photo library access. Test error scenarios including permission denial, camera unavailability, and storage failures. Validate that new media items integrate properly with the existing MediaDatabase, appearing in the correct date's media collection with proper metadata extraction.",
         "status": "done",
         "dependencies": [
-          20,
-          15
+          "20",
+          "15"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 28,
+        "id": "28",
         "title": "Replace mock map with real map integration using flutter_map and GPS data",
         "description": "Replace the placeholder map UI in MapWidget with a real interactive map using flutter_map package and integrate with existing location database to display actual GPS tracking data and location points.",
         "status": "done",
         "dependencies": [
-          3,
-          2
+          "3",
+          "2"
         ],
         "priority": "medium",
         "details": "Replace the mock placeholder Container (lines 100-133 in map_widget.dart) with a real FlutterMap widget following the working implementation pattern found in home_screen.dart (lines 801-856). The implementation should: 1) Replace the placeholder Container with a FlutterMap widget configured with MapOptions for initial center/zoom and OpenStreetMap TileLayer using urlTemplate 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', 2) Integrate with existing LocationDatabase via locationDatabaseProvider to query LocationPoints for the selected date, 3) Add PolylineLayer to connect consecutive location points showing movement paths with theme.colorScheme.primary color and 3.0 strokeWidth, 4) Add MarkerLayer with custom markers for different activity types (green circle with play icon for start, red circle with stop icon for end, following the pattern in home_screen.dart lines 822-851), 5) Implement the TODO map control functionalities: zoom in/out (lines 144-155) using MapController.move() and center on current location (lines 158-163) using MapController.move() with user's current position, 6) Update the location card tap handler (around line 428) to center the map on the selected location using MapController.move(), 7) Calculate real distance using the existing Haversine formula implementation from home_screen.dart lines 597-612, 8) Add proper loading states while GPS data is being fetched using Skeletonizer as shown in home_screen.dart line 799, 9) Handle error states for map loading failures and missing GPS data with proper error widgets, 10) Maintain the existing UI structure with location stats container and horizontal location list while only replacing the map placeholder area. Use MapController for programmatic map control and ensure proper disposal in widget lifecycle.",
@@ -1309,7 +1391,8 @@
             "status": "done",
             "dependencies": [],
             "details": "",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1318,7 +1401,8 @@
             "status": "done",
             "dependencies": [],
             "details": "",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -1327,7 +1411,8 @@
             "status": "done",
             "dependencies": [],
             "details": "",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -1336,7 +1421,8 @@
             "status": "done",
             "dependencies": [],
             "details": "",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -1345,7 +1431,8 @@
             "status": "done",
             "dependencies": [],
             "details": "",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -1354,7 +1441,8 @@
             "status": "done",
             "dependencies": [],
             "details": "",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           },
           {
             "id": 7,
@@ -1363,69 +1451,70 @@
             "status": "done",
             "dependencies": [],
             "details": "",
-            "testStrategy": ""
+            "testStrategy": "",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 29,
+        "id": "29",
         "title": "Implement map controls - Zoom in/out buttons and center on location functionality",
         "description": "Implement the three TODO items at lines 144, 152, and 160 in map_widget.dart by adding zoom in/out functionality and center on current location capability using flutter_map MapController.",
         "details": "Implement the missing map control functionality in the MapWidget by: 1) Adding a MapController from the flutter_map package to manage map interactions and state, 2) Creating a provider or state management solution to handle the MapController instance and zoom level state, 3) Implementing zoom in functionality that increases the zoom level by 1 and animates to the new zoom level using mapController.move(), 4) Implementing zoom out functionality that decreases the zoom level by 1 with smooth animation, 5) Implementing center on location functionality that gets the user's current location using the existing location services and animates the map to center on that position, 6) Adding proper error handling for location permissions and GPS availability, 7) Integrating with the existing location data from the LocationService to show actual user location data on the map instead of the current placeholder, 8) Adding visual feedback during location centering operations with loading states, and 9) Ensuring the map controls work smoothly with the existing map placeholder and integrate properly with the flutter_map widget when the actual map implementation is added.",
         "testStrategy": "Test zoom in button increases map zoom level smoothly with proper animation. Test zoom out button decreases zoom level with smooth transition. Test that zoom controls respect minimum and maximum zoom limits. Test center on location button triggers location permission request if needed and centers map on user's current location. Verify that location centering shows loading state while fetching GPS coordinates. Test error handling when location services are disabled or permission is denied. Validate that map controls maintain proper visual styling and positioning across different screen sizes. Test integration with existing location data providers and ensure map state persists correctly during widget rebuilds.",
         "status": "done",
         "dependencies": [
-          3,
-          15
+          "3",
+          "15"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 30,
+        "id": "30",
         "title": "Implement focus on location map functionality - location card tap handler",
         "description": "Implement the TODO at line 428 in map_widget.dart to enable focusing/centering on a specific location when tapping location cards in the daily canvas map widget.",
         "details": "Implement the missing 'Focus on location on map' functionality in the MapWidget's location card tap handler by: 1) Creating a MapController provider or state management solution to coordinate between the MapWidget and any actual FlutterMap instances (similar to the existing implementation in home_screen.dart), 2) Adding a callback parameter to MapWidget that can be triggered when location cards are tapped, passing the LocationPoint data including latitude, longitude, and location details, 3) Implementing the onTap handler in _buildLocationCard to trigger map focus functionality that will center the map view on the selected location's coordinates, 4) Adding smooth animation when centering on the location using MapController.move() with appropriate zoom level (e.g., zoom level 16-18 for detailed location view), 5) Adding visual feedback such as highlighting the selected location card and/or showing a temporary marker or pulse effect on the map at the focused location, 6) Ensuring proper integration with the existing location data structure (LocationPoint class) and MapData provider, 7) Adding proper error handling for edge cases like invalid coordinates or map controller not being available. The implementation should work seamlessly with the existing map placeholder and be ready to integrate with the actual FlutterMap implementation when the placeholder is replaced.",
         "testStrategy": "Test that tapping on location cards in the horizontal scrollable list triggers the focus functionality. Verify that the map view centers on the correct coordinates for each location card tapped. Test smooth animation when centering occurs and ensure appropriate zoom level for location details. Test that visual feedback (card highlighting or map markers) appears correctly when locations are focused. Validate that the functionality works with various location types (home, work, food, etc.) and handles edge cases like missing coordinates gracefully. Test integration with existing MapController and ensure no conflicts with other map controls from Task 29.",
         "status": "done",
         "dependencies": [
-          29,
-          15
+          "29",
+          "15"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 31,
+        "id": "31",
         "title": "Replace photo provider placeholders with real implementations",
         "description": "Replace the hardcoded picsum.photos placeholder URLs in MediaGalleryWidget's mediaItemsProvider with actual photo service integration using existing PhotoService and MediaDatabase infrastructure.",
         "details": "Remove the mock data in the mediaItemsProvider (lines 13-65 in media_gallery_widget.dart) which currently returns hardcoded MediaItem objects with picsum.photos URLs and placeholder captions. Replace this with real implementation that: 1) Integrates with the existing PhotoService from photo_service_provider.dart to access device media through the photo_manager package, 2) Queries the MediaDatabase via mediaItemsProvider from media_database_provider.dart to fetch actual photos and videos for the specified date, 3) Creates a mapping function to convert MediaItem database records and AssetEntity objects to the MediaItem model used by the widget, 4) Maintains the same provider interface but returns real device photos filtered by the selected date, 5) Uses actual thumbnails from PhotoService.getThumbnail() instead of placeholder URLs, 6) Populates captions and metadata from stored media metadata in the database, 7) Handles permission states properly by checking PhotoService.hasAccess before querying media, 8) Implements proper error handling for cases where photo access is denied or media files are unavailable. The implementation should preserve the existing MediaItem model structure and widget functionality while replacing placeholder data with real photo library integration.",
         "testStrategy": "Verify that placeholder picsum.photos URLs no longer appear in the media gallery. Test media gallery displays real photos and videos from the device photo library when photo permissions are granted. Test proper date filtering shows only media items from the selected date. Verify thumbnail generation works correctly using PhotoService methods. Test error handling displays appropriate messages when photo permissions are denied. Verify loading states work properly while scanning device media. Test that media metadata and captions are populated from stored database records when available.",
         "status": "done",
         "dependencies": [
-          2,
-          3,
-          26
+          "2",
+          "3",
+          "26"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 32,
+        "id": "32",
         "title": "Remove development seed data from production builds",
         "description": "Ensure that DevSeedData class and all its usages are excluded from production builds by implementing proper debug-only guards and removing any references that could leak into release builds.",
         "details": "Remove the DevSeedData class entirely from production builds by implementing proper build configuration exclusions. Currently, DevSeedData is used in journal_service.dart (lines 46-49), journal_debug_screen.dart (lines 198-201, 231), and has test files that reference it. While the class already has kDebugMode guards internally, the import statements and class references still exist in production code. Implementation steps: 1) Wrap all DevSeedData imports with conditional compilation using #if DEBUG preprocessor directives or move to separate debug-only files, 2) Create a debug-only version of journal_service.dart initialization that excludes seeding logic in release builds, 3) Ensure journal_debug_screen.dart is completely excluded from production builds via build configuration, 4) Remove or conditionally exclude any test files that might be included in production bundles, 5) Add build-time verification to ensure no DevSeedData references exist in release builds, 6) Update any debug utilities to gracefully handle the absence of seeding functionality in production.",
         "testStrategy": "Build the app in release mode and verify that DevSeedData class is not included in the final bundle by checking the compiled bytecode or using Flutter's build analysis tools. Test that journal service initialization works correctly in release mode without attempting to seed data. Verify that all debug screens are properly excluded from production builds. Run static analysis to ensure no references to DevSeedData exist in production code paths. Test app functionality in release mode to ensure removal of dev seed data doesn't break core journal functionality.",
         "status": "done",
         "dependencies": [
-          2,
-          3
+          "2",
+          "3"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 33,
+        "id": "33",
         "title": "Integrate crash reporting service for production error monitoring",
         "description": "Implement crash reporting integration using Firebase Crashlytics or Sentry to replace the TODO in ErrorHandler and enable production error monitoring and debugging.",
         "details": "Replace the TODO comment in ErrorHandler class with a complete crash reporting implementation. First, analyze the existing error handling patterns in the codebase and choose between Firebase Crashlytics and Sentry based on project requirements. For Firebase Crashlytics: 1) Add firebase_crashlytics dependency to pubspec.yaml, 2) Configure Firebase project with google-services.json (Android) and GoogleService-Info.plist (iOS), 3) Initialize Crashlytics in main.dart before runApp(), 4) Implement crash reporting in ErrorHandler.logError() method to send exceptions with context including user ID, app version, and relevant metadata, 5) Add custom logging for non-fatal errors using FirebaseCrashlytics.instance.recordError(). For Sentry: 1) Add sentry_flutter dependency, 2) Initialize Sentry with DSN in main.dart using SentryFlutter.init(), 3) Wrap runApp() with Sentry.runWithChild(), 4) Implement error reporting in ErrorHandler using Sentry.captureException(). Ensure error reporting respects user privacy settings and includes relevant context like current screen, user actions, and device information. Add configuration to disable crash reporting in debug builds using kDebugMode flag.",
@@ -1436,24 +1525,24 @@
         "subtasks": []
       },
       {
-        "id": 34,
+        "id": "34",
         "title": "Implement privacy preset application logic for PrivacyQuickStart screen",
         "description": "Complete the privacy preset implementation in PrivacyQuickStart screen by adding actual preset configuration logic and persistence for different privacy levels (Minimal, Balanced, Maximum).",
         "details": "Implement the missing privacy preset application logic in the PrivacyQuickStart screen by: 1) Creating a PrivacyPresetService that defines three preset configurations - Minimal (basic location tracking, limited data collection), Balanced (moderate privacy with essential features), and Maximum (comprehensive tracking for full functionality), 2) Adding preset data models that specify exact settings for each privacy level including location tracking frequency, data retention periods, backup destinations, AI processing preferences, and third-party integrations, 3) Implementing the applyPreset() method that updates app-wide privacy settings in SharedPreferences or secure storage, including location services permissions, calendar integration toggles, health data access, and backup method selections, 4) Creating a PrivacySettingsProvider using Riverpod to manage privacy state across the app and ensure all services respect the selected privacy level, 5) Adding validation logic to ensure preset changes properly update dependent services like LocationService, CalendarService, and BackupManager, 6) Implementing preset persistence so the selected privacy level survives app restarts and updates the UI accordingly, 7) Adding proper error handling for cases where preset application fails due to permission issues or service unavailability.",
         "testStrategy": "Test each privacy preset selection properly applies the correct configuration settings across all app services. Verify Minimal preset disables non-essential tracking while maintaining core functionality. Test Balanced preset provides reasonable defaults with moderate privacy protection. Validate Maximum preset enables full feature set with appropriate user consent flows. Test preset persistence across app restarts and ensure UI reflects the currently active preset. Verify that changing presets properly updates all dependent services and their permission states. Test error scenarios where preset application might fail and ensure graceful fallback behavior.",
         "status": "done",
         "dependencies": [
-          2,
-          3,
-          5,
-          9,
-          23
+          "2",
+          "3",
+          "5",
+          "9",
+          "23"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 35,
+        "id": "35",
         "title": "Replace logging TODO in context_providers.dart with proper error logging implementation",
         "description": "Replace the TODO comment at line 74 in context_providers.dart with proper error logging implementation using the existing AppLogger utility for better error tracking and debugging in the PersonalContextEngine narrative generation.",
         "details": "Replace the TODO comment 'Replace with proper logging' at line 74 in context_providers.dart with proper error logging implementation. The project already has a comprehensive logging system using the logger package and AppLogger utility class in lib/utils/logger.dart. Implementation steps: 1) Import the existing AppLogger by adding 'import '../utils/logger.dart';' to the imports section of context_providers.dart, 2) Replace the TODO comment and basic print statement with proper error logging using appLogger.error() method that includes the error object, stackTrace, and contextual information about the narrative generation failure, 3) Add appropriate error context such as the date parameter and engine state to help with debugging, 4) Consider using appLogger.warning() for non-critical errors that shouldn't crash the app but should be tracked, 5) Ensure the logging follows the existing pattern used throughout the codebase where errors are logged but don't prevent the method from returning a safe fallback value (null in this case).",
@@ -1464,108 +1553,112 @@
         "subtasks": []
       },
       {
-        "id": 36,
+        "id": "36",
         "title": "Implement HEIC metadata extraction - MediaFormatHandler has placeholder for HEIC support at line 362",
         "description": "Replace the placeholder HEIC metadata extraction method in MediaFormatHandler with robust HEIC/HEIF metadata extraction using the exif package for direct binary parsing and improved format support.",
         "details": "Enhance the `_extractHeicMetadata` method in MediaFormatHandler by: 1) Integrating the `exif` package directly for HEIC/HEIF format parsing instead of relying on the `image` package which has limited HEIC support, 2) Adding native binary EXIF parsing using `readExifFromBytes()` from the `exif` package to extract metadata directly from HEIC file bytes, 3) Implementing HEIC-specific metadata extraction that handles Apple's container format variations and embedded EXIF data structures, 4) Adding fallback mechanisms for different HEIC variants (HEIC, HEIF, and container formats) with proper error handling for corrupted or non-standard files, 5) Ensuring GPS coordinates, camera settings, timestamps, and device information are properly extracted from HEIC metadata, 6) Adding comprehensive logging and error recovery for HEIC processing failures, 7) Testing with various HEIC files from different Apple device generations to ensure compatibility, 8) Optimizing performance for HEIC metadata extraction to match processing times of JPEG files. The implementation should maintain the existing ExifData structure while providing more reliable HEIC support than the current placeholder.",
         "testStrategy": "Test HEIC metadata extraction with files from various Apple devices (iPhone 7+, iPad Pro) including Live Photos and Portrait mode images. Verify GPS coordinates, timestamps, camera settings (aperture, ISO, focal length), and device info are correctly extracted. Test with corrupted HEIC files and ensure graceful error handling. Compare extraction accuracy against Photos.app metadata display. Benchmark processing performance against JPEG extraction times. Test edge cases like HEIC files without metadata, files with only partial EXIF data, and HEIF format variations. Validate that existing JPEG/PNG extraction remains unaffected.",
         "status": "done",
         "dependencies": [
-          4
+          "4"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 37,
+        "id": "37",
         "title": "Replace hardcoded app version with dynamic package info retrieval in error_handler.dart",
         "description": "Replace the hardcoded app version '1.0.0' at line 37 in lib/utils/error_handler.dart with dynamic package version retrieval using the existing package_info_plus dependency.",
         "details": "Replace the hardcoded app version string '1.0.0' in the ErrorHandler.initialize() method (line 37) with dynamic package information retrieval using package_info_plus, which is already available as a project dependency. Implementation steps: 1) Import package_info_plus at the top of error_handler.dart by adding 'import 'package:package_info_plus/package_info_plus.dart';', 2) Modify the initialize() method to be async and add 'Future<void>' return type, 3) Replace the hardcoded setSafeContext('app_version', '1.0.0') line with dynamic version retrieval using 'final packageInfo = await PackageInfo.fromPlatform(); setSafeContext('app_version', packageInfo.version);', 4) Update all callers of ErrorHandler.initialize() throughout the codebase to await the method call, particularly in main.dart if it exists, 5) Consider adding additional package info context like build number using packageInfo.buildNumber for more detailed error reporting context. The implementation should follow the same pattern already established in about_screen.dart which successfully uses PackageInfo.fromPlatform() for dynamic version retrieval.",
         "testStrategy": "Test that the error handler initializes correctly and captures the actual app version from pubspec.yaml (currently 0.1.0) instead of the hardcoded '1.0.0' value. Verify that safe context includes the dynamic version by checking ErrorHandler.getSafeContext() contains the correct app_version after initialization. Test in both debug and release builds to ensure package info retrieval works correctly across build configurations. Verify that any errors thrown during initialization are handled gracefully and don't prevent app startup. Test that Sentry error reports include the correct dynamic version information in their context data.",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [],
         "priority": "high",
         "subtasks": []
       },
       {
-        "id": 38,
+        "id": "38",
         "title": "Configure Sentry DSN - Replace placeholder DSN with actual project DSN or disable crash reporting",
         "description": "Replace the empty DSN string in SentryConfig.dsn with either an actual Sentry project DSN for crash reporting or implement configuration option to disable Sentry when not needed.",
         "details": "The SentryConfig class at line 15 has an empty DSN string which effectively disables Sentry crash reporting. To resolve this: 1) If crash reporting is needed, create a Sentry project at https://sentry.io, obtain the DSN from Project Settings > Client Keys (DSN), and replace the empty string with the actual DSN (format: https://[key]@[organization].ingest.sentry.io/[project]), 2) If crash reporting is not needed, add a configuration flag to cleanly disable Sentry initialization by adding a static const bool enabled = false; field to SentryConfig and modify main.dart to conditionally initialize Sentry only when SentryConfig.enabled is true and SentryConfig.dsn is not empty, 3) Update the release version in SentryConfig.release to match the actual app version from pubspec.yaml instead of the hardcoded 'aura-one@1.0.0+1', 4) Consider adding environment-specific DSN configuration for development, staging, and production environments.",
         "testStrategy": "If DSN is configured, test crash reporting by triggering intentional crashes and verifying they appear in the Sentry dashboard. Test that beforeSend callback properly filters out NetworkImageLoadException and other sensitive errors. If Sentry is disabled via configuration flag, verify that Sentry initialization is skipped entirely and the app functions normally without crash reporting. Test that the release version matches the actual app version from pubspec.yaml. Verify environment-specific configurations work correctly across debug and release builds.",
         "status": "pending",
         "dependencies": [
-          33,
-          37
+          "33",
+          "37"
         ],
         "priority": "high",
         "subtasks": []
       },
       {
-        "id": 39,
+        "id": "39",
         "title": "Remove or implement face detection stubs - evaluate and decide on face detection functionality",
         "description": "Analyze face detection usage in PhotoService and either properly implement face detection using google_mlkit_face_detection or completely remove all face detection functionality and dependencies to maintain APK size optimization.",
         "details": "Three face detection service files are currently stubbed out for APK size optimization: face_detection_types.dart, face_detector.dart, and photo_service_provider.dart. However, PhotoService actively uses face detection methods (detectFacesInAsset, detectFacesBatch, detectFacesStream, storeFaceDetectionResults) that call these stubs, and google_mlkit_face_detection dependency is still included in pubspec.yaml. Implementation options: 1) COMPLETE REMOVAL: Remove all face detection imports from PhotoService, comment out or remove face detection methods (lines 717-820, 877-940, 1248-1298), remove google_mlkit_face_detection from pubspec.yaml, delete the three stub files, and update any calling code to handle the removal gracefully. 2) PROPER IMPLEMENTATION: Replace stub files with working implementations using the backup files as reference (lib_backup/face_detector.dart shows full ML Kit integration), implement actual FaceDetectionService using google_mlkit_face_detection, and restore face clustering and person identification features. The decision should be based on whether face detection is essential for the AI journal functionality - if not needed, complete removal is preferred for APK size. If needed, proper implementation using existing ML Kit dependency is required.",
         "testStrategy": "If removing: Build APK and verify significant size reduction, test that PhotoService methods handle missing face detection gracefully without crashes, verify AI journal features work without face detection. Test that all imports compile successfully and no dead code remains. If implementing: Test face detection on sample images returns valid results, verify batch processing works with multiple images, test face clustering identifies same persons across photos, verify database storage of face detection results, test memory management during face detection processing. Measure APK size impact and performance on device.",
         "status": "pending",
         "dependencies": [
-          2,
-          3
+          "2",
+          "3"
         ],
         "priority": "high",
         "subtasks": []
       },
       {
-        "id": 40,
+        "id": "40",
         "title": "Implement journal data import functionality for processing exported journal entries",
         "description": "Complete the TODO at line 371 in import_screen.dart by implementing the actual import logic to parse exported journal entries, handle duplicates, import media files, and store data in the journal database.",
         "details": "Implement the missing import logic in the _performImport() method by: 1) Parsing journal entries from the _importData JSON structure which contains exportPackage.data.journalEntries array with title, content, date, mood, tags, summary, and activities, 2) Validating each journal entry's required fields (date, title, content) and handling malformed data gracefully, 3) Implementing duplicate detection by checking existing entries for the same date using JournalDatabase.getJournalEntryForDate() when _settings.skipDuplicates is enabled, 4) Converting imported entries to JournalEntriesCompanion objects with proper date conversion using DateTimeUtils.localDateToUtc(), handling both auto-generated and user-created entries based on isAutoGenerated flag, 5) Inserting journal entries using JournalDatabase.insertJournalEntry() with InsertMode.insertOrReplace for merging when _settings.mergeEntries is true, 6) Processing associated activities from each entry's activities array and inserting them using JournalDatabase.insertJournalActivity() with proper JSON metadata encoding, 7) Handling media file imports when _settings.importMedia is true by copying files from the temporary _mediaDirectory to the app's media storage directory and updating file references, 8) Processing location data when _settings.importLocation is enabled, ensuring GPS coordinates and location metadata are preserved in activity records, 9) Providing progress updates during the import process by replacing the fake Future.delayed with real progress tracking based on processed entries count, 10) Adding comprehensive error handling for database constraints, file I/O operations, and data validation with specific error messages for different failure scenarios.",
         "testStrategy": "Test import functionality with various export file formats including minimal entries (title/content only), complete entries with activities and media, and malformed JSON data. Verify duplicate detection works correctly when skipDuplicates is enabled, testing same-date entries with different content. Test merge functionality preserves existing data while adding new information when mergeEntries is enabled. Validate media file import correctly copies files to app storage and updates references when importMedia is true. Test location data import preserves GPS coordinates and geocoding information when importLocation is enabled. Verify progress tracking provides accurate completion percentages during large imports. Test error handling for corrupted files, insufficient storage space, and database constraint violations. Validate the import process leaves the database in a consistent state even when errors occur partway through.",
         "status": "pending",
         "dependencies": [
-          2,
-          9
+          "2",
+          "9"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 41,
+        "id": "41",
         "title": "Implement Daily Canvas Quick Add Features - Photo Capture, Voice Recording, and Location Tagging",
         "description": "Complete the three TODO items in daily_canvas_screen.dart at lines 740, 749, and 758 by implementing photo capture functionality using existing MediaPickerService, voice recording capabilities, and location tagging integration with the persistent location service.",
         "details": "Implement the missing functionality for the three Quick Add buttons in the Daily Canvas screen: 1) **Photo Capture (line 740)**: Integrate with the existing MediaPickerService to show media picker options (camera, gallery) when the Photo button is tapped. Use the mediaPickerServiceProvider to access the service and call showMediaPickerOptions() to present the bottom sheet with camera and gallery options. Handle the returned file path and integrate with the media database through the service's built-in processing. 2) **Voice Recording (line 749)**: Although the VoiceEditingService currently uses stub implementations (speech packages disabled for APK size), implement a basic voice recording UI flow that shows a recording dialog with start/stop functionality. Create a simple recording interface that can be enhanced later when speech packages are re-enabled. Use permission_handler for microphone permissions and just_audio package for basic audio recording capabilities that are already included in pubspec.yaml. 3) **Location Tagging (line 758)**: Integrate with the existing PersistentLocationService and location database to capture the current location and add it as a location tag for the current journal entry. Use the geolocator package (already included) to get current position, integrate with the location database to store the location point, and provide user feedback about the location being tagged. All three implementations should integrate with the existing journal system through JournalService and provide appropriate user feedback via fluttertoast for success/error states.",
         "testStrategy": "Test photo capture by tapping the Photo button and verifying the media picker bottom sheet appears with camera and gallery options. Test camera capture creates a new photo that gets stored in the media database and can be viewed in the MediaGalleryWidget. Test gallery selection allows picking existing photos. Test voice recording by tapping the Voice button and verifying a recording dialog appears with start/stop controls and proper permission handling. Test location tagging by tapping the Location button and verifying current location is captured, stored in the location database, and associated with the current journal entry. Verify appropriate toast messages are shown for success and error states for all three features. Test error scenarios including denied permissions, failed media capture, location services disabled, and network connectivity issues.",
         "status": "pending",
         "dependencies": [
-          3,
-          27,
-          15
+          "3",
+          "27",
+          "15"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 42,
+        "id": "42",
         "title": "Replace placeholder implementations in photo providers, AI pipeline, pattern analyzer mood analysis, and model manager accuracy test",
         "description": "Replace hardcoded placeholder implementations in photo_providers.dart (empty list returns), ai_pipeline_provider.dart (mock database initialization), pattern_analyzer.dart (hardcoded mood score), and model_manager.dart (hardcoded accuracy value) with functional implementations using existing service infrastructure.",
         "details": "Replace four placeholder implementations with functional code: 1) In photo_providers.dart lines 18 and 24 - replace empty list returns in recentPhotosProvider and photosByDateProvider with actual PhotoService integration using ref.watch(photoServiceProvider) and existing PhotoManager methods for fetching real device photos, 2) In ai_pipeline_provider.dart line 28-30 - replace placeholder MediaDatabase() and LocationDatabase() instantiation with proper provider references using ref.read(mediaDatabaseProvider) and ref.read(locationDatabaseProvider), 3) In pattern_analyzer.dart line 371-377 - replace hardcoded MoodDataPoint placeholder with sentiment analysis implementation that extracts mood data from summary.aiInsights using natural language processing patterns for mood classification (positive/neutral/negative), triggers extraction, and confidence scoring based on insight content quality, 4) In model_manager.dart line 379 - replace hardcoded accuracy value 0.85 with actual model accuracy testing using a validation dataset or cross-validation approach measuring prediction accuracy against ground truth data for the specific model being benchmarked.",
         "testStrategy": "Test photo providers by verifying recentPhotosProvider returns actual device photos when photo permissions are granted and photosByDateProvider filters photos by the specified date. Test AI pipeline provider by ensuring MediaDatabase and LocationDatabase are properly injected from existing providers and comprehensive tests run without initialization errors. Test pattern analyzer mood analysis by providing various AI insight texts and verifying mood scores, categories, and triggers are extracted based on content sentiment rather than returning hardcoded values. Test model manager accuracy by running benchmark tests with actual model files and verifying accuracy scores reflect real model performance metrics rather than placeholder values.",
         "status": "pending",
         "dependencies": [
-          2,
-          3,
-          4,
-          26,
-          31
+          "2",
+          "3",
+          "4",
+          "26",
+          "31"
         ],
         "priority": "medium",
         "subtasks": []
       }
     ],
     "metadata": {
-      "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-25T20:34:03.205Z",
-      "description": "Tasks for master context"
+      "version": "1.0.0",
+      "lastModified": "2025-09-25T20:38:54.224Z",
+      "taskCount": 42,
+      "completedCount": 36,
+      "tags": [
+        "master"
+      ]
     }
   }
 }
