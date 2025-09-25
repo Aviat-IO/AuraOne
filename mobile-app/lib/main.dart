@@ -25,6 +25,10 @@ import 'package:aura_one/config/sentry_config.dart';
 import 'package:aura_one/services/background_init_service.dart';
 import 'package:aura_one/screens/optimized_splash_screen.dart';
 import 'package:aura_one/utils/performance_monitor.dart';
+import 'package:aura_one/services/data_restoration_service.dart';
+
+// Provider to store restoration status
+final restorationStatusProvider = StateProvider<RestorationStatus?>((ref) => null);
 
 void main() {
   // Run the entire app in a single zone to avoid zone mismatch issues
@@ -320,6 +324,17 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
   try {
     appLogger.info('Starting optimized app initialization...');
 
+    // Check for existing data from previous installation
+    final restorationService = DataRestorationService();
+    final restorationStatus = await restorationService.checkForExistingData();
+
+    if (restorationStatus.isRestorationNeeded) {
+      appLogger.info('Found existing data from previous installation');
+      // The restoration dialog will be shown in the UI after initialization
+      // Store the status for later use
+      ref.read(restorationStatusProvider.notifier).state = restorationStatus;
+    }
+
     // Use background initialization service for better performance
     final initService = BackgroundInitService();
     final initResult = await initService.initializeInBackground();
@@ -372,8 +387,8 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
 
         // Start persistent background location tracking
         final trackingStarted = await persistentLocationService.startTracking(
-          intervalMinutes: 5, // Collect location every 5 minutes
-          distanceFilter: 50, // Or when user moves 50 meters
+          intervalMinutes: 2, // Collect location every 2 minutes for better coverage
+          distanceFilter: 0, // Capture all positions regardless of movement
         );
 
         if (trackingStarted) {

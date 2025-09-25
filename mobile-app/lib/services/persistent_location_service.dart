@@ -13,6 +13,16 @@ import 'package:drift/native.dart';
 import '../database/location_database.dart';
 import '../utils/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/services.dart';
+
+enum BatteryOptimizationStatus {
+  alreadyOptimized,
+  settingsOpened,
+  needsManualSetup,
+  notRequired,
+  error,
+}
 
 class PersistentLocationService {
   static const String _notificationChannelId = 'aura_one_location';
@@ -70,7 +80,7 @@ class PersistentLocationService {
         _notificationChannelId,
         _notificationChannelName,
         description: _notificationChannelDescription,
-        importance: Importance.low, // Low importance for persistent notification
+        importance: Importance.high, // Changed to high for better reliability
         showBadge: false,
         playSound: false,
         enableVibration: false,
@@ -92,8 +102,8 @@ class PersistentLocationService {
         autoStart: false, // We'll start it manually when needed
         isForegroundMode: true, // Run as foreground service for reliability
         notificationChannelId: _notificationChannelId,
-        initialNotificationTitle: 'Aura One',
-        initialNotificationContent: 'Location tracking active',
+        initialNotificationTitle: 'Aura One Location Tracking',
+        initialNotificationContent: 'Initializing location tracking...',
         foregroundServiceNotificationId: _notificationId,
         autoStartOnBoot: true, // Start on device boot
       ),
@@ -107,8 +117,8 @@ class PersistentLocationService {
 
   /// Start persistent location tracking
   Future<bool> startTracking({
-    int intervalMinutes = 5, // Default to 5 minute intervals
-    double distanceFilter = 50, // Movement threshold in meters
+    int intervalMinutes = 2, // Reduced to 2 minute intervals for better coverage
+    double distanceFilter = 0, // Changed to 0 to ensure all positions are captured
   }) async {
     try {
       // Check location permissions first
@@ -118,11 +128,15 @@ class PersistentLocationService {
         return false;
       }
 
+      // Request battery optimization exemption
+      await _requestBatteryOptimizationExemption();
+
       // Store tracking preferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('location_interval_minutes', intervalMinutes);
       await prefs.setDouble('location_distance_filter', distanceFilter);
       await prefs.setBool('location_tracking_enabled', true);
+      await prefs.setInt('location_start_time', DateTime.now().millisecondsSinceEpoch);
 
       // Start the background service
       final service = FlutterBackgroundService();
@@ -132,7 +146,11 @@ class PersistentLocationService {
         await service.startService();
         appLogger.info('Started persistent location tracking');
       } else {
-        appLogger.info('Persistent location tracking already running');
+        // Restart service to apply new settings
+        service.invoke('stopService');
+        await Future.delayed(Duration(seconds: 2));
+        await service.startService();
+        appLogger.info('Restarted persistent location tracking with new settings');
       }
 
       return true;
@@ -140,6 +158,94 @@ class PersistentLocationService {
       appLogger.error('Failed to start persistent location tracking', error: e);
       return false;
     }
+  }
+
+  /// Request battery optimization exemption
+  Future<BatteryOptimizationStatus> _requestBatteryOptimizationExemption() async {
+    try {
+      if (Platform.isAndroid) {
+        final deviceInfo = DeviceInfoPlugin();
+        final androidInfo = await deviceInfo.androidInfo;
+
+        // Check if battery optimization is ignored
+        final isIgnoringOptimization = await _checkBatteryOptimization();
+
+        if (isIgnoringOptimization) {
+          appLogger.info('Battery optimization already disabled for this app');
+          return BatteryOptimizationStatus.alreadyOptimized;
+        }
+
+        // Try to open battery optimization settings
+        try {
+          await _openBatteryOptimizationSettings();
+          return BatteryOptimizationStatus.settingsOpened;
+        } catch (e) {
+          appLogger.warning('Could not open battery optimization settings: $e');
+          return BatteryOptimizationStatus.needsManualSetup;
+        }
+      }
+
+      return BatteryOptimizationStatus.notRequired;
+    } catch (e) {
+      appLogger.error('Error requesting battery optimization exemption', error: e);
+      return BatteryOptimizationStatus.error;
+    }
+  }
+
+  /// Check if battery optimization is already disabled
+  Future<bool> _checkBatteryOptimization() async {
+    try {
+      // This would need native Android implementation
+      // For now, return false to assume optimization is enabled
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Open battery optimization settings
+  Future<void> _openBatteryOptimizationSettings() async {
+    try {
+      // Try to open the ignore battery optimization dialog
+      const platform = MethodChannel('aura_one/battery_optimization');
+      await platform.invokeMethod('requestIgnoreBatteryOptimizations');
+    } catch (e) {
+      // Fallback: try to open general battery optimization settings
+      try {
+        const platform = MethodChannel('aura_one/battery_optimization');
+        await platform.invokeMethod('openBatteryOptimizationSettings');
+      } catch (fallbackError) {
+        appLogger.warning('Could not open battery settings: $fallbackError');
+        rethrow;
+      }
+    }
+  }
+
+  /// Get battery optimization guidance for user
+  String getBatteryOptimizationGuidance() {
+    return '''
+📱 **Improve Location Tracking Reliability**
+
+Your device's battery optimization may be stopping location tracking when the app isn't active.
+
+**Steps to fix this:**
+
+1. **Open your device Settings**
+2. **Go to Apps & notifications** (or similar)
+3. **Find "Aura One"**
+4. **Tap "Battery"** (or "Battery optimization")
+5. **Select "Don't optimize"** or **"Allow background activity"**
+
+**Alternative path:**
+- Settings → Battery → Battery optimization → Aura One → Don't optimize
+
+**Why this helps:**
+- Prevents Android from killing the location tracking service
+- Ensures continuous location collection even when app is closed
+- Required for automatic journaling to work properly
+
+⚡ **Note**: This will slightly increase battery usage but is necessary for continuous location tracking.
+''';
   }
 
   /// Stop persistent location tracking
@@ -227,13 +333,15 @@ Future<void> onStart(ServiceInstance service) async {
   // Initialize location tracking
   Timer? locationTimer;
   StreamSubscription<Position>? positionStream;
+  Timer? heartbeatTimer;
 
   try {
     // Load tracking preferences
     final prefs = await SharedPreferences.getInstance();
-    final intervalMinutes = prefs.getInt('location_interval_minutes') ?? 5;
-    final distanceFilter = prefs.getDouble('location_distance_filter') ?? 50;
+    final intervalMinutes = prefs.getInt('location_interval_minutes') ?? 2;
+    final distanceFilter = prefs.getDouble('location_distance_filter') ?? 0;
     final isEnabled = prefs.getBool('location_tracking_enabled') ?? true;
+    final startTime = prefs.getInt('location_start_time') ?? DateTime.now().millisecondsSinceEpoch;
 
     if (!isEnabled) {
       service.stopSelf();
@@ -256,77 +364,77 @@ Future<void> onStart(ServiceInstance service) async {
           PersistentLocationService._notificationChannelId,
           PersistentLocationService._notificationChannelName,
           channelDescription: PersistentLocationService._notificationChannelDescription,
-          importance: Importance.low,
-          priority: Priority.low,
+          importance: Importance.high, // Changed to high
+          priority: Priority.high, // Changed to high
           ongoing: true, // Keep notification persistent
           showWhen: false,
           autoCancel: false,
+          usesChronometer: true, // Show elapsed time
+          chronometerCountDown: false,
+          when: startTime,
         );
 
         await notificationsPlugin.show(
           PersistentLocationService._notificationId,
-          'Aura One',
+          'Aura One - Location Tracking Active',
           content,
           NotificationDetails(android: androidDetails),
         );
       }
 
-      await updateNotification('Location tracking active');
-
-      // Configure location settings
-      late LocationSettings locationSettings;
-      locationSettings = AndroidSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: distanceFilter.toInt(),
-        intervalDuration: Duration(minutes: intervalMinutes),
-        foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationText: 'Aura One is tracking your location for automatic journaling',
-          notificationTitle: 'Location Tracking Active',
-          enableWakeLock: true,
-        ),
-      );
+      await updateNotification('Starting location tracking service...');
 
       // Track location points collected
       int locationCount = 0;
       DateTime? lastLocationTime;
 
-      // Start location stream
-      positionStream = Geolocator.getPositionStream(
-        locationSettings: locationSettings,
-      ).listen((Position position) async {
+      // Set up heartbeat timer to keep service alive
+      heartbeatTimer = Timer.periodic(Duration(minutes: 1), (timer) async {
         try {
-          // Store location in database
-          await _storeLocationInBackground(position);
+          // Update notification to show service is alive
+          final now = DateTime.now();
+          final elapsed = Duration(milliseconds: now.millisecondsSinceEpoch - startTime);
+          final hours = elapsed.inHours;
+          final minutes = elapsed.inMinutes % 60;
 
-          locationCount++;
-          lastLocationTime = DateTime.now();
-
-          // Update notification with location count
-          final timeAgo = _formatTimeAgo(lastLocationTime!);
           await updateNotification(
-            'Tracking active • $locationCount locations today • Last: $timeAgo'
+            'Active ${hours}h ${minutes}m • $locationCount locations collected'
           );
 
-          // Broadcast update to app if it's running
-          service.invoke('update', {
-            'latitude': position.latitude,
-            'longitude': position.longitude,
-            'timestamp': position.timestamp.toIso8601String(),
-            'count': locationCount,
+          // Send heartbeat to main app
+          service.invoke('heartbeat', {
+            'timestamp': now.toIso8601String(),
+            'locationCount': locationCount,
+            'uptime': elapsed.inMinutes,
           });
-
         } catch (e) {
-          debugPrint('Error storing background location: $e');
+          debugPrint('Heartbeat error: $e');
         }
       });
 
-      // Also set up a periodic timer as backup
+      // Configure location settings for maximum reliability
+      late LocationSettings locationSettings;
+      locationSettings = AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: distanceFilter.toInt(),
+        intervalDuration: Duration(minutes: intervalMinutes),
+        forceLocationManager: true, // Force LocationManager instead of FusedLocation
+        foregroundNotificationConfig: ForegroundNotificationConfig(
+          notificationText: 'Aura One is continuously tracking your location for journaling',
+          notificationTitle: 'Background Location Tracking',
+          enableWakeLock: true,
+        ),
+      );
+
+      // Main periodic timer for guaranteed location updates
       locationTimer = Timer.periodic(Duration(minutes: intervalMinutes), (timer) async {
         try {
+          debugPrint('Periodic location update attempt...');
+
           final position = await Geolocator.getCurrentPosition(
             locationSettings: const LocationSettings(
               accuracy: LocationAccuracy.high,
-              timeLimit: Duration(seconds: 30),
+              timeLimit: Duration(seconds: 45), // Increased timeout
             ),
           );
 
@@ -335,29 +443,93 @@ Future<void> onStart(ServiceInstance service) async {
           locationCount++;
           lastLocationTime = DateTime.now();
 
-          // Update notification
+          debugPrint('Location stored: ${position.latitude}, ${position.longitude}');
+
+          // Update notification with success
+          final timeAgo = _formatTimeAgo(lastLocationTime!);
           await updateNotification(
-            'Tracking active • $locationCount locations today'
+            'Last update: $timeAgo • $locationCount total locations'
           );
 
-          service.invoke('update', {
+          service.invoke('locationUpdate', {
             'latitude': position.latitude,
             'longitude': position.longitude,
             'timestamp': position.timestamp.toIso8601String(),
             'count': locationCount,
           });
+
         } catch (e) {
           debugPrint('Error in periodic location update: $e');
+          // Update notification with error
+          await updateNotification(
+            'Error getting location: ${e.toString().substring(0, 50)}...'
+          );
         }
       });
+
+      // Also try to start location stream as backup (may not work reliably in background)
+      try {
+        positionStream = Geolocator.getPositionStream(
+          locationSettings: locationSettings,
+        ).listen((Position position) async {
+          try {
+            // Only store if we haven't stored a location in the last 1.5 minutes
+            if (lastLocationTime == null ||
+                DateTime.now().difference(lastLocationTime!).inMinutes >= 1) {
+
+              await _storeLocationInBackground(position);
+              locationCount++;
+              lastLocationTime = DateTime.now();
+
+              debugPrint('Stream location stored: ${position.latitude}, ${position.longitude}');
+
+              final timeAgo = _formatTimeAgo(lastLocationTime!);
+              await updateNotification(
+                'Stream update: $timeAgo • $locationCount total locations'
+              );
+
+              service.invoke('streamUpdate', {
+                'latitude': position.latitude,
+                'longitude': position.longitude,
+                'timestamp': position.timestamp.toIso8601String(),
+                'count': locationCount,
+              });
+            }
+          } catch (e) {
+            debugPrint('Error storing stream location: $e');
+          }
+        });
+      } catch (e) {
+        debugPrint('Could not start location stream: $e');
+        // This is okay, we rely on the timer primarily
+      }
     }
   } catch (e) {
     debugPrint('Error in background location service: $e');
+    if (service is AndroidServiceInstance) {
+      final notificationsPlugin = FlutterLocalNotificationsPlugin();
+      try {
+        await notificationsPlugin.show(
+          PersistentLocationService._notificationId,
+          'Location Service Error',
+          'Service failed: ${e.toString()}',
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'error_channel',
+              'Errors',
+              importance: Importance.high,
+            ),
+          ),
+        );
+      } catch (_) {}
+    }
     service.stopSelf();
   }
 
   // Clean up on service stop
   service.on('stopService').listen((event) {
+    debugPrint('Stopping location service...');
+    heartbeatTimer?.cancel();
     locationTimer?.cancel();
     positionStream?.cancel();
     service.stopSelf();
@@ -392,13 +564,13 @@ Future<void> _storeLocationInBackground(Position position) async {
       heading: drift.Value(position.heading),
       timestamp: drift.Value(position.timestamp),
       accuracy: drift.Value(position.accuracy),
-      isSignificant: drift.Value(position.speed != null && position.speed! > 1.0), // Moving
+      isSignificant: drift.Value(true), // Mark all as significant for now
     ));
 
     // Close database connection
     await database.close();
 
-    debugPrint('Background location stored: ${position.latitude}, ${position.longitude}');
+    debugPrint('Background location stored successfully: ${position.latitude}, ${position.longitude} at ${position.timestamp}');
   } catch (e) {
     debugPrint('Failed to store background location: $e');
   }

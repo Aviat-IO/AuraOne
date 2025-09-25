@@ -86,7 +86,7 @@ dependencies:
   google_mlkit_object_detection: ^0.15.0  # Re-enabled for activity recognition in AI journal
   google_generative_ai: ^0.4.7
   timezone: ^0.9.4
-  device_info_plus: ^11.5.0
+  device_info_plus: ^12.1.0
   string_similarity: ^2.1.1
   fuzzy: ^0.5.1
   sentry_flutter: ^9.6.0

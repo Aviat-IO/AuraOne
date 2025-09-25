@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../services/simple_location_service.dart';
+import '../services/persistent_location_service.dart';
 
 class LocationSettingsCard extends ConsumerWidget {
   const LocationSettingsCard({super.key});
@@ -137,6 +138,53 @@ class LocationSettingsCard extends ConsumerWidget {
                 ),
               ],
             ),
+
+            // Battery optimization guidance (Android only)
+            if (Platform.isAndroid) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.orange.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.battery_saver, color: Colors.orange, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Improve Background Tracking',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange.shade800,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'For reliable location tracking when the app is closed:',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () => _showBatteryOptimizationDialog(context),
+                      icon: const Icon(Icons.info_outline, size: 16),
+                      label: const Text('View Setup Instructions'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -174,6 +222,115 @@ class LocationSettingsCard extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  void _showBatteryOptimizationDialog(BuildContext context) {
+    final persistentLocationService = PersistentLocationService();
+    final guidance = persistentLocationService.getBatteryOptimizationGuidance();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.battery_saver, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Battery Optimization Setup'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'To ensure continuous location tracking when the app is closed, you need to disable battery optimization for Aura One.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '📱 Step-by-Step Instructions:',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '1. Open your device Settings\n'
+                      '2. Go to "Apps" or "Application Manager"\n'
+                      '3. Find and tap "Aura One"\n'
+                      '4. Tap "Battery" or "Battery usage"\n'
+                      '5. Select "Don\'t optimize" or "Allow background activity"\n\n'
+                      'Alternative path:\n'
+                      '• Settings → Battery → Battery optimization\n'
+                      '• Find Aura One → Don\'t optimize',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '✅ Why This Helps:',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '• Prevents Android from killing the location service\n'
+                      '• Ensures tracking continues when app is closed\n'
+                      '• Required for automatic journaling to work properly\n'
+                      '• Captures locations every 2 minutes (instead of missing hours)',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Colors.orange),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Note: This will slightly increase battery usage but is necessary for continuous tracking.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.orange.shade800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Got it!'),
+          ),
+        ],
+      ),
     );
   }
 }

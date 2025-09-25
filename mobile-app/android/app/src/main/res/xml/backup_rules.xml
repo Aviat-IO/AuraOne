@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Include all app data by default -->
+    <include domain="root" path="." />
+
+    <!-- Include databases - this is where journal entries and location data are stored -->
+    <include domain="database" path="." />
+
+    <!-- Include shared preferences - app settings and configuration -->
+    <include domain="sharedpref" path="." />
+
+    <!-- Include internal files -->
+    <include domain="file" path="." />
+
+    <!-- Include external files if any -->
+    <include domain="external" path="." />
+
+    <!-- Exclude temporary files -->
+    <exclude domain="file" path="cache" />
+
+    <!-- Exclude any temporary or transient files -->
+    <exclude domain="file" path="flutter_engine_cache" />
+    <exclude domain="file" path="image_cache" />
+    <exclude domain="file" path="network_cache" />
+</full-backup-content>

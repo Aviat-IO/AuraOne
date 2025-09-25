@@ -55,6 +55,16 @@
 
     <!-- Boot receiver permission for background services -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Battery optimization and doze mode exemptions -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Additional foreground service permissions for Android 14+ -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!-- WorkManager and JobScheduler for better reliability -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     
     <application
         android:label="Aura One"
@@ -62,7 +72,12 @@
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:enableOnBackInvokedCallback="true">
+        android:enableOnBackInvokedCallback="true"
+        android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:hasFragileUserData="true"
+        android:restoreAnyVersion="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
