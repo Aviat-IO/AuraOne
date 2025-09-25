@@ -670,4 +670,185 @@ class DataAnalysisService {
       return 'low';
     }
   }
+
+  /// Process movement data into timeline activities
+  Future<List<Map<String, dynamic>>> processMovementActivities(
+    DateTime date,
+  ) async {
+    final startDate = DateTime(date.year, date.month, date.day);
+    final endDate = DateTime(date.year, date.month, date.day, 23, 59, 59);
+
+    final activities = <Map<String, dynamic>>[];
+
+    try {
+      // Get detailed movement data for the day
+      final movementData = await locationDb.getMovementDataForDateRange(
+        startDate,
+        endDate,
+      );
+
+      if (movementData.isEmpty) return activities;
+
+      // Analyze movement patterns to identify significant activity clusters
+      final clusters = _analyzeMovementClusters(movementData);
+
+      // Create activities for significant movement patterns
+      for (final cluster in clusters) {
+        if (cluster['significance'] > 0.3) {
+          activities.add({
+            'type': 'movement',
+            'timestamp': cluster['startTime'],
+            'duration': cluster['duration'],
+            'description': cluster['description'],
+            'intensity': cluster['intensity'],
+            'movement_type': cluster['dominantState'],
+            'metadata': {
+              'walking_percentage': cluster['walkingPercentage'],
+              'running_percentage': cluster['runningPercentage'],
+              'driving_percentage': cluster['drivingPercentage'],
+              'still_percentage': cluster['stillPercentage'],
+              'average_magnitude': cluster['averageMagnitude'],
+            },
+          });
+        }
+      }
+    } catch (e) {
+      _logger.warning('Failed to process movement activities: $e');
+    }
+
+    return activities;
+  }
+
+  /// Analyze movement data to identify significant activity clusters
+  List<Map<String, dynamic>> _analyzeMovementClusters(
+    List<MovementDataData> movementData,
+  ) {
+    final clusters = <Map<String, dynamic>>[];
+
+    if (movementData.isEmpty) return clusters;
+
+    // Group consecutive similar movement patterns
+    var currentCluster = <MovementDataData>[movementData.first];
+    var currentDominantState = _getDominantState(movementData.first);
+
+    for (int i = 1; i < movementData.length; i++) {
+      final data = movementData[i];
+      final dominantState = _getDominantState(data);
+      final timeDiff = data.timestamp.difference(currentCluster.last.timestamp);
+
+      // Start new cluster if state changes or time gap is too large
+      if (dominantState != currentDominantState ||
+          timeDiff.inMinutes > 30) {
+        // Process current cluster
+        if (currentCluster.length >= 3) {  // At least 3 samples for significance
+          clusters.add(_createClusterSummary(currentCluster));
+        }
+
+        // Start new cluster
+        currentCluster = [data];
+        currentDominantState = dominantState;
+      } else {
+        currentCluster.add(data);
+      }
+    }
+
+    // Process last cluster
+    if (currentCluster.length >= 3) {
+      clusters.add(_createClusterSummary(currentCluster));
+    }
+
+    return clusters;
+  }
+
+  /// Get dominant movement state from movement data
+  String _getDominantState(MovementDataData data) {
+    if (data.runningPercentage > 30) return 'running';
+    if (data.walkingPercentage > 30) return 'walking';
+    if (data.drivingPercentage > 30) return 'driving';
+    if (data.stillPercentage > 70) return 'still';
+    return 'mixed';
+  }
+
+  /// Create summary for a movement cluster
+  Map<String, dynamic> _createClusterSummary(List<MovementDataData> cluster) {
+    final startTime = cluster.first.timestamp;
+    final endTime = cluster.last.timestamp;
+    final duration = endTime.difference(startTime);
+
+    // Calculate averages
+    double avgWalking = 0;
+    double avgRunning = 0;
+    double avgDriving = 0;
+    double avgStill = 0;
+    double avgMagnitude = 0;
+
+    for (final data in cluster) {
+      avgWalking += data.walkingPercentage;
+      avgRunning += data.runningPercentage;
+      avgDriving += data.drivingPercentage;
+      avgStill += data.stillPercentage;
+      avgMagnitude += data.averageMagnitude;
+    }
+
+    final count = cluster.length;
+    avgWalking /= count;
+    avgRunning /= count;
+    avgDriving /= count;
+    avgStill /= count;
+    avgMagnitude /= count;
+
+    // Determine dominant state and description
+    String dominantState = 'still';
+    String description = '';
+    double intensity = 0;
+    double significance = 0;
+
+    if (avgRunning > 30) {
+      dominantState = 'running';
+      description = 'Running session';
+      intensity = 0.9;
+      significance = 0.9;
+    } else if (avgWalking > 40) {
+      dominantState = 'walking';
+      description = 'Walking activity';
+      intensity = 0.6;
+      significance = 0.7;
+    } else if (avgDriving > 40) {
+      dominantState = 'driving';
+      description = 'Travel by vehicle';
+      intensity = 0.3;
+      significance = 0.5;
+    } else if (avgStill > 80) {
+      dominantState = 'still';
+      description = 'Stationary period';
+      intensity = 0.1;
+      significance = 0.1; // Low significance for still periods
+    } else {
+      dominantState = 'mixed';
+      description = 'Mixed movement activity';
+      intensity = 0.5;
+      significance = 0.4;
+    }
+
+    // Increase significance for longer durations
+    if (duration.inMinutes > 30) {
+      significance = (significance + 0.3).clamp(0.0, 1.0);
+    }
+
+    return {
+      'startTime': startTime,
+      'endTime': endTime,
+      'duration': duration,
+      'dominantState': dominantState,
+      'description': description,
+      'intensity': intensity,
+      'significance': significance,
+      'walkingPercentage': avgWalking,
+      'runningPercentage': avgRunning,
+      'drivingPercentage': avgDriving,
+      'stillPercentage': avgStill,
+      'averageMagnitude': avgMagnitude,
+      'sampleCount': count,
+    };
+  }
 }

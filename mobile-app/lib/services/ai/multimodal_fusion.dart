@@ -7,6 +7,7 @@ import 'image_captioning.dart';
 import '../photo_service.dart';
 import '../calendar_service.dart';
 import '../health_service.dart';
+import '../daily_context_synthesizer.dart';
 // import '../data_attribution_service.dart'; // Simplified version
 // import '../../database/media_database.dart'; // Using dynamic types
 
@@ -489,6 +490,110 @@ class MultiModalFusionService {
     };
 
     return context;
+  }
+
+  /// Generate enhanced structured context from comprehensive DailyContext
+  Map<String, dynamic> generateEnhancedStructuredContext(DailyContext dailyContext) {
+    final context = <String, dynamic>{
+      'date': dailyContext.date.toIso8601String().split('T')[0],
+      'eventCount': dailyContext.photoContexts.length + dailyContext.calendarEvents.length,
+      'events': [],
+      'summary': {},
+      'writtenContent': {},
+      'proximityContext': {},
+      'confidenceScore': dailyContext.overallConfidence,
+    };
+
+    // Process photo contexts
+    for (final photo in dailyContext.photoContexts) {
+      final eventData = {
+        'type': 'photo_context',
+        'time': _formatTime(photo.timestamp),
+        'description': photo.activityDescription,
+        'social': {
+          'faceCount': photo.faceCount,
+          'isSelfie': photo.socialContext.isSelfie,
+          'isGroupPhoto': photo.socialContext.isGroupPhoto,
+        },
+        'environment': {
+          'sceneLabels': photo.sceneLabels,
+          'objectLabels': photo.objectLabels,
+        },
+        'confidence': photo.confidenceScore,
+      };
+      context['events'].add(eventData);
+    }
+
+    // Process calendar events
+    for (final calEvent in dailyContext.calendarEvents) {
+      final eventData = {
+        'type': 'calendar_event',
+        'time': _formatTime(calEvent.startDate),
+        'title': calEvent.title,
+        'duration': calEvent.endDate?.difference(calEvent.startDate).inMinutes ?? 60,
+        'location': calEvent.location,
+        'attendeeCount': calEvent.attendees.length,
+      };
+      context['events'].add(eventData);
+    }
+
+    // Process written content summary
+    context['writtenContent'] = {
+      'totalEntries': dailyContext.writtenContentSummary.totalWrittenEntries,
+      'hasSignificantContent': dailyContext.writtenContentSummary.hasSignificantContent,
+      'themes': dailyContext.writtenContentSummary.significantThemes,
+      'emotionalTones': dailyContext.writtenContentSummary.emotionalTones,
+      'keyTopics': dailyContext.writtenContentSummary.keyTopics,
+    };
+
+    // Process proximity context
+    context['proximityContext'] = {
+      'hasProximityInteractions': dailyContext.proximitySummary.hasProximityInteractions,
+      'geofenceTransitions': dailyContext.proximitySummary.geofenceTransitions,
+      'frequentLocations': dailyContext.proximitySummary.frequentProximityLocations,
+      'dwellTimes': dailyContext.proximitySummary.locationDwellTimes.map(
+        (key, value) => MapEntry(key, value.inMinutes),
+      ),
+    };
+
+    // Generate enhanced summary statistics
+    context['summary'] = {
+      'totalPhotos': dailyContext.photoContexts.length,
+      'totalCalendarEvents': dailyContext.calendarEvents.length,
+      'totalLocationPoints': dailyContext.locationPoints.length,
+      'totalMovementSamples': dailyContext.movementData.length,
+      'totalActivities': dailyContext.activities.length,
+      'totalWrittenContent': dailyContext.writtenContentSummary.totalWrittenEntries,
+      'socialInteractions': dailyContext.socialSummary.totalPeopleDetected,
+      'primaryActivities': dailyContext.activitySummary.primaryActivities,
+      'dominantEnvironments': dailyContext.environmentSummary.dominantEnvironments,
+      'significantPlaces': dailyContext.locationSummary.significantPlaces,
+      'totalDistance': dailyContext.locationSummary.totalDistance,
+      'movementModes': dailyContext.locationSummary.movementModes,
+      'mostActiveTime': dailyContext.environmentSummary.timeOfDayAnalysis.mostActiveTime,
+      'hadPhysicalActivity': dailyContext.activitySummary.hadPhysicalActivity,
+      'hadCreativeActivity': dailyContext.activitySummary.hadCreativeActivity,
+      'hadWorkActivity': dailyContext.activitySummary.hadWorkActivity,
+      'dataCompleteness': _calculateEnhancedDataCompleteness(dailyContext),
+    };
+
+    return context;
+  }
+
+  /// Calculate enhanced data completeness score for DailyContext
+  double _calculateEnhancedDataCompleteness(DailyContext dailyContext) {
+    double completeness = 0.0;
+
+    // Weight different data types based on their narrative value
+    if (dailyContext.photoContexts.isNotEmpty) completeness += 0.25;
+    if (dailyContext.calendarEvents.isNotEmpty) completeness += 0.20;
+    if (dailyContext.locationPoints.isNotEmpty) completeness += 0.15;
+    if (dailyContext.movementData.isNotEmpty) completeness += 0.10;
+    if (dailyContext.activities.isNotEmpty) completeness += 0.10;
+    if (dailyContext.writtenContentSummary.hasSignificantContent) completeness += 0.10;
+    if (dailyContext.proximitySummary.hasProximityInteractions) completeness += 0.10;
+
+    return completeness.clamp(0.0, 1.0);
   }
 
   /// Format time for display

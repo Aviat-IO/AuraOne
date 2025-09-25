@@ -217,8 +217,12 @@ class CalendarService {
     }
 
     if (!_hasPermissions) {
-      // Silently return empty list when no permissions
-      return [];
+      // Re-check permissions in case they were granted since initialization
+      _hasPermissions = await hasPermissions();
+      if (!_hasPermissions) {
+        _logger.warning('Calendar permissions not granted - no events will be shown');
+        return [];
+      }
     }
 
     try {
@@ -337,20 +341,34 @@ class CalendarService {
       }
 
       if (!_hasPermissions) {
-        _logger.warning('Calendar permissions not granted');
-        return [];
+        // Re-check permissions in case they were granted since initialization
+        _hasPermissions = await hasPermissions();
+        if (!_hasPermissions) {
+          _logger.warning('Calendar permissions not granted - no calendars available');
+          return [];
+        }
       }
 
       if (!forceRefresh && _calendarsCache.isNotEmpty) {
         return _calendarsCache.values.toList();
       }
 
-      _logger.info('Fetching device calendars');
+      _logger.warning('Fetching device calendars');
 
       final result = await _plugin.retrieveCalendars();
 
-      if (!result.isSuccess || result.data == null) {
-        _logger.error('Failed to retrieve calendars: ${result.errors}');
+      if (!result.isSuccess) {
+        _logger.error('Failed to retrieve calendars - not successful: ${result.errors}');
+        return [];
+      }
+
+      if (result.data == null) {
+        _logger.error('Failed to retrieve calendars - data is null');
+        return [];
+      }
+
+      if (result.data!.isEmpty) {
+        _logger.warning('No calendars found on device - list is empty');
         return [];
       }
 

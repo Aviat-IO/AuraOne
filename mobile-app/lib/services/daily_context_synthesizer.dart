@@ -15,10 +15,14 @@ class DailyContext {
   final List<LocationPoint> locationPoints;
   final List<DataActivity> activities;
   final List<MovementDataData> movementData;
+  final List<GeofenceEvent> geofenceEvents;
+  final List<LocationNote> locationNotes;
   final EnvironmentSummary environmentSummary;
   final SocialSummary socialSummary;
   final ActivitySummary activitySummary;
   final LocationSummary locationSummary;
+  final ProximitySummary proximitySummary;
+  final WrittenContentSummary writtenContentSummary;
   final double overallConfidence;
   final Map<String, dynamic> metadata;
 
@@ -29,10 +33,14 @@ class DailyContext {
     required this.locationPoints,
     required this.activities,
     required this.movementData,
+    required this.geofenceEvents,
+    required this.locationNotes,
     required this.environmentSummary,
     required this.socialSummary,
     required this.activitySummary,
     required this.locationSummary,
+    required this.proximitySummary,
+    required this.writtenContentSummary,
     required this.overallConfidence,
     required this.metadata,
   });
@@ -65,6 +73,18 @@ class DailyContext {
       if (locationSummary.totalDistance > 1000) {
         buffer.write(', traveled ${(locationSummary.totalDistance / 1000).toStringAsFixed(1)}km');
       }
+    }
+
+    // Add written content insights
+    if (writtenContentSummary.hasSignificantContent) {
+      buffer.write(buffer.isEmpty ? 'Captured' : ', captured');
+      buffer.write(' thoughts and reflections');
+    }
+
+    // Add proximity insights
+    if (proximitySummary.hasProximityInteractions) {
+      buffer.write(buffer.isEmpty ? 'Connected' : ', connected');
+      buffer.write(' with nearby people and places');
     }
 
     // Add environment context
@@ -168,6 +188,42 @@ class TimeOfDayAnalysis {
   });
 }
 
+/// Proximity and social interaction analysis from BLE/location data
+class ProximitySummary {
+  final int nearbyDevicesDetected;
+  final List<String> frequentProximityLocations;
+  final Map<String, Duration> locationDwellTimes;
+  final bool hasProximityInteractions;
+  final List<String> geofenceTransitions;
+
+  ProximitySummary({
+    required this.nearbyDevicesDetected,
+    required this.frequentProximityLocations,
+    required this.locationDwellTimes,
+    required this.hasProximityInteractions,
+    required this.geofenceTransitions,
+  });
+}
+
+/// Written content and thought analysis
+class WrittenContentSummary {
+  final List<String> locationNoteContent;
+  final List<String> significantThemes;
+  final int totalWrittenEntries;
+  final bool hasSignificantContent;
+  final Map<String, int> emotionalTones;
+  final List<String> keyTopics;
+
+  WrittenContentSummary({
+    required this.locationNoteContent,
+    required this.significantThemes,
+    required this.totalWrittenEntries,
+    required this.hasSignificantContent,
+    required this.emotionalTones,
+    required this.keyTopics,
+  });
+}
+
 /// Service to synthesize all daily data into comprehensive context
 class DailyContextSynthesizer {
   static final DailyContextSynthesizer _instance = DailyContextSynthesizer._internal();
@@ -195,12 +251,16 @@ class DailyContextSynthesizer {
         _getCalendarEvents(startOfDay, endOfDay, enabledCalendarIds),
         _getLocationData(locationDatabase, startOfDay, endOfDay),
         _getMovementData(locationDatabase, startOfDay, endOfDay),
+        _getGeofenceEvents(locationDatabase, startOfDay, endOfDay),
+        _getLocationNotes(locationDatabase, startOfDay, endOfDay),
       ]);
 
       final photoContexts = results[0] as List<PhotoContext>;
       final calendarEvents = results[1] as List<CalendarEventData>;
       final locationPoints = results[2] as List<LocationPoint>;
       final movementData = results[3] as List<MovementDataData>;
+      final geofenceEvents = results[4] as List<GeofenceEvent>;
+      final locationNotes = results[5] as List<LocationNote>;
 
       // Filter activities for the day
       final dayActivities = activities.where((activity) {
@@ -213,15 +273,17 @@ class DailyContextSynthesizer {
       final socialSummary = _analyzeSocialContext(photoContexts, calendarEvents);
       final activitySummary = _analyzeActivities(photoContexts, calendarEvents, dayActivities);
       final locationSummary = _analyzeLocation(locationPoints, movementData, calendarEvents);
+      final proximitySummary = _analyzeProximity(geofenceEvents, locationPoints, locationNotes);
+      final writtenContentSummary = _analyzeWrittenContent(locationNotes);
 
       // Calculate overall confidence
       final overallConfidence = _calculateOverallConfidence(
-        photoContexts, calendarEvents, locationPoints, dayActivities,
+        photoContexts, calendarEvents, locationPoints, dayActivities, geofenceEvents, locationNotes,
       );
 
       // Generate metadata for additional insights
       final metadata = _generateMetadata(
-        photoContexts, calendarEvents, locationPoints, dayActivities, movementData,
+        photoContexts, calendarEvents, locationPoints, dayActivities, movementData, geofenceEvents, locationNotes,
       );
 
       return DailyContext(
@@ -231,10 +293,14 @@ class DailyContextSynthesizer {
         locationPoints: locationPoints,
         activities: dayActivities,
         movementData: movementData,
+        geofenceEvents: geofenceEvents,
+        locationNotes: locationNotes,
         environmentSummary: environmentSummary,
         socialSummary: socialSummary,
         activitySummary: activitySummary,
         locationSummary: locationSummary,
+        proximitySummary: proximitySummary,
+        writtenContentSummary: writtenContentSummary,
         overallConfidence: overallConfidence,
         metadata: metadata,
       );
@@ -249,6 +315,8 @@ class DailyContextSynthesizer {
         locationPoints: [],
         activities: [],
         movementData: [],
+        geofenceEvents: [],
+        locationNotes: [],
         environmentSummary: EnvironmentSummary(
           dominantEnvironments: [],
           environmentCounts: {},
@@ -284,6 +352,21 @@ class DailyContextSynthesizer {
           timeStationary: Duration.zero,
           movementModes: [],
           placeTimeSpent: {},
+        ),
+        proximitySummary: ProximitySummary(
+          nearbyDevicesDetected: 0,
+          frequentProximityLocations: [],
+          locationDwellTimes: {},
+          hasProximityInteractions: false,
+          geofenceTransitions: [],
+        ),
+        writtenContentSummary: WrittenContentSummary(
+          locationNoteContent: [],
+          significantThemes: [],
+          totalWrittenEntries: 0,
+          hasSignificantContent: false,
+          emotionalTones: {},
+          keyTopics: [],
         ),
         overallConfidence: 0.0,
         metadata: {},
@@ -362,6 +445,42 @@ class DailyContextSynthesizer {
           .get();
     } catch (e) {
       debugPrint('Error getting movement data: $e');
+      return [];
+    }
+  }
+
+  /// Get geofence events for the day
+  Future<List<GeofenceEvent>> _getGeofenceEvents(
+    LocationDatabase locationDatabase,
+    DateTime startOfDay,
+    DateTime endOfDay,
+  ) async {
+    try {
+      return await (locationDatabase.select(locationDatabase.geofenceEvents)
+            ..where((tbl) => tbl.timestamp.isBiggerOrEqualValue(startOfDay) &
+                           tbl.timestamp.isSmallerOrEqualValue(endOfDay))
+            ..orderBy([(tbl) => OrderingTerm.asc(tbl.timestamp)]))
+          .get();
+    } catch (e) {
+      debugPrint('Error getting geofence events: $e');
+      return [];
+    }
+  }
+
+  /// Get location notes for the day
+  Future<List<LocationNote>> _getLocationNotes(
+    LocationDatabase locationDatabase,
+    DateTime startOfDay,
+    DateTime endOfDay,
+  ) async {
+    try {
+      return await (locationDatabase.select(locationDatabase.locationNotes)
+            ..where((tbl) => tbl.timestamp.isBiggerOrEqualValue(startOfDay) &
+                           tbl.timestamp.isSmallerOrEqualValue(endOfDay))
+            ..orderBy([(tbl) => OrderingTerm.asc(tbl.timestamp)]))
+          .get();
+    } catch (e) {
+      debugPrint('Error getting location notes: $e');
       return [];
     }
   }
@@ -655,6 +774,8 @@ class DailyContextSynthesizer {
     List<CalendarEventData> calendarEvents,
     List<LocationPoint> locationPoints,
     List<DataActivity> activities,
+    List<GeofenceEvent> geofenceEvents,
+    List<LocationNote> locationNotes,
   ) {
     double confidence = 0.0;
 
@@ -675,6 +796,12 @@ class DailyContextSynthesizer {
     // Activity tracking adds detail
     confidence += (activities.length * 0.02).clamp(0.0, 0.1);
 
+    // Written content adds narrative depth
+    confidence += (locationNotes.length * 0.05).clamp(0.0, 0.15);
+
+    // Geofence events add location context
+    confidence += (geofenceEvents.length * 0.03).clamp(0.0, 0.1);
+
     return confidence.clamp(0.0, 1.0);
   }
 
@@ -685,6 +812,8 @@ class DailyContextSynthesizer {
     List<LocationPoint> locationPoints,
     List<DataActivity> activities,
     List<MovementDataData> movementData,
+    List<GeofenceEvent> geofenceEvents,
+    List<LocationNote> locationNotes,
   ) {
     return {
       'photo_count': photoContexts.length,
@@ -692,9 +821,11 @@ class DailyContextSynthesizer {
       'location_points_count': locationPoints.length,
       'activities_count': activities.length,
       'movement_samples_count': movementData.length,
+      'geofence_events_count': geofenceEvents.length,
+      'location_notes_count': locationNotes.length,
       'synthesis_timestamp': DateTime.now().toIso8601String(),
       'data_completeness': _calculateDataCompleteness(
-        photoContexts, calendarEvents, locationPoints, activities,
+        photoContexts, calendarEvents, locationPoints, activities, geofenceEvents, locationNotes,
       ),
     };
   }
@@ -774,16 +905,133 @@ class DailyContextSynthesizer {
     List<CalendarEventData> calendarEvents,
     List<LocationPoint> locationPoints,
     List<DataActivity> activities,
+    List<GeofenceEvent> geofenceEvents,
+    List<LocationNote> locationNotes,
   ) {
     double completeness = 0.0;
 
     // Weight different data types
-    if (photoContexts.isNotEmpty) completeness += 0.4;
-    if (calendarEvents.isNotEmpty) completeness += 0.3;
-    if (locationPoints.isNotEmpty) completeness += 0.2;
+    if (photoContexts.isNotEmpty) completeness += 0.3;
+    if (calendarEvents.isNotEmpty) completeness += 0.25;
+    if (locationPoints.isNotEmpty) completeness += 0.15;
     if (activities.isNotEmpty) completeness += 0.1;
+    if (geofenceEvents.isNotEmpty) completeness += 0.1;
+    if (locationNotes.isNotEmpty) completeness += 0.1;
 
     return completeness;
+  }
+
+  /// Analyze proximity and geofence interactions
+  ProximitySummary _analyzeProximity(
+    List<GeofenceEvent> geofenceEvents,
+    List<LocationPoint> locationPoints,
+    List<LocationNote> locationNotes,
+  ) {
+    final geofenceTransitions = <String>[];
+    final locationDwellTimes = <String, Duration>{};
+    final frequentProximityLocations = <String>{};
+
+    // Analyze geofence transitions
+    for (final event in geofenceEvents) {
+      geofenceTransitions.add('${event.eventType} at ${event.geofenceId}');
+
+      if (event.eventType == 'dwell' && event.dwellTime != null) {
+        final duration = Duration(seconds: event.dwellTime!);
+        locationDwellTimes[event.geofenceId] =
+            (locationDwellTimes[event.geofenceId] ?? Duration.zero) + duration;
+      }
+    }
+
+    // Identify frequent proximity locations from location notes
+    for (final note in locationNotes) {
+      if (note.placeName != null && note.placeName!.isNotEmpty) {
+        frequentProximityLocations.add(note.placeName!);
+      }
+    }
+
+    final hasProximityInteractions = geofenceEvents.isNotEmpty ||
+                                   locationNotes.isNotEmpty ||
+                                   locationDwellTimes.values.any((d) => d.inMinutes > 10);
+
+    return ProximitySummary(
+      nearbyDevicesDetected: 0, // TODO: Implement BLE device detection
+      frequentProximityLocations: frequentProximityLocations.toList(),
+      locationDwellTimes: locationDwellTimes,
+      hasProximityInteractions: hasProximityInteractions,
+      geofenceTransitions: geofenceTransitions,
+    );
+  }
+
+  /// Analyze written content and extract insights
+  WrittenContentSummary _analyzeWrittenContent(
+    List<LocationNote> locationNotes,
+  ) {
+    final locationNoteContent = <String>[];
+    final significantThemes = <String>{};
+    final emotionalTones = <String, int>{};
+    final keyTopics = <String>{};
+
+    for (final note in locationNotes) {
+      locationNoteContent.add(note.content);
+
+      // Simple keyword-based theme detection
+      final content = note.content.toLowerCase();
+
+      // Emotional tone detection
+      if (content.contains('happy') || content.contains('joy') ||
+          content.contains('excited') || content.contains('great')) {
+        emotionalTones['positive'] = (emotionalTones['positive'] ?? 0) + 1;
+      }
+      if (content.contains('sad') || content.contains('frustrated') ||
+          content.contains('tired') || content.contains('difficult')) {
+        emotionalTones['negative'] = (emotionalTones['negative'] ?? 0) + 1;
+      }
+      if (content.contains('calm') || content.contains('peaceful') ||
+          content.contains('reflective') || content.contains('thinking')) {
+        emotionalTones['reflective'] = (emotionalTones['reflective'] ?? 0) + 1;
+      }
+
+      // Theme detection
+      if (content.contains('work') || content.contains('meeting') ||
+          content.contains('project') || content.contains('task')) {
+        significantThemes.add('work');
+      }
+      if (content.contains('family') || content.contains('friend') ||
+          content.contains('people') || content.contains('social')) {
+        significantThemes.add('relationships');
+      }
+      if (content.contains('nature') || content.contains('outdoor') ||
+          content.contains('walk') || content.contains('park')) {
+        significantThemes.add('nature');
+      }
+      if (content.contains('food') || content.contains('meal') ||
+          content.contains('restaurant') || content.contains('cooking')) {
+        significantThemes.add('food');
+      }
+      if (content.contains('travel') || content.contains('trip') ||
+          content.contains('journey') || content.contains('explore')) {
+        significantThemes.add('travel');
+      }
+
+      // Extract key topics (simple word frequency)
+      final words = content.split(RegExp(r'\W+'))
+          .where((w) => w.length > 3)
+          .where((w) => !['this', 'that', 'with', 'from', 'they', 'have', 'been', 'were'].contains(w));
+      keyTopics.addAll(words);
+    }
+
+    final hasSignificantContent = locationNotes.length > 2 ||
+                                 locationNoteContent.any((c) => c.length > 50) ||
+                                 significantThemes.length > 2;
+
+    return WrittenContentSummary(
+      locationNoteContent: locationNoteContent,
+      significantThemes: significantThemes.toList(),
+      totalWrittenEntries: locationNotes.length,
+      hasSignificantContent: hasSignificantContent,
+      emotionalTones: emotionalTones,
+      keyTopics: keyTopics.take(10).toList(), // Top 10 key topics
+    );
   }
 }
 

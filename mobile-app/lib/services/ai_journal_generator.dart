@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'daily_context_synthesizer.dart';
 import 'ai_feature_extractor.dart';
 import 'narrative_template_engine.dart';
+import '../database/location_database.dart';
 
 /// On-device AI journal generator that creates personalized narratives
 /// Uses contextual analysis from Phase 1 to generate meaningful journal entries
@@ -304,16 +305,46 @@ class AIJournalGenerator {
     return highlights;
   }
 
-  /// Infer mood based on context
+  /// Infer mood based on context including movement data
   String _inferMood(DailyContext context) {
     final score = context.overallConfidence;
     final socialScore = context.photoContexts.fold(0, (sum, photo) => sum + photo.faceCount);
     final activityScore = context.photoContexts.length + context.calendarEvents.length;
 
-    if (score > 0.8 && socialScore > 5) {
+    // Calculate movement-based mood factors
+    double movementScore = 0;
+    if (context.movementData.isNotEmpty) {
+      double avgWalking = 0;
+      double avgRunning = 0;
+      double avgActivity = 0;
+      for (final data in context.movementData) {
+        avgWalking += data.walkingPercentage;
+        avgRunning += data.runningPercentage;
+        avgActivity += data.averageMagnitude;
+      }
+      avgWalking /= context.movementData.length;
+      avgRunning /= context.movementData.length;
+      avgActivity /= context.movementData.length;
+
+      // High physical activity correlates with energetic mood
+      if (avgRunning > 0.1 || avgWalking > 0.4) {
+        movementScore = 0.8;
+      } else if (avgWalking > 0.2) {
+        movementScore = 0.6;
+      } else if (avgActivity > 0.5) {
+        movementScore = 0.4;
+      }
+    }
+
+    // Combine all factors for mood inference
+    if (movementScore > 0.6 && (score > 0.7 || socialScore > 3)) {
       return 'energetic';
+    } else if (score > 0.8 && socialScore > 5) {
+      return 'joyful';
     } else if (score > 0.7 && activityScore > 10) {
       return 'accomplished';
+    } else if (movementScore > 0.4) {
+      return 'active';
     } else if (socialScore > 0) {
       return 'connected';
     } else if (activityScore > 5) {
@@ -325,9 +356,46 @@ class AIJournalGenerator {
     }
   }
 
-  /// Generate relevant tags
+  /// Generate relevant tags including movement-based tags
   List<String> _generateTags(DailyContext context) {
     final tags = <String>[];
+
+    // Movement-based tags
+    if (context.movementData.isNotEmpty) {
+      double avgWalking = 0;
+      double avgRunning = 0;
+      double avgDriving = 0;
+      double avgStill = 0;
+
+      for (final data in context.movementData) {
+        avgWalking += data.walkingPercentage;
+        avgRunning += data.runningPercentage;
+        avgDriving += data.drivingPercentage;
+        avgStill += data.stillPercentage;
+      }
+
+      final count = context.movementData.length;
+      avgWalking /= count;
+      avgRunning /= count;
+      avgDriving /= count;
+      avgStill /= count;
+
+      if (avgRunning > 0.1) {
+        tags.add('exercise');
+        tags.add('running');
+      }
+      if (avgWalking > 0.3) {
+        tags.add('active');
+        tags.add('walking');
+      }
+      if (avgDriving > 0.3) {
+        tags.add('travel');
+        tags.add('driving');
+      }
+      if (avgStill > 0.7) {
+        tags.add('focused');
+      }
+    }
 
     // Environment tags
     final environments = context.photoContexts
@@ -383,6 +451,7 @@ class AIJournalGenerator {
       },
     );
   }
+
 }
 
 /// Represents a generated journal entry with AI insights

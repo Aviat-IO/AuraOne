@@ -43,7 +43,8 @@ class _CalendarSettingsScreenState extends ConsumerState<CalendarSettingsScreen>
     }
 
     try {
-      final calendars = await _calendarService.getCalendars();
+      // Force refresh to ensure we get the latest calendars
+      final calendars = await _calendarService.getCalendars(forceRefresh: true);
 
       // Enable all calendars by default on first load
       final calendarIds = calendars.map((c) => c.id).toList();
@@ -101,32 +102,41 @@ class _CalendarSettingsScreenState extends ConsumerState<CalendarSettingsScreen>
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const PageHeader(
-                  icon: Icons.calendar_month,
-                  title: 'Calendar Settings',
-                  subtitle: 'Choose which calendars to include in your journal',
-                ),
-                const SizedBox(height: 32),
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const PageHeader(
+                        icon: Icons.calendar_month,
+                        title: 'Calendar Settings',
+                        subtitle: 'Choose which calendars to include in your journal',
+                      ),
+                      const SizedBox(height: 32),
 
-                if (_isLoading)
-                  const Center(
-                    child: CircularProgressIndicator(),
-                  )
-                else if (!_hasPermission)
-                  _buildPermissionRequest(theme, isLight)
-                else if (_errorMessage != null)
-                  _buildErrorMessage(theme, isLight)
-                else if (_calendars.isEmpty)
-                  _buildNoCalendarsMessage(theme, isLight)
-                else
-                  _buildCalendarsList(theme, isLight, calendarSettings),
-              ],
-            ),
+                      if (_isLoading)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 48.0),
+                            child: const CircularProgressIndicator(),
+                          ),
+                        )
+                      else if (!_hasPermission)
+                        _buildPermissionRequest(theme, isLight)
+                      else if (_errorMessage != null)
+                        _buildErrorMessage(theme, isLight)
+                      else if (_calendars.isEmpty)
+                        _buildNoCalendarsMessage(theme, isLight)
+                      else
+                        _buildCalendarsList(theme, isLight, calendarSettings),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -228,11 +238,35 @@ class _CalendarSettingsScreenState extends ConsumerState<CalendarSettingsScreen>
               ),
               const SizedBox(height: 8),
               Text(
-                'No calendars were found on this device',
+                'No calendars were found on this device.\nMake sure you have at least one calendar account configured in your device settings.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  FilledButton.icon(
+                    onPressed: () async {
+                      setState(() {
+                        _isLoading = true;
+                      });
+                      await _loadCalendars();
+                    },
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Refresh'),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton(
+                    onPressed: () async {
+                      // Open system calendar settings
+                      await _calendarService.requestPermissions();
+                    },
+                    child: const Text('Open Settings'),
+                  ),
+                ],
               ),
             ],
           ),

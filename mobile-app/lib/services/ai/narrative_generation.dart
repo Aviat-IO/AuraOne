@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 // import 'package:tflite_flutter/tflite_flutter.dart'; // Temporarily disabled for APK size optimization
 import '../../utils/logger.dart';
 import 'multimodal_fusion.dart';
+import '../narrative_template_engine.dart';
+import '../daily_context_synthesizer.dart';
 
 // Stub types for TFLite functionality
 class Interpreter {
@@ -671,6 +673,101 @@ Poetic interpretation:''',
     return words.join(' ');
   }
 
+  /// Generate enhanced narrative from comprehensive daily context
+  Future<NarrativeResult> generateEnhancedNarrative({
+    required DailyContext dailyContext,
+    NarrativeStyle style = NarrativeStyle.casual,
+    Map<String, dynamic>? additionalContext,
+  }) async {
+    try {
+      if (!_isInitialized) {
+        await initialize();
+      }
+
+      // Use the enhanced narrative template engine for better results
+      final templateEngine = NarrativeTemplateEngine();
+      final narrative = templateEngine.generateContextualNarrative(dailyContext);
+
+      // Generate structured context for metadata
+      final fusionService = MultiModalFusionService();
+      final context = fusionService.generateEnhancedStructuredContext(dailyContext);
+
+      // Add additional context if provided
+      if (additionalContext != null) {
+        context.addAll(additionalContext);
+      }
+
+      // Calculate confidence based on enhanced data completeness
+      final confidence = _calculateEnhancedConfidence(dailyContext, context);
+
+      // Generate summary from narrative
+      final summary = _generateSummaryFromNarrative(narrative);
+
+      _logger.info('Generated enhanced narrative with style: ${style.name}, confidence: ${confidence.toStringAsFixed(2)}');
+
+      return NarrativeResult(
+        narrative: narrative,
+        summary: summary,
+        style: style,
+        confidence: confidence,
+        generatedAt: DateTime.now(),
+        metadata: {
+          'model': 'enhanced_template',
+          'dataCompleteness': context['summary']['dataCompleteness'],
+          'totalDataSources': _countActiveDatasources(dailyContext),
+          'hasWrittenContent': dailyContext.writtenContentSummary.hasSignificantContent,
+          'hasProximityData': dailyContext.proximitySummary.hasProximityInteractions,
+        },
+      );
+    } catch (e, stack) {
+      _logger.error('Failed to generate enhanced narrative', error: e, stackTrace: stack);
+      return _generateFallbackNarrativeFromContext(dailyContext, style);
+    }
+  }
+
+  /// Calculate enhanced confidence based on data richness
+  double _calculateEnhancedConfidence(DailyContext dailyContext, Map<String, dynamic> context) {
+    double confidence = dailyContext.overallConfidence;
+
+    // Bonus for written content richness
+    if (dailyContext.writtenContentSummary.hasSignificantContent) {
+      confidence += 0.15;
+      if (dailyContext.writtenContentSummary.totalWrittenEntries > 3) {
+        confidence += 0.1;
+      }
+    }
+
+    // Bonus for proximity interactions
+    if (dailyContext.proximitySummary.hasProximityInteractions) {
+      confidence += 0.1;
+    }
+
+    // Bonus for movement data richness
+    if (dailyContext.movementData.length > 50) {
+      confidence += 0.1;
+    }
+
+    // Bonus for diverse data sources
+    final activeSources = _countActiveDatasources(dailyContext);
+    confidence += (activeSources * 0.05).clamp(0.0, 0.2);
+
+    return confidence.clamp(0.0, 1.0);
+  }
+
+  /// Count active data sources for confidence calculation
+  int _countActiveDatasources(DailyContext dailyContext) {
+    int count = 0;
+    if (dailyContext.photoContexts.isNotEmpty) count++;
+    if (dailyContext.calendarEvents.isNotEmpty) count++;
+    if (dailyContext.locationPoints.isNotEmpty) count++;
+    if (dailyContext.movementData.isNotEmpty) count++;
+    if (dailyContext.activities.isNotEmpty) count++;
+    if (dailyContext.writtenContentSummary.hasSignificantContent) count++;
+    if (dailyContext.proximitySummary.hasProximityInteractions) count++;
+    if (dailyContext.geofenceEvents.isNotEmpty) count++;
+    return count;
+  }
+
   /// Generate fallback narrative when service fails
   NarrativeResult _generateFallbackNarrative(
     List<DailyEvent> events,
@@ -687,6 +784,44 @@ Poetic interpretation:''',
       confidence: 0.0,
       generatedAt: DateTime.now(),
       metadata: {'fallback': true},
+    );
+  }
+
+  /// Generate fallback narrative from DailyContext when service fails
+  NarrativeResult _generateFallbackNarrativeFromContext(
+    DailyContext dailyContext,
+    NarrativeStyle style,
+  ) {
+    final buffer = StringBuffer();
+
+    if (dailyContext.photoContexts.isNotEmpty) {
+      buffer.write('${dailyContext.photoContexts.length} photos captured. ');
+    }
+    if (dailyContext.calendarEvents.isNotEmpty) {
+      buffer.write('${dailyContext.calendarEvents.length} calendar events. ');
+    }
+    if (dailyContext.writtenContentSummary.hasSignificantContent) {
+      buffer.write('Written reflections recorded. ');
+    }
+    if (dailyContext.proximitySummary.hasProximityInteractions) {
+      buffer.write('Location interactions noted. ');
+    }
+
+    final narrative = buffer.isEmpty
+        ? 'A day with collected memories and experiences.'
+        : buffer.toString();
+
+    return NarrativeResult(
+      narrative: narrative,
+      summary: narrative,
+      style: style,
+      confidence: dailyContext.overallConfidence * 0.5, // Reduced confidence for fallback
+      generatedAt: DateTime.now(),
+      metadata: {
+        'fallback': true,
+        'contextFallback': true,
+        'dataCompleteness': _countActiveDatasources(dailyContext) / 8.0,
+      },
     );
   }
 

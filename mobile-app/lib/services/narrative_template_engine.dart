@@ -182,24 +182,210 @@ class NarrativeTemplateEngine {
       variables['time_feeling'] = 'reflective';
     }
 
-    // Movement variables
-    if (context.movementData.isNotEmpty) {
-      final avgMovement = context.movementData.fold(0.0, (sum, data) =>
-          sum + (100 - data.stillPercentage)) / context.movementData.length;
+    // Enhanced written content variables for narrative depth
+    if (context.writtenContentSummary.hasSignificantContent) {
+      final themes = context.writtenContentSummary.significantThemes;
+      final tones = context.writtenContentSummary.emotionalTones;
+      final dominantTone = tones.entries.fold<MapEntry<String, int>?>(null, (prev, curr) {
+        return prev == null || curr.value > prev.value ? curr : prev;
+      });
 
-      if (avgMovement > 60) {
-        variables['movement_style'] = 'actively';
-        variables['energy_descriptor'] = 'energetic';
-      } else if (avgMovement > 30) {
-        variables['movement_style'] = 'steadily';
-        variables['energy_descriptor'] = 'balanced';
+      if (themes.contains('work')) {
+        variables['content_focus'] = 'professional reflections';
+        variables['thought_quality'] = 'productive thinking';
+      } else if (themes.contains('relationships')) {
+        variables['content_focus'] = 'personal connections';
+        variables['thought_quality'] = 'meaningful interactions';
+      } else if (themes.contains('nature')) {
+        variables['content_focus'] = 'natural observations';
+        variables['thought_quality'] = 'mindful presence';
       } else {
-        variables['movement_style'] = 'gently';
-        variables['energy_descriptor'] = 'calm';
+        variables['content_focus'] = 'thoughtful observations';
+        variables['thought_quality'] = 'reflective insights';
+      }
+
+      if (dominantTone != null) {
+        switch (dominantTone.key) {
+          case 'positive':
+            variables['emotional_tenor'] = 'uplifting';
+            variables['content_mood'] = 'optimistic reflections';
+            break;
+          case 'reflective':
+            variables['emotional_tenor'] = 'contemplative';
+            variables['content_mood'] = 'thoughtful musings';
+            break;
+          case 'negative':
+            variables['emotional_tenor'] = 'processing challenges';
+            variables['content_mood'] = 'working through difficulties';
+            break;
+          default:
+            variables['emotional_tenor'] = 'authentic';
+            variables['content_mood'] = 'genuine thoughts';
+        }
+      } else {
+        variables['emotional_tenor'] = 'authentic';
+        variables['content_mood'] = 'genuine thoughts';
+      }
+
+      variables['writing_depth'] = context.writtenContentSummary.totalWrittenEntries > 5
+          ? 'extensively'
+          : context.writtenContentSummary.totalWrittenEntries > 2
+              ? 'thoughtfully'
+              : 'briefly';
+
+      variables['content_richness'] = themes.length > 3
+          ? 'covering many aspects of life'
+          : themes.length > 1
+              ? 'exploring various themes'
+              : 'focusing on specific experiences';
+    } else {
+      variables['content_focus'] = 'lived experiences';
+      variables['thought_quality'] = 'present moment awareness';
+      variables['emotional_tenor'] = 'natural';
+      variables['content_mood'] = 'spontaneous moments';
+      variables['writing_depth'] = 'organically';
+      variables['content_richness'] = 'through direct experience';
+    }
+
+    // Proximity and location awareness variables
+    if (context.proximitySummary.hasProximityInteractions) {
+      final transitions = context.proximitySummary.geofenceTransitions;
+      final dwellTimes = context.proximitySummary.locationDwellTimes;
+      final locations = context.proximitySummary.frequentProximityLocations;
+
+      if (transitions.any((t) => t.contains('enter'))) {
+        variables['location_interaction'] = 'arriving at meaningful places';
+        variables['place_connection'] = 'connecting with familiar spaces';
+      } else if (transitions.any((t) => t.contains('dwell'))) {
+        variables['location_interaction'] = 'settling into important locations';
+        variables['place_connection'] = 'spending quality time in chosen spaces';
+      } else {
+        variables['location_interaction'] = 'moving through various locations';
+        variables['place_connection'] = 'experiencing different environments';
+      }
+
+      final totalDwellMinutes = dwellTimes.values.fold(0, (sum, d) => sum + d.inMinutes);
+      if (totalDwellMinutes > 120) {
+        variables['location_depth'] = 'deeply immersed in specific places';
+      } else if (totalDwellMinutes > 30) {
+        variables['location_depth'] = 'spending focused time in key locations';
+      } else {
+        variables['location_depth'] = 'briefly engaging with various spaces';
+      }
+
+      if (locations.length > 3) {
+        variables['place_variety'] = 'exploring diverse locations';
+      } else if (locations.length > 1) {
+        variables['place_variety'] = 'moving between familiar places';
+      } else {
+        variables['place_variety'] = 'centered in one meaningful space';
       }
     } else {
-      variables['movement_style'] = 'peacefully';
-      variables['energy_descriptor'] = 'serene';
+      variables['location_interaction'] = 'naturally moving through space';
+      variables['place_connection'] = 'organically engaging with surroundings';
+      variables['location_depth'] = 'flowing through different areas';
+      variables['place_variety'] = 'experiencing the day\'s geography';
+    }
+
+    // Enhanced movement variables for dynamic narrative generation
+    if (context.movementData.isNotEmpty) {
+      // Calculate detailed movement statistics
+      double totalWalking = 0;
+      double totalRunning = 0;
+      double totalDriving = 0;
+      double totalStill = 0;
+      double totalActivity = 0;
+
+      for (final data in context.movementData) {
+        totalWalking += data.walkingPercentage;
+        totalRunning += data.runningPercentage;
+        totalDriving += data.drivingPercentage;
+        totalStill += data.stillPercentage;
+        totalActivity += data.averageMagnitude;
+      }
+
+      final count = context.movementData.length;
+      final avgWalking = totalWalking / count;
+      final avgRunning = totalRunning / count;
+      final avgDriving = totalDriving / count;
+      final avgStill = totalStill / count;
+      final avgActivity = totalActivity / count;
+      final avgMovement = 100 - avgStill;
+
+      // Primary movement type and descriptors
+      if (avgRunning > 10) {
+        variables['movement_type'] = 'running';
+        variables['movement_style'] = 'vigorously';
+        variables['energy_descriptor'] = 'high-energy';
+        variables['movement_narrative'] = 'pushing physical boundaries';
+        variables['movement_metaphor'] = 'like wind through the streets';
+      } else if (avgWalking > 30) {
+        variables['movement_type'] = 'walking';
+        variables['movement_style'] = 'actively';
+        variables['energy_descriptor'] = 'energetic';
+        variables['movement_narrative'] = 'exploring on foot';
+        variables['movement_metaphor'] = 'finding rhythm in each step';
+      } else if (avgDriving > 30) {
+        variables['movement_type'] = 'driving';
+        variables['movement_style'] = 'purposefully';
+        variables['energy_descriptor'] = 'mobile';
+        variables['movement_narrative'] = 'journeying between destinations';
+        variables['movement_metaphor'] = 'navigating life\'s pathways';
+      } else if (avgMovement > 40) {
+        variables['movement_type'] = 'mixed';
+        variables['movement_style'] = 'variedly';
+        variables['energy_descriptor'] = 'dynamic';
+        variables['movement_narrative'] = 'alternating between motion and stillness';
+        variables['movement_metaphor'] = 'dancing through different rhythms';
+      } else if (avgMovement > 20) {
+        variables['movement_type'] = 'moderate';
+        variables['movement_style'] = 'gently';
+        variables['energy_descriptor'] = 'balanced';
+        variables['movement_narrative'] = 'moving with intention';
+        variables['movement_metaphor'] = 'flowing like a calm river';
+      } else {
+        variables['movement_type'] = 'minimal';
+        variables['movement_style'] = 'peacefully';
+        variables['energy_descriptor'] = 'contemplative';
+        variables['movement_narrative'] = 'embracing stillness';
+        variables['movement_metaphor'] = 'rooted like a tree';
+      }
+
+      // Activity intensity
+      if (avgActivity > 2.0) {
+        variables['activity_intensity'] = 'intense';
+        variables['physical_engagement'] = 'highly physical';
+      } else if (avgActivity > 1.0) {
+        variables['activity_intensity'] = 'moderate';
+        variables['physical_engagement'] = 'physically engaged';
+      } else if (avgActivity > 0.5) {
+        variables['activity_intensity'] = 'light';
+        variables['physical_engagement'] = 'gently active';
+      } else {
+        variables['activity_intensity'] = 'minimal';
+        variables['physical_engagement'] = 'restful';
+      }
+
+      // Movement duration descriptors
+      if (avgMovement > 70) {
+        variables['movement_duration'] = 'throughout most of the day';
+      } else if (avgMovement > 40) {
+        variables['movement_duration'] = 'for significant portions';
+      } else if (avgMovement > 20) {
+        variables['movement_duration'] = 'in measured moments';
+      } else {
+        variables['movement_duration'] = 'briefly';
+      }
+    } else {
+      // Default values when no movement data
+      variables['movement_type'] = 'unmeasured';
+      variables['movement_style'] = 'naturally';
+      variables['energy_descriptor'] = 'flowing';
+      variables['movement_narrative'] = 'moving through the day';
+      variables['movement_metaphor'] = 'finding my own pace';
+      variables['activity_intensity'] = 'varied';
+      variables['physical_engagement'] = 'as needed';
+      variables['movement_duration'] = 'as moments called for it';
     }
 
     return variables;
@@ -209,15 +395,23 @@ class NarrativeTemplateEngine {
   bool _shouldIncludeBodyPart(BodyTemplate bodyTemplate, DailyContext context) {
     switch (bodyTemplate.type) {
       case BodyType.social:
-        return context.photoContexts.any((photo) => photo.faceCount > 0);
+        return context.photoContexts.any((photo) => photo.faceCount > 0) ||
+               context.calendarEvents.any((event) => event.attendees.isNotEmpty);
       case BodyType.activity:
-        return context.photoContexts.length > 3 || context.calendarEvents.length > 1;
+        return context.photoContexts.length > 3 ||
+               context.calendarEvents.length > 1 ||
+               context.activities.length > 5;
       case BodyType.environment:
-        return context.photoContexts.isNotEmpty;
+        return context.photoContexts.isNotEmpty ||
+               context.locationPoints.isNotEmpty;
       case BodyType.reflection:
         return true; // Always include reflection
       case BodyType.movement:
         return context.movementData.isNotEmpty;
+      case BodyType.content:
+        return context.writtenContentSummary.hasSignificantContent;
+      case BodyType.proximity:
+        return context.proximitySummary.hasProximityInteractions;
     }
   }
 
@@ -284,6 +478,33 @@ class NarrativeTemplateEngine {
             'Being in {primary_environment} enhanced every moment with its {environment_feeling} atmosphere.',
           ],
         ),
+        BodyTemplate(
+          type: BodyType.movement,
+          options: [
+            '{movement_narrative} {movement_duration}, {movement_metaphor}.',
+            'My {movement_type} brought a sense of {energy_descriptor} engagement to the day.',
+            'The {activity_intensity} physical activity added depth to today\'s experiences.',
+            'Moving {movement_style} felt perfectly aligned with the day\'s {pace} rhythm.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.content,
+          options: [
+            'Capturing {content_focus} through {writing_depth} written reflections added layers of meaning.',
+            'The {emotional_tenor} quality of today\'s {content_mood} provided insight into the deeper currents.',
+            'Taking time for {thought_quality} created space for {content_richness}.',
+            'Written thoughts today were {writing_depth} {emotional_tenor}, {content_richness}.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.proximity,
+          options: [
+            '{location_interaction} created a strong sense of {place_connection}.',
+            'The experience of {location_depth} added richness to the day\'s spatial story.',
+            'Time spent {place_variety} brought awareness of how places shape experience.',
+            'Moving through space with intention, {location_interaction} and {place_connection}.',
+          ],
+        ),
       ],
       closings: [
         'A day that reminded me of the joy found in active engagement with life and others.',
@@ -315,6 +536,16 @@ class NarrativeTemplateEngine {
             'Moving {movement_style} through the day, I found space for thoughts to settle and clarity to emerge.',
             'The {time_period} hours passed with a natural {pace} that felt perfectly aligned.',
             'In the quieter moments, I discovered the value of simply being present.',
+            'Taking time for {content_focus} revealed the {emotional_tenor} threads running through today.',
+            'The practice of {thought_quality} brought deeper awareness to the day\'s unfolding.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.content,
+          options: [
+            'Written reflections today were {emotional_tenor}, offering {content_richness}.',
+            'Capturing {content_mood} through {writing_depth} observation added contemplative depth.',
+            'The quality of {thought_quality} enhanced the solitary experience with meaningful insight.',
           ],
         ),
         BodyTemplate(
@@ -518,6 +749,16 @@ class NarrativeTemplateEngine {
             'Moving {movement_style} through the hours, I found space for thoughts to unfold naturally.',
             'The {time_period} brought its own quality of light and introspection.',
             'In the absence of rush, deeper truths and insights had room to emerge.',
+            'Time for {content_focus} opened doorways to {emotional_tenor} understanding.',
+            'The practice of {thought_quality} in quiet spaces yielded {content_richness}.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.content,
+          options: [
+            'Written thoughts emerged {writing_depth}, {emotional_tenor} in their honesty.',
+            'Capturing {content_mood} added layers of meaning to the contemplative experience.',
+            'The depth of {thought_quality} transformed simple moments into rich reflection.',
           ],
         ),
         BodyTemplate(
@@ -583,4 +824,4 @@ enum EnergyLevel { low, moderate, high }
 enum MoodTone { reflective, balanced, upbeat }
 
 /// Body section types
-enum BodyType { social, activity, environment, reflection, movement }
+enum BodyType { social, activity, environment, reflection, movement, content, proximity }
