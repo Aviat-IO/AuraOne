@@ -1,6 +1,6 @@
 # Task ID: 24
 # Title: Replace mock timeline data with actual storage implementation in TimelineWidget
-# Status: pending
+# Status: done
 # Dependencies: 2, 3, 4
 # Priority: medium
 # Description: Remove hardcoded timeline events and implement integration with the journal database to fetch real activities and events for timeline display.

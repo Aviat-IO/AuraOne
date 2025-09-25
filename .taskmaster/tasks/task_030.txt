@@ -1,6 +1,6 @@
 # Task ID: 30
 # Title: Implement focus on location map functionality - location card tap handler
-# Status: pending
+# Status: done
 # Dependencies: 29, 15
 # Priority: medium
 # Description: Implement the TODO at line 428 in map_widget.dart to enable focusing/centering on a specific location when tapping location cards in the daily canvas map widget.

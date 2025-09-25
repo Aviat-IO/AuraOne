@@ -14,6 +14,7 @@ import '../providers/database_provider.dart';
 import '../providers/service_providers.dart';
 import '../providers/settings_providers.dart';
 import '../utils/logger.dart';
+import '../utils/date_utils.dart';
 import '../services/database/database_provider.dart' as db_provider;
 
 final _logger = AppLogger('JournalService');
@@ -138,7 +139,7 @@ class JournalService {
       // Create the journal entry
       final entryId = await _journalDb.insertJournalEntry(
         JournalEntriesCompanion(
-          date: Value(DateTime(date.year, date.month, date.day)),
+          date: Value(DateTimeUtils.localDateToUtc(date)),
           title: Value(actualTitle),
           content: Value(aiEntry['content'].toString()),
           summary: Value(aiEntry['summary'].toString()),
@@ -172,7 +173,7 @@ class JournalService {
       // Create fallback entry
       await _journalDb.insertJournalEntry(
         JournalEntriesCompanion(
-          date: Value(DateTime(date.year, date.month, date.day)),
+          date: Value(DateTimeUtils.localDateToUtc(date)),
           title: Value('Daily Reflection - ${_formatDate(date)}'),
           content: Value('Today was a new day with its own unique moments and experiences.'),
           summary: Value('A day of experiences and growth.'),
@@ -276,7 +277,7 @@ class JournalService {
       String fullDescription = description.isNotEmpty ? description : '';
 
       await addManualActivity(
-        date: DateTime(timestamp.year, timestamp.month, timestamp.day),
+        date: DateTimeUtils.getLocalDateOnly(timestamp),
         title: title,
         description: fullDescription,
         timestamp: timestamp,
@@ -296,8 +297,8 @@ class JournalService {
       'date': date.toIso8601String(),
     };
 
-    final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
+    // Get UTC boundaries for the local day
+    final (startOfDay, endOfDay) = DateTimeUtils.getUtcDayBoundaries(date);
 
     try {
       // Get photos with metadata
@@ -633,8 +634,8 @@ class JournalService {
   /// Extract activities for a specific date
   Future<List<Map<String, dynamic>>> _extractActivitiesForDate(DateTime date) async {
     final activities = <Map<String, dynamic>>[];
-    final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
+    // Get UTC boundaries for the local day
+    final (startOfDay, endOfDay) = DateTimeUtils.getUtcDayBoundaries(date);
 
     try {
       // Get location data
@@ -705,7 +706,7 @@ class JournalService {
   /// Setup daily timer to create entries
   void _setupDailyTimer() {
     final now = DateTime.now();
-    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final tomorrow = DateTimeUtils.localDateToUtc(now.add(const Duration(days: 1)));
     final timeUntilMidnight = tomorrow.difference(now);
 
     _logger.info('Setting up daily timer - next entry in ${timeUntilMidnight.inHours}h ${timeUntilMidnight.inMinutes % 60}m');

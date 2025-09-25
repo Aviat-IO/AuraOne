@@ -1,6 +1,6 @@
 # Task ID: 26
 # Title: Replace mock media gallery with actual device media access
-# Status: pending
+# Status: done
 # Dependencies: 2, 3
 # Priority: medium
 # Description: Remove hardcoded picsum.photos placeholder URLs from MediaGalleryWidget and implement integration with the existing PhotoService and MediaDatabase to display real device photos and videos.

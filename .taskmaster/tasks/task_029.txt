@@ -1,6 +1,6 @@
 # Task ID: 29
 # Title: Implement map controls - Zoom in/out buttons and center on location functionality
-# Status: pending
+# Status: done
 # Dependencies: 3, 15
 # Priority: medium
 # Description: Implement the three TODO items at lines 144, 152, and 160 in map_widget.dart by adding zoom in/out functionality and center on current location capability using flutter_map MapController.

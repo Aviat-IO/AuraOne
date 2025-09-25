@@ -1,0 +1,11 @@
+# Task ID: 38
+# Title: Configure Sentry DSN - Replace placeholder DSN with actual project DSN or disable crash reporting
+# Status: pending
+# Dependencies: 33, 37
+# Priority: high
+# Description: Replace the empty DSN string in SentryConfig.dsn with either an actual Sentry project DSN for crash reporting or implement configuration option to disable Sentry when not needed.
+# Details:
+The SentryConfig class at line 15 has an empty DSN string which effectively disables Sentry crash reporting. To resolve this: 1) If crash reporting is needed, create a Sentry project at https://sentry.io, obtain the DSN from Project Settings > Client Keys (DSN), and replace the empty string with the actual DSN (format: https://[key]@[organization].ingest.sentry.io/[project]), 2) If crash reporting is not needed, add a configuration flag to cleanly disable Sentry initialization by adding a static const bool enabled = false; field to SentryConfig and modify main.dart to conditionally initialize Sentry only when SentryConfig.enabled is true and SentryConfig.dsn is not empty, 3) Update the release version in SentryConfig.release to match the actual app version from pubspec.yaml instead of the hardcoded 'aura-one@1.0.0+1', 4) Consider adding environment-specific DSN configuration for development, staging, and production environments.
+
+# Test Strategy:
+If DSN is configured, test crash reporting by triggering intentional crashes and verifying they appear in the Sentry dashboard. Test that beforeSend callback properly filters out NetworkImageLoadException and other sensitive errors. If Sentry is disabled via configuration flag, verify that Sentry initialization is skipped entirely and the app functions normally without crash reporting. Test that the release version matches the actual app version from pubspec.yaml. Verify environment-specific configurations work correctly across debug and release builds.

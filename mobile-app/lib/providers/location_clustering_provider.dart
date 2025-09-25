@@ -5,6 +5,7 @@ import '../services/ai/ultra_fast_clustering.dart';
 import '../services/ai/cluster_merger.dart';
 import '../utils/logger.dart';
 import '../utils/performance_monitor.dart';
+import '../utils/date_utils.dart';
 import 'location_database_provider.dart';
 
 /// Simple cache for clustering results
@@ -84,9 +85,8 @@ final clusteredLocationsProvider = FutureProvider.family<List<LocationCluster>, 
     final timer = PerformanceTimer('clusteredLocationsProvider');
 
     try {
-      // Get the location points for the date from the database
-      final dayStart = DateTime(date.year, date.month, date.day);
-      final dayEnd = dayStart.add(const Duration(days: 1));
+      // Get UTC boundaries for the local day
+      final (dayStart, dayEnd) = DateTimeUtils.getUtcDayBoundaries(date);
       final cacheKey = 'clusters_${date.year}-${date.month}-${date.day}';
 
       // Check cache first
@@ -180,9 +180,8 @@ final journeySegmentsProvider = FutureProvider.family<List<JourneySegment>, Date
     final timer = PerformanceTimer('journeySegmentsProvider');
 
     try {
-      // Get the location points for the date from the database
-      final dayStart = DateTime(date.year, date.month, date.day);
-      final dayEnd = dayStart.add(const Duration(days: 1));
+      // Get UTC boundaries for the local day
+      final (dayStart, dayEnd) = DateTimeUtils.getUtcDayBoundaries(date);
       final cacheKey = 'journeys_${date.year}-${date.month}-${date.day}';
 
       // Check cache first - use same cache as clusters since they're computed together

@@ -1,6 +1,6 @@
 # Task ID: 27
 # Title: Implement add media functionality for MediaGalleryWidget - camera/gallery picker integration
-# Status: pending
+# Status: done
 # Dependencies: 20, 15
 # Priority: medium
 # Description: Implement the TODO at line 281 in MediaGalleryWidget by adding camera and gallery picker functionality to allow users to capture new photos or select existing ones from their device.

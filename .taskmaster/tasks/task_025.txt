@@ -1,6 +1,6 @@
 # Task ID: 25
 # Title: Implement Timeline Event Details Click Handler
-# Status: pending
+# Status: done
 # Dependencies: 15
 # Priority: medium
 # Description: Create event detail functionality for timeline events by implementing the TODO click handler at line 295 in timeline_widget.dart, including navigation to a detailed event view screen.

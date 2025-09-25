@@ -1,6 +1,6 @@
 # Task ID: 31
 # Title: Replace photo provider placeholders with real implementations
-# Status: pending
+# Status: done
 # Dependencies: 2, 3, 26
 # Priority: medium
 # Description: Replace the hardcoded picsum.photos placeholder URLs in MediaGalleryWidget's mediaItemsProvider with actual photo service integration using existing PhotoService and MediaDatabase infrastructure.

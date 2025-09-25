@@ -1,11 +1,55 @@
 # Task ID: 28
 # Title: Replace mock map with real map integration using flutter_map and GPS data
-# Status: pending
+# Status: done
 # Dependencies: 3, 2
 # Priority: medium
 # Description: Replace the placeholder map UI in MapWidget with a real interactive map using flutter_map package and integrate with existing location database to display actual GPS tracking data and location points.
 # Details:
-Remove the mock placeholder map UI from MapWidget (lines 100-133) and replace it with a real interactive map implementation using the existing flutter_map package (already in pubspec.yaml at line 69). The implementation should: 1) Replace the placeholder Container with a FlutterMap widget configured with OpenStreetMap tiles, 2) Integrate with the existing LocationDatabase to query LocationPoints for the selected date using the locationDatabaseProvider, 3) Display location points as markers on the map with proper icons based on activity type (walking, driving, stationary), 4) Add polyline connections between consecutive location points to show movement paths with different colors for different activity types, 5) Implement the TODO functionalities for map controls including zoom in/out (lines 144-155) and center on current location (lines 158-163), 6) Update the location card tap handler (line 428) to center the map on the selected location, 7) Calculate real distance traveled using the Haversine formula between consecutive GPS points instead of mock data (line 36), 8) Integrate with existing GeofenceAreas to display named locations and boundaries on the map, 9) Handle loading states properly while GPS data is being fetched from the database, 10) Add proper error handling for map loading failures and missing GPS data scenarios. The map should maintain the existing UI structure with location stats and horizontal location list while replacing only the placeholder map area with the real interactive map functionality.
+Replace the mock placeholder Container (lines 100-133 in map_widget.dart) with a real FlutterMap widget following the working implementation pattern found in home_screen.dart (lines 801-856). The implementation should: 1) Replace the placeholder Container with a FlutterMap widget configured with MapOptions for initial center/zoom and OpenStreetMap TileLayer using urlTemplate 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', 2) Integrate with existing LocationDatabase via locationDatabaseProvider to query LocationPoints for the selected date, 3) Add PolylineLayer to connect consecutive location points showing movement paths with theme.colorScheme.primary color and 3.0 strokeWidth, 4) Add MarkerLayer with custom markers for different activity types (green circle with play icon for start, red circle with stop icon for end, following the pattern in home_screen.dart lines 822-851), 5) Implement the TODO map control functionalities: zoom in/out (lines 144-155) using MapController.move() and center on current location (lines 158-163) using MapController.move() with user's current position, 6) Update the location card tap handler (around line 428) to center the map on the selected location using MapController.move(), 7) Calculate real distance using the existing Haversine formula implementation from home_screen.dart lines 597-612, 8) Add proper loading states while GPS data is being fetched using Skeletonizer as shown in home_screen.dart line 799, 9) Handle error states for map loading failures and missing GPS data with proper error widgets, 10) Maintain the existing UI structure with location stats container and horizontal location list while only replacing the map placeholder area. Use MapController for programmatic map control and ensure proper disposal in widget lifecycle.
 
 # Test Strategy:
-Verify that the placeholder map UI is completely replaced with an interactive flutter_map widget displaying OpenStreetMap tiles. Test that real GPS location points from the LocationDatabase are displayed as markers on the map with correct icons for different activity types. Verify polylines connect consecutive location points showing actual movement paths with appropriate colors. Test map controls functionality including zoom in/out and center on current location. Confirm that tapping location cards in the horizontal list centers the map on the selected location. Verify real distance calculations using GPS points instead of mock distance values. Test geofence areas display correctly as boundaries on the map. Validate proper loading states while location data is being fetched and error handling for map loading failures or missing GPS data.
+Verify that the placeholder Container is completely replaced with an interactive FlutterMap widget displaying OpenStreetMap tiles. Test that real GPS location points from LocationDatabase are displayed as polylines connecting consecutive points with proper theme colors. Verify map controls work: zoom in/out buttons adjust map zoom level and center on current location button moves map to user's current position. Confirm that tapping location cards in the horizontal list centers the map on the selected location coordinates. Test that distance calculations use real GPS coordinates instead of mock data. Validate proper loading states with Skeletonizer while location data is being fetched and error handling displays appropriate error widgets for map loading failures or missing GPS data scenarios. Ensure MapController is properly initialized and disposed to prevent memory leaks.
+
+# Subtasks:
+## 1. Replace placeholder Container with FlutterMap widget and TileLayer [done]
+### Dependencies: None
+### Description: Replace the mock Container (lines 100-133) with FlutterMap widget, MapOptions, and OpenStreetMap TileLayer following the pattern from home_screen.dart
+### Details:
+
+
+## 2. Integrate LocationDatabase to display real GPS points as polylines [done]
+### Dependencies: None
+### Description: Connect to locationDatabaseProvider to fetch LocationPoints for selected date and display them as connected polylines using PolylineLayer
+### Details:
+
+
+## 3. Add MarkerLayer with activity-based markers [done]
+### Dependencies: None
+### Description: Implement start/end markers with custom icons (green play, red stop) and consider activity-type markers for walking/driving/stationary points
+### Details:
+
+
+## 4. Implement map controls with MapController [done]
+### Dependencies: None
+### Description: Replace TODO items (lines 144-155, 158-163) with working zoom in/out and center on current location functionality using MapController.move()
+### Details:
+
+
+## 5. Add location card tap handler for map centering [done]
+### Dependencies: None
+### Description: Update location card tap handler to center map on selected location coordinates using MapController
+### Details:
+
+
+## 6. Integrate real distance calculation using Haversine formula [done]
+### Dependencies: None
+### Description: Replace mock distance calculation with real GPS-based distance using the Haversine formula implementation from home_screen.dart
+### Details:
+
+
+## 7. Add loading and error state handling [done]
+### Dependencies: None
+### Description: Implement Skeletonizer for loading states and proper error widgets for map loading failures or missing GPS data
+### Details:
+
+

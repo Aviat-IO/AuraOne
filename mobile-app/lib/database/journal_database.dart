@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import '../utils/date_utils.dart';
 
 part 'journal_database.g.dart';
 
@@ -80,14 +81,20 @@ class JournalDatabase extends _$JournalDatabase {
   }
 
   Future<JournalEntry?> getJournalEntryForDate(DateTime date) async {
-    final dateOnly = DateTime(date.year, date.month, date.day);
+    // Convert local date to UTC for database query
+    final utcDate = DateTimeUtils.localDateToUtc(date);
+    // Strip time component for date-only comparison
+    final dateOnly = DateTime(utcDate.year, utcDate.month, utcDate.day);
     return await (select(journalEntries)
           ..where((tbl) => tbl.date.equals(dateOnly)))
         .getSingleOrNull();
   }
 
   Stream<JournalEntry?> watchJournalEntryForDate(DateTime date) {
-    final dateOnly = DateTime(date.year, date.month, date.day);
+    // Convert local date to UTC for database query
+    final utcDate = DateTimeUtils.localDateToUtc(date);
+    // Strip time component for date-only comparison
+    final dateOnly = DateTime(utcDate.year, utcDate.month, utcDate.day);
     return (select(journalEntries)
           ..where((tbl) => tbl.date.equals(dateOnly)))
         .watchSingleOrNull();
@@ -106,8 +113,11 @@ class JournalDatabase extends _$JournalDatabase {
     DateTime startDate,
     DateTime endDate,
   ) {
-    final start = DateTime(startDate.year, startDate.month, startDate.day);
-    final end = DateTime(endDate.year, endDate.month, endDate.day);
+    // Convert local dates to UTC for database query
+    final startUtc = DateTimeUtils.localDateToUtc(startDate);
+    final endUtc = DateTimeUtils.localDateToUtc(endDate);
+    final start = DateTime(startUtc.year, startUtc.month, startUtc.day);
+    final end = DateTime(endUtc.year, endUtc.month, endUtc.day);
 
     return (select(journalEntries)
           ..where((tbl) => tbl.date.isBetweenValues(start, end))

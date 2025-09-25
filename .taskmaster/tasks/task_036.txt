@@ -1,6 +1,6 @@
 # Task ID: 36
 # Title: Implement HEIC metadata extraction - MediaFormatHandler has placeholder for HEIC support at line 362
-# Status: pending
+# Status: done
 # Dependencies: 4
 # Priority: medium
 # Description: Replace the placeholder HEIC metadata extraction method in MediaFormatHandler with robust HEIC/HEIF metadata extraction using the exif package for direct binary parsing and improved format support.

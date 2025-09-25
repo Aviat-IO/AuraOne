@@ -1,0 +1,11 @@
+# Task ID: 37
+# Title: Replace hardcoded app version with dynamic package info retrieval in error_handler.dart
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: Replace the hardcoded app version '1.0.0' at line 37 in lib/utils/error_handler.dart with dynamic package version retrieval using the existing package_info_plus dependency.
+# Details:
+Replace the hardcoded app version string '1.0.0' in the ErrorHandler.initialize() method (line 37) with dynamic package information retrieval using package_info_plus, which is already available as a project dependency. Implementation steps: 1) Import package_info_plus at the top of error_handler.dart by adding 'import 'package:package_info_plus/package_info_plus.dart';', 2) Modify the initialize() method to be async and add 'Future<void>' return type, 3) Replace the hardcoded setSafeContext('app_version', '1.0.0') line with dynamic version retrieval using 'final packageInfo = await PackageInfo.fromPlatform(); setSafeContext('app_version', packageInfo.version);', 4) Update all callers of ErrorHandler.initialize() throughout the codebase to await the method call, particularly in main.dart if it exists, 5) Consider adding additional package info context like build number using packageInfo.buildNumber for more detailed error reporting context. The implementation should follow the same pattern already established in about_screen.dart which successfully uses PackageInfo.fromPlatform() for dynamic version retrieval.
+
+# Test Strategy:
+Test that the error handler initializes correctly and captures the actual app version from pubspec.yaml (currently 0.1.0) instead of the hardcoded '1.0.0' value. Verify that safe context includes the dynamic version by checking ErrorHandler.getSafeContext() contains the correct app_version after initialization. Test in both debug and release builds to ensure package info retrieval works correctly across build configurations. Verify that any errors thrown during initialization are handled gracefully and don't prevent app startup. Test that Sentry error reports include the correct dynamic version information in their context data.

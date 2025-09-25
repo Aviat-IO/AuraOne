@@ -1,0 +1,11 @@
+# Task ID: 39
+# Title: Remove or implement face detection stubs - evaluate and decide on face detection functionality
+# Status: pending
+# Dependencies: 2, 3
+# Priority: high
+# Description: Analyze face detection usage in PhotoService and either properly implement face detection using google_mlkit_face_detection or completely remove all face detection functionality and dependencies to maintain APK size optimization.
+# Details:
+Three face detection service files are currently stubbed out for APK size optimization: face_detection_types.dart, face_detector.dart, and photo_service_provider.dart. However, PhotoService actively uses face detection methods (detectFacesInAsset, detectFacesBatch, detectFacesStream, storeFaceDetectionResults) that call these stubs, and google_mlkit_face_detection dependency is still included in pubspec.yaml. Implementation options: 1) COMPLETE REMOVAL: Remove all face detection imports from PhotoService, comment out or remove face detection methods (lines 717-820, 877-940, 1248-1298), remove google_mlkit_face_detection from pubspec.yaml, delete the three stub files, and update any calling code to handle the removal gracefully. 2) PROPER IMPLEMENTATION: Replace stub files with working implementations using the backup files as reference (lib_backup/face_detector.dart shows full ML Kit integration), implement actual FaceDetectionService using google_mlkit_face_detection, and restore face clustering and person identification features. The decision should be based on whether face detection is essential for the AI journal functionality - if not needed, complete removal is preferred for APK size. If needed, proper implementation using existing ML Kit dependency is required.
+
+# Test Strategy:
+If removing: Build APK and verify significant size reduction, test that PhotoService methods handle missing face detection gracefully without crashes, verify AI journal features work without face detection. Test that all imports compile successfully and no dead code remains. If implementing: Test face detection on sample images returns valid results, verify batch processing works with multiple images, test face clustering identifies same persons across photos, verify database storage of face detection results, test memory management during face detection processing. Measure APK size impact and performance on device.

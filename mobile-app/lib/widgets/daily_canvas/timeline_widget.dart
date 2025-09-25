@@ -8,6 +8,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:go_router/go_router.dart';
 import '../../database/journal_database.dart';
 import '../../database/media_database.dart';
+import '../../utils/date_utils.dart';
 import '../../services/journal_service.dart';
 import '../../services/calendar_service.dart';
 import '../../providers/media_database_provider.dart';
@@ -21,8 +22,9 @@ Future<List<CalendarEventData>> _getCalendarEventsForDate(
   DateTime date,
   Set<String> enabledCalendarIds,
 ) async {
+  // For calendar queries, use local day boundaries (device calendar expects local times)
   final startDate = DateTime(date.year, date.month, date.day);
-  final endDate = DateTime(date.year, date.month, date.day, 23, 59, 59);
+  final endDate = DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
 
   try {
     return await calendarService.getEventsInRange(
@@ -42,8 +44,9 @@ final calendarEventsProvider = FutureProvider.family<List<CalendarEventData>, Da
   final calendarSettings = ref.watch(calendarSettingsProvider);
 
   // Get events for the selected date
+  // For calendar queries, use local day boundaries (device calendar expects local times)
   final startDate = DateTime(date.year, date.month, date.day);
-  final endDate = DateTime(date.year, date.month, date.day, 23, 59, 59);
+  final endDate = DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
 
   try {
     final events = await calendarService.getEventsInRange(
@@ -181,7 +184,7 @@ final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTi
     }
 
     return TimelineEvent(
-      time: activity.timestamp,
+      time: activity.timestamp.toLocal(),  // Convert UTC to local time
       title: title,
       description: description,
       type: eventType,
@@ -204,7 +207,7 @@ final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTi
       })
       .map((calendarEvent) {
         return TimelineEvent(
-          time: calendarEvent.startDate,
+          time: calendarEvent.startDate.toLocal(),  // Convert to local time
           title: calendarEvent.title,
           description: calendarEvent.description ?? '',
           type: EventType.work, // Default calendar events to work type
@@ -428,7 +431,7 @@ class TimelineWidget extends HookConsumerWidget {
     required WidgetRef ref,
     required Map<String, String> calendarNames,
   }) {
-    final timeFormat = DateFormat('HH:mm');
+    final timeFormat = DateFormat('h:mm a');  // 12-hour format with AM/PM
     final color = _getEventColor(event.type, theme);
 
     // Special handling for calendar events
@@ -450,7 +453,7 @@ class TimelineWidget extends HookConsumerWidget {
                   // Hide time for all-day calendar events
                   if (!(isCalendarEvent && event.calendarEventData?.isAllDay == true))
                     Text(
-                      timeFormat.format(event.time),
+                      timeFormat.format(event.time),  // Already converted to local in TimelineEvent constructor
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: theme.colorScheme.onSurface.withValues(alpha: 0.7),

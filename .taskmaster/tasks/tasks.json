@@ -1475,11 +1475,96 @@
         ],
         "priority": "medium",
         "subtasks": []
+      },
+      {
+        "id": 37,
+        "title": "Replace hardcoded app version with dynamic package info retrieval in error_handler.dart",
+        "description": "Replace the hardcoded app version '1.0.0' at line 37 in lib/utils/error_handler.dart with dynamic package version retrieval using the existing package_info_plus dependency.",
+        "details": "Replace the hardcoded app version string '1.0.0' in the ErrorHandler.initialize() method (line 37) with dynamic package information retrieval using package_info_plus, which is already available as a project dependency. Implementation steps: 1) Import package_info_plus at the top of error_handler.dart by adding 'import 'package:package_info_plus/package_info_plus.dart';', 2) Modify the initialize() method to be async and add 'Future<void>' return type, 3) Replace the hardcoded setSafeContext('app_version', '1.0.0') line with dynamic version retrieval using 'final packageInfo = await PackageInfo.fromPlatform(); setSafeContext('app_version', packageInfo.version);', 4) Update all callers of ErrorHandler.initialize() throughout the codebase to await the method call, particularly in main.dart if it exists, 5) Consider adding additional package info context like build number using packageInfo.buildNumber for more detailed error reporting context. The implementation should follow the same pattern already established in about_screen.dart which successfully uses PackageInfo.fromPlatform() for dynamic version retrieval.",
+        "testStrategy": "Test that the error handler initializes correctly and captures the actual app version from pubspec.yaml (currently 0.1.0) instead of the hardcoded '1.0.0' value. Verify that safe context includes the dynamic version by checking ErrorHandler.getSafeContext() contains the correct app_version after initialization. Test in both debug and release builds to ensure package info retrieval works correctly across build configurations. Verify that any errors thrown during initialization are handled gracefully and don't prevent app startup. Test that Sentry error reports include the correct dynamic version information in their context data.",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 38,
+        "title": "Configure Sentry DSN - Replace placeholder DSN with actual project DSN or disable crash reporting",
+        "description": "Replace the empty DSN string in SentryConfig.dsn with either an actual Sentry project DSN for crash reporting or implement configuration option to disable Sentry when not needed.",
+        "details": "The SentryConfig class at line 15 has an empty DSN string which effectively disables Sentry crash reporting. To resolve this: 1) If crash reporting is needed, create a Sentry project at https://sentry.io, obtain the DSN from Project Settings > Client Keys (DSN), and replace the empty string with the actual DSN (format: https://[key]@[organization].ingest.sentry.io/[project]), 2) If crash reporting is not needed, add a configuration flag to cleanly disable Sentry initialization by adding a static const bool enabled = false; field to SentryConfig and modify main.dart to conditionally initialize Sentry only when SentryConfig.enabled is true and SentryConfig.dsn is not empty, 3) Update the release version in SentryConfig.release to match the actual app version from pubspec.yaml instead of the hardcoded 'aura-one@1.0.0+1', 4) Consider adding environment-specific DSN configuration for development, staging, and production environments.",
+        "testStrategy": "If DSN is configured, test crash reporting by triggering intentional crashes and verifying they appear in the Sentry dashboard. Test that beforeSend callback properly filters out NetworkImageLoadException and other sensitive errors. If Sentry is disabled via configuration flag, verify that Sentry initialization is skipped entirely and the app functions normally without crash reporting. Test that the release version matches the actual app version from pubspec.yaml. Verify environment-specific configurations work correctly across debug and release builds.",
+        "status": "pending",
+        "dependencies": [
+          33,
+          37
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 39,
+        "title": "Remove or implement face detection stubs - evaluate and decide on face detection functionality",
+        "description": "Analyze face detection usage in PhotoService and either properly implement face detection using google_mlkit_face_detection or completely remove all face detection functionality and dependencies to maintain APK size optimization.",
+        "details": "Three face detection service files are currently stubbed out for APK size optimization: face_detection_types.dart, face_detector.dart, and photo_service_provider.dart. However, PhotoService actively uses face detection methods (detectFacesInAsset, detectFacesBatch, detectFacesStream, storeFaceDetectionResults) that call these stubs, and google_mlkit_face_detection dependency is still included in pubspec.yaml. Implementation options: 1) COMPLETE REMOVAL: Remove all face detection imports from PhotoService, comment out or remove face detection methods (lines 717-820, 877-940, 1248-1298), remove google_mlkit_face_detection from pubspec.yaml, delete the three stub files, and update any calling code to handle the removal gracefully. 2) PROPER IMPLEMENTATION: Replace stub files with working implementations using the backup files as reference (lib_backup/face_detector.dart shows full ML Kit integration), implement actual FaceDetectionService using google_mlkit_face_detection, and restore face clustering and person identification features. The decision should be based on whether face detection is essential for the AI journal functionality - if not needed, complete removal is preferred for APK size. If needed, proper implementation using existing ML Kit dependency is required.",
+        "testStrategy": "If removing: Build APK and verify significant size reduction, test that PhotoService methods handle missing face detection gracefully without crashes, verify AI journal features work without face detection. Test that all imports compile successfully and no dead code remains. If implementing: Test face detection on sample images returns valid results, verify batch processing works with multiple images, test face clustering identifies same persons across photos, verify database storage of face detection results, test memory management during face detection processing. Measure APK size impact and performance on device.",
+        "status": "pending",
+        "dependencies": [
+          2,
+          3
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 40,
+        "title": "Implement journal data import functionality for processing exported journal entries",
+        "description": "Complete the TODO at line 371 in import_screen.dart by implementing the actual import logic to parse exported journal entries, handle duplicates, import media files, and store data in the journal database.",
+        "details": "Implement the missing import logic in the _performImport() method by: 1) Parsing journal entries from the _importData JSON structure which contains exportPackage.data.journalEntries array with title, content, date, mood, tags, summary, and activities, 2) Validating each journal entry's required fields (date, title, content) and handling malformed data gracefully, 3) Implementing duplicate detection by checking existing entries for the same date using JournalDatabase.getJournalEntryForDate() when _settings.skipDuplicates is enabled, 4) Converting imported entries to JournalEntriesCompanion objects with proper date conversion using DateTimeUtils.localDateToUtc(), handling both auto-generated and user-created entries based on isAutoGenerated flag, 5) Inserting journal entries using JournalDatabase.insertJournalEntry() with InsertMode.insertOrReplace for merging when _settings.mergeEntries is true, 6) Processing associated activities from each entry's activities array and inserting them using JournalDatabase.insertJournalActivity() with proper JSON metadata encoding, 7) Handling media file imports when _settings.importMedia is true by copying files from the temporary _mediaDirectory to the app's media storage directory and updating file references, 8) Processing location data when _settings.importLocation is enabled, ensuring GPS coordinates and location metadata are preserved in activity records, 9) Providing progress updates during the import process by replacing the fake Future.delayed with real progress tracking based on processed entries count, 10) Adding comprehensive error handling for database constraints, file I/O operations, and data validation with specific error messages for different failure scenarios.",
+        "testStrategy": "Test import functionality with various export file formats including minimal entries (title/content only), complete entries with activities and media, and malformed JSON data. Verify duplicate detection works correctly when skipDuplicates is enabled, testing same-date entries with different content. Test merge functionality preserves existing data while adding new information when mergeEntries is enabled. Validate media file import correctly copies files to app storage and updates references when importMedia is true. Test location data import preserves GPS coordinates and geocoding information when importLocation is enabled. Verify progress tracking provides accurate completion percentages during large imports. Test error handling for corrupted files, insufficient storage space, and database constraint violations. Validate the import process leaves the database in a consistent state even when errors occur partway through.",
+        "status": "pending",
+        "dependencies": [
+          2,
+          9
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 41,
+        "title": "Implement Daily Canvas Quick Add Features - Photo Capture, Voice Recording, and Location Tagging",
+        "description": "Complete the three TODO items in daily_canvas_screen.dart at lines 740, 749, and 758 by implementing photo capture functionality using existing MediaPickerService, voice recording capabilities, and location tagging integration with the persistent location service.",
+        "details": "Implement the missing functionality for the three Quick Add buttons in the Daily Canvas screen: 1) **Photo Capture (line 740)**: Integrate with the existing MediaPickerService to show media picker options (camera, gallery) when the Photo button is tapped. Use the mediaPickerServiceProvider to access the service and call showMediaPickerOptions() to present the bottom sheet with camera and gallery options. Handle the returned file path and integrate with the media database through the service's built-in processing. 2) **Voice Recording (line 749)**: Although the VoiceEditingService currently uses stub implementations (speech packages disabled for APK size), implement a basic voice recording UI flow that shows a recording dialog with start/stop functionality. Create a simple recording interface that can be enhanced later when speech packages are re-enabled. Use permission_handler for microphone permissions and just_audio package for basic audio recording capabilities that are already included in pubspec.yaml. 3) **Location Tagging (line 758)**: Integrate with the existing PersistentLocationService and location database to capture the current location and add it as a location tag for the current journal entry. Use the geolocator package (already included) to get current position, integrate with the location database to store the location point, and provide user feedback about the location being tagged. All three implementations should integrate with the existing journal system through JournalService and provide appropriate user feedback via fluttertoast for success/error states.",
+        "testStrategy": "Test photo capture by tapping the Photo button and verifying the media picker bottom sheet appears with camera and gallery options. Test camera capture creates a new photo that gets stored in the media database and can be viewed in the MediaGalleryWidget. Test gallery selection allows picking existing photos. Test voice recording by tapping the Voice button and verifying a recording dialog appears with start/stop controls and proper permission handling. Test location tagging by tapping the Location button and verifying current location is captured, stored in the location database, and associated with the current journal entry. Verify appropriate toast messages are shown for success and error states for all three features. Test error scenarios including denied permissions, failed media capture, location services disabled, and network connectivity issues.",
+        "status": "pending",
+        "dependencies": [
+          3,
+          27,
+          15
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 42,
+        "title": "Replace placeholder implementations in photo providers, AI pipeline, pattern analyzer mood analysis, and model manager accuracy test",
+        "description": "Replace hardcoded placeholder implementations in photo_providers.dart (empty list returns), ai_pipeline_provider.dart (mock database initialization), pattern_analyzer.dart (hardcoded mood score), and model_manager.dart (hardcoded accuracy value) with functional implementations using existing service infrastructure.",
+        "details": "Replace four placeholder implementations with functional code: 1) In photo_providers.dart lines 18 and 24 - replace empty list returns in recentPhotosProvider and photosByDateProvider with actual PhotoService integration using ref.watch(photoServiceProvider) and existing PhotoManager methods for fetching real device photos, 2) In ai_pipeline_provider.dart line 28-30 - replace placeholder MediaDatabase() and LocationDatabase() instantiation with proper provider references using ref.read(mediaDatabaseProvider) and ref.read(locationDatabaseProvider), 3) In pattern_analyzer.dart line 371-377 - replace hardcoded MoodDataPoint placeholder with sentiment analysis implementation that extracts mood data from summary.aiInsights using natural language processing patterns for mood classification (positive/neutral/negative), triggers extraction, and confidence scoring based on insight content quality, 4) In model_manager.dart line 379 - replace hardcoded accuracy value 0.85 with actual model accuracy testing using a validation dataset or cross-validation approach measuring prediction accuracy against ground truth data for the specific model being benchmarked.",
+        "testStrategy": "Test photo providers by verifying recentPhotosProvider returns actual device photos when photo permissions are granted and photosByDateProvider filters photos by the specified date. Test AI pipeline provider by ensuring MediaDatabase and LocationDatabase are properly injected from existing providers and comprehensive tests run without initialization errors. Test pattern analyzer mood analysis by providing various AI insight texts and verifying mood scores, categories, and triggers are extracted based on content sentiment rather than returning hardcoded values. Test model manager accuracy by running benchmark tests with actual model files and verifying accuracy scores reflect real model performance metrics rather than placeholder values.",
+        "status": "pending",
+        "dependencies": [
+          2,
+          3,
+          4,
+          26,
+          31
+        ],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-09-08T12:11:30.842Z",
-      "updated": "2025-09-16T21:15:46.197Z",
+      "updated": "2025-09-25T20:34:03.205Z",
       "description": "Tasks for master context"
     }
   }
