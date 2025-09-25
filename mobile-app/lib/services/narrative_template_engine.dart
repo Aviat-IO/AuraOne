@@ -69,9 +69,9 @@ class NarrativeTemplateEngine {
 
     // Mood compatibility based on context richness
     final contextRichness = (context.photoContexts.length * 0.3 +
-                           context.calendarEvents.length * 0.4 +
-                           context.locationPoints.length * 0.2 +
-                           context.activities.length * 0.1).clamp(0.0, 1.0);
+                          context.calendarEvents.length * 0.4 +
+                          context.locationPoints.length * 0.2 +
+                          context.activities.length * 0.1).clamp(0.0, 1.0);
 
     if (template.moodTone == MoodTone.upbeat && contextRichness > 0.7) score += 0.15;
     if (template.moodTone == MoodTone.reflective && contextRichness < 0.4) score += 0.15;
@@ -83,43 +83,95 @@ class NarrativeTemplateEngine {
   /// Populate a template with actual context data
   String _populateTemplate(NarrativeTemplate template, DailyContext context) {
     final variables = _extractTemplateVariables(context);
-    String narrative = _selectRandomOpening(template.openings);
 
-    // Replace variables in the narrative
-    variables.forEach((key, value) {
-      narrative = narrative.replaceAll('{$key}', value);
-    });
+    // Select and populate opening, skipping if missing variables
+    String narrative = '';
+    final openings = List<String>.from(template.openings);
+    openings.shuffle(_random);
 
-    // Add body paragraphs
+    // Try to find an opening that has all required variables
+    for (final opening in openings) {
+      final requiredVars = _extractRequiredVariables(opening);
+      if (_hasAllVariables(requiredVars, variables)) {
+        narrative = _populateString(opening, variables);
+        break;
+      }
+    }
+
+    // Fallback to a simple opening if none work
+    if (narrative.isEmpty) {
+      narrative = 'Today brought its own unique moments and experiences.';
+    }
+
+    // Add body paragraphs, only if their variables are available
     final bodyParts = <String>[];
     for (final bodyTemplate in template.bodyTemplates) {
       if (_shouldIncludeBodyPart(bodyTemplate, context)) {
-        String bodyPart = _selectRandomOption(bodyTemplate.options);
-        variables.forEach((key, value) {
-          bodyPart = bodyPart.replaceAll('{$key}', value);
-        });
-        bodyParts.add(bodyPart);
+        // Try each option until we find one with all variables
+        final options = List<String>.from(bodyTemplate.options);
+        options.shuffle(_random);
+
+        for (final option in options) {
+          final requiredVars = _extractRequiredVariables(option);
+          if (_hasAllVariables(requiredVars, variables)) {
+            final populatedPart = _populateString(option, variables);
+            bodyParts.add(populatedPart);
+            break; // Use the first valid option
+          }
+        }
       }
     }
 
     if (bodyParts.isNotEmpty) {
-      narrative += ' ${bodyParts.join(' ')}';
+      // Select 2-3 random body parts for variety
+      final partsToUse = bodyParts.length > 3 ? 3 : bodyParts.length;
+      bodyParts.shuffle(_random);
+      narrative += ' ${bodyParts.take(partsToUse).join(' ')}';
     }
 
-    // Add closing
-    final closing = _selectRandomOpening(template.closings);
-    variables.forEach((key, value) {
-      narrative = narrative.replaceAll('{$key}', value);
-    });
-    narrative += ' $closing';
+    // Try to add closing if available
+    if (template.closings.isNotEmpty) {
+      final closings = List<String>.from(template.closings);
+      closings.shuffle(_random);
+
+      for (final closing in closings) {
+        final requiredVars = _extractRequiredVariables(closing);
+        if (_hasAllVariables(requiredVars, variables)) {
+          narrative += ' ${_populateString(closing, variables)}';
+          break;
+        }
+      }
+    }
 
     return narrative.trim();
   }
 
-  /// Extract variables from context to populate templates
+  /// Extract required variables from a template string
+  Set<String> _extractRequiredVariables(String template) {
+    final pattern = RegExp(r'\{([^}]+)\}');
+    final matches = pattern.allMatches(template);
+    return matches.map((m) => m.group(1)!).toSet();
+  }
+
+  /// Check if all required variables are present
+  bool _hasAllVariables(Set<String> required, Map<String, String> available) {
+    return required.every((v) => available.containsKey(v) && available[v]!.isNotEmpty);
+  }
+
+  /// Populate a string with available variables
+  String _populateString(String template, Map<String, String> variables) {
+    String result = template;
+    variables.forEach((key, value) {
+      result = result.replaceAll('{$key}', value);
+    });
+    return result;
+  }
+
+  /// Extract template variables from context - only include available data
   Map<String, String> _extractTemplateVariables(DailyContext context) {
     final variables = <String, String>{};
 
+    try {
     // Social variables
     final totalPeople = context.photoContexts.fold(0, (sum, photo) => sum + photo.faceCount);
     if (totalPeople == 0) {
@@ -130,76 +182,82 @@ class NarrativeTemplateEngine {
       variables['social_descriptor'] = 'with someone special';
     } else if (totalPeople <= 5) {
       variables['social_context'] = 'good friends';
-      variables['social_descriptor'] = 'in good company';
+      variables['social_descriptor'] = 'among friends';
     } else {
-      variables['social_context'] = 'a group of people';
-      variables['social_descriptor'] = 'surrounded by energy';
+      variables['social_context'] = 'many people';
+      variables['social_descriptor'] = 'in a crowd';
     }
 
     // Activity variables
     final photoCount = context.photoContexts.length;
-    if (photoCount > 10) {
-      variables['activity_level'] = 'eventful';
+    final eventCount = context.calendarEvents.length;
+    final totalActivity = photoCount + eventCount;
+
+    if (totalActivity > 15) {
+      variables['activity_level'] = 'exceptionally active';
+      variables['pace'] = 'energetic';
+    } else if (totalActivity > 10) {
+      variables['activity_level'] = 'very active';
       variables['pace'] = 'dynamic';
-    } else if (photoCount > 5) {
-      variables['activity_level'] = 'engaging';
+    } else if (totalActivity > 5) {
+      variables['activity_level'] = 'moderately active';
       variables['pace'] = 'steady';
     } else {
       variables['activity_level'] = 'peaceful';
-      variables['pace'] = 'gentle';
+      variables['pace'] = 'relaxed';
     }
 
     // Environment variables
     final environments = context.photoContexts
         .expand((photo) => photo.sceneLabels)
-        .map((label) => label.toLowerCase())
-        .toSet();
+        .toList();
 
-    if (environments.contains('outdoor') || environments.contains('nature')) {
-      variables['primary_environment'] = 'outdoors';
-      variables['environment_feeling'] = 'refreshing';
-    } else if (environments.contains('restaurant') || environments.contains('cafe')) {
-      variables['primary_environment'] = 'cozy spaces';
-      variables['environment_feeling'] = 'nourishing';
-    } else if (environments.contains('home')) {
-      variables['primary_environment'] = 'home';
-      variables['environment_feeling'] = 'comfortable';
-    } else {
-      variables['primary_environment'] = 'various spaces';
-      variables['environment_feeling'] = 'interesting';
+    if (environments.isNotEmpty) {
+      // Determine primary environment
+      final envCount = <String, int>{};
+      for (final env in environments) {
+        envCount[env.toLowerCase()] = (envCount[env.toLowerCase()] ?? 0) + 1;
+      }
+      final primaryEnv = envCount.entries
+          .reduce((a, b) => a.value > b.value ? a : b)
+          .key;
+
+      variables['primary_environment'] = primaryEnv;
+
+      // Determine environment feeling
+      if (primaryEnv.contains('home') || primaryEnv.contains('indoor')) {
+        variables['environment_feeling'] = 'cozy';
+      } else if (primaryEnv.contains('nature') || primaryEnv.contains('outdoor')) {
+        variables['environment_feeling'] = 'refreshing';
+      } else if (primaryEnv.contains('urban') || primaryEnv.contains('city')) {
+        variables['environment_feeling'] = 'vibrant';
+      } else {
+        variables['environment_feeling'] = 'interesting';
+      }
     }
 
-    // Time-based variables
-    final hour = context.date.hour;
-    if (hour < 12) {
-      variables['time_period'] = 'morning';
-      variables['time_feeling'] = 'fresh';
-    } else if (hour < 17) {
-      variables['time_period'] = 'afternoon';
-      variables['time_feeling'] = 'productive';
-    } else {
-      variables['time_period'] = 'evening';
-      variables['time_feeling'] = 'reflective';
-    }
-
-    // Enhanced written content variables for narrative depth
-    if (context.writtenContentSummary.hasSignificantContent) {
+    // Written content variables
+    if (context.writtenContentSummary != null && context.writtenContentSummary.hasSignificantContent) {
+      try {
       final themes = context.writtenContentSummary.significantThemes;
-      final tones = context.writtenContentSummary.emotionalTones;
-      final dominantTone = tones.entries.fold<MapEntry<String, int>?>(null, (prev, curr) {
-        return prev == null || curr.value > prev.value ? curr : prev;
-      });
+      final dominantTone = context.writtenContentSummary.emotionalTones.isNotEmpty
+          ? context.writtenContentSummary.emotionalTones.entries
+              .reduce((a, b) => a.value > b.value ? a : b)
+          : null;
 
-      if (themes.contains('work')) {
-        variables['content_focus'] = 'professional reflections';
-        variables['thought_quality'] = 'productive thinking';
-      } else if (themes.contains('relationships')) {
+      if (themes.contains('family')) {
+        variables['content_focus'] = 'family moments';
+        variables['thought_quality'] = 'warm reflections';
+      } else if (themes.contains('work')) {
+        variables['content_focus'] = 'professional growth';
+        variables['thought_quality'] = 'productive thoughts';
+      } else if (themes.contains('personal')) {
         variables['content_focus'] = 'personal connections';
         variables['thought_quality'] = 'meaningful interactions';
       } else if (themes.contains('nature')) {
         variables['content_focus'] = 'natural observations';
         variables['thought_quality'] = 'mindful presence';
-      } else {
+      } else if (themes.isNotEmpty) {
         variables['content_focus'] = 'thoughtful observations';
         variables['thought_quality'] = 'reflective insights';
       }
@@ -222,33 +280,33 @@ class NarrativeTemplateEngine {
             variables['emotional_tenor'] = 'authentic';
             variables['content_mood'] = 'genuine thoughts';
         }
-      } else {
-        variables['emotional_tenor'] = 'authentic';
-        variables['content_mood'] = 'genuine thoughts';
       }
 
-      variables['writing_depth'] = context.writtenContentSummary.totalWrittenEntries > 5
-          ? 'extensively'
-          : context.writtenContentSummary.totalWrittenEntries > 2
-              ? 'thoughtfully'
-              : 'briefly';
+      if (context.writtenContentSummary.totalWrittenEntries > 5) {
+        variables['writing_depth'] = 'extensively';
+      } else if (context.writtenContentSummary.totalWrittenEntries > 2) {
+        variables['writing_depth'] = 'thoughtfully';
+      } else if (context.writtenContentSummary.totalWrittenEntries > 0) {
+        variables['writing_depth'] = 'briefly';
+      }
 
-      variables['content_richness'] = themes.length > 3
-          ? 'covering many aspects of life'
-          : themes.length > 1
-              ? 'exploring various themes'
-              : 'focusing on specific experiences';
-    } else {
-      variables['content_focus'] = 'lived experiences';
-      variables['thought_quality'] = 'present moment awareness';
-      variables['emotional_tenor'] = 'natural';
-      variables['content_mood'] = 'spontaneous moments';
-      variables['writing_depth'] = 'organically';
-      variables['content_richness'] = 'through direct experience';
+      if (themes.length > 3) {
+        variables['content_richness'] = 'covering many aspects of life';
+      } else if (themes.length > 1) {
+        variables['content_richness'] = 'exploring various themes';
+      } else if (themes.length == 1) {
+        variables['content_richness'] = 'focusing on specific experiences';
+      }
+      } catch (e) {
+        debugPrint('Error extracting written content variables: $e');
+        // Don't add default values - let the template selection skip these
+      }
     }
+    // Don't add defaults if no written content
 
     // Proximity and location awareness variables
-    if (context.proximitySummary.hasProximityInteractions) {
+    if (context.proximitySummary != null && context.proximitySummary.hasProximityInteractions) {
+      try {
       final transitions = context.proximitySummary.geofenceTransitions;
       final dwellTimes = context.proximitySummary.locationDwellTimes;
       final locations = context.proximitySummary.frequentProximityLocations;
@@ -259,17 +317,17 @@ class NarrativeTemplateEngine {
       } else if (transitions.any((t) => t.contains('dwell'))) {
         variables['location_interaction'] = 'settling into important locations';
         variables['place_connection'] = 'spending quality time in chosen spaces';
-      } else {
+      } else if (transitions.isNotEmpty) {
         variables['location_interaction'] = 'moving through various locations';
         variables['place_connection'] = 'experiencing different environments';
       }
 
-      final totalDwellMinutes = dwellTimes.values.fold(0, (sum, d) => sum + d.inMinutes);
+      final totalDwellMinutes = dwellTimes.values.fold<int>(0, (sum, d) => sum + d.inMinutes);
       if (totalDwellMinutes > 120) {
         variables['location_depth'] = 'deeply immersed in specific places';
       } else if (totalDwellMinutes > 30) {
         variables['location_depth'] = 'spending focused time in key locations';
-      } else {
+      } else if (totalDwellMinutes > 0) {
         variables['location_depth'] = 'briefly engaging with various spaces';
       }
 
@@ -277,18 +335,19 @@ class NarrativeTemplateEngine {
         variables['place_variety'] = 'exploring diverse locations';
       } else if (locations.length > 1) {
         variables['place_variety'] = 'moving between familiar places';
-      } else {
+      } else if (locations.length == 1) {
         variables['place_variety'] = 'centered in one meaningful space';
       }
-    } else {
-      variables['location_interaction'] = 'naturally moving through space';
-      variables['place_connection'] = 'organically engaging with surroundings';
-      variables['location_depth'] = 'flowing through different areas';
-      variables['place_variety'] = 'experiencing the day\'s geography';
+      } catch (e) {
+        debugPrint('Error extracting proximity variables: $e');
+        // Don't add default values - let the template selection skip these
+      }
     }
+    // Don't add defaults if no proximity data
 
     // Enhanced movement variables for dynamic narrative generation
     if (context.movementData.isNotEmpty) {
+      try {
       // Calculate detailed movement statistics
       double totalWalking = 0;
       double totalRunning = 0;
@@ -296,96 +355,81 @@ class NarrativeTemplateEngine {
       double totalStill = 0;
       double totalActivity = 0;
 
-      for (final data in context.movementData) {
-        totalWalking += data.walkingPercentage;
-        totalRunning += data.runningPercentage;
-        totalDriving += data.drivingPercentage;
-        totalStill += data.stillPercentage;
-        totalActivity += data.averageMagnitude;
+      for (final movement in context.movementData) {
+        switch (movement.state) {
+          case 'walking':
+            totalWalking++;
+            totalActivity++;
+            break;
+          case 'running':
+            totalRunning++;
+            totalActivity++;
+            break;
+          case 'driving':
+            totalDriving++;
+            totalActivity++;
+            break;
+          case 'still':
+            totalStill++;
+            break;
+        }
       }
 
-      final count = context.movementData.length;
-      final avgWalking = totalWalking / count;
-      final avgRunning = totalRunning / count;
-      final avgDriving = totalDriving / count;
-      final avgStill = totalStill / count;
-      final avgActivity = totalActivity / count;
-      final avgMovement = 100 - avgStill;
+      final totalSamples = context.movementData.length.toDouble();
+      if (totalSamples > 0) {
+        final activityPercentage = totalActivity / totalSamples;
+        final walkingPercentage = totalWalking / totalSamples;
+        final runningPercentage = totalRunning / totalSamples;
+        final drivingPercentage = totalDriving / totalSamples;
 
-      // Primary movement type and descriptors
-      if (avgRunning > 10) {
-        variables['movement_type'] = 'running';
-        variables['movement_style'] = 'vigorously';
-        variables['energy_descriptor'] = 'high-energy';
-        variables['movement_narrative'] = 'pushing physical boundaries';
-        variables['movement_metaphor'] = 'like wind through the streets';
-      } else if (avgWalking > 30) {
-        variables['movement_type'] = 'walking';
-        variables['movement_style'] = 'actively';
-        variables['energy_descriptor'] = 'energetic';
-        variables['movement_narrative'] = 'exploring on foot';
-        variables['movement_metaphor'] = 'finding rhythm in each step';
-      } else if (avgDriving > 30) {
-        variables['movement_type'] = 'driving';
-        variables['movement_style'] = 'purposefully';
-        variables['energy_descriptor'] = 'mobile';
-        variables['movement_narrative'] = 'journeying between destinations';
-        variables['movement_metaphor'] = 'navigating life\'s pathways';
-      } else if (avgMovement > 40) {
-        variables['movement_type'] = 'mixed';
-        variables['movement_style'] = 'variedly';
-        variables['energy_descriptor'] = 'dynamic';
-        variables['movement_narrative'] = 'alternating between motion and stillness';
-        variables['movement_metaphor'] = 'dancing through different rhythms';
-      } else if (avgMovement > 20) {
-        variables['movement_type'] = 'moderate';
-        variables['movement_style'] = 'gently';
-        variables['energy_descriptor'] = 'balanced';
-        variables['movement_narrative'] = 'moving with intention';
-        variables['movement_metaphor'] = 'flowing like a calm river';
-      } else {
-        variables['movement_type'] = 'minimal';
-        variables['movement_style'] = 'peacefully';
-        variables['energy_descriptor'] = 'contemplative';
-        variables['movement_narrative'] = 'embracing stillness';
-        variables['movement_metaphor'] = 'rooted like a tree';
-      }
+        // Movement style based on dominant activity
+        if (runningPercentage > 0.1) {
+          variables['movement_style'] = 'energetically';
+          variables['movement_narrative'] = 'High-energy movement powered through the day';
+          variables['movement_type'] = 'athletic activity';
+          variables['movement_metaphor'] = 'like a runner finding their stride';
+          variables['energy_descriptor'] = 'vigorous';
+          variables['activity_intensity'] = 'high-energy';
+        } else if (drivingPercentage > 0.3) {
+          variables['movement_style'] = 'efficiently';
+          variables['movement_narrative'] = 'Travel and transitions shaped the rhythm';
+          variables['movement_type'] = 'purposeful travel';
+          variables['movement_metaphor'] = 'navigating from place to place';
+          variables['energy_descriptor'] = 'mobile';
+          variables['activity_intensity'] = 'travel-focused';
+        } else if (walkingPercentage > 0.2) {
+          variables['movement_style'] = 'actively';
+          variables['movement_narrative'] = 'Walking and movement added vitality';
+          variables['movement_type'] = 'steady movement';
+          variables['movement_metaphor'] = 'with purposeful steps';
+          variables['energy_descriptor'] = 'dynamic';
+          variables['activity_intensity'] = 'moderate';
+        } else if (activityPercentage > 0.15) {
+          variables['movement_style'] = 'naturally';
+          variables['movement_narrative'] = 'Movement flowed through the day';
+          variables['movement_type'] = 'balanced activity';
+          variables['movement_metaphor'] = 'finding natural rhythm';
+          variables['energy_descriptor'] = 'balanced';
+          variables['activity_intensity'] = 'gentle';
+        }
 
-      // Activity intensity
-      if (avgActivity > 2.0) {
-        variables['activity_intensity'] = 'intense';
-        variables['physical_engagement'] = 'highly physical';
-      } else if (avgActivity > 1.0) {
-        variables['activity_intensity'] = 'moderate';
-        variables['physical_engagement'] = 'physically engaged';
-      } else if (avgActivity > 0.5) {
-        variables['activity_intensity'] = 'light';
-        variables['physical_engagement'] = 'gently active';
-      } else {
-        variables['activity_intensity'] = 'minimal';
-        variables['physical_engagement'] = 'restful';
+        // Movement duration patterns
+        if (activityPercentage > 0.5) {
+          variables['movement_duration'] = 'consistently throughout';
+        } else if (activityPercentage > 0.25) {
+          variables['movement_duration'] = 'at key moments';
+        } else if (activityPercentage > 0.1) {
+          variables['movement_duration'] = 'periodically';
+        }
       }
-
-      // Movement duration descriptors
-      if (avgMovement > 70) {
-        variables['movement_duration'] = 'throughout most of the day';
-      } else if (avgMovement > 40) {
-        variables['movement_duration'] = 'for significant portions';
-      } else if (avgMovement > 20) {
-        variables['movement_duration'] = 'in measured moments';
-      } else {
-        variables['movement_duration'] = 'briefly';
+      } catch (e) {
+        debugPrint('Error extracting movement variables: $e');
+        // Don't add default values - let the template selection skip these
       }
-    } else {
-      // Default values when no movement data
-      variables['movement_type'] = 'unmeasured';
-      variables['movement_style'] = 'naturally';
-      variables['energy_descriptor'] = 'flowing';
-      variables['movement_narrative'] = 'moving through the day';
-      variables['movement_metaphor'] = 'finding my own pace';
-      variables['activity_intensity'] = 'varied';
-      variables['physical_engagement'] = 'as needed';
-      variables['movement_duration'] = 'as moments called for it';
+    }
+    // Don't add defaults if no movement data
+    } catch (e) {
+      debugPrint('Error extracting template variables: $e');
     }
 
     return variables;
@@ -409,9 +453,11 @@ class NarrativeTemplateEngine {
       case BodyType.movement:
         return context.movementData.isNotEmpty;
       case BodyType.content:
-        return context.writtenContentSummary.hasSignificantContent;
+        return context.writtenContentSummary != null &&
+               context.writtenContentSummary.hasSignificantContent;
       case BodyType.proximity:
-        return context.proximitySummary.hasProximityInteractions;
+        return context.proximitySummary != null &&
+               context.proximitySummary.hasProximityInteractions;
     }
   }
 
@@ -499,17 +545,24 @@ class NarrativeTemplateEngine {
         BodyTemplate(
           type: BodyType.proximity,
           options: [
-            '{location_interaction} created a strong sense of {place_connection}.',
-            'The experience of {location_depth} added richness to the day\'s spatial story.',
-            'Time spent {place_variety} brought awareness of how places shape experience.',
-            'Moving through space with intention, {location_interaction} and {place_connection}.',
+            '{location_interaction} while {place_connection} created a sense of belonging.',
+            'The day involved {place_variety}, each bringing its own energy.',
+            'Being {location_depth} allowed for meaningful connections with the environment.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.reflection,
+          options: [
+            'Looking back, it\'s clear that today was about connection and vitality.',
+            'The blend of activity and companionship created something truly special.',
+            'These are the days that remind us what it means to be fully engaged with life.',
           ],
         ),
       ],
       closings: [
-        'A day that reminded me of the joy found in active engagement with life and others.',
-        'These moments of connection and energy will stay with me.',
-        'Sometimes the best days are the ones filled with people, activity, and shared joy.',
+        'A day to remember for its perfect balance of energy and connection.',
+        'Tomorrow will have much to live up to after today\'s wonderful experiences.',
+        'These moments of joy and activity are what make life truly rich.',
       ],
     );
   }
@@ -521,131 +574,176 @@ class NarrativeTemplateEngine {
       socialStyle: SocialStyle.solo,
       energyLevel: EnergyLevel.low,
       moodTone: MoodTone.reflective,
-      minConfidence: 0.3,
+      minConfidence: 0.5,
       preferredEnvironments: ['home', 'nature', 'quiet'],
       openings: [
-        'Today offered the gift of solitude and quiet reflection.',
-        'A {energy_descriptor} day spent in my own company brought unexpected insights.',
-        'The gentle rhythm of a solo day allowed for deep presence and awareness.',
-        'Sometimes the most meaningful days are spent {social_descriptor}.',
+        'Today unfolded with a gentle, personal rhythm.',
+        'A peaceful day of quiet moments and personal reflection.',
+        'The day offered space for solitude and inner peace.',
+        'In the quietness of today, there was room to breathe and simply be.',
       ],
       bodyTemplates: [
         BodyTemplate(
-          type: BodyType.reflection,
+          type: BodyType.social,
           options: [
-            'Moving {movement_style} through the day, I found space for thoughts to settle and clarity to emerge.',
-            'The {time_period} hours passed with a natural {pace} that felt perfectly aligned.',
-            'In the quieter moments, I discovered the value of simply being present.',
-            'Taking time for {content_focus} revealed the {emotional_tenor} threads running through today.',
-            'The practice of {thought_quality} brought deeper awareness to the day\'s unfolding.',
-          ],
-        ),
-        BodyTemplate(
-          type: BodyType.content,
-          options: [
-            'Written reflections today were {emotional_tenor}, offering {content_richness}.',
-            'Capturing {content_mood} through {writing_depth} observation added contemplative depth.',
-            'The quality of {thought_quality} enhanced the solitary experience with meaningful insight.',
+            'Time {social_descriptor} provided valuable space for self-reflection.',
+            'The solitude of the day allowed thoughts to settle naturally.',
           ],
         ),
         BodyTemplate(
           type: BodyType.environment,
           options: [
-            'The {environment_feeling} quality of {primary_environment} supported this introspective mood.',
-            'Being in {primary_environment} created the perfect container for solitude and peace.',
+            'The {primary_environment} offered a {environment_feeling} sanctuary for the day.',
+            'Being in {primary_environment} created the perfect space for peaceful contemplation.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.movement,
+          options: [
+            '{movement_narrative}, bringing a gentle rhythm to the quiet hours.',
+            'Moving {movement_style} through the day added a peaceful cadence.',
+            'The {activity_intensity} movement complemented the day\'s tranquil nature.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.content,
+          options: [
+            'Thoughts about {content_focus} emerged {writing_depth} through quiet reflection.',
+            'The {emotional_tenor} nature of today\'s contemplations brought clarity.',
+            'Time for {thought_quality} revealed insights worth preserving.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.proximity,
+          options: [
+            'The familiar comfort of {place_variety} provided grounding.',
+            '{location_interaction} brought a sense of peaceful presence.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.reflection,
+          options: [
+            'In these quiet moments, there\'s wisdom to be found.',
+            'Sometimes the most profound days are the quietest ones.',
+            'The simplicity of today held its own kind of beauty.',
           ],
         ),
       ],
       closings: [
-        'Days like this remind me that solitude can be profoundly nourishing.',
-        'The quiet moments often hold the most wisdom.',
-        'In stillness and solitude, life reveals its subtle gifts.',
+        'A day that reminds us of the value of peaceful moments.',
+        'Tomorrow may bring more activity, but today\'s tranquility was exactly what was needed.',
+        'In the quiet spaces of days like this, we find ourselves.',
       ],
     );
   }
 
-  /// Template for balanced, typical days
+  /// Template for balanced days
   NarrativeTemplate _createBalancedDayTemplate() {
     return NarrativeTemplate(
       name: 'Balanced Day',
       socialStyle: SocialStyle.mixed,
       energyLevel: EnergyLevel.moderate,
       moodTone: MoodTone.balanced,
-      minConfidence: 0.4,
-      preferredEnvironments: ['home', 'work', 'mixed'],
+      minConfidence: 0.5,
+      preferredEnvironments: ['varied', 'mixed', 'diverse'],
       openings: [
-        'Today found its own natural balance between activity and rest.',
-        'A wonderfully {energy_descriptor} day that included both connection and solitude.',
-        'The day unfolded with a {pace} rhythm that felt just right.',
-        'Balance defined this {activity_level} and satisfying day.',
+        'Today struck a pleasant balance between activity and rest.',
+        'A well-rounded day unfolded with its mix of experiences.',
+        'The day offered a comfortable blend of engagement and ease.',
+        'Today moved at just the right pace, neither rushed nor stagnant.',
       ],
       bodyTemplates: [
         BodyTemplate(
-          type: BodyType.activity,
-          options: [
-            'The mix of activities created a nice variety without feeling overwhelming.',
-            'Moving {movement_style} between different parts of the day maintained good energy.',
-            'Each phase of the day contributed its own character to the whole experience.',
-          ],
-        ),
-        BodyTemplate(
           type: BodyType.social,
           options: [
-            'Time spent both {social_descriptor} and alone provided the perfect social balance.',
-            'Moments with {social_context} complemented periods of personal reflection beautifully.',
+            'Time {social_descriptor} balanced nicely with moments of solitude.',
+            'The mix of {social_context} and personal time felt just right.',
           ],
         ),
         BodyTemplate(
-          type: BodyType.environment,
+          type: BodyType.activity,
           options: [
-            'The variety of {primary_environment} kept things interesting and {environment_feeling}.',
-            'Each environment visited today offered its own unique contribution to the day\'s character.',
+            'The {pace} flow of activities kept things interesting without overwhelming.',
+            'Moving between different experiences created a pleasant variety.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.movement,
+          options: [
+            '{movement_narrative} {movement_duration}, adding structure to the day.',
+            'The {activity_intensity} level of activity felt perfectly sustainable.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.content,
+          options: [
+            'Reflections on {content_focus} emerged naturally throughout the day.',
+            'The {emotional_tenor} thoughts that arose added depth to ordinary moments.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.reflection,
+          options: [
+            'These balanced days form the steady rhythm of life.',
+            'Not every day needs to be extraordinary to be meaningful.',
           ],
         ),
       ],
       closings: [
-        'Sometimes the most satisfying days are the ones that feel naturally balanced.',
-        'A good reminder that variety and balance create their own kind of richness.',
-        'Days like this form the comfortable foundation of a well-lived life.',
+        'A satisfying day that found its own natural rhythm.',
+        'Tomorrow brings new possibilities, built on today\'s solid foundation.',
       ],
     );
   }
 
-  /// Additional specialized templates for outdoor adventures
+  /// Template for outdoor adventure days
   NarrativeTemplate _createOutdoorAdventureTemplate() {
     return NarrativeTemplate(
       name: 'Outdoor Adventure',
       socialStyle: SocialStyle.mixed,
       energyLevel: EnergyLevel.high,
       moodTone: MoodTone.upbeat,
-      minConfidence: 0.5,
-      preferredEnvironments: ['outdoor', 'nature', 'park'],
+      minConfidence: 0.6,
+      preferredEnvironments: ['outdoor', 'nature', 'park', 'beach', 'mountain'],
       openings: [
-        'The call of the outdoors shaped this beautifully adventurous day.',
-        'Fresh air and open spaces provided the perfect backdrop for today\'s experiences.',
-        'Nature offered its gifts generously throughout this {energy_descriptor} day.',
+        'Today was an adventure under open skies.',
+        'The outdoors called, and the day answered with enthusiasm.',
+        'Fresh air and natural beauty defined this {activity_level} day.',
+        'Nature provided the perfect playground for today\'s experiences.',
       ],
       bodyTemplates: [
         BodyTemplate(
           type: BodyType.environment,
           options: [
-            'The {environment_feeling} energy of being {primary_environment} renewed my spirit.',
-            'Each moment spent in nature felt like a small gift of freedom and clarity.',
-            'The natural world provided both challenge and restoration in perfect measure.',
+            'The {primary_environment} offered endless {environment_feeling} moments.',
+            'Being immersed in {primary_environment} brought a sense of freedom and possibility.',
           ],
         ),
         BodyTemplate(
           type: BodyType.movement,
           options: [
-            'Moving {movement_style} through natural spaces felt both grounding and energizing.',
-            'Physical activity in the outdoors created the perfect combination of effort and joy.',
+            '{movement_narrative} through natural surroundings {movement_duration}.',
+            'The {activity_intensity} outdoor activity connected body and environment perfectly.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.activity,
+          options: [
+            'Each outdoor experience flowed naturally into the next.',
+            'The {pace} adventure kept spirits high throughout.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.reflection,
+          options: [
+            'Days like this remind us why we need nature in our lives.',
+            'The outdoor world has a way of putting everything in perspective.',
           ],
         ),
       ],
       closings: [
-        'Days spent outdoors always remind me of life\'s fundamental simplicities.',
-        'Nature has a way of putting everything into perspective.',
-        'The outdoors continues to be a source of renewal and inspiration.',
+        'An adventure to remember, written in sunshine and fresh air.',
+        'Tomorrow may be indoors, but today\'s outdoor memories will linger.',
       ],
     );
   }
@@ -658,33 +756,46 @@ class NarrativeTemplateEngine {
       energyLevel: EnergyLevel.low,
       moodTone: MoodTone.reflective,
       minConfidence: 0.4,
-      preferredEnvironments: ['home', 'indoor', 'cafe'],
+      preferredEnvironments: ['home', 'indoor', 'cozy'],
       openings: [
-        'The comfort of indoor spaces defined this perfectly cozy day.',
-        'Today found its rhythm in the warm embrace of familiar, comfortable places.',
-        'Sometimes the most nurturing days are spent in {environment_feeling} indoor sanctuaries.',
+        'Today was a cozy retreat into comfortable spaces.',
+        'The day unfolded gently within familiar walls.',
+        'Indoor comfort defined this peacefully {pace} day.',
+        'Home provided the perfect sanctuary for today\'s rhythm.',
       ],
       bodyTemplates: [
         BodyTemplate(
           type: BodyType.environment,
           options: [
-            'The {environment_feeling} atmosphere of {primary_environment} created the perfect mood.',
-            'Being surrounded by comfortable, familiar spaces enhanced every moment.',
-            'Indoor sanctuaries provided exactly the kind of nurturing energy needed today.',
+            'The {primary_environment} created a {environment_feeling} cocoon for the day.',
+            'Indoor spaces offered warmth and comfort throughout.',
           ],
         ),
         BodyTemplate(
-          type: BodyType.social,
+          type: BodyType.activity,
           options: [
-            'Sharing these cozy moments {social_descriptor} made them even more special.',
-            'The intimacy of indoor spaces enhanced the quality of time spent with {social_context}.',
+            'Indoor activities flowed at a comfortable pace.',
+            'The {pace} nature of the day allowed for both productivity and rest.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.content,
+          options: [
+            'Thoughts about {content_focus} emerged in the quiet indoor moments.',
+            'The cozy setting invited {thought_quality} and contemplation.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.reflection,
+          options: [
+            'Sometimes the best days are spent in familiar comfort.',
+            'These cozy days recharge us for whatever comes next.',
           ],
         ),
       ],
       closings: [
-        'Cozy days like this remind me of the simple pleasure of comfort and warmth.',
-        'The best moments sometimes happen in the most familiar places.',
-        'Indoor sanctuaries have their own special way of nurturing the soul.',
+        'A day of indoor contentment and gentle rhythms.',
+        'Tomorrow may bring adventure, but today\'s coziness was perfect.',
       ],
     );
   }
@@ -695,35 +806,48 @@ class NarrativeTemplateEngine {
       name: 'Busy Productive',
       socialStyle: SocialStyle.mixed,
       energyLevel: EnergyLevel.high,
-      moodTone: MoodTone.balanced,
-      minConfidence: 0.6,
-      preferredEnvironments: ['work', 'office', 'meetings'],
+      moodTone: MoodTone.upbeat,
+      minConfidence: 0.7,
+      preferredEnvironments: ['office', 'urban', 'workspace'],
       openings: [
-        'Productivity and purpose drove this satisfyingly busy day.',
-        'A day filled with meaningful tasks and accomplishments.',
-        'The energy of focused work created a sense of momentum and achievement.',
+        'Today was a whirlwind of productivity and accomplishment.',
+        'The day buzzed with activity and forward momentum.',
+        'An {activity_level} day full of progress and purpose.',
+        'Productivity defined this dynamically {pace} day.',
       ],
       bodyTemplates: [
         BodyTemplate(
           type: BodyType.activity,
           options: [
-            'Moving {movement_style} between different responsibilities maintained good focus.',
-            'Each task completed built toward a growing sense of accomplishment.',
-            'The {pace} nature of the day allowed for both efficiency and thoroughness.',
+            'Tasks and activities flowed in rapid succession.',
+            'The {pace} rhythm kept energy high and progress constant.',
           ],
         ),
         BodyTemplate(
-          type: BodyType.social,
+          type: BodyType.movement,
           options: [
-            'Collaboration with {social_context} added depth and richness to the work.',
-            'Professional interactions brought both challenge and satisfaction.',
+            '{movement_narrative} between tasks {movement_duration}.',
+            'The {activity_intensity} pace matched the day\'s productive energy.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.environment,
+          options: [
+            'The {primary_environment} buzzed with {environment_feeling} productive energy.',
+            'Working in {primary_environment} amplified the sense of accomplishment.',
+          ],
+        ),
+        BodyTemplate(
+          type: BodyType.reflection,
+          options: [
+            'Days like this show what focused energy can achieve.',
+            'The satisfaction of a productive day is its own reward.',
           ],
         ),
       ],
       closings: [
-        'Busy days like this remind me of the satisfaction found in purposeful work.',
-        'There\'s something deeply satisfying about a day filled with meaningful productivity.',
-        'The combination of focus and accomplishment creates its own kind of fulfillment.',
+        'A day of accomplishment that moves life forward.',
+        'Tomorrow can build on today\'s productive foundation.',
       ],
     );
   }
@@ -736,49 +860,45 @@ class NarrativeTemplateEngine {
       energyLevel: EnergyLevel.low,
       moodTone: MoodTone.reflective,
       minConfidence: 0.3,
-      preferredEnvironments: ['home', 'quiet', 'peaceful'],
+      preferredEnvironments: ['quiet', 'peaceful', 'contemplative'],
       openings: [
-        'Quiet contemplation and gentle awareness shaped this thoughtful day.',
-        'Today offered the rare gift of unhurried time for reflection and presence.',
-        'The softer rhythms of a quiet day allowed for deeper listening and awareness.',
+        'Today invited deep reflection and quiet contemplation.',
+        'The day passed in thoughtful quietness.',
+        'A gently {pace} day of introspection and peace.',
+        'Stillness and reflection characterized today\'s journey.',
       ],
       bodyTemplates: [
         BodyTemplate(
-          type: BodyType.reflection,
+          type: BodyType.environment,
           options: [
-            'Moving {movement_style} through the hours, I found space for thoughts to unfold naturally.',
-            'The {time_period} brought its own quality of light and introspection.',
-            'In the absence of rush, deeper truths and insights had room to emerge.',
-            'Time for {content_focus} opened doorways to {emotional_tenor} understanding.',
-            'The practice of {thought_quality} in quiet spaces yielded {content_richness}.',
+            'The {primary_environment} provided a {environment_feeling} space for thought.',
+            'Quiet surroundings encouraged inner exploration.',
           ],
         ),
         BodyTemplate(
           type: BodyType.content,
           options: [
-            'Written thoughts emerged {writing_depth}, {emotional_tenor} in their honesty.',
-            'Capturing {content_mood} added layers of meaning to the contemplative experience.',
-            'The depth of {thought_quality} transformed simple moments into rich reflection.',
+            'Deep thoughts about {content_focus} surfaced naturally.',
+            'The {emotional_tenor} quality of reflection brought new understanding.',
           ],
         ),
         BodyTemplate(
-          type: BodyType.environment,
+          type: BodyType.reflection,
           options: [
-            'The {environment_feeling} quality of {primary_environment} supported this contemplative mood.',
-            'Quiet spaces have their own way of inviting deeper awareness and presence.',
+            'In stillness, profound insights often emerge.',
+            'These quiet days of reflection shape who we become.',
           ],
         ),
       ],
       closings: [
-        'Quiet days remind me that not all valuable experiences are dramatic or eventful.',
-        'Sometimes the most important growth happens in the spaces between activities.',
-        'The gentle rhythms of contemplation have their own profound gifts to offer.',
+        'A day of quiet wisdom and gentle insights.',
+        'Tomorrow may bring more noise, but today\'s silence spoke volumes.',
       ],
     );
   }
 }
 
-/// Represents a narrative template with specific characteristics
+/// Narrative template structure
 class NarrativeTemplate {
   final String name;
   final SocialStyle socialStyle;
@@ -803,7 +923,7 @@ class NarrativeTemplate {
   });
 }
 
-/// Body template for specific sections of narrative
+/// Body template for narrative sections
 class BodyTemplate {
   final BodyType type;
   final List<String> options;
@@ -814,14 +934,8 @@ class BodyTemplate {
   });
 }
 
-/// Social style categories
+/// Enums for template categorization
 enum SocialStyle { solo, intimate, social, mixed }
-
-/// Energy level categories
 enum EnergyLevel { low, moderate, high }
-
-/// Mood tone categories
-enum MoodTone { reflective, balanced, upbeat }
-
-/// Body section types
+enum MoodTone { upbeat, balanced, reflective }
 enum BodyType { social, activity, environment, reflection, movement, content, proximity }

@@ -14,12 +14,23 @@ import '../providers/database_provider.dart';
 import '../providers/service_providers.dart';
 import '../providers/settings_providers.dart';
 import '../utils/logger.dart';
+import '../services/database/database_provider.dart' as db_provider;
 
 final _logger = AppLogger('JournalService');
 
-// Journal database provider
+// Journal database provider - uses singleton pattern from database_provider
 final journalDatabaseProvider = Provider<JournalDatabase>((ref) {
-  return JournalDatabase();
+  // Use the global singleton instance from database_provider
+  // This ensures we share the same instance across the app
+  db_provider.globalJournalDbInstance ??= JournalDatabase();
+
+  // Ensure database is disposed when provider is disposed
+  ref.onDispose(() {
+    // Note: We don't close the database here as it might be used elsewhere
+    // The database should be closed at app shutdown
+  });
+
+  return db_provider.globalJournalDbInstance!;
 });
 
 // Journal service provider

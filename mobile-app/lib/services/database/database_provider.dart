@@ -4,6 +4,12 @@ import '../../database/journal_database.dart';
 import '../../database/media_database.dart';
 import '../../database/location_database.dart';
 
+// Global singleton instances for databases - shared across the app
+// Journal singleton is also used by journal_service.dart
+JournalDatabase? globalJournalDbInstance;
+MediaDatabase? globalMediaDbInstance;
+LocationDatabase? globalLocationDbInstance;
+
 /// Singleton database provider to prevent multiple database instances
 class DatabaseProvider {
   static DatabaseProvider? _instance;
@@ -26,9 +32,14 @@ class DatabaseProvider {
     }
 
     try {
-      _journalDb = JournalDatabase();
-      _mediaDb = MediaDatabase();
-      _locationDb = LocationDatabase();
+      // Use global singleton instances to avoid multiple database warnings
+      globalJournalDbInstance ??= JournalDatabase();
+      globalMediaDbInstance ??= MediaDatabase();
+      globalLocationDbInstance ??= LocationDatabase();
+
+      _journalDb = globalJournalDbInstance;
+      _mediaDb = globalMediaDbInstance;
+      _locationDb = globalLocationDbInstance;
 
       _isInitialized = true;
       _initializationCompleter.complete();
