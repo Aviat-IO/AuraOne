@@ -10,9 +10,6 @@ import '../database/media_database.dart';
 import '../providers/media_database_provider.dart';
 import 'exif_extractor.dart';
 import 'media_format_handler.dart';
-import 'face_detector.dart';
-import 'face_clustering.dart';
-import 'face_detection_types.dart';
 import 'person_service.dart';
 import 'media_processing_isolate.dart';
 import 'media_cache_service.dart';
@@ -703,149 +700,10 @@ class PhotoService {
     };
   }
 
-  /// Detect faces in a single photo asset
-  Future<FaceDetectionResult?> detectFacesInPhoto(
-    AssetEntity asset, {
-    FaceDetectionConfig? config,
-  }) async {
-    if (asset.type != AssetType.image) {
-      _logger.warning('Cannot detect faces in non-image asset: ${asset.id}');
-      return null;
-    }
 
-    try {
-      final faceDetector = FaceDetectionService(config: config);
-      final result = await faceDetector.detectFacesInAsset(asset);
 
-      await faceDetector.dispose();
 
-      if (result.faces.isNotEmpty) {
-        _logger.info('Detected ${result.faces.length} faces in asset: ${asset.id}');
-        _logger.debug('High quality faces: ${result.highQualityFaces.length}');
 
-        // Store face detection results in database
-        await storeFaceDetectionResults(asset.id, result);
-      } else {
-        _logger.info('No faces detected in asset: ${asset.id}');
-      }
-
-      return result;
-    } catch (e, stack) {
-      _logger.error('Face detection failed for asset: ${asset.id}',
-                   error: e, stackTrace: stack);
-      return null;
-    }
-  }
-
-  /// Detect faces in multiple photo assets
-  Future<Map<String, FaceDetectionResult>> detectFacesBatch(
-    List<AssetEntity> assets, {
-    FaceDetectionConfig? config,
-    void Function(int completed, int total)? onProgress,
-  }) async {
-    final imageAssets = assets.where((asset) => asset.type == AssetType.image).toList();
-
-    if (imageAssets.isEmpty) {
-      _logger.warning('No image assets provided for face detection');
-      return {};
-    }
-
-    try {
-      final faceDetector = FaceDetectionService(config: config);
-      final results = await faceDetector.detectFacesBatch(imageAssets);
-
-      await faceDetector.dispose();
-
-      final totalFaces = results.values.fold(0, (sum, result) => sum + result.faces.length);
-      _logger.info('Batch face detection complete: ${results.length} assets with faces, $totalFaces total faces');
-
-      return results;
-    } catch (e, stack) {
-      _logger.error('Batch face detection failed', error: e, stackTrace: stack);
-      return {};
-    }
-  }
-
-  /// Get photos that contain faces with high quality for recognition
-  Future<Map<String, FaceDetectionResult>> getPhotosWithFaces(
-    List<AssetEntity> assets, {
-    FaceDetectionConfig? config,
-    bool highQualityOnly = true,
-    void Function(int completed, int total)? onProgress,
-  }) async {
-    final allResults = await detectFacesBatch(
-      assets,
-      config: config,
-      onProgress: onProgress,
-    );
-
-    if (highQualityOnly) {
-      return Map.fromEntries(
-        allResults.entries.where(
-          (entry) => entry.value.highQualityFaces.isNotEmpty,
-        ),
-      );
-    }
-
-    return allResults;
-  }
-
-  /// Stream face detection results for large batches
-  Stream<MapEntry<String, FaceDetectionResult>> detectFacesStream(
-    List<AssetEntity> assets, {
-    FaceDetectionConfig? config,
-  }) async* {
-    final imageAssets = assets.where((asset) => asset.type == AssetType.image).toList();
-
-    if (imageAssets.isEmpty) {
-      _logger.warning('No image assets provided for face detection stream');
-      return;
-    }
-
-    FaceDetectionService? faceDetector;
-
-    try {
-      faceDetector = FaceDetectionService(config: config);
-
-      await for (final entry in faceDetector.detectFacesStream(imageAssets)) {
-        yield entry;
-      }
-
-      _logger.info('Face detection stream completed for ${imageAssets.length} assets');
-    } catch (e, stack) {
-      _logger.error('Face detection stream failed', error: e, stackTrace: stack);
-    } finally {
-      await faceDetector?.dispose();
-    }
-  }
-
-  /// Get photos with faces detected today
-  Future<Map<String, FaceDetectionResult>> getTodayPhotosWithFaces({
-    FaceDetectionConfig? config,
-    bool highQualityOnly = true,
-  }) async {
-    try {
-      // Get today's photos
-      final now = DateTime.now();
-      final startOfDay = DateTime(now.year, now.month, now.day);
-      final todayPhotos = await scanNewPhotos(since: startOfDay);
-
-      if (todayPhotos.isEmpty) {
-        _logger.info('No photos found from today for face detection');
-        return {};
-      }
-
-      // Detect faces in today's photos
-      return await getPhotosWithFaces(
-        todayPhotos,
-        config: config,
-        highQualityOnly: highQualityOnly,
-      );
-    } catch (e, stack) {
-      _logger.error('Failed to get today\'s photos with faces', error: e, stackTrace: stack);
-      return {};
-    }
-  }
 
   // MARK: - Face Clustering and Person Identification
 
@@ -1245,56 +1103,6 @@ class PhotoService {
     }
   }
 
-  /// Store face detection results in database
-  Future<void> storeFaceDetectionResults(String mediaId, FaceDetectionResult result) async {
-    if (_ref == null) return;
-
-    try {
-      // Store face count metadata
-      await mediaManagement.addMetadata(
-        mediaId: mediaId,
-        metadataType: 'face_detection',
-        key: 'face_count',
-        value: result.faces.length.toString(),
-      );
-
-      await mediaManagement.addMetadata(
-        mediaId: mediaId,
-        metadataType: 'face_detection',
-        key: 'high_quality_face_count',
-        value: result.highQualityFaces.length.toString(),
-      );
-
-      // Store individual face data
-      for (int i = 0; i < result.faces.length; i++) {
-        final face = result.faces[i];
-
-        // Store face bounding box and confidence
-        final faceData = {
-          'bounding_box': {
-            'x': face.boundingBox.left,
-            'y': face.boundingBox.top,
-            'width': face.boundingBox.width,
-            'height': face.boundingBox.height,
-          },
-          'quality_score': face.qualityScore,
-          'confidence': face.confidence,
-          'landmarks_count': face.landmarks.length,
-        };
-
-        await mediaManagement.addMetadata(
-          mediaId: mediaId,
-          metadataType: 'face_detection',
-          key: 'face_$i',
-          value: json.encode(faceData),
-        );
-      }
-
-      _logger.info('Stored face detection results for media: $mediaId (${result.faces.length} faces)');
-    } catch (e, stack) {
-      _logger.error('Failed to store face detection results for $mediaId', error: e, stackTrace: stack);
-    }
-  }
 
   /// Store person identification results in database
   Future<void> storePersonTags(String mediaId, List<Person> persons) async {
