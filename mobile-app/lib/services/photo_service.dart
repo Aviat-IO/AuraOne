@@ -707,54 +707,33 @@ class PhotoService {
 
   // MARK: - Face Clustering and Person Identification
 
-  /// Initialize face clustering and person identification services
-  FaceClusteringService? _clusteringService;
+  /// Initialize person identification service (stub)
   PersonService? _personService;
-
-  /// Get or initialize clustering service
-  FaceClusteringService get clusteringService {
-    _clusteringService ??= FaceClusteringService();
-    return _clusteringService!;
-  }
 
   /// Get or initialize person service
   PersonService get personService {
-    _personService ??= PersonService(clusteringService: clusteringService);
+    _personService ??= PersonService();
     return _personService!;
   }
 
   /// Initialize person identification service
   Future<void> initializePersonService() async {
     if (_personService == null) {
-      _personService = PersonService(clusteringService: clusteringService);
+      _personService = PersonService();
       await _personService!.initialize();
       _logger.info('Person service initialized');
     }
   }
 
-  /// Process photos to identify persons through face clustering
+  /// Process photos to identify persons through face clustering (stub)
   Future<List<Person>> identifyPersonsInPhotos(List<AssetEntity> photos) async {
     try {
       await initializePersonService();
 
-      _logger.info('Starting person identification for ${photos.length} photos');
+      _logger.info('Person identification skipped (stub) for ${photos.length} photos');
 
-      final persons = await personService.processPhotos(photos);
-
-      _logger.info('Person identification complete: found ${persons.length} persons');
-
-      // Store person identification results for each photo
-      for (final photo in photos) {
-        final personsInPhoto = persons.where((person) =>
-          person.cluster.photoIds.contains(photo.id)
-        ).toList();
-
-        if (personsInPhoto.isNotEmpty) {
-          await storePersonTags(photo.id, personsInPhoto);
-        }
-      }
-
-      return persons;
+      // Stub implementation - returns empty list
+      return [];
     } catch (e, stack) {
       _logger.error('Failed to identify persons in photos', error: e, stackTrace: stack);
       return [];
@@ -1104,35 +1083,10 @@ class PhotoService {
   }
 
 
-  /// Store person identification results in database
+  /// Store person identification results in database (stub)
   Future<void> storePersonTags(String mediaId, List<Person> persons) async {
-    if (_ref == null) return;
-
-    try {
-      for (final person in persons) {
-        // Get the representative face for this person in this photo
-        final facesInPhoto = person.cluster.faces.where((face) => face.photoId == mediaId).toList();
-
-        for (final face in facesInPhoto) {
-          await mediaManagement.addPersonTag(
-            personId: person.personId,
-            mediaId: mediaId,
-            boundingBoxX: face.boundingBox.left,
-            boundingBoxY: face.boundingBox.top,
-            boundingBoxWidth: face.boundingBox.width,
-            boundingBoxHeight: face.boundingBox.height,
-            confidence: face.confidence,
-            personName: person.name,
-            personNickname: person.nickname,
-            similarity: null, // similarity is not a direct property of FaceEmbedding
-          );
-        }
-      }
-
-      _logger.info('Stored person tags for media: $mediaId (${persons.length} persons)');
-    } catch (e, stack) {
-      _logger.error('Failed to store person tags for $mediaId', error: e, stackTrace: stack);
-    }
+    // Stub implementation - person face detection has been removed
+    _logger.info('Person tags storage skipped (stub) for media: $mediaId');
   }
 
   /// Get media items from database
