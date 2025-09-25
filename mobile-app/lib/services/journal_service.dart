@@ -805,8 +805,24 @@ class JournalService {
         journalEntry = await createEntryForDate(date);
       }
 
-      // Use provided description or create simple location string
-      String address = description.isNotEmpty ? description : 'Location: ${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}';
+      // Try to get reverse geocoded address if user has enabled it
+      String address = description;
+      try {
+        final placeInfo = await ReverseGeocodingService.getPlaceInfo(
+          latitude: latitude,
+          longitude: longitude,
+        );
+        if (placeInfo != null && placeInfo.displayName.isNotEmpty && placeInfo.displayName != 'Location') {
+          address = placeInfo.displayName;
+        } else if (description.isEmpty) {
+          address = 'Location: ${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}';
+        }
+      } catch (e) {
+        _logger.warning('Failed to reverse geocode location', error: e);
+        if (description.isEmpty) {
+          address = 'Location: ${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}';
+        }
+      }
 
       // Create activity for the location
       final activity = JournalActivitiesCompanion(
