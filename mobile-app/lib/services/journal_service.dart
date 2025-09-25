@@ -762,5 +762,73 @@ class JournalService {
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
+  /// Add media (photo/audio) to a journal entry for a specific date
+  Future<void> addMediaToJournalEntry(DateTime date, String mediaPath, String mediaType) async {
+    try {
+      _logger.info('Adding $mediaType to journal entry for ${date.toIso8601String()}');
+
+      // Get or create journal entry for the date
+      var journalEntry = await getEntryForDate(date);
+      if (journalEntry == null) {
+        journalEntry = await createEntryForDate(date);
+      }
+
+      // Create activity for the media
+      final activity = JournalActivitiesCompanion(
+        journalEntryId: Value(journalEntry.id),
+        activityType: Value(mediaType),
+        description: Value('$mediaType added via Quick Add'),
+        metadata: Value(jsonEncode({
+          'path': mediaPath,
+          'type': mediaType,
+          'timestamp': DateTime.now().toIso8601String(),
+        })),
+        timestamp: Value(DateTime.now()),
+      );
+
+      await _journalDb.insertJournalActivity(activity);
+      _logger.info('Successfully added $mediaType to journal entry');
+    } catch (e, stack) {
+      _logger.error('Failed to add $mediaType to journal entry', error: e, stackTrace: stack);
+      rethrow;
+    }
+  }
+
+  /// Add location tagging to a journal entry for a specific date
+  Future<void> addLocationToJournalEntry(DateTime date, double latitude, double longitude, String description) async {
+    try {
+      _logger.info('Adding location to journal entry for ${date.toIso8601String()}');
+
+      // Get or create journal entry for the date
+      var journalEntry = await getEntryForDate(date);
+      if (journalEntry == null) {
+        journalEntry = await createEntryForDate(date);
+      }
+
+      // Use provided description or create simple location string
+      String address = description.isNotEmpty ? description : 'Location: ${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}';
+
+      // Create activity for the location
+      final activity = JournalActivitiesCompanion(
+        journalEntryId: Value(journalEntry.id),
+        activityType: Value('location'),
+        description: Value(address ?? description),
+        metadata: Value(jsonEncode({
+          'latitude': latitude,
+          'longitude': longitude,
+          'description': description,
+          'address': address,
+          'timestamp': DateTime.now().toIso8601String(),
+        })),
+        timestamp: Value(DateTime.now()),
+      );
+
+      await _journalDb.insertJournalActivity(activity);
+      _logger.info('Successfully added location to journal entry');
+    } catch (e, stack) {
+      _logger.error('Failed to add location to journal entry', error: e, stackTrace: stack);
+      rethrow;
+    }
+  }
 
 }
