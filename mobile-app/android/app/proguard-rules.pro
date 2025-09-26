@@ -70,3 +70,60 @@
 # Location service rules
 -keep class com.google.android.gms.location.** { *; }
 -keep class com.google.android.gms.maps.** { *; }
+
+# Flutter Background Service rules - CRITICAL for location tracking
+-keep class id.flutter.flutter_background_service.** { *; }
+-keepclassmembers class id.flutter.flutter_background_service.** { *; }
+-keep class id.flutter.flutter_background_service_android.** { *; }
+-keepclassmembers class id.flutter.flutter_background_service_android.** { *; }
+-dontwarn id.flutter.flutter_background_service.**
+-dontwarn id.flutter.flutter_background_service_android.**
+
+# Keep all background service related classes
+-keep class androidx.work.** { *; }
+-keep class androidx.concurrent.** { *; }
+
+# Geolocator plugin rules
+-keep class com.baseflow.geolocator.** { *; }
+-keepclassmembers class com.baseflow.geolocator.** { *; }
+-dontwarn com.baseflow.geolocator.**
+
+# Flutter Local Notifications plugin
+-keep class com.dexterous.flutterlocalnotifications.** { *; }
+-keepclassmembers class com.dexterous.flutterlocalnotifications.** { *; }
+
+# Shared Preferences plugin
+-keep class io.flutter.plugins.sharedpreferences.** { *; }
+-keepclassmembers class io.flutter.plugins.sharedpreferences.** { *; }
+
+# Path Provider plugin
+-keep class io.flutter.plugins.pathprovider.** { *; }
+-keepclassmembers class io.flutter.plugins.pathprovider.** { *; }
+
+# Device Info plugin
+-keep class dev.fluttercommunity.plus.device_info.** { *; }
+-keepclassmembers class dev.fluttercommunity.plus.device_info.** { *; }
+
+# Keep Dart VM and Flutter Engine entry points
+-keep @io.flutter.embedding.android.FlutterApplication class * { *; }
+-keep @io.flutter.plugin.common.PluginRegistry$Registrar class * { *; }
+-keep @androidx.annotation.Keep class * { *; }
+
+# Keep all service classes
+-keep public class * extends android.app.Service
+-keep public class * extends android.app.IntentService
+-keep public class * extends android.app.JobService
+-keep public class * extends androidx.work.Worker
+-keep public class * extends androidx.work.ListenableWorker
+
+# Keep broadcast receivers
+-keep public class * extends android.content.BroadcastReceiver
+
+# Keep all native methods and JNI
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+
+# Keep Dart plugin registrant
+-keep class io.flutter.plugins.** { *; }
+-keep class io.flutter.plugins.GeneratedPluginRegistrant { *; }

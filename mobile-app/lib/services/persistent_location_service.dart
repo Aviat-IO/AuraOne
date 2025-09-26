@@ -117,7 +117,7 @@ class PersistentLocationService {
 
   /// Start persistent location tracking
   Future<bool> startTracking({
-    int intervalMinutes = 2, // Reduced to 2 minute intervals for better coverage
+    int intervalMinutes = 1, // Reduced to 1 minute intervals for maximum coverage
     double distanceFilter = 0, // Changed to 0 to ensure all positions are captured
   }) async {
     try {
@@ -195,10 +195,11 @@ class PersistentLocationService {
   /// Check if battery optimization is already disabled
   Future<bool> _checkBatteryOptimization() async {
     try {
-      // This would need native Android implementation
-      // For now, return false to assume optimization is enabled
-      return false;
+      const platform = MethodChannel('aura_one/battery_optimization');
+      final bool isIgnoring = await platform.invokeMethod('isIgnoringBatteryOptimizations');
+      return isIgnoring;
     } catch (e) {
+      appLogger.warning('Could not check battery optimization status: $e');
       return false;
     }
   }
@@ -338,7 +339,7 @@ Future<void> onStart(ServiceInstance service) async {
   try {
     // Load tracking preferences
     final prefs = await SharedPreferences.getInstance();
-    final intervalMinutes = prefs.getInt('location_interval_minutes') ?? 2;
+    final intervalMinutes = prefs.getInt('location_interval_minutes') ?? 1;
     final distanceFilter = prefs.getDouble('location_distance_filter') ?? 0;
     final isEnabled = prefs.getBool('location_tracking_enabled') ?? true;
     final startTime = prefs.getInt('location_start_time') ?? DateTime.now().millisecondsSinceEpoch;
@@ -416,14 +417,16 @@ Future<void> onStart(ServiceInstance service) async {
       late LocationSettings locationSettings;
       locationSettings = AndroidSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: distanceFilter.toInt(),
-        intervalDuration: Duration(minutes: intervalMinutes),
-        forceLocationManager: true, // Force LocationManager instead of FusedLocation
+        distanceFilter: 0, // Set to 0 to get all location updates
+        intervalDuration: Duration(seconds: 30), // More frequent checks
+        forceLocationManager: false, // Use FusedLocationProvider for better reliability
         foregroundNotificationConfig: ForegroundNotificationConfig(
           notificationText: 'Aura One is continuously tracking your location for journaling',
           notificationTitle: 'Background Location Tracking',
           enableWakeLock: true,
+          enableWifiLock: true,
         ),
+        useMSL: true, // Use MSL altitude if available
       );
 
       // Main periodic timer for guaranteed location updates
