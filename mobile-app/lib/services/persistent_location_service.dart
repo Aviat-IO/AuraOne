@@ -426,7 +426,6 @@ Future<void> onStart(ServiceInstance service) async {
           enableWakeLock: true,
           enableWifiLock: true,
         ),
-        useMSL: true, // Use MSL altitude if available
       );
 
       // Main periodic timer for guaranteed location updates
