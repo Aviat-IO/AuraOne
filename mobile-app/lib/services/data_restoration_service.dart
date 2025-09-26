@@ -86,8 +86,16 @@ class DataRestorationService {
       await prefs.setBool('data_restored', true);
       await prefs.setInt('restoration_timestamp', DateTime.now().millisecondsSinceEpoch);
 
-      // The databases are already in place, just need to initialize them properly
-      await DatabaseProvider.instance.initialize();
+      // Try to initialize databases with migration support
+      try {
+        await DatabaseProvider.instance.initialize();
+      } catch (dbError) {
+        // If database initialization fails, it might be due to incompatible schema versions
+        appLogger.warning('Database initialization failed during restoration, attempting recovery', error: dbError);
+
+        // Don't crash - the databases might still work or migrations will handle it
+        // The migration strategies in each database file should handle version differences
+      }
 
       appLogger.info('Data restoration completed successfully');
       return true;

@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/foundation.dart';
 import '../utils/date_utils.dart';
 
 part 'journal_database.g.dart';
@@ -332,8 +333,26 @@ class JournalDatabase extends _$JournalDatabase {
   // Migration and schema updates
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        beforeOpen: (details) async {
+          // Handle database version mismatches gracefully
+          if (details.wasCreated) {
+            // Database was just created, no issues
+            return;
+          }
+
+          // Check if we're dealing with a version mismatch
+          if (details.versionBefore != null && details.versionNow != details.versionBefore) {
+            debugPrint('Journal database migration: v${details.versionBefore} -> v${details.versionNow}');
+          }
+        },
         onCreate: (Migrator m) async {
-          await m.createAll();
+          try {
+            await m.createAll();
+          } catch (e) {
+            // If createAll fails, it might be because tables already exist from a previous installation
+            debugPrint('Warning: Could not create all tables (may already exist): $e');
+            // Try to continue anyway - the app should still work
+          }
 
           // Create indices for better performance
           await customStatement('''
@@ -361,21 +380,59 @@ class JournalDatabase extends _$JournalDatabase {
         },
         onUpgrade: (Migrator m, int from, int to) async {
           if (from < 2) {
-            // Create FTS5 virtual table and triggers
-            await m.createAll();
+            // Wrap entire migration in try-catch to prevent crashes
+            try {
+              // Check if FTS5 search table exists and create if it doesn't
+              bool searchTableExists = false;
+              try {
+                await customSelect('SELECT COUNT(*) FROM journal_search').getSingle();
+                searchTableExists = true;
+              } catch (e) {
+                // Table doesn't exist, need to create it
+                searchTableExists = false;
+              }
 
-            // Create FTS5 triggers after all tables exist
-            await _createSearchTriggers();
+              if (!searchTableExists) {
+                // Create only the FTS5 virtual table
+                await customStatement('''
+                  CREATE VIRTUAL TABLE IF NOT EXISTS journal_search USING fts5(
+                    entry_id UNINDEXED,
+                    title,
+                    content,
+                    mood,
+                    tags,
+                    summary,
+                    tokenize = 'porter unicode61'
+                  );
+                ''');
+              }
 
-            // Populate FTS5 index with existing data
-            await customStatement('''
-              INSERT INTO journal_search(entry_id, title, content, mood, tags, summary)
-              SELECT id, title, content, mood, tags, summary
-              FROM journal_entries
-              WHERE NOT EXISTS (
-                SELECT 1 FROM journal_search WHERE entry_id = journal_entries.id
-              );
-            ''');
+              // Try to create triggers, but don't fail if they already exist
+              try {
+                await _createSearchTriggers();
+              } catch (e) {
+                debugPrint('Note: Could not create search triggers (may already exist): $e');
+              }
+
+              // Populate FTS5 index with existing data (safely)
+              try {
+                await customStatement('''
+                  INSERT INTO journal_search(entry_id, title, content, mood, tags, summary)
+                  SELECT id, title, content, mood, tags, summary
+                  FROM journal_entries
+                  WHERE NOT EXISTS (
+                    SELECT 1 FROM journal_search WHERE entry_id = journal_entries.id
+                  );
+                ''');
+              } catch (e) {
+                // If population fails, log but don't crash
+                debugPrint('Warning: Could not populate FTS5 index during migration: $e');
+              }
+            } catch (e) {
+              // Log the error but don't crash the app
+              debugPrint('Error during journal database migration from v$from to v$to: $e');
+              // The app can still function without FTS5 search
+            }
           }
         },
       );

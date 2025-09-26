@@ -42,38 +42,42 @@ final mediaItemsProvider = FutureProvider.family.autoDispose<List<MediaItem>, ({
     // Process items in parallel for better performance
     final List<MediaItem> result = [];
 
-    // Process items more efficiently
-    for (final item in mediaItems) {
-      // Determine media type based on MIME type
-      MediaType type = MediaType.photo;
-      if (item.mimeType.startsWith('video/')) {
-        type = MediaType.video;
-      } else if (item.mimeType.startsWith('audio/')) {
-        type = MediaType.audio;
-      }
+    // Process items more efficiently and check file existence
+    // Use Future.wait to check all files in parallel
+    final fileChecks = await Future.wait(
+      mediaItems.map((item) async {
+        if (item.filePath == null) return null;
 
-      // Create file URLs from file paths
-      String? fileUrl;
-      String? thumbnailUrl;
+        final file = File(item.filePath!);
+        // Check if file exists
+        if (await file.exists()) {
+          // Determine media type based on MIME type
+          MediaType type = MediaType.photo;
+          if (item.mimeType.startsWith('video/')) {
+            type = MediaType.video;
+          } else if (item.mimeType.startsWith('audio/')) {
+            type = MediaType.audio;
+          }
 
-      // Skip file existence check entirely - let image loading handle it
-      // This avoids sync I/O that can cause jank
-      if (item.filePath != null) {
-        fileUrl = item.filePath!;
-        thumbnailUrl = item.filePath!;
-      }
+          return MediaItem(
+            id: item.id,
+            type: type,
+            url: item.filePath!,
+            thumbnailUrl: item.filePath!,
+            timestamp: item.createdDate,
+            caption: '', // No captions in media database
+            duration: item.duration != null ? Duration(seconds: item.duration!) : null,
+            isDeleted: item.isDeleted,
+          );
+        }
+        return null; // File doesn't exist, skip it
+      }),
+    );
 
-      if (fileUrl != null) {
-        result.add(MediaItem(
-          id: item.id,
-          type: type,
-          url: fileUrl,
-          thumbnailUrl: thumbnailUrl ?? fileUrl,
-          timestamp: item.createdDate,
-          caption: '', // No captions in media database
-          duration: item.duration != null ? Duration(seconds: item.duration!) : null,
-          isDeleted: item.isDeleted,
-        ));
+    // Add only existing files to result
+    for (final item in fileChecks) {
+      if (item != null) {
+        result.add(item);
       }
     }
 
@@ -439,6 +443,7 @@ class MediaGalleryWidget extends ConsumerWidget {
                   url: item.thumbnailUrl,
                   fit: BoxFit.cover,
                   theme: theme,
+                  skipMissingFile: true, // Skip if file doesn't exist
                 ),
               ),
 
@@ -531,10 +536,15 @@ class MediaGalleryWidget extends ConsumerWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _buildOptimizedThumbnail(
-                url: item.url,
-                fit: BoxFit.cover,
-                theme: theme,
+              // Image with opacity based on selection state
+              Opacity(
+                opacity: enableSelection && item.isDeleted ? 0.5 : 1.0,
+                child: _buildOptimizedThumbnail(
+                  url: item.url,
+                  fit: BoxFit.cover,
+                  theme: theme,
+                  skipMissingFile: true,
+                ),
               ),
               // Gradient overlay for caption
               Positioned(
@@ -575,7 +585,38 @@ class MediaGalleryWidget extends ConsumerWidget {
                   ),
                 ),
               ),
-              if (item.type == MediaType.video)
+              // Selection indicator for carousel view
+              if (enableSelection)
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: item.isDeleted
+                          ? Colors.red.withValues(alpha: 0.9)
+                          : Colors.green.withValues(alpha: 0.9),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      item.isDeleted ? Icons.remove : Icons.check,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              if (item.type == MediaType.video && (!enableSelection || !item.isDeleted))
                 Center(
                   child: Container(
                     padding: const EdgeInsets.all(16),
@@ -706,6 +747,7 @@ class MediaGalleryWidget extends ConsumerWidget {
     double? width,
     double? height,
     required ThemeData theme,
+    bool skipMissingFile = false,
   }) {
     // Use our optimized thumbnail provider for local files
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -835,19 +877,24 @@ class _MediaSelectionViewerState extends State<_MediaSelectionViewer> {
                             ),
                           ),
                         )
-                      : Image.file(
-                          File(item.url),
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.error, size: 48, color: Colors.white),
-                                const SizedBox(height: 8),
-                                Text('Failed to load image', style: TextStyle(color: Colors.white)),
-                              ],
-                            ),
-                          ),
+                      : FutureBuilder<bool>(
+                          future: File(item.url).exists(),
+                          builder: (context, snapshot) {
+                            // If file doesn't exist, skip showing it
+                            if (snapshot.hasData && !snapshot.data!) {
+                              return const SizedBox.shrink();
+                            }
+
+                            // Show opacity based on deletion status
+                            return Opacity(
+                              opacity: item.isDeleted ? 0.5 : 1.0,
+                              child: Image.file(
+                                File(item.url),
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                              ),
+                            );
+                          },
                         ),
                 ),
               );
@@ -891,35 +938,30 @@ class _MediaSelectionViewerState extends State<_MediaSelectionViewer> {
                       ),
                     ),
 
-                    // Inclusion status indicator
+                    // Inclusion status indicator with icon
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: widget.items[_currentIndex].isDeleted
-                            ? Colors.red.withValues(alpha: 0.8)
-                            : Colors.green.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            widget.items[_currentIndex].isDeleted
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            widget.items[_currentIndex].isDeleted ? 'Excluded' : 'Included',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            ? Colors.red.withValues(alpha: 0.9)
+                            : Colors.green.withValues(alpha: 0.9),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 3,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
                         ],
+                      ),
+                      child: Icon(
+                        widget.items[_currentIndex].isDeleted ? Icons.remove : Icons.check,
+                        color: Colors.white,
+                        size: 24,
                       ),
                     ),
                   ],

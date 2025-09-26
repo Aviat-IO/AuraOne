@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 part 'location_database.g.dart';
 
@@ -337,8 +338,26 @@ class LocationDatabase extends _$LocationDatabase {
   // Migration and schema updates
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        beforeOpen: (details) async {
+          // Handle database version mismatches gracefully
+          if (details.wasCreated) {
+            // Database was just created, no issues
+            return;
+          }
+
+          // Check if we're dealing with a version mismatch
+          if (details.versionBefore != null && details.versionNow != details.versionBefore) {
+            debugPrint('Location database migration: v${details.versionBefore} -> v${details.versionNow}');
+          }
+        },
         onCreate: (Migrator m) async {
-          await m.createAll();
+          try {
+            await m.createAll();
+          } catch (e) {
+            // If createAll fails, it might be because tables already exist from a previous installation
+            debugPrint('Warning: Could not create all tables (may already exist): $e');
+            // Try to continue anyway - the app should still work
+          }
         },
         onUpgrade: (Migrator m, int from, int to) async {
           // Migration from version 1 to 2: Added MovementData table

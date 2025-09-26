@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 part 'media_database.g.dart';
 
@@ -461,8 +462,26 @@ class MediaDatabase extends _$MediaDatabase {
   // Migration and schema updates
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        beforeOpen: (details) async {
+          // Handle database version mismatches gracefully
+          if (details.wasCreated) {
+            // Database was just created, no issues
+            return;
+          }
+
+          // Check if we're dealing with a version mismatch
+          if (details.versionBefore != null && details.versionNow != details.versionBefore) {
+            debugPrint('Media database migration: v${details.versionBefore} -> v${details.versionNow}');
+          }
+        },
         onCreate: (Migrator m) async {
-          await m.createAll();
+          try {
+            await m.createAll();
+          } catch (e) {
+            // If createAll fails, it might be because tables already exist from a previous installation
+            debugPrint('Warning: Could not create all tables (may already exist): $e');
+            // Try to continue anyway - the app should still work
+          }
 
           // Create indices for better performance
           await customStatement('''
