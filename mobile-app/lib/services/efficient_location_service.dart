@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_background_geolocation/flutter_background_geolocation.dart' as bg;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../database/location_database.dart';
@@ -78,9 +79,9 @@ class EfficientLocationService {
         notificationText: "Recording your day",
         notificationColor: "#4A90E2",
 
-        // Debugging (disable in production)
-        debug: false,
-        logLevel: bg.Config.LOG_LEVEL_ERROR,
+        // Debugging - enabled in debug mode for free usage
+        debug: kDebugMode,  // This enables debug mode in development (no license required)
+        logLevel: kDebugMode ? bg.Config.LOG_LEVEL_WARNING : bg.Config.LOG_LEVEL_ERROR,
         logMaxDays: 3,
       ));
 
