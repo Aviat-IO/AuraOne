@@ -15,9 +15,8 @@ import 'package:aura_one/screens/app_lock_screen.dart';
 import 'package:aura_one/utils/error_handler.dart';
 import 'package:aura_one/utils/logger.dart';
 import 'package:aura_one/services/simple_location_service.dart';
-import 'package:aura_one/services/persistent_location_service.dart';
+import 'package:aura_one/services/efficient_location_service.dart';
 import 'package:aura_one/services/movement_tracking_service.dart';
-import 'package:aura_one/services/background_data_service.dart';
 import 'package:aura_one/providers/fusion_providers.dart';
 import 'package:aura_one/providers/context_providers.dart';
 import 'package:aura_one/providers/settings_providers.dart';
@@ -27,6 +26,8 @@ import 'package:aura_one/services/background_init_service.dart';
 import 'package:aura_one/screens/optimized_splash_screen.dart';
 import 'package:aura_one/utils/performance_monitor.dart';
 import 'package:aura_one/services/data_restoration_service.dart';
+import 'package:aura_one/services/calendar_initialization_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Provider to store restoration status
 final restorationStatusProvider = StateProvider<RestorationStatus?>((ref) => null);
@@ -397,22 +398,31 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
   // These run after the UI is ready
   Future.delayed(const Duration(milliseconds: 2000), () async {
     try {
-      // Initialize persistent location service first
+      // Initialize efficient background location service only if enabled
       if (onboardingCompleted) {
-        appLogger.info('Initializing persistent location service...');
-        final persistentLocationService = PersistentLocationService();
-        await persistentLocationService.initialize();
+        // Check if user has opted in to background location tracking
+        final prefs = await SharedPreferences.getInstance();
+        final backgroundTrackingEnabled = prefs.getBool('backgroundLocationTracking') ?? false;
 
-        // Start persistent background location tracking
-        final trackingStarted = await persistentLocationService.startTracking(
-          intervalMinutes: 2, // Collect location every 2 minutes for better coverage
-          distanceFilter: 0, // Capture all positions regardless of movement
-        );
+        if (backgroundTrackingEnabled) {
+          appLogger.info('Initializing efficient background location service (user opted-in)...');
+          final efficientLocationService = EfficientLocationService();
+          final initialized = await efficientLocationService.initialize();
 
-        if (trackingStarted) {
-          appLogger.info('Persistent background location tracking started successfully');
+          if (initialized) {
+            // Start efficient background location tracking
+            final trackingStarted = await efficientLocationService.startTracking();
+
+            if (trackingStarted) {
+              appLogger.info('Efficient background location tracking started successfully');
+            } else {
+              appLogger.warning('Failed to start efficient location tracking');
+            }
+          } else {
+            appLogger.warning('Failed to initialize efficient location service');
+          }
         } else {
-          appLogger.warning('Failed to start persistent location tracking');
+          appLogger.info('Background location tracking is disabled by user preference');
         }
       }
 
@@ -435,15 +445,7 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
         await movementService.startTracking();
       }
 
-      // Initialize background data collection with WorkManager
-      final backgroundService = ref.read(backgroundDataServiceProvider);
-      await backgroundService.initialize();
-      await backgroundService.startBackgroundDataCollection(
-        frequency: const Duration(minutes: 15),
-        includeLocation: true,
-        includeBle: true,
-        includeMovement: true,
-      );
+      // Background data collection now handled by efficient location service
 
       // Initialize notification service (keep this for basic functionality)
       final notificationService = ref.read(notificationServiceProvider);
@@ -452,6 +454,11 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
       // Initialize journal service (keep this for basic functionality)
       final journalService = ref.read(journalServiceProvider);
       await journalService.initialize();
+
+      // Initialize calendar settings and permissions
+      final calendarInitService = ref.read(calendarInitializationServiceProvider);
+      await calendarInitService.initialize();
+      appLogger.info('Calendar settings initialized (post-init)');
 
     } catch (e) {
       appLogger.error('Post-initialization task failed', error: e);

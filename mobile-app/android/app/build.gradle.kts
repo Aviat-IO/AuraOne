@@ -5,6 +5,10 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// flutter_background_geolocation
+val backgroundGeolocation = project(":flutter_background_geolocation")
+apply { from("${backgroundGeolocation.projectDir}/background_geolocation.gradle") }
+
 android {
     namespace = "me.auraone.app"
     compileSdk = flutter.compileSdkVersion
@@ -39,7 +43,7 @@ android {
             
             // ProGuard configuration for release builds
             isMinifyEnabled = true
-            isShrinkResources = true
+            isShrinkResources = false // REQUIRED for flutter_background_geolocation
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

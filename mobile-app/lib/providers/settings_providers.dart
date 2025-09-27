@@ -178,6 +178,29 @@ class ReverseGeocodingNotifier extends StateNotifier<bool> {
   }
 }
 
+// Background location tracking provider
+final backgroundLocationTrackingProvider = StateNotifierProvider<BackgroundLocationTrackingNotifier, bool>((ref) {
+  return BackgroundLocationTrackingNotifier();
+});
+
+class BackgroundLocationTrackingNotifier extends StateNotifier<bool> {
+  BackgroundLocationTrackingNotifier() : super(false) {
+    _loadState();
+  }
+
+  Future<void> _loadState() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Default to false - users must opt-in to persistent background tracking
+    state = prefs.getBool('backgroundLocationTracking') ?? false;
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('backgroundLocationTracking', enabled);
+  }
+}
+
 // Calendar settings provider
 final calendarSettingsProvider = StateNotifierProvider<CalendarSettingsNotifier, CalendarSettings>((ref) {
   return CalendarSettingsNotifier();
@@ -201,10 +224,10 @@ class CalendarSettings {
 
 class CalendarSettingsNotifier extends StateNotifier<CalendarSettings> {
   CalendarSettingsNotifier() : super(const CalendarSettings()) {
-    _loadSettings();
+    loadSettings();
   }
 
-  Future<void> _loadSettings() async {
+  Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final enabledIds = prefs.getStringList('enabledCalendarIds') ?? [];
     state = CalendarSettings(

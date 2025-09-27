@@ -11,6 +11,7 @@ import '../../database/media_database.dart';
 import '../../utils/date_utils.dart';
 import '../../services/journal_service.dart';
 import '../../services/calendar_service.dart';
+import '../../services/calendar_initialization_service.dart';
 import '../../providers/media_database_provider.dart';
 import '../../providers/media_thumbnail_provider.dart';
 import '../../providers/service_providers.dart';
@@ -41,7 +42,18 @@ Future<List<CalendarEventData>> _getCalendarEventsForDate(
 // Provider for calendar events from device calendar
 final calendarEventsProvider = FutureProvider.family<List<CalendarEventData>, DateTime>((ref, date) async {
   final calendarService = ref.watch(calendarServiceProvider);
-  final calendarSettings = ref.watch(calendarSettingsProvider);
+  var calendarSettings = ref.watch(calendarSettingsProvider);
+
+  // Check if calendar settings need initialization
+  if (calendarSettings.enabledCalendarIds.isEmpty) {
+    // Try to initialize calendars if not already done
+    final calendarInitService = ref.read(calendarInitializationServiceProvider);
+    await calendarInitService.initialize();
+
+    // Refresh the settings after initialization
+    await ref.read(calendarSettingsProvider.notifier).loadSettings();
+    calendarSettings = ref.read(calendarSettingsProvider);
+  }
 
   // Get events for the selected date
   // For calendar queries, use local day boundaries (device calendar expects local times)
@@ -87,7 +99,18 @@ final calendarMetadataProvider = FutureProvider.autoDispose<Map<String, String>>
 final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTime>((ref, date) async {
   final journalDb = ref.watch(journalDatabaseProvider);
   final calendarService = ref.watch(calendarServiceProvider);
-  final calendarSettings = ref.watch(calendarSettingsProvider);
+  var calendarSettings = ref.watch(calendarSettingsProvider);
+
+  // Check if calendar settings need initialization
+  if (calendarSettings.enabledCalendarIds.isEmpty) {
+    // Try to initialize calendars if not already done
+    final calendarInitService = ref.read(calendarInitializationServiceProvider);
+    await calendarInitService.initialize();
+
+    // Refresh the settings after initialization
+    await ref.read(calendarSettingsProvider.notifier).loadSettings();
+    calendarSettings = ref.read(calendarSettingsProvider);
+  }
 
   // Load journal activities and calendar events in parallel
   final results = await Future.wait([
