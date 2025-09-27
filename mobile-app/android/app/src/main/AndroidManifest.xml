@@ -115,9 +115,6 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- flutter_background_geolocation license (debug mode - no license required) -->
-        <!-- For production, obtain a license from https://shop.transistorsoft.com/products/flutter-background-geolocation -->
-        <!-- <meta-data android:name="com.transistorsoft.locationmanager.license" android:value="YOUR_LICENSE_KEY_HERE" /> -->
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

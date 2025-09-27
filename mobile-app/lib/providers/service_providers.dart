@@ -4,7 +4,7 @@ import '../services/calendar_service.dart';
 // import '../services/health_service.dart';  // Temporarily disabled for APK size optimization
 // import '../services/ble_scanning_service.dart';  // Temporarily disabled for APK size optimization
 import '../services/ai/hybrid_ai_service.dart';  // Privacy-first hybrid AI service
-import '../services/efficient_location_service.dart';
+import '../services/free_location_service.dart';
 import './settings_providers.dart';
 
 // Data Attribution Service Provider - Temporarily disabled
@@ -46,7 +46,7 @@ final aiServiceProvider = Provider<HybridAIService>((ref) {
   return HybridAIService();
 });
 
-// Efficient Location Service Provider
-final efficientLocationServiceProvider = Provider<EfficientLocationService>((ref) {
-  return EfficientLocationService();
+// Free Location Service Provider
+final freeLocationServiceProvider = Provider<FreeLocationService>((ref) {
+  return FreeLocationService();
 });

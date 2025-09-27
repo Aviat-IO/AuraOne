@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../services/simple_location_service.dart';
-import '../services/efficient_location_service.dart';
+import '../services/free_location_service.dart';
 
 class LocationSettingsCard extends ConsumerWidget {
   const LocationSettingsCard({super.key});
@@ -226,8 +226,7 @@ class LocationSettingsCard extends ConsumerWidget {
   }
 
   void _showBatteryOptimizationDialog(BuildContext context) {
-    final persistentLocationService = EfficientLocationService();
-    final guidance = persistentLocationService.getBatteryOptimizationGuidance();
+    // Battery optimization guidance for free location service
 
     showDialog(
       context: context,

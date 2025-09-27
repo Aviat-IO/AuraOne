@@ -15,7 +15,7 @@ import 'package:aura_one/screens/app_lock_screen.dart';
 import 'package:aura_one/utils/error_handler.dart';
 import 'package:aura_one/utils/logger.dart';
 import 'package:aura_one/services/simple_location_service.dart';
-import 'package:aura_one/services/efficient_location_service.dart';
+import 'package:aura_one/services/free_location_service.dart';
 import 'package:aura_one/services/movement_tracking_service.dart';
 import 'package:aura_one/providers/fusion_providers.dart';
 import 'package:aura_one/providers/context_providers.dart';
@@ -399,28 +399,28 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
   // These run after the UI is ready
   Future.delayed(const Duration(milliseconds: 2000), () async {
     try {
-      // Initialize efficient background location service only if enabled
+      // Initialize free background location service only if enabled
       if (onboardingCompleted) {
         // Check if user has opted in to background location tracking
         final prefs = await SharedPreferences.getInstance();
         final backgroundTrackingEnabled = prefs.getBool('backgroundLocationTracking') ?? false;
 
         if (backgroundTrackingEnabled) {
-          appLogger.info('Initializing efficient background location service (user opted-in)...');
-          final efficientLocationService = EfficientLocationService();
-          final initialized = await efficientLocationService.initialize();
+          appLogger.info('Initializing free background location service (user opted-in)...');
+          final freeLocationService = FreeLocationService();
+          final initialized = await freeLocationService.initialize();
 
           if (initialized) {
-            // Start efficient background location tracking
-            final trackingStarted = await efficientLocationService.startTracking();
+            // Start free background location tracking
+            final trackingStarted = await freeLocationService.startTracking();
 
             if (trackingStarted) {
-              appLogger.info('Efficient background location tracking started successfully');
+              appLogger.info('Free background location tracking started successfully');
             } else {
-              appLogger.warning('Failed to start efficient location tracking');
+              appLogger.warning('Failed to start free location tracking');
             }
           } else {
-            appLogger.warning('Failed to initialize efficient location service');
+            appLogger.warning('Failed to initialize free location service');
           }
         } else {
           appLogger.info('Background location tracking is disabled by user preference');
