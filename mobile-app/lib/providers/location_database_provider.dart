@@ -58,12 +58,20 @@ class LocationDataCleanupService {
 
   Future<void> performCleanup({
     Duration retentionPeriod = const Duration(days: 30),
+    Duration movementRetentionPeriod = const Duration(days: 7),
     bool keepSignificantPoints = true,
   }) async {
     final db = ref.read(locationDatabaseProvider);
+
+    // Clean up old location data
     await db.cleanupOldLocationData(
       retentionPeriod: retentionPeriod,
       keepSignificantPoints: keepSignificantPoints,
+    );
+
+    // Clean up old movement data (keep for less time as it's higher volume)
+    await db.cleanupOldMovementData(
+      retentionPeriod: movementRetentionPeriod,
     );
   }
 

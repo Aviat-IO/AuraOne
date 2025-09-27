@@ -20,6 +20,7 @@ import 'package:aura_one/services/movement_tracking_service.dart';
 import 'package:aura_one/providers/fusion_providers.dart';
 import 'package:aura_one/providers/context_providers.dart';
 import 'package:aura_one/providers/settings_providers.dart';
+import 'package:aura_one/providers/location_database_provider.dart';
 import 'package:aura_one/services/journal_service.dart';
 import 'package:aura_one/config/sentry_config.dart';
 import 'package:aura_one/services/background_init_service.dart';
@@ -485,6 +486,33 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
       }
     } catch (e) {
       appLogger.error('AI initialization failed', error: e);
+    }
+  });
+
+  // Schedule daily cleanup of old data
+  Future.delayed(const Duration(seconds: 10), () async {
+    try {
+      // Perform initial cleanup
+      final cleanupService = ref.read(locationDataCleanupProvider);
+      await cleanupService.performCleanup(
+        retentionPeriod: const Duration(days: 30),  // Keep location data for 30 days
+        movementRetentionPeriod: const Duration(days: 3),  // Keep movement data for only 3 days
+      );
+      appLogger.info('Initial data cleanup completed');
+
+      // Schedule daily cleanup at 3 AM
+      Timer.periodic(const Duration(hours: 24), (timer) async {
+        final now = DateTime.now();
+        if (now.hour == 3) {  // Run at 3 AM local time
+          await cleanupService.performCleanup(
+            retentionPeriod: const Duration(days: 30),
+            movementRetentionPeriod: const Duration(days: 3),
+          );
+          appLogger.info('Daily data cleanup completed');
+        }
+      });
+    } catch (e) {
+      appLogger.error('Data cleanup failed', error: e);
     }
   });
 }

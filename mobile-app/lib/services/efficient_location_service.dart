@@ -264,4 +264,60 @@ class EfficientLocationService {
     _batchSaveTimer?.cancel();
     _savePendingLocations();
   }
+
+  /// Get battery optimization guidance for different manufacturers
+  Map<String, dynamic> getBatteryOptimizationGuidance() {
+    return {
+      'samsung': {
+        'title': 'Samsung Battery Optimization',
+        'steps': [
+          '1. Go to Settings > Device care > Battery',
+          '2. Tap "App power management"',
+          '3. Find "Aura One" in the list',
+          '4. Set to "Optimized" or disable battery optimization',
+          '5. Enable "Allow background activity"',
+        ],
+      },
+      'xiaomi': {
+        'title': 'Xiaomi/MIUI Battery Optimization',
+        'steps': [
+          '1. Settings > Battery & Performance',
+          '2. Tap "App battery saver"',
+          '3. Find "Aura One" and select it',
+          '4. Choose "No restrictions"',
+          '5. Enable "Autostart" permission',
+        ],
+      },
+      'huawei': {
+        'title': 'Huawei/EMUI Battery Optimization',
+        'steps': [
+          '1. Settings > Battery > App launch',
+          '2. Find "Aura One"',
+          '3. Disable "Manage automatically"',
+          '4. Enable all three options: Auto-launch, Secondary launch, Run in background',
+        ],
+      },
+      'oneplus': {
+        'title': 'OnePlus Battery Optimization',
+        'steps': [
+          '1. Settings > Battery > Battery optimization',
+          '2. Switch to "All apps" view',
+          '3. Find "Aura One"',
+          '4. Select "Don\'t optimize"',
+          '5. Go to Settings > Apps > Aura One > Battery',
+          '6. Enable "Allow background activity"',
+        ],
+      },
+      'general': {
+        'title': 'General Android Battery Optimization',
+        'steps': [
+          '1. Open Settings > Apps',
+          '2. Find and tap "Aura One"',
+          '3. Tap "Battery" or "Battery usage"',
+          '4. Enable "Allow background activity" or "Unrestricted"',
+          '5. Disable battery optimization if available',
+        ],
+      },
+    };
+  }
 }

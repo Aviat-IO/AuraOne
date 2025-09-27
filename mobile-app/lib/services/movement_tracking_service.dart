@@ -67,7 +67,7 @@ class MovementTrackingService {
   StreamSubscription<UserAccelerometerEvent>? _userAccelerometerSubscription;
 
   final List<double> _recentMagnitudes = [];
-  final int _windowSize = 50; // Sample window for analysis
+  final int _windowSize = 20; // Reduced sample window for analysis (was 50)
 
   Timer? _analysisTimer;
   Timer? _persistenceTimer;
@@ -98,9 +98,9 @@ class MovementTrackingService {
   Future<void> startTracking() async {
     // Movement tracking starting...
 
-    // Subscribe to gyroscope events
+    // Subscribe to gyroscope events - reduced frequency for battery saving
     _gyroscopeSubscription = gyroscopeEventStream(
-      samplingPeriod: const Duration(milliseconds: 100),
+      samplingPeriod: const Duration(milliseconds: 500), // Reduced from 100ms to 500ms (2Hz instead of 10Hz)
     ).listen(
       _handleGyroscopeEvent,
       onError: (error) {
@@ -111,7 +111,7 @@ class MovementTrackingService {
 
     // Subscribe to accelerometer events for additional movement detection
     _accelerometerSubscription = accelerometerEventStream(
-      samplingPeriod: const Duration(milliseconds: 100),
+      samplingPeriod: const Duration(milliseconds: 500), // Reduced from 100ms to 500ms (2Hz instead of 10Hz)
     ).listen(
       _handleAccelerometerEvent,
       onError: (error) {
@@ -122,7 +122,7 @@ class MovementTrackingService {
 
     // Subscribe to user accelerometer (removes gravity)
     _userAccelerometerSubscription = userAccelerometerEventStream(
-      samplingPeriod: const Duration(milliseconds: 100),
+      samplingPeriod: const Duration(milliseconds: 500), // Reduced from 100ms to 500ms (2Hz instead of 10Hz)
     ).listen(
       _handleUserAccelerometerEvent,
       onError: (error) {
@@ -131,17 +131,17 @@ class MovementTrackingService {
       cancelOnError: false,
     );
 
-    // Start analysis timer
+    // Start analysis timer - increased interval for less processing
     _analysisTimer?.cancel();
     _analysisTimer = Timer.periodic(
-      const Duration(seconds: 2),
+      const Duration(seconds: 10), // Increased from 2s to 10s
       (_) => _analyzeMovementPattern(),
     );
 
-    // Start persistence timer
+    // Start persistence timer - increased interval to reduce database writes
     _persistenceTimer?.cancel();
     _persistenceTimer = Timer.periodic(
-      const Duration(minutes: 1),
+      const Duration(minutes: 5), // Increased from 1 min to 5 min
       (_) => _persistMovementData(),
     );
 
