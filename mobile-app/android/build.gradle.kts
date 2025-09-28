@@ -4,6 +4,13 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url = uri("https://www.jitpack.io")
+        }
+        maven {
+            // Required for background_fetch plugin
+            url = uri("${project.rootDir}/libs")
+        }
     }
 }
 

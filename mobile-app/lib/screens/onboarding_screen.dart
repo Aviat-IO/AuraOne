@@ -7,7 +7,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/simple_location_service.dart';
-import '../services/movement_tracking_service.dart';
 import '../providers/location_database_provider.dart';
 import '../providers/settings_providers.dart';
 
@@ -502,9 +501,6 @@ class OnboardingScreen extends HookConsumerWidget {
               final locationService = ref.read(simpleLocationServiceProvider);
               await locationService.startTracking();
 
-              final movementService = ref.read(movementTrackingServiceProvider);
-              await movementService.startTracking();
-
               // Navigate to main app
               if (context.mounted) {
                 context.go('/');
@@ -893,9 +889,6 @@ class OnboardingScreen extends HookConsumerWidget {
                 // Start services
                 final locationService = ref.read(simpleLocationServiceProvider);
                 await locationService.startTracking();
-
-                final movementService = ref.read(movementTrackingServiceProvider);
-                await movementService.startTracking();
 
                 // Navigate to main app
                 if (context.mounted) {

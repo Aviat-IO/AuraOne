@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../services/simple_location_service.dart';
-import '../services/free_location_service.dart';
+import '../services/background_location_service.dart';
 
 class LocationSettingsCard extends ConsumerWidget {
   const LocationSettingsCard({super.key});

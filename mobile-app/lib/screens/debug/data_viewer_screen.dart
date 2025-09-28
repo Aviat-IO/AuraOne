@@ -5,7 +5,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:geolocator/geolocator.dart';
-import '../../services/movement_tracking_service.dart';
 import '../../services/simple_location_service.dart';
 
 class DataViewerScreen extends HookConsumerWidget {
@@ -21,11 +20,6 @@ class DataViewerScreen extends HookConsumerWidget {
     final userAccelerometerData = useState<UserAccelerometerEvent?>(null);
     final magnetometerData = useState<MagnetometerEvent?>(null);
     final locationData = useState<Position?>(null);
-    
-    // Movement tracking states
-    final movementState = ref.watch(currentMovementStateProvider);
-    final movementHistory = ref.watch(movementHistoryProvider);
-    
     // Update frequency state
     final updateFrequency = useState<Duration>(const Duration(milliseconds: 100));
     
@@ -137,17 +131,7 @@ class DataViewerScreen extends HookConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDataRow('Current State', _getMovementStateText(movementState)),
-                    if (movementHistory.isNotEmpty) ...[
-                      _buildDataRow(
-                        'Confidence',
-                        '${(movementHistory.last.confidence * 100).toStringAsFixed(1)}%',
-                      ),
-                      _buildDataRow(
-                        'Magnitude',
-                        movementHistory.last.magnitude.toStringAsFixed(3),
-                      ),
-                    ],
+                    _buildDataRow('Status', 'Movement tracking disabled'),
                   ],
                 ),
               ),
@@ -405,16 +389,6 @@ class DataViewerScreen extends HookConsumerWidget {
     if (normalizedAngle < 247.5) return 'SW';
     if (normalizedAngle < 292.5) return 'W';
     return 'NW';
-  }
-  
-  String _getMovementStateText(MovementState state) {
-    return switch (state) {
-      MovementState.still => 'Still / Resting',
-      MovementState.walking => 'Walking',
-      MovementState.running => 'Running',
-      MovementState.driving => 'In Vehicle',
-      MovementState.unknown => 'Detecting...',
-    };
   }
   
   String _getFrequencyText(Duration duration) {

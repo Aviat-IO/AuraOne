@@ -87,6 +87,7 @@
             android:foregroundServiceType="location|dataSync"
             tools:node="merge" />
 
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

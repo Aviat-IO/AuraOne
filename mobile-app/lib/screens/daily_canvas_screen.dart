@@ -18,7 +18,7 @@ import '../widgets/daily_canvas/map_widget.dart';
 import '../widgets/daily_canvas/media_gallery_widget.dart';
 import '../widgets/common/pill_tab_bar.dart';
 import '../services/media_picker_service.dart';
-import '../services/free_location_service.dart';
+import '../services/background_location_service.dart';
 import '../services/journal_service.dart';
 import '../providers/location_database_provider.dart';
 import '../providers/media_database_provider.dart';

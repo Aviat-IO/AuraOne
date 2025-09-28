@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../database/location_database.dart';
 import '../../providers/location_database_provider.dart';
-import '../../services/movement_tracking_service.dart';
 
 class DatabaseViewerScreen extends HookConsumerWidget {
   const DatabaseViewerScreen({super.key});
@@ -218,16 +217,12 @@ class _MovementDataTab extends HookConsumerWidget {
                 ),
                 TextButton.icon(
                   onPressed: () async {
-                    final movementService = ref.read(movementTrackingServiceProvider);
-                    final data = await movementService.exportMovementData(
-                      startDate: dateRange.value?.start,
-                      endDate: dateRange.value?.end,
-                    );
-                    
+                    // Export functionality temporarily disabled
+
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Exported ${data['dataPoints'].length} records'),
+                          content: Text('Export functionality temporarily disabled'),
                         ),
                       );
                     }
@@ -511,7 +506,6 @@ class _SummaryDataTab extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final movementService = ref.read(movementTrackingServiceProvider);
     final summaryData = useState<Map<String, dynamic>>({});
     final isLoading = useState(true);
     final database = ref.watch(locationDatabaseProvider);
@@ -522,10 +516,9 @@ class _SummaryDataTab extends HookConsumerWidget {
       void loadData() async {
         isLoading.value = true;
         try {
-          // Get movement summary
-          final summary = await movementService.getMovementSummary();
-          summaryData.value = summary;
-          
+          // Movement summary temporarily disabled
+          summaryData.value = {};
+
           // Get location summaries
           final query = database.select(database.locationSummaries)
             ..orderBy([(tbl) => drift.OrderingTerm.desc(tbl.date)])

@@ -14,9 +14,9 @@ import 'package:aura_one/widgets/privacy_screen_overlay.dart';
 import 'package:aura_one/screens/app_lock_screen.dart';
 import 'package:aura_one/utils/error_handler.dart';
 import 'package:aura_one/utils/logger.dart';
+import 'package:aura_one/services/background_location_service.dart';
 import 'package:aura_one/services/simple_location_service.dart';
-import 'package:aura_one/services/free_location_service.dart';
-import 'package:aura_one/services/movement_tracking_service.dart';
+import 'package:workmanager/workmanager.dart';
 import 'package:aura_one/providers/fusion_providers.dart';
 import 'package:aura_one/providers/context_providers.dart';
 import 'package:aura_one/providers/settings_providers.dart';
@@ -38,6 +38,9 @@ void main() {
   runZonedGuarded(() async {
     // Ensure Flutter binding is initialized
     WidgetsFlutterBinding.ensureInitialized();
+
+    // Initialize Workmanager for background tasks
+    Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
 
     // Log app startup
     appLogger.info('Aura One starting...');
@@ -406,21 +409,21 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
         final backgroundTrackingEnabled = prefs.getBool('backgroundLocationTracking') ?? false;
 
         if (backgroundTrackingEnabled) {
-          appLogger.info('Initializing free background location service (user opted-in)...');
-          final freeLocationService = FreeLocationService();
-          final initialized = await freeLocationService.initialize();
+          appLogger.info('Initializing background location service (user opted-in)...');
+          final backgroundLocationService = BackgroundLocationService(ref);
+          final initialized = await backgroundLocationService.initialize();
 
           if (initialized) {
-            // Start free background location tracking
-            final trackingStarted = await freeLocationService.startTracking();
+            // Start background location tracking
+            final trackingStarted = await backgroundLocationService.startTracking();
 
             if (trackingStarted) {
-              appLogger.info('Free background location tracking started successfully');
+              appLogger.info('Background location tracking started successfully');
             } else {
-              appLogger.warning('Failed to start free location tracking');
+              appLogger.warning('Failed to start background location tracking');
             }
           } else {
-            appLogger.warning('Failed to initialize free location service');
+            appLogger.warning('Failed to initialize background location service');
           }
         } else {
           appLogger.info('Background location tracking is disabled by user preference');
@@ -429,21 +432,14 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
 
       // Initialize simple location service for real-time tracking
       if (onboardingCompleted) {
-        final locationService = ref.read(simpleLocationServiceProvider);
-        await locationService.initialize();
+        final simpleLocationService = SimpleLocationService(ref);
+        await simpleLocationService.initialize();
 
-        final hasPermission = await locationService.checkLocationPermission();
+        final hasPermission = await simpleLocationService.checkLocationPermission();
         if (hasPermission) {
-          await locationService.startTracking();
+          await simpleLocationService.startTracking();
           appLogger.info('Real-time location tracking started (post-init)');
         }
-      }
-
-      // Initialize movement tracking
-      final movementService = ref.read(movementTrackingServiceProvider);
-      await movementService.initialize();
-      if (onboardingCompleted) {
-        await movementService.startTracking();
       }
 
       // Background data collection now handled by efficient location service
