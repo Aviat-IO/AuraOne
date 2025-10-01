@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:sensors_plus/sensors_plus.dart';
-import 'package:geolocator/geolocator.dart';
-import '../../services/simple_location_service.dart';
+import 'package:flutter_background_geolocation/flutter_background_geolocation.dart' as bg;
+import '../../services/background_location_service.dart';
 
 class DataViewerScreen extends HookConsumerWidget {
   const DataViewerScreen({super.key});
@@ -13,107 +11,74 @@ class DataViewerScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
-    // Sensor data states
-    final gyroscopeData = useState<GyroscopeEvent?>(null);
-    final accelerometerData = useState<AccelerometerEvent?>(null);
-    final userAccelerometerData = useState<UserAccelerometerEvent?>(null);
-    final magnetometerData = useState<MagnetometerEvent?>(null);
-    final locationData = useState<Position?>(null);
-    // Update frequency state
-    final updateFrequency = useState<Duration>(const Duration(milliseconds: 100));
-    
+    final locationService = ref.watch(backgroundLocationServiceProvider);
+
+    // Location event states
+    final currentLocation = useState<bg.Location?>(null);
+    final recentLocations = useState<List<bg.Location>>([]);
+    final trackingStats = useState<Map<String, dynamic>>({});
+    final isTracking = useState<bool>(false);
+
+    // Load tracking state and stats
     useEffect(() {
-      // Gyroscope subscription
-      final gyroSub = gyroscopeEventStream(
-        samplingPeriod: updateFrequency.value,
-      ).listen((event) {
-        gyroscopeData.value = event;
-      });
-      
-      // Accelerometer subscription
-      final accelSub = accelerometerEventStream(
-        samplingPeriod: updateFrequency.value,
-      ).listen((event) {
-        accelerometerData.value = event;
-      });
-      
-      // User accelerometer subscription
-      final userAccelSub = userAccelerometerEventStream(
-        samplingPeriod: updateFrequency.value,
-      ).listen((event) {
-        userAccelerometerData.value = event;
-      });
-      
-      // Magnetometer subscription
-      final magnetSub = magnetometerEventStream(
-        samplingPeriod: updateFrequency.value,
-      ).listen((event) {
-        magnetometerData.value = event;
-      });
-      
-      // Location updates
-      Timer? locationTimer;
-      void updateLocation() async {
-        try {
-          final position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high,
-          );
-          locationData.value = position;
-        } catch (e) {
-          debugPrint('Location error: $e');
-        }
+      void loadTrackingState() async {
+        final tracking = await locationService.isTrackingEnabled();
+        isTracking.value = tracking;
+
+        final stats = await locationService.getTrackingStats();
+        trackingStats.value = stats;
       }
-      
-      updateLocation();
-      locationTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-        updateLocation();
+
+      loadTrackingState();
+
+      // Refresh stats periodically
+      final timer = Timer.periodic(const Duration(seconds: 5), (_) {
+        loadTrackingState();
       });
-      
+
+      return () => timer.cancel();
+    }, []);
+
+    // Listen to location events
+    useEffect(() {
+      void locationCallback(bg.Location location) {
+        currentLocation.value = location;
+
+        // Add to recent locations (keep last 20)
+        final locations = [...recentLocations.value, location];
+        if (locations.length > 20) {
+          locations.removeAt(0);
+        }
+        recentLocations.value = locations;
+      }
+
+      // Add listener
+      bg.BackgroundGeolocation.onLocation(locationCallback);
+
+      // Cleanup - remove listener by replacing with empty callback
       return () {
-        gyroSub.cancel();
-        accelSub.cancel();
-        userAccelSub.cancel();
-        magnetSub.cancel();
-        locationTimer?.cancel();
+        bg.BackgroundGeolocation.onLocation((location) {});
       };
-    }, [updateFrequency.value]);
-    
+    }, []);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Real-Time Data Viewer'),
+        title: const Text('Location Tracking Debug'),
         backgroundColor: theme.colorScheme.surface,
         foregroundColor: theme.colorScheme.onSurface,
         elevation: 0,
         actions: [
-          PopupMenuButton<Duration>(
-            onSelected: (Duration value) {
-              updateFrequency.value = value;
+          IconButton(
+            icon: Icon(isTracking.value ? Icons.pause : Icons.play_arrow),
+            onPressed: () async {
+              if (isTracking.value) {
+                await locationService.stopTracking();
+              } else {
+                await locationService.startTracking();
+              }
+              isTracking.value = await locationService.isTrackingEnabled();
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: Duration(milliseconds: 50),
-                child: Text('20 Hz (50ms)'),
-              ),
-              const PopupMenuItem(
-                value: Duration(milliseconds: 100),
-                child: Text('10 Hz (100ms)'),
-              ),
-              const PopupMenuItem(
-                value: Duration(milliseconds: 200),
-                child: Text('5 Hz (200ms)'),
-              ),
-              const PopupMenuItem(
-                value: Duration(milliseconds: 500),
-                child: Text('2 Hz (500ms)'),
-              ),
-              const PopupMenuItem(
-                value: Duration(seconds: 1),
-                child: Text('1 Hz (1s)'),
-              ),
-            ],
-            icon: const Icon(Icons.speed),
-            tooltip: 'Update Frequency',
+            tooltip: isTracking.value ? 'Stop Tracking' : 'Start Tracking',
           ),
         ],
       ),
@@ -123,191 +88,173 @@ class DataViewerScreen extends HookConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Movement State Card
+              // Tracking Status Card
               _buildDataCard(
-                title: 'Movement State',
-                icon: Icons.directions_walk,
+                title: 'Tracking Status',
+                icon: isTracking.value ? Icons.location_on : Icons.location_off,
                 theme: theme,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDataRow('Status', 'Movement tracking disabled'),
+                    _buildDataRow('Status', isTracking.value ? 'Active' : 'Stopped'),
+                    _buildDataRow('State', trackingStats.value['isMoving']?.toString() ?? 'N/A'),
+                    _buildDataRow('Tracking Mode', trackingStats.value['trackingMode']?.toString() ?? 'N/A'),
+                    _buildDataRow('Distance Filter', '${trackingStats.value['distanceFilter'] ?? 'N/A'} m'),
+                    _buildDataRow('Desired Accuracy', '${trackingStats.value['desiredAccuracy'] ?? 'N/A'} m'),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
-              
-              // Location Data Card
-              _buildDataCard(
-                title: 'Location (GPS)',
-                icon: Icons.location_on,
-                theme: theme,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildDataRow(
-                      'Latitude',
-                      locationData.value?.latitude.toStringAsFixed(6) ?? 'N/A',
-                    ),
-                    _buildDataRow(
-                      'Longitude',
-                      locationData.value?.longitude.toStringAsFixed(6) ?? 'N/A',
-                    ),
-                    _buildDataRow(
-                      'Accuracy',
-                      locationData.value != null 
-                        ? '${locationData.value!.accuracy.toStringAsFixed(1)}m'
-                        : 'N/A',
-                    ),
-                    _buildDataRow(
-                      'Altitude',
-                      locationData.value?.altitude.toStringAsFixed(1) ?? 'N/A',
-                    ),
-                    _buildDataRow(
-                      'Speed',
-                      locationData.value?.speed != null
-                        ? '${(locationData.value!.speed * 3.6).toStringAsFixed(1)} km/h'
-                        : 'N/A',
-                    ),
-                    _buildDataRow(
-                      'Heading',
-                      locationData.value?.heading?.toStringAsFixed(0) ?? 'N/A',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              // Gyroscope Data Card
-              _buildDataCard(
-                title: 'Gyroscope (rad/s)',
-                icon: Icons.rotate_right,
-                theme: theme,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildDataRow('X (Pitch)', gyroscopeData.value?.x.toStringAsFixed(3) ?? 'N/A'),
-                    _buildDataRow('Y (Roll)', gyroscopeData.value?.y.toStringAsFixed(3) ?? 'N/A'),
-                    _buildDataRow('Z (Yaw)', gyroscopeData.value?.z.toStringAsFixed(3) ?? 'N/A'),
-                    if (gyroscopeData.value != null) ...[
-                      const Divider(),
+
+              // Current Location Card
+              if (currentLocation.value != null)
+                _buildDataCard(
+                  title: 'Current Location',
+                  icon: Icons.my_location,
+                  theme: theme,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       _buildDataRow(
-                        'Magnitude',
-                        _calculateMagnitude(
-                          gyroscopeData.value!.x,
-                          gyroscopeData.value!.y,
-                          gyroscopeData.value!.z,
-                        ).toStringAsFixed(3),
+                        'Latitude',
+                        currentLocation.value!.coords.latitude.toStringAsFixed(6),
+                      ),
+                      _buildDataRow(
+                        'Longitude',
+                        currentLocation.value!.coords.longitude.toStringAsFixed(6),
+                      ),
+                      _buildDataRow(
+                        'Accuracy',
+                        '${currentLocation.value!.coords.accuracy.toStringAsFixed(1)} m',
+                      ),
+                      _buildDataRow(
+                        'Altitude',
+                        '${currentLocation.value!.coords.altitude.toStringAsFixed(1)} m',
+                      ),
+                      _buildDataRow(
+                        'Speed',
+                        '${(currentLocation.value!.coords.speed * 3.6).toStringAsFixed(1)} km/h',
+                      ),
+                      _buildDataRow(
+                        'Heading',
+                        '${currentLocation.value!.coords.heading.toStringAsFixed(0)}°',
+                      ),
+                      _buildDataRow(
+                        'Timestamp',
+                        currentLocation.value!.timestamp,
                       ),
                     ],
-                  ],
+                  ),
                 ),
-              ),
               const SizedBox(height: 16),
-              
-              // Accelerometer Data Card
-              _buildDataCard(
-                title: 'Accelerometer (m/s²)',
-                icon: Icons.speed,
-                theme: theme,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildDataRow('X', accelerometerData.value?.x.toStringAsFixed(3) ?? 'N/A'),
-                    _buildDataRow('Y', accelerometerData.value?.y.toStringAsFixed(3) ?? 'N/A'),
-                    _buildDataRow('Z', accelerometerData.value?.z.toStringAsFixed(3) ?? 'N/A'),
-                    if (accelerometerData.value != null) ...[
-                      const Divider(),
+
+              // Activity Detection Card
+              if (currentLocation.value != null)
+                _buildDataCard(
+                  title: 'Activity Detection',
+                  icon: Icons.directions_walk,
+                  theme: theme,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       _buildDataRow(
-                        'Magnitude',
-                        _calculateMagnitude(
-                          accelerometerData.value!.x,
-                          accelerometerData.value!.y,
-                          accelerometerData.value!.z,
-                        ).toStringAsFixed(3),
+                        'Activity Type',
+                        currentLocation.value!.activity.type,
+                      ),
+                      _buildDataRow(
+                        'Confidence',
+                        '${currentLocation.value!.activity.confidence}%',
+                      ),
+                      _buildDataRow(
+                        'Is Moving',
+                        currentLocation.value!.isMoving ? 'Yes' : 'No',
                       ),
                     ],
-                  ],
+                  ),
                 ),
+              const SizedBox(height: 16),
+
+              // Recent Locations List
+              _buildDataCard(
+                title: 'Recent Locations (${recentLocations.value.length})',
+                icon: Icons.list,
+                theme: theme,
+                child: recentLocations.value.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text('No locations recorded yet'),
+                      )
+                    : Column(
+                        children: recentLocations.value.reversed.take(10).map((loc) {
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: ListTile(
+                              dense: true,
+                              leading: Icon(
+                                loc.isMoving ? Icons.directions_walk : Icons.location_on,
+                                color: loc.isMoving ? Colors.green : Colors.blue,
+                              ),
+                              title: Text(
+                                '${loc.coords.latitude.toStringAsFixed(4)}, ${loc.coords.longitude.toStringAsFixed(4)}',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              subtitle: Text(
+                                '${loc.activity.type} (${loc.activity.confidence}%) - ${loc.timestamp}',
+                                style: const TextStyle(fontSize: 10),
+                              ),
+                              trailing: Text(
+                                '±${loc.coords.accuracy.toStringAsFixed(0)}m',
+                                style: const TextStyle(fontSize: 10),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
               ),
               const SizedBox(height: 16),
-              
-              // User Accelerometer Data Card (gravity removed)
+
+              // Debug Actions
               _buildDataCard(
-                title: 'User Accelerometer (m/s²)',
-                icon: Icons.accessibility_new,
+                title: 'Debug Actions',
+                icon: Icons.bug_report,
                 theme: theme,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildDataRow('X', userAccelerometerData.value?.x.toStringAsFixed(3) ?? 'N/A'),
-                    _buildDataRow('Y', userAccelerometerData.value?.y.toStringAsFixed(3) ?? 'N/A'),
-                    _buildDataRow('Z', userAccelerometerData.value?.z.toStringAsFixed(3) ?? 'N/A'),
-                    if (userAccelerometerData.value != null) ...[
-                      const Divider(),
-                      _buildDataRow(
-                        'Magnitude',
-                        _calculateMagnitude(
-                          userAccelerometerData.value!.x,
-                          userAccelerometerData.value!.y,
-                          userAccelerometerData.value!.z,
-                        ).toStringAsFixed(3),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              // Magnetometer Data Card
-              _buildDataCard(
-                title: 'Magnetometer (μT)',
-                icon: Icons.explore,
-                theme: theme,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildDataRow('X', magnetometerData.value?.x.toStringAsFixed(3) ?? 'N/A'),
-                    _buildDataRow('Y', magnetometerData.value?.y.toStringAsFixed(3) ?? 'N/A'),
-                    _buildDataRow('Z', magnetometerData.value?.z.toStringAsFixed(3) ?? 'N/A'),
-                    if (magnetometerData.value != null) ...[
-                      const Divider(),
-                      _buildDataRow(
-                        'Magnitude',
-                        _calculateMagnitude(
-                          magnetometerData.value!.x,
-                          magnetometerData.value!.y,
-                          magnetometerData.value!.z,
-                        ).toStringAsFixed(3),
-                      ),
-                      _buildDataRow(
-                        'Direction',
-                        _calculateCompassDirection(
-                          magnetometerData.value!.x,
-                          magnetometerData.value!.y,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              // Update Info Card
-              _buildDataCard(
-                title: 'Update Info',
-                icon: Icons.info_outline,
-                theme: theme,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildDataRow(
-                      'Update Frequency',
-                      _getFrequencyText(updateFrequency.value),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final location = await locationService.getCurrentLocation();
+                        if (location != null) {
+                          currentLocation.value = location;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Current location retrieved')),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.my_location),
+                      label: const Text('Get Current Location'),
                     ),
-                    _buildDataRow(
-                      'Last Update',
-                      DateTime.now().toString().split('.')[0],
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        await locationService.changePace(true);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Pace set to MOVING')),
+                        );
+                      },
+                      icon: const Icon(Icons.directions_run),
+                      label: const Text('Simulate Moving'),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        await locationService.changePace(false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Pace set to STATIONARY')),
+                        );
+                      },
+                      icon: const Icon(Icons.stop),
+                      label: const Text('Simulate Stationary'),
                     ),
                   ],
                 ),
@@ -318,7 +265,7 @@ class DataViewerScreen extends HookConsumerWidget {
       ),
     );
   }
-  
+
   Widget _buildDataCard({
     required String title,
     required IconData icon,
@@ -326,6 +273,7 @@ class DataViewerScreen extends HookConsumerWidget {
     required Widget child,
   }) {
     return Card(
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -333,7 +281,7 @@ class DataViewerScreen extends HookConsumerWidget {
           children: [
             Row(
               children: [
-                Icon(icon, color: theme.colorScheme.primary, size: 20),
+                Icon(icon, size: 24, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
                   title,
@@ -343,60 +291,39 @@ class DataViewerScreen extends HookConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const Divider(height: 24),
             child,
           ],
         ),
       ),
     );
   }
-  
+
   Widget _buildDataRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
-            style: const TextStyle(fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+            ),
           ),
-          Text(
-            value,
-            style: TextStyle(
-              fontFamily: 'monospace',
-              color: value == 'N/A' ? Colors.grey : null,
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 14,
+              ),
             ),
           ),
         ],
       ),
     );
-  }
-  
-  double _calculateMagnitude(double x, double y, double z) {
-    return math.sqrt(x * x + y * y + z * z);
-  }
-  
-  String _calculateCompassDirection(double x, double y) {
-    final angle = (180 / math.pi) * math.atan2(y, x);
-    final normalizedAngle = (angle + 360) % 360;
-    
-    if (normalizedAngle < 22.5 || normalizedAngle >= 337.5) return 'N';
-    if (normalizedAngle < 67.5) return 'NE';
-    if (normalizedAngle < 112.5) return 'E';
-    if (normalizedAngle < 157.5) return 'SE';
-    if (normalizedAngle < 202.5) return 'S';
-    if (normalizedAngle < 247.5) return 'SW';
-    if (normalizedAngle < 292.5) return 'W';
-    return 'NW';
-  }
-  
-  String _getFrequencyText(Duration duration) {
-    if (duration.inMilliseconds < 1000) {
-      final hz = 1000 / duration.inMilliseconds;
-      return '${hz.toStringAsFixed(0)} Hz (${duration.inMilliseconds}ms)';
-    } else {
-      return '${(1000 / duration.inMilliseconds).toStringAsFixed(1)} Hz (${duration.inSeconds}s)';
-    }
   }
 }

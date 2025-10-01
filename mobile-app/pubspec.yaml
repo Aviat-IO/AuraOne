@@ -58,7 +58,7 @@ dependencies:
   # tflite_flutter: ^0.11.0  # Removed to reduce APK size - TensorFlow Lite not used
   # onnxruntime: ^1.4.1  # Removed to reduce APK size - ONNX runtime not used
   package_info_plus: ^8.1.1
-  sensors_plus: ^7.0.0
+  # sensors_plus: ^7.0.0  # Removed - replaced by flutter_background_geolocation activity data
   # fl_chart: ^0.69.0  # Removed to reduce APK size - Charts not essential
   intl: ^0.20.0
   # speech_to_text: ^7.3.0  # Removed to reduce APK size - Speech recognition optional

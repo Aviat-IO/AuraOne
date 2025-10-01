@@ -11,7 +11,6 @@
 import 'dart:async';
 import 'dart:collection';
 import 'package:flutter/foundation.dart';
-import 'package:sensors_plus/sensors_plus.dart';
 import 'spatiotemporal_processor.dart';
 
 /// Service for collecting IMU (Inertial Measurement Unit) data

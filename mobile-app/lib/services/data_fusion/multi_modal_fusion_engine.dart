@@ -16,7 +16,6 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:sensors_plus/sensors_plus.dart';
 import 'package:photo_manager/photo_manager.dart';
 import '../simple_location_service.dart';
 import '../photo_service.dart';
@@ -160,13 +159,13 @@ class MultiModalFusionEngine {
   final AdvancedPhotoAnalyzer _photoAnalyzer;
 
   // Sensor streams
-  StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
-  StreamSubscription<GyroscopeEvent>? _gyroscopeSubscription;
+  StreamSubscription<dynamic>? _accelerometerSubscription;
+  StreamSubscription<dynamic>? _gyroscopeSubscription;
   StreamSubscription<Position>? _locationSubscription;
 
   // Activity detection state
-  final List<AccelerometerEvent> _recentAccelerometer = [];
-  final List<GyroscopeEvent> _recentGyroscope = [];
+  final List<dynamic> _recentAccelerometer = [];
+  final List<dynamic> _recentGyroscope = [];
   final List<Position> _recentPositions = [];
 
   ActivityType _currentActivity = ActivityType.unknown;
@@ -228,33 +227,10 @@ class MultiModalFusionEngine {
   }
 
   /// Start monitoring device sensors
+  /// NOTE: Sensor monitoring is disabled - use flutter_background_geolocation activity data instead
   void _startSensorMonitoring() {
-    // Monitor accelerometer for movement detection
-    _accelerometerSubscription = accelerometerEvents.listen(
-      (AccelerometerEvent event) {
-        _recentAccelerometer.add(event);
-        if (_recentAccelerometer.length > 100) {
-          _recentAccelerometer.removeAt(0);
-        }
-        _updateActivityDetection();
-      },
-      onError: (error) {
-        debugPrint('Accelerometer error: $error');
-      },
-    );
-
-    // Monitor gyroscope for rotation detection
-    _gyroscopeSubscription = gyroscopeEvents.listen(
-      (GyroscopeEvent event) {
-        _recentGyroscope.add(event);
-        if (_recentGyroscope.length > 100) {
-          _recentGyroscope.removeAt(0);
-        }
-      },
-      onError: (error) {
-        debugPrint('Gyroscope error: $error');
-      },
-    );
+    // Sensor monitoring disabled - flutter_background_geolocation provides activity detection
+    debugPrint('Sensor monitoring disabled - use BackgroundLocationService activity data');
   }
 
   /// Start monitoring location
