@@ -1767,12 +1767,12 @@
             "id": 11,
             "title": "Remove redundant motion sensor data collection",
             "description": "Remove custom Gyro, Accelerometer, and Magnetometer collection since flutter_background_geolocation provides this data",
-            "status": "in-progress",
+            "status": "done",
             "dependencies": [],
             "details": "flutter_background_geolocation provides comprehensive motion data including activity type (still/walking/running/vehicle), motion confidence, and movement state. Remove custom sensor data collection from sensors_plus package. Update lib/services/sensor/motion_detection_service.dart or related motion detection code to use location.activity.type and location.activity.confidence instead. The JSON format includes: activity_type, activity_confidence, is_moving, speed, heading, and heading_accuracy.",
             "testStrategy": "Verify motion detection works using flutter_background_geolocation activity data. Test different activity types are correctly identified (stationary, walking, vehicle). Remove sensors_plus dependency if no longer needed.",
             "parentId": "43",
-            "updatedAt": "2025-10-01T03:16:17.051Z"
+            "updatedAt": "2025-10-01T03:28:48.719Z"
           },
           {
             "id": 12,
@@ -1785,12 +1785,12 @@
             "parentId": "43"
           }
         ],
-        "updatedAt": "2025-10-01T03:16:17.051Z"
+        "updatedAt": "2025-10-01T03:28:48.719Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-10-01T03:16:17.052Z",
+      "lastModified": "2025-10-01T03:28:48.719Z",
       "taskCount": 43,
       "completedCount": 40,
       "tags": [
