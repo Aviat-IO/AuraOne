@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/simple_location_service.dart';
+import '../services/background_location_service.dart';
 import '../providers/location_database_provider.dart';
 import '../providers/settings_providers.dart';
 
@@ -497,9 +498,13 @@ class OnboardingScreen extends HookConsumerWidget {
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool('onboarding_completed', true);
 
-              // Start services
-              final locationService = ref.read(simpleLocationServiceProvider);
-              await locationService.startTracking();
+              // Enable background location tracking
+              await prefs.setBool('backgroundLocationTracking', true);
+
+              // Initialize and start background location tracking
+              final bgLocationService = ref.read(backgroundLocationServiceProvider);
+              await bgLocationService.initialize();
+              await bgLocationService.startTracking();
 
               // Navigate to main app
               if (context.mounted) {
@@ -886,9 +891,13 @@ class OnboardingScreen extends HookConsumerWidget {
                   await ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(false);
                 }
 
-                // Start services
-                final locationService = ref.read(simpleLocationServiceProvider);
-                await locationService.startTracking();
+                // Enable background location tracking
+                await prefs.setBool('backgroundLocationTracking', true);
+
+                // Initialize and start background location tracking
+                final bgLocationService = ref.read(backgroundLocationServiceProvider);
+                await bgLocationService.initialize();
+                await bgLocationService.startTracking();
 
                 // Navigate to main app
                 if (context.mounted) {

@@ -40,23 +40,31 @@ class CalendarEventData {
 
   /// Convert from device_calendar Event
   factory CalendarEventData.fromEvent(Event event) {
-    // TZDateTime from device_calendar plugin already contains timezone info
-    // Convert TZDateTime to local DateTime for display
-    final startLocal = event.start is tz.TZDateTime
-        ? DateTime.fromMillisecondsSinceEpoch(
-            event.start!.millisecondsSinceEpoch,
-            isUtc: false,
-          )
-        : event.start!.toLocal();
+    final isAllDay = event.allDay ?? false;
 
-    final endLocal = event.end != null
-        ? (event.end is tz.TZDateTime
+    // For all-day events, convert UTC time to local date (date-only, no time component)
+    // For timed events, convert to local time with full timestamp
+    DateTime getLocalDateTime(DateTime? dt) {
+      if (dt == null) return DateTime.now();
+
+      if (isAllDay) {
+        // All-day events are stored at midnight UTC
+        // Convert to local date by taking the UTC date components
+        final utcDate = dt.toUtc();
+        return DateTime(utcDate.year, utcDate.month, utcDate.day);
+      } else {
+        // Timed events: convert to local time with full timestamp
+        return dt is tz.TZDateTime
             ? DateTime.fromMillisecondsSinceEpoch(
-                event.end!.millisecondsSinceEpoch,
+                dt.millisecondsSinceEpoch,
                 isUtc: false,
               )
-            : event.end!.toLocal())
-        : null;
+            : dt.toLocal();
+      }
+    }
+
+    final startLocal = getLocalDateTime(event.start);
+    final endLocal = event.end != null ? getLocalDateTime(event.end) : null;
 
     return CalendarEventData(
       id: event.eventId ?? '',
@@ -65,7 +73,7 @@ class CalendarEventData {
       description: event.description,
       startDate: startLocal,
       endDate: endLocal,
-      isAllDay: event.allDay ?? false,
+      isAllDay: isAllDay,
       location: event.location,
       attendees: event.attendees?.map((a) => a?.name ?? a?.emailAddress ?? '').toList() ?? [],
       url: event.url?.toString(),

@@ -218,12 +218,16 @@ final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTi
   // Convert calendar events to TimelineEvent and filter all-day events
   final calendarTimelineEvents = calendarEvents
       .where((calendarEvent) {
-        // For all-day events, check if they fall on the selected date
+        // For all-day events, strictly check if they belong to the selected date
         if (calendarEvent.isAllDay) {
-          final eventLocalDate = calendarEvent.startDate.toLocal();
-          return eventLocalDate.year == date.year &&
-                 eventLocalDate.month == date.month &&
-                 eventLocalDate.day == date.day;
+          final eventDate = calendarEvent.startDate;
+          final selectedDate = date;
+
+          // Compare dates directly - CalendarEventData.fromEvent already
+          // extracts the correct date from UTC for all-day events
+          return eventDate.year == selectedDate.year &&
+                 eventDate.month == selectedDate.month &&
+                 eventDate.day == selectedDate.day;
         }
         // For timed events, they're already filtered by the query
         return true;

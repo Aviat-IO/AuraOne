@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../database/location_database.dart';
+import '../providers/location_database_provider.dart';
 import '../utils/logger.dart';
 
 /// Provider for BackgroundLocationService
@@ -106,67 +107,62 @@ class BackgroundLocationService {
         return;
       }
 
-      // Initialize database
-      final database = LocationDatabase();
+      // Use the database from the provider to ensure proper stream notifications
+      final database = ref.read(locationDatabaseProvider);
 
-      try {
-        // Query for the last saved position to apply intelligent filtering
-        final lastLocationQuery = database.select(database.locationPoints)
-          ..orderBy([(t) => drift.OrderingTerm(
-            expression: t.timestamp,
-            mode: drift.OrderingMode.desc,
-          )])
-          ..limit(1);
+      // Query for the last saved position to apply intelligent filtering
+      final lastLocationQuery = database.select(database.locationPoints)
+        ..orderBy([(t) => drift.OrderingTerm(
+          expression: t.timestamp,
+          mode: drift.OrderingMode.desc,
+        )])
+        ..limit(1);
 
-        final lastLocations = await lastLocationQuery.get();
+      final lastLocations = await lastLocationQuery.get();
 
-        // The plugin already filters by distanceFilter (50m), but we can add additional logic
-        bool shouldSave = true;
+      // The plugin already filters by distanceFilter (50m), but we can add additional logic
+      bool shouldSave = true;
 
-        if (lastLocations.isNotEmpty) {
-          final lastLocation = lastLocations.first;
-          final timeDiff = DateTime.now().difference(lastLocation.timestamp);
+      if (lastLocations.isNotEmpty) {
+        final lastLocation = lastLocations.first;
+        final timeDiff = DateTime.now().difference(lastLocation.timestamp);
 
-          // Don't save if last location was less than 30 seconds ago (prevent bursts)
-          if (timeDiff.inSeconds < 30) {
-            shouldSave = false;
-            appLogger.info("Location too recent (${timeDiff.inSeconds}s). Skipping save.");
-          }
+        // Don't save if last location was less than 30 seconds ago (prevent bursts)
+        if (timeDiff.inSeconds < 30) {
+          shouldSave = false;
+          appLogger.info("Location too recent (${timeDiff.inSeconds}s). Skipping save.");
+        }
+      }
+
+      if (shouldSave) {
+        // Determine activity type based on motion state
+        String activityType = 'unknown';
+        if (location.activity.type == 'still' || location.activity.type == 'stationary') {
+          activityType = 'stationary';
+        } else if (location.activity.type == 'on_foot' || location.activity.type == 'walking' || location.activity.type == 'running') {
+          activityType = 'moving';
+        } else if (location.activity.type == 'in_vehicle' || location.activity.type == 'on_bicycle') {
+          activityType = 'moving';
         }
 
-        if (shouldSave) {
-          // Determine activity type based on motion state
-          String activityType = 'unknown';
-          if (location.activity.type == 'still' || location.activity.type == 'stationary') {
-            activityType = 'stationary';
-          } else if (location.activity.type == 'on_foot' || location.activity.type == 'walking' || location.activity.type == 'running') {
-            activityType = 'moving';
-          } else if (location.activity.type == 'in_vehicle' || location.activity.type == 'on_bicycle') {
-            activityType = 'moving';
-          }
+        // Save the new position to the database
+        final locationData = LocationPointsCompanion(
+          latitude: drift.Value(location.coords.latitude),
+          longitude: drift.Value(location.coords.longitude),
+          altitude: drift.Value(location.coords.altitude),
+          speed: drift.Value(location.coords.speed),
+          heading: drift.Value(location.coords.heading),
+          timestamp: drift.Value(DateTime.parse(location.timestamp)),
+          accuracy: drift.Value(location.coords.accuracy),
+          activityType: drift.Value(activityType),
+          isSignificant: drift.Value(location.isMoving),
+        );
 
-          // Save the new position to the database
-          final locationData = LocationPointsCompanion(
-            latitude: drift.Value(location.coords.latitude),
-            longitude: drift.Value(location.coords.longitude),
-            altitude: drift.Value(location.coords.altitude),
-            speed: drift.Value(location.coords.speed),
-            heading: drift.Value(location.coords.heading),
-            timestamp: drift.Value(DateTime.parse(location.timestamp)),
-            accuracy: drift.Value(location.coords.accuracy),
-            activityType: drift.Value(activityType),
-            isSignificant: drift.Value(location.isMoving),
-          );
+        await database.insertLocationPoint(locationData);
+        appLogger.info("Location saved to database");
 
-          await database.insertLocationPoint(locationData);
-          appLogger.info("Location saved to database");
-
-          // Store last update time
-          await prefs.setInt('lastLocationUpdate', DateTime.now().millisecondsSinceEpoch);
-        }
-      } finally {
-        // Always close the database connection
-        await database.close();
+        // Store last update time
+        await prefs.setInt('lastLocationUpdate', DateTime.now().millisecondsSinceEpoch);
       }
     } catch (e, stackTrace) {
       appLogger.error("Error handling location update", error: e, stackTrace: stackTrace);
@@ -335,17 +331,24 @@ class BackgroundLocationService {
 
   /// Get license key from environment
   String? _getLicenseKey() {
+    appLogger.info('Checking for BG_GEO_LICENSE...');
+    appLogger.info('dotenv.isInitialized: ${dotenv.isInitialized}');
+
     // Try dotenv first (from .env file)
     if (dotenv.isInitialized && dotenv.env['BG_GEO_LICENSE']?.isNotEmpty == true) {
-      return dotenv.env['BG_GEO_LICENSE'];
+      final key = dotenv.env['BG_GEO_LICENSE']!;
+      appLogger.info('Found license key from .env (length: ${key.length})');
+      return key;
     }
 
     // Fall back to compile-time environment variable (--dart-define)
     const envKey = String.fromEnvironment('BG_GEO_LICENSE');
     if (envKey.isNotEmpty) {
+      appLogger.info('Found license key from --dart-define (length: ${envKey.length})');
       return envKey;
     }
 
+    appLogger.warning('No license key found - will run in development mode');
     return null;
   }
 }

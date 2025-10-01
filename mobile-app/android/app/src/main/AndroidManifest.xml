@@ -75,11 +75,8 @@
         android:requestLegacyExternalStorage="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:enableOnBackInvokedCallback="true"
-        android:allowBackup="true"
-        android:fullBackupContent="@xml/backup_rules"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:hasFragileUserData="true"
-        android:restoreAnyVersion="true">
+        android:allowBackup="false"
+        android:hasFragileUserData="true">
 
         <!-- Override service configuration from flutter_background_service -->
         <service
@@ -115,6 +112,11 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- flutter_background_geolocation license -->
+        <meta-data
+            android:name="com.transistorsoft.locationmanager.license"
+            android:value="ae191ff71c48002a13052ebbe11e99f7ddbe602281ee7e8e38d59a1fcf0a07f9" />
 
     </application>
     <!-- Required to query activities that can process text, see:
