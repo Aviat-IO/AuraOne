@@ -35,14 +35,21 @@ class BackgroundLocationService {
 
       // Configure the plugin
       final state = await bg.BackgroundGeolocation.ready(bg.Config(
-        // License configuration
+        // License configuration - load from environment variable
         // Get your license from: https://www.transistorsoft.com/shop/products/flutter-background-geolocation
-        // For development/testing, the plugin works without a license but shows a notification
-        // For production, you MUST purchase a license and add it here:
-        // authorization: bg.Authorization(
-        //   strategy: bg.Authorization.STRATEGY_JWT,
-        //   accessToken: 'YOUR_LICENSE_KEY_HERE',
-        // ),
+        //
+        // SECURITY: Never commit license keys to git
+        // Add your license key to .env file: BG_GEO_LICENSE=your_key_here
+        // Then run with: fvm flutter run --dart-define=BG_GEO_LICENSE=your_key_here
+        // Or load from .env using flutter_dotenv package
+        //
+        // For development/testing without a license, the plugin works but shows a notification
+        authorization: const String.fromEnvironment('BG_GEO_LICENSE').isNotEmpty
+            ? bg.Authorization(
+                strategy: bg.Authorization.STRATEGY_JWT,
+                accessToken: const String.fromEnvironment('BG_GEO_LICENSE'),
+              )
+            : null,
 
         // Geolocation options
         desiredAccuracy: bg.Config.DESIRED_ACCURACY_HIGH,
