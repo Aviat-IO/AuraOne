@@ -1,6 +1,6 @@
 # Task ID: 38
 # Title: Configure Sentry DSN - Replace placeholder DSN with actual project DSN or disable crash reporting
-# Status: pending
+# Status: done
 # Dependencies: 33, 37
 # Priority: high
 # Description: Replace the empty DSN string in SentryConfig.dsn with either an actual Sentry project DSN for crash reporting or implement configuration option to disable Sentry when not needed.

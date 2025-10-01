@@ -1,6 +1,6 @@
 # Task ID: 41
 # Title: Implement Daily Canvas Quick Add Features - Photo Capture, Voice Recording, and Location Tagging
-# Status: pending
+# Status: in-progress
 # Dependencies: 3, 27, 15
 # Priority: medium
 # Description: Complete the three TODO items in daily_canvas_screen.dart at lines 740, 749, and 758 by implementing photo capture functionality using existing MediaPickerService, voice recording capabilities, and location tagging integration with the persistent location service.

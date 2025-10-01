@@ -5,10 +5,13 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Apply flutter_background_geolocation gradle script
+val backgroundGeolocation = project(":flutter_background_geolocation")
+apply(from = "${backgroundGeolocation.projectDir}/background_geolocation.gradle")
 
 android {
     namespace = "me.auraone.app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {

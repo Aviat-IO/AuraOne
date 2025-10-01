@@ -1,6 +1,6 @@
 # Task ID: 40
 # Title: Implement journal data import functionality for processing exported journal entries
-# Status: pending
+# Status: done
 # Dependencies: 2, 9
 # Priority: medium
 # Description: Complete the TODO at line 371 in import_screen.dart by implementing the actual import logic to parse exported journal entries, handle duplicates, import media files, and store data in the journal database.

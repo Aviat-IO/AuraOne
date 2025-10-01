@@ -1,197 +1,205 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:ui';
 import 'package:drift/drift.dart' as drift;
-import 'package:flutter/material.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:flutter_background_geolocation/flutter_background_geolocation.dart' as bg;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:workmanager/workmanager.dart';
 import '../database/location_database.dart';
-import '../providers/location_database_provider.dart';
 import '../utils/logger.dart';
-
-/// Background task identifier
-const String backgroundTaskId = "com.auraone.location_fetch";
-const String workManagerTaskName = "locationTracking";
-
-/// Workmanager callback - must be a top-level function
-@pragma('vm:entry-point')
-void callbackDispatcher() {
-  Workmanager().executeTask((task, inputData) async {
-    // This runs every 15 minutes
-    if (task == workManagerTaskName) {
-      await _performLocationUpdate();
-    }
-    return Future.value(true);
-  });
-}
-
-/// Perform the actual location update
-Future<void> _performLocationUpdate() async {
-  try {
-    // Check if tracking is enabled
-    final prefs = await SharedPreferences.getInstance();
-    final trackingEnabled = prefs.getBool('backgroundLocationTracking') ?? false;
-
-    if (!trackingEnabled) {
-      appLogger.info("Background location tracking is disabled");
-      return;
-    }
-
-    // Get current position with timeout
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-      timeLimit: Duration(seconds: 20),
-    ).timeout(
-      Duration(seconds: 20),
-      onTimeout: () async {
-        // Fall back to last known position if timeout
-        final lastPosition = await Geolocator.getLastKnownPosition();
-        if (lastPosition != null) {
-          return lastPosition;
-        }
-        throw TimeoutException('Failed to get location');
-      },
-    );
-
-    appLogger.info("Background location received: ${position.latitude}, ${position.longitude}");
-
-    // Initialize database
-    final database = LocationDatabase();
-
-    try {
-      // Query for the last saved position
-      final lastLocationQuery = database.select(database.locationPoints)
-        ..orderBy([(t) => drift.OrderingTerm(
-          expression: t.timestamp,
-          mode: drift.OrderingMode.desc,
-        )])
-        ..limit(1);
-
-      final lastLocations = await lastLocationQuery.get();
-
-      // Apply intelligent filtering - only save if moved significantly
-      bool isSignificantMove = true;
-
-      if (lastLocations.isNotEmpty) {
-        final lastLocation = lastLocations.first;
-        double distance = Geolocator.distanceBetween(
-          lastLocation.latitude,
-          lastLocation.longitude,
-          position.latitude,
-          position.longitude,
-        );
-
-        // Only save if moved more than 50 meters
-        if (distance < 50) {
-          isSignificantMove = false;
-          appLogger.info("Insignificant move (${distance.toStringAsFixed(1)}m). Skipping save.");
-        }
-      }
-
-      if (isSignificantMove) {
-        // Save the new position to the database
-        final locationData = LocationPointsCompanion(
-          latitude: drift.Value(position.latitude),
-          longitude: drift.Value(position.longitude),
-          altitude: drift.Value(position.altitude),
-          speed: drift.Value(position.speed),
-          heading: drift.Value(position.heading),
-          timestamp: drift.Value(position.timestamp ?? DateTime.now()),
-          accuracy: drift.Value(position.accuracy),
-          activityType: drift.Value(
-            position.speed != null && position.speed! > 1.0 ? 'moving' : 'stationary'
-          ),
-          isSignificant: const drift.Value(true),
-        );
-
-        await database.insertLocationPoint(locationData);
-        appLogger.info("Significant move detected. Location saved to database.");
-
-        // Store last update time
-        await prefs.setInt('lastLocationUpdate', DateTime.now().millisecondsSinceEpoch);
-      }
-    } finally {
-      // Always close the database connection
-      await database.close();
-    }
-  } catch (e) {
-    appLogger.error("Error getting location in background: $e");
-  }
-}
 
 /// Provider for BackgroundLocationService
 final backgroundLocationServiceProvider = Provider<BackgroundLocationService>((ref) {
   return BackgroundLocationService(ref);
 });
 
-/// Background location service using background_fetch for reliable periodic updates
+/// Background location service using flutter_background_geolocation for robust tracking
 class BackgroundLocationService {
   final Ref ref;
+  bool _isInitialized = false;
 
   BackgroundLocationService(this.ref);
 
   /// Initialize background location tracking
   Future<bool> initialize() async {
-    try {
-      appLogger.info('Initializing background location service...');
-
-      // Initialize Workmanager for periodic tasks
-      await Workmanager().initialize(
-        callbackDispatcher,
-        isInDebugMode: false,
-      );
-
-      // Register periodic task for location updates
-      // This will run every 15 minutes (minimum for iOS background fetch)
-      await Workmanager().registerPeriodicTask(
-        backgroundTaskId,
-        workManagerTaskName,
-        frequency: Duration(minutes: 15),
-        constraints: Constraints(
-          networkType: NetworkType.notRequired,
-          requiresBatteryNotLow: false,
-          requiresCharging: false,
-          requiresDeviceIdle: false,
-          requiresStorageNotLow: false,
-        ),
-        existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
-        backoffPolicy: BackoffPolicy.linear,
-        backoffPolicyDelay: Duration(seconds: 10),
-      );
-
-      appLogger.info('Background location service initialized with 15-minute intervals');
+    if (_isInitialized) {
+      appLogger.info('Background location service already initialized');
       return true;
-    } catch (e) {
-      appLogger.error('Failed to initialize background location service', error: e);
+    }
+
+    try {
+      appLogger.info('Initializing flutter_background_geolocation service...');
+
+      // Configure event listeners
+      bg.BackgroundGeolocation.onLocation(_onLocation, _onLocationError);
+      bg.BackgroundGeolocation.onMotionChange(_onMotionChange);
+      bg.BackgroundGeolocation.onProviderChange(_onProviderChange);
+
+      // Configure the plugin
+      final state = await bg.BackgroundGeolocation.ready(bg.Config(
+        // Geolocation options
+        desiredAccuracy: bg.Config.DESIRED_ACCURACY_HIGH,
+        distanceFilter: 50.0, // Only track locations 50m apart
+        stopTimeout: 5, // Stop tracking after 5 minutes of no motion
+
+        // Activity recognition
+        stopOnTerminate: false,
+        startOnBoot: true,
+        enableHeadless: true,
+
+        // HTTP & persistence (disabled for now - we use local database)
+        autoSync: false,
+        maxDaysToPersist: 0, // Don't persist in plugin's database
+
+        // Application config
+        debug: false, // Set to true for development debugging
+        logLevel: bg.Config.LOG_LEVEL_OFF,
+
+        // Android specific
+        foregroundService: true,
+        notification: bg.Notification(
+          title: "Aura One Location Tracking",
+          text: "Tracking your location for journal context",
+          sticky: false,
+        ),
+
+        // Battery optimization
+        preventSuspend: false,
+        heartbeatInterval: 60, // Heartbeat every 60 seconds when stationary
+      ));
+
+      _isInitialized = true;
+      appLogger.info('Background location service initialized successfully');
+      appLogger.info('Initial state - enabled: ${state.enabled}, tracking: ${state.enabled}');
+
+      return true;
+    } catch (e, stackTrace) {
+      appLogger.error('Failed to initialize background location service', error: e, stackTrace: stackTrace);
       return false;
+    }
+  }
+
+  /// Handle location updates
+  Future<void> _onLocation(bg.Location location) async {
+    try {
+      appLogger.info("Location received: ${location.coords.latitude}, ${location.coords.longitude}");
+
+      // Check if tracking is enabled
+      final prefs = await SharedPreferences.getInstance();
+      final trackingEnabled = prefs.getBool('backgroundLocationTracking') ?? false;
+
+      if (!trackingEnabled) {
+        appLogger.info("Background location tracking is disabled, skipping save");
+        return;
+      }
+
+      // Initialize database
+      final database = LocationDatabase();
+
+      try {
+        // Query for the last saved position to apply intelligent filtering
+        final lastLocationQuery = database.select(database.locationPoints)
+          ..orderBy([(t) => drift.OrderingTerm(
+            expression: t.timestamp,
+            mode: drift.OrderingMode.desc,
+          )])
+          ..limit(1);
+
+        final lastLocations = await lastLocationQuery.get();
+
+        // The plugin already filters by distanceFilter (50m), but we can add additional logic
+        bool shouldSave = true;
+
+        if (lastLocations.isNotEmpty) {
+          final lastLocation = lastLocations.first;
+          final timeDiff = DateTime.now().difference(lastLocation.timestamp);
+
+          // Don't save if last location was less than 30 seconds ago (prevent bursts)
+          if (timeDiff.inSeconds < 30) {
+            shouldSave = false;
+            appLogger.info("Location too recent (${timeDiff.inSeconds}s). Skipping save.");
+          }
+        }
+
+        if (shouldSave) {
+          // Determine activity type based on motion state
+          String activityType = 'unknown';
+          if (location.activity.type == 'still' || location.activity.type == 'stationary') {
+            activityType = 'stationary';
+          } else if (location.activity.type == 'on_foot' || location.activity.type == 'walking' || location.activity.type == 'running') {
+            activityType = 'moving';
+          } else if (location.activity.type == 'in_vehicle' || location.activity.type == 'on_bicycle') {
+            activityType = 'moving';
+          }
+
+          // Save the new position to the database
+          final locationData = LocationPointsCompanion(
+            latitude: drift.Value(location.coords.latitude),
+            longitude: drift.Value(location.coords.longitude),
+            altitude: drift.Value(location.coords.altitude),
+            speed: drift.Value(location.coords.speed),
+            heading: drift.Value(location.coords.heading),
+            timestamp: drift.Value(DateTime.parse(location.timestamp)),
+            accuracy: drift.Value(location.coords.accuracy),
+            activityType: drift.Value(activityType),
+            isSignificant: drift.Value(location.isMoving),
+          );
+
+          await database.insertLocationPoint(locationData);
+          appLogger.info("Location saved to database");
+
+          // Store last update time
+          await prefs.setInt('lastLocationUpdate', DateTime.now().millisecondsSinceEpoch);
+        }
+      } finally {
+        // Always close the database connection
+        await database.close();
+      }
+    } catch (e, stackTrace) {
+      appLogger.error("Error handling location update", error: e, stackTrace: stackTrace);
+    }
+  }
+
+  /// Handle location errors
+  void _onLocationError(bg.LocationError error) {
+    appLogger.error("Location error: ${error.code} - ${error.message}");
+  }
+
+  /// Handle motion change events (moving <-> stationary)
+  void _onMotionChange(bg.Location location) {
+    appLogger.info("Motion change detected: isMoving=${location.isMoving}, activity=${location.activity.type}");
+    // Location will be saved via _onLocation callback
+  }
+
+  /// Handle provider change events (location services enabled/disabled)
+  void _onProviderChange(bg.ProviderChangeEvent event) {
+    appLogger.info("Provider change: enabled=${event.enabled}, status=${event.status}");
+    if (!event.enabled) {
+      appLogger.warning("Location services have been disabled");
     }
   }
 
   /// Start background location tracking
   Future<bool> startTracking() async {
     try {
-      // Check permissions first
-      final hasPermission = await checkLocationPermission();
-      if (!hasPermission) {
-        appLogger.warning('Cannot start tracking - location permission denied');
-        return false;
+      // Initialize if not already done
+      if (!_isInitialized) {
+        final initialized = await initialize();
+        if (!initialized) {
+          return false;
+        }
       }
 
       // Enable tracking preference
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('backgroundLocationTracking', true);
 
+      // Start tracking
+      final state = await bg.BackgroundGeolocation.start();
       appLogger.info('Background location tracking started successfully');
-
-      // Perform initial location update
-      await _performLocationUpdate();
+      appLogger.info('State after start - enabled: ${state.enabled}, tracking: ${state.enabled}');
 
       return true;
-    } catch (e) {
-      appLogger.error('Failed to start background location tracking', error: e);
+    } catch (e, stackTrace) {
+      appLogger.error('Failed to start background location tracking', error: e, stackTrace: stackTrace);
       return false;
     }
   }
@@ -203,21 +211,27 @@ class BackgroundLocationService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('backgroundLocationTracking', false);
 
-      // Cancel the periodic task
-      await Workmanager().cancelByUniqueName(backgroundTaskId);
+      // Stop tracking
+      final state = await bg.BackgroundGeolocation.stop();
       appLogger.info('Background location tracking stopped');
+      appLogger.info('State after stop - enabled: ${state.enabled}');
 
       return true;
-    } catch (e) {
-      appLogger.error('Failed to stop background location tracking', error: e);
+    } catch (e, stackTrace) {
+      appLogger.error('Failed to stop background location tracking', error: e, stackTrace: stackTrace);
       return false;
     }
   }
 
   /// Check if tracking is enabled
   Future<bool> isTrackingEnabled() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('backgroundLocationTracking') ?? false;
+    try {
+      final state = await bg.BackgroundGeolocation.state;
+      return state.enabled;
+    } catch (e) {
+      appLogger.error('Error checking tracking status', error: e);
+      return false;
+    }
   }
 
   /// Get the last update time
@@ -233,91 +247,74 @@ class BackgroundLocationService {
   /// Check and request location permissions
   Future<bool> checkLocationPermission() async {
     try {
-      // First check if location services are enabled
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        appLogger.warning('Location services are disabled');
-        // Try to open location settings
-        try {
-          await Geolocator.openLocationSettings();
-          // Re-check after user potentially enables it
-          await Future.delayed(Duration(seconds: 2));
-          serviceEnabled = await Geolocator.isLocationServiceEnabled();
-          if (!serviceEnabled) {
-            appLogger.warning('Location services still disabled after prompt');
-            return false;
-          }
-        } catch (e) {
-          appLogger.error('Could not open location settings: $e');
-          return false;
-        }
-      }
+      final status = await bg.BackgroundGeolocation.requestPermission();
+      appLogger.info('Location permission status: $status');
 
-      // Check current permission status
-      LocationPermission permission = await Geolocator.checkPermission();
-      appLogger.info('Current location permission: $permission');
-
-      // Request permission if denied
-      if (permission == LocationPermission.denied) {
-        appLogger.info('Requesting location permission...');
-        permission = await Geolocator.requestPermission();
-        appLogger.info('Permission after request: $permission');
-
-        if (permission == LocationPermission.denied) {
-          appLogger.warning('Location permission denied by user');
-          return false;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        appLogger.warning('Location permission denied forever, opening app settings...');
-        // Permissions are denied forever, prompt user to open settings
-        try {
-          await Geolocator.openAppSettings();
-          return false; // User needs to manually enable in settings
-        } catch (e) {
-          appLogger.error('Could not open app settings: $e');
-          return false;
-        }
-      }
-
-      // For background tracking, we need "always" permission on iOS
-      // On Android, whileInUse is sufficient with background_fetch
-      if (Platform.isIOS && permission == LocationPermission.whileInUse) {
-        appLogger.info('iOS requires "Always Allow" for background tracking');
-        // Guide user to upgrade permission
-        await Geolocator.openAppSettings();
-        return false;
-      }
-
-      final hasPermission = permission == LocationPermission.whileInUse ||
-                           permission == LocationPermission.always;
-
-      appLogger.info('Location permission granted: $hasPermission (permission: $permission)');
-      return hasPermission;
-    } catch (e) {
-      appLogger.error('Error checking location permission', error: e);
+      // Status values:
+      // 0 = AUTHORIZED_ALWAYS
+      // 1 = AUTHORIZED_WHEN_IN_USE
+      // 2 = DENIED
+      // 3 = NOT_DETERMINED
+      return status == bg.ProviderChangeEvent.AUTHORIZATION_STATUS_ALWAYS ||
+             status == bg.ProviderChangeEvent.AUTHORIZATION_STATUS_WHEN_IN_USE;
+    } catch (e, stackTrace) {
+      appLogger.error('Error checking location permission', error: e, stackTrace: stackTrace);
       return false;
     }
   }
 
   /// Get current location on-demand
-  Future<Position?> getCurrentLocation() async {
+  Future<bg.Location?> getCurrentLocation() async {
     try {
-      final hasPermission = await checkLocationPermission();
-      if (!hasPermission) {
-        return null;
+      // Initialize if not already done
+      if (!_isInitialized) {
+        final initialized = await initialize();
+        if (!initialized) {
+          return null;
+        }
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 30),
+      final location = await bg.BackgroundGeolocation.getCurrentPosition(
+        samples: 1,
+        timeout: 30,
+        maximumAge: 5000,
+        desiredAccuracy: 50,
       );
 
-      return position;
-    } catch (e) {
-      appLogger.error('Error getting current location: $e');
+      return location;
+    } catch (e, stackTrace) {
+      appLogger.error('Error getting current location', error: e, stackTrace: stackTrace);
       return null;
+    }
+  }
+
+  /// Change pace (moving/stationary) manually
+  Future<void> changePace(bool isMoving) async {
+    try {
+      await bg.BackgroundGeolocation.changePace(isMoving);
+      appLogger.info('Pace changed to: ${isMoving ? "moving" : "stationary"}');
+    } catch (e, stackTrace) {
+      appLogger.error('Error changing pace', error: e, stackTrace: stackTrace);
+    }
+  }
+
+  /// Get tracking statistics
+  Future<Map<String, dynamic>> getTrackingStats() async {
+    try {
+      final state = await bg.BackgroundGeolocation.state;
+      final lastUpdate = await getLastUpdateTime();
+
+      return {
+        'enabled': state.enabled,
+        'isMoving': state.isMoving,
+        'trackingMode': state.trackingMode,
+        'lastUpdate': lastUpdate?.toIso8601String(),
+        'distanceFilter': state.distanceFilter,
+        'desiredAccuracy': state.desiredAccuracy,
+      };
+    } catch (e, stackTrace) {
+      appLogger.error('Error getting tracking stats', error: e, stackTrace: stackTrace);
+      return {};
     }
   }
 }

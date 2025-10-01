@@ -1,6 +1,6 @@
 # Task ID: 39
 # Title: Remove or implement face detection stubs - evaluate and decide on face detection functionality
-# Status: pending
+# Status: done
 # Dependencies: 2, 3
 # Priority: high
 # Description: Analyze face detection usage in PhotoService and either properly implement face detection using google_mlkit_face_detection or completely remove all face detection functionality and dependencies to maintain APK size optimization.

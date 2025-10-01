@@ -7,6 +7,8 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:models/models.dart';
 import 'package:purplebase/purplebase.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 import 'package:aura_one/router.dart';
 import 'package:aura_one/theme.dart';
 import 'package:aura_one/theme/colors.dart';
@@ -16,7 +18,6 @@ import 'package:aura_one/utils/error_handler.dart';
 import 'package:aura_one/utils/logger.dart';
 import 'package:aura_one/services/background_location_service.dart';
 import 'package:aura_one/services/simple_location_service.dart';
-import 'package:workmanager/workmanager.dart';
 import 'package:aura_one/providers/fusion_providers.dart';
 import 'package:aura_one/providers/context_providers.dart';
 import 'package:aura_one/providers/settings_providers.dart';
@@ -39,8 +40,43 @@ void main() {
     // Ensure Flutter binding is initialized
     WidgetsFlutterBinding.ensureInitialized();
 
-    // Initialize Workmanager for background tasks
-    Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+    // Initialize timezone data
+    tz.initializeTimeZones();
+
+    // Set local timezone based on device's local time
+    // We'll use a simple approach to determine timezone offset
+    try {
+      final now = DateTime.now();
+      final utcNow = now.toUtc();
+      final offset = now.timeZoneOffset;
+
+      // Find a timezone with the matching offset
+      // For Utah (Mountain Time), this should resolve to America/Denver
+      String timezoneName = 'UTC';
+
+      if (offset.inHours == -7 || offset.inHours == -6) {
+        // Mountain Time (MST/MDT)
+        timezoneName = 'America/Denver';
+      } else if (offset.inHours == -8 || offset.inHours == -7) {
+        // Pacific Time (PST/PDT)
+        timezoneName = 'America/Los_Angeles';
+      } else if (offset.inHours == -5 || offset.inHours == -4) {
+        // Eastern Time (EST/EDT)
+        timezoneName = 'America/New_York';
+      } else if (offset.inHours == -6 || offset.inHours == -5) {
+        // Central Time (CST/CDT)
+        timezoneName = 'America/Chicago';
+      }
+
+      tz.setLocalLocation(tz.getLocation(timezoneName));
+      appLogger.info('Timezone initialized: $timezoneName (offset: ${offset.inHours}h)');
+    } catch (e) {
+      appLogger.warning('Could not detect timezone, using UTC: $e');
+      tz.setLocalLocation(tz.UTC);
+    }
+
+    // Note: Background location now uses flutter_background_geolocation
+    // which handles its own initialization
 
     // Log app startup
     appLogger.info('Aura One starting...');

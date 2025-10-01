@@ -1,15 +1,23 @@
 import org.gradle.api.tasks.compile.JavaCompile
 
 allprojects {
+    ext {
+        set("appCompatVersion", "1.4.2")
+        set("playServicesLocationVersion", "21.3.0")
+    }
     repositories {
         google()
         mavenCentral()
         maven {
             url = uri("https://www.jitpack.io")
         }
+        // [required] flutter_background_geolocation
         maven {
-            // Required for background_fetch plugin
-            url = uri("${project.rootDir}/libs")
+            url = uri("${project(":flutter_background_geolocation").projectDir}/libs")
+        }
+        // [required] background_fetch
+        maven {
+            url = uri("${project(":background_fetch").projectDir}/libs")
         }
     }
 }
@@ -25,6 +33,15 @@ subprojects {
     afterEvaluate {
         tasks.withType<JavaCompile> {
             options.compilerArgs.addAll(listOf("-Xlint:-options"))
+        }
+
+        // Fix for packages that don't have namespace configured
+        if (project.hasProperty("android")) {
+            project.extensions.configure<com.android.build.gradle.BaseExtension>("android") {
+                if (namespace == null) {
+                    namespace = "com.example.${project.name.replace("-", "_")}"
+                }
+            }
         }
     }
 }

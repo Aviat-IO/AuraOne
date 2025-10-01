@@ -40,13 +40,31 @@ class CalendarEventData {
 
   /// Convert from device_calendar Event
   factory CalendarEventData.fromEvent(Event event) {
+    // TZDateTime from device_calendar plugin already contains timezone info
+    // Convert TZDateTime to local DateTime for display
+    final startLocal = event.start is tz.TZDateTime
+        ? DateTime.fromMillisecondsSinceEpoch(
+            event.start!.millisecondsSinceEpoch,
+            isUtc: false,
+          )
+        : event.start!.toLocal();
+
+    final endLocal = event.end != null
+        ? (event.end is tz.TZDateTime
+            ? DateTime.fromMillisecondsSinceEpoch(
+                event.end!.millisecondsSinceEpoch,
+                isUtc: false,
+              )
+            : event.end!.toLocal())
+        : null;
+
     return CalendarEventData(
       id: event.eventId ?? '',
       calendarId: event.calendarId,
       title: event.title ?? 'Untitled Event',
       description: event.description,
-      startDate: event.start!.toLocal(),
-      endDate: event.end?.toLocal(),
+      startDate: startLocal,
+      endDate: endLocal,
       isAllDay: event.allDay ?? false,
       location: event.location,
       attendees: event.attendees?.map((a) => a?.name ?? a?.emailAddress ?? '').toList() ?? [],

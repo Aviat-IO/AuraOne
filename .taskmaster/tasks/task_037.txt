@@ -1,6 +1,6 @@
 # Task ID: 37
 # Title: Replace hardcoded app version with dynamic package info retrieval in error_handler.dart
-# Status: pending
+# Status: done
 # Dependencies: None
 # Priority: high
 # Description: Replace the hardcoded app version '1.0.0' at line 37 in lib/utils/error_handler.dart with dynamic package version retrieval using the existing package_info_plus dependency.

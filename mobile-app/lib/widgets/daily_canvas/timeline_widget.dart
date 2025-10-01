@@ -207,7 +207,7 @@ final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTi
     }
 
     return TimelineEvent(
-      time: activity.timestamp.toLocal(),  // Convert UTC to local time
+      time: activity.timestamp.toLocal(),  // Convert UTC to local time for journal activities
       title: title,
       description: description,
       type: eventType,
@@ -230,7 +230,7 @@ final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTi
       })
       .map((calendarEvent) {
         return TimelineEvent(
-          time: calendarEvent.startDate.toLocal(),  // Convert to local time
+          time: calendarEvent.startDate,  // Already in local time from CalendarEventData
           title: calendarEvent.title,
           description: calendarEvent.description ?? '',
           type: EventType.work, // Default calendar events to work type
