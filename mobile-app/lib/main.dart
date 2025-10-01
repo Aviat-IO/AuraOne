@@ -9,6 +9,7 @@ import 'package:models/models.dart';
 import 'package:purplebase/purplebase.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:aura_one/router.dart';
 import 'package:aura_one/theme.dart';
 import 'package:aura_one/theme/colors.dart';
@@ -39,6 +40,14 @@ void main() {
   runZonedGuarded(() async {
     // Ensure Flutter binding is initialized
     WidgetsFlutterBinding.ensureInitialized();
+
+    // Load environment variables from .env file
+    try {
+      await dotenv.load(fileName: '.env');
+    } catch (e) {
+      // .env file is optional - app will work without it
+      appLogger.info('No .env file found, using defaults');
+    }
 
     // Initialize timezone data
     tz.initializeTimeZones();

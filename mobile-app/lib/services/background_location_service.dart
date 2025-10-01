@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter_background_geolocation/flutter_background_geolocation.dart' as bg;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../database/location_database.dart';
@@ -40,14 +41,12 @@ class BackgroundLocationService {
         //
         // SECURITY: Never commit license keys to git
         // Add your license key to .env file: BG_GEO_LICENSE=your_key_here
-        // Then run with: fvm flutter run --dart-define=BG_GEO_LICENSE=your_key_here
-        // Or load from .env using flutter_dotenv package
         //
         // For development/testing without a license, the plugin works but shows a notification
-        authorization: const String.fromEnvironment('BG_GEO_LICENSE').isNotEmpty
+        authorization: _getLicenseKey() != null
             ? bg.Authorization(
                 strategy: bg.Authorization.STRATEGY_JWT,
-                accessToken: const String.fromEnvironment('BG_GEO_LICENSE'),
+                accessToken: _getLicenseKey()!,
               )
             : null,
 
@@ -332,5 +331,21 @@ class BackgroundLocationService {
       appLogger.error('Error getting tracking stats', error: e, stackTrace: stackTrace);
       return {};
     }
+  }
+
+  /// Get license key from environment
+  String? _getLicenseKey() {
+    // Try dotenv first (from .env file)
+    if (dotenv.isInitialized && dotenv.env['BG_GEO_LICENSE']?.isNotEmpty == true) {
+      return dotenv.env['BG_GEO_LICENSE'];
+    }
+
+    // Fall back to compile-time environment variable (--dart-define)
+    const envKey = String.fromEnvironment('BG_GEO_LICENSE');
+    if (envKey.isNotEmpty) {
+      return envKey;
+    }
+
+    return null;
   }
 }
