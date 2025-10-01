@@ -8,10 +8,11 @@ import 'location_database_provider.dart';
 final _logger = AppLogger('RealtimeClusteringProvider');
 
 /// Progressive clustering instance that updates in real-time
+/// Optimized for flutter_background_geolocation's motion-based tracking
 final progressiveClusteringProvider = StateProvider<ProgressiveClustering>((ref) {
   return ProgressiveClustering(
-    mergeRadius: 50,  // 50 meters
-    stayDuration: const Duration(minutes: 5),
+    mergeRadius: 100,  // 100 meters (increased for motion-detected points)
+    stayDuration: const Duration(minutes: 2),  // Reduced from 5 min - motion tracking ensures significance
   );
 });
 
@@ -31,10 +32,14 @@ final realtimeClusterProvider = StreamProvider<List<LocationCluster>>((ref) asyn
     }
 
     // Get only today's locations
+    // With flutter_background_geolocation, filter by isSignificant to get motion-detected points
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
     final todayLocations = locations
-        .where((loc) => loc.timestamp.isAfter(todayStart))
+        .where((loc) =>
+            loc.timestamp.isAfter(todayStart) &&
+            loc.isSignificant  // Only include significant movement points from motion detection
+        )
         .toList();
 
     if (todayLocations.isEmpty) {

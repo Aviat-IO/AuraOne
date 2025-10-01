@@ -107,8 +107,14 @@ final clusteredLocationsProvider = FutureProvider.family<List<LocationCluster>, 
       );
 
       // Filter locations for the specific date
+      // With flutter_background_geolocation, use isSignificant field to pre-filter
+      // This field is set by the location service based on motion detection (50m+ movement)
       final dayLocations = locationHistory
-          .where((loc) => loc.timestamp.isAfter(dayStart) && loc.timestamp.isBefore(dayEnd))
+          .where((loc) =>
+              loc.timestamp.isAfter(dayStart) &&
+              loc.timestamp.isBefore(dayEnd) &&
+              loc.isSignificant  // Only include significant movement points from motion detection
+          )
           .toList();
 
       if (dayLocations.isEmpty) {
@@ -134,12 +140,13 @@ final clusteredLocationsProvider = FutureProvider.family<List<LocationCluster>, 
         minPts: 2,   // Reduced to 2 points to form a cluster (even more aggressive grouping)
       );
 
-      // Filter clusters to only include those with significant duration
-      // This filters out places you just drove through slowly
+      // Since flutter_background_geolocation only returns locations when moving (50m+ filter),
+      // we don't need aggressive time-based filtering. Most clusters represent actual movement/stops.
+      // Keep duration threshold minimal to capture brief stops while filtering noise
       var significantClusters = result.clusters.where((cluster) {
-        // Only count as a visited place if you stayed for at least 1 minute
-        // Further reduced threshold to capture very brief visits
-        return cluster.duration.inMinutes >= 1;
+        // Very minimal threshold - just filter out data anomalies
+        // Motion-based tracking already ensures these are significant movements
+        return cluster.duration.inSeconds >= 30; // 30 seconds minimum (reduced from 1 minute)
       }).toList();
 
       // Merge clusters that are at the same location
@@ -202,8 +209,14 @@ final journeySegmentsProvider = FutureProvider.family<List<JourneySegment>, Date
       );
 
       // Filter locations for the specific date
+      // With flutter_background_geolocation, use isSignificant field to pre-filter
+      // This field is set by the location service based on motion detection (50m+ movement)
       final dayLocations = locationHistory
-          .where((loc) => loc.timestamp.isAfter(dayStart) && loc.timestamp.isBefore(dayEnd))
+          .where((loc) =>
+              loc.timestamp.isAfter(dayStart) &&
+              loc.timestamp.isBefore(dayEnd) &&
+              loc.isSignificant  // Only include significant movement points from motion detection
+          )
           .toList();
 
       if (dayLocations.isEmpty) {
