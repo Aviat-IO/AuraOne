@@ -1,9 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/media_database.dart';
-import '../database/location_database.dart';
 import '../services/ai_pipeline_tester.dart';
 import '../services/daily_context_synthesizer.dart';
 import '../services/ai_feature_extractor.dart';
+import 'media_database_provider.dart';
+import 'location_database_provider.dart';
 
 /// Provider for AI pipeline testing
 final aiPipelineTesterProvider = Provider<AIPipelineTester>((ref) {
@@ -24,10 +25,9 @@ final aiFeatureExtractorProvider = Provider<AIFeatureExtractor>((ref) {
 final aiPipelineTestResultsProvider = FutureProvider<PipelineTestResults>((ref) async {
   final tester = ref.read(aiPipelineTesterProvider);
 
-  // You'll need to provide these databases from your app's providers
-  // For now, this is a placeholder that shows the integration pattern
-  final mediaDatabase = MediaDatabase(); // Replace with your actual database provider
-  final locationDatabase = LocationDatabase(); // Replace with your actual database provider
+  // Use actual database providers
+  final mediaDatabase = ref.read(mediaDatabaseProvider);
+  final locationDatabase = ref.read(locationDatabaseProvider);
 
   return await tester.runComprehensiveTests(
     mediaDatabase: mediaDatabase,
@@ -45,9 +45,9 @@ final aiPipelineHealthCheckProvider = FutureProvider<bool>((ref) async {
 final dailyContextProvider = FutureProvider.family<DailyContext, DateTime>((ref, date) async {
   final synthesizer = ref.read(dailyContextSynthesizerProvider);
 
-  // You'll need to provide these from your app's providers
-  final mediaDatabase = MediaDatabase(); // Replace with your actual database provider
-  final locationDatabase = LocationDatabase(); // Replace with your actual database provider
+  // Use actual database providers
+  final mediaDatabase = ref.read(mediaDatabaseProvider);
+  final locationDatabase = ref.read(locationDatabaseProvider);
 
   return await synthesizer.synthesizeDailyContext(
     date: date,
@@ -115,9 +115,9 @@ final latestTestResultsProvider = StateProvider<PipelineTestResults?>((ref) {
 final runAIPipelineTestsProvider = FutureProvider<PipelineTestResults>((ref) async {
   final tester = ref.read(aiPipelineTesterProvider);
 
-  // Run tests with actual databases (you'll need to inject these properly)
-  final mediaDatabase = MediaDatabase();
-  final locationDatabase = LocationDatabase();
+  // Use actual database providers
+  final mediaDatabase = ref.read(mediaDatabaseProvider);
+  final locationDatabase = ref.read(locationDatabaseProvider);
 
   final results = await tester.runComprehensiveTests(
     mediaDatabase: mediaDatabase,

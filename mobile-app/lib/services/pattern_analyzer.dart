@@ -367,13 +367,95 @@ class PatternAnalyzer {
     final insights = summary.aiInsights;
     if (insights.isEmpty) return null;
 
-    // This would analyze the mood from the narrative and other data
-    // For now, we'll create a placeholder implementation
+    // Combine all insights text for analysis
+    final insightText = insights.toLowerCase();
+
+    // Sentiment word lists with weights
+    final positiveWords = {
+      'happy': 0.8, 'excited': 0.9, 'great': 0.7, 'wonderful': 0.9, 'amazing': 0.9,
+      'good': 0.6, 'excellent': 0.9, 'fantastic': 0.9, 'joy': 0.8, 'love': 0.8,
+      'delightful': 0.8, 'pleasant': 0.7, 'satisfied': 0.7, 'accomplished': 0.8,
+      'productive': 0.7, 'successful': 0.8, 'energetic': 0.7, 'grateful': 0.8,
+    };
+
+    final negativeWords = {
+      'sad': 0.8, 'angry': 0.8, 'frustrated': 0.7, 'stressed': 0.7, 'anxious': 0.7,
+      'worried': 0.6, 'upset': 0.7, 'difficult': 0.5, 'challenging': 0.5, 'hard': 0.4,
+      'tired': 0.5, 'exhausted': 0.7, 'overwhelmed': 0.8, 'disappointed': 0.7,
+      'lonely': 0.7, 'bad': 0.6, 'terrible': 0.9, 'awful': 0.9,
+    };
+
+    final neutralWords = {
+      'normal': 0.5, 'routine': 0.5, 'typical': 0.5, 'regular': 0.5, 'average': 0.5,
+    };
+
+    // Calculate sentiment scores
+    double positiveScore = 0.0;
+    int positiveCount = 0;
+    double negativeScore = 0.0;
+    int negativeCount = 0;
+    final List<String> triggers = [];
+
+    // Analyze positive sentiment
+    positiveWords.forEach((word, weight) {
+      if (insightText.contains(word)) {
+        positiveScore += weight;
+        positiveCount++;
+        triggers.add('+$word');
+      }
+    });
+
+    // Analyze negative sentiment
+    negativeWords.forEach((word, weight) {
+      if (insightText.contains(word)) {
+        negativeScore += weight;
+        negativeCount++;
+        triggers.add('-$word');
+      }
+    });
+
+    // Check for neutral indicators
+    bool hasNeutralIndicators = neutralWords.keys.any((word) => insightText.contains(word));
+
+    // Calculate overall mood score (0.0 to 1.0)
+    double finalScore = 0.5; // Default neutral
+    String category = 'Neutral';
+    double confidence = 0.5;
+
+    if (positiveCount > 0 || negativeCount > 0) {
+      // Calculate weighted score
+      final totalWeight = positiveScore + negativeScore;
+      if (totalWeight > 0) {
+        finalScore = positiveScore / totalWeight;
+      }
+
+      // Determine category
+      if (finalScore >= 0.7) {
+        category = 'Positive';
+        confidence = 0.7 + (finalScore - 0.7) * 0.3; // 0.7-1.0
+      } else if (finalScore <= 0.3) {
+        category = 'Negative';
+        confidence = 0.7 + (0.3 - finalScore) * 0.3; // 0.7-1.0
+      } else {
+        category = 'Neutral';
+        confidence = 0.6 - (finalScore - 0.5).abs() * 0.4; // 0.2-0.6
+      }
+
+      // Increase confidence based on number of sentiment indicators found
+      final totalIndicators = positiveCount + negativeCount;
+      confidence = (confidence + (totalIndicators * 0.05)).clamp(0.0, 1.0);
+    } else if (hasNeutralIndicators) {
+      confidence = 0.6;
+    }
+
+    // If very low confidence, return null (insufficient data)
+    if (confidence < 0.3) return null;
+
     return MoodDataPoint(
-      score: 0.7, // Would be calculated from various factors
-      category: 'Neutral',
-      triggers: [],
-      confidence: 0.6,
+      score: finalScore,
+      category: category,
+      triggers: triggers.take(5).toList(), // Limit to top 5 triggers
+      confidence: confidence,
     );
   }
 

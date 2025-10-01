@@ -1,7 +1,8 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'photo_service_provider.dart' show photoServiceProvider;
+import 'media_database_provider.dart';
+import '../database/media_database.dart';
 
-// Re-export the photo service provider for backward compatibility
+// Export photo service provider for backward compatibility
 export 'photo_service_provider.dart' show photoServiceProvider;
 
 // Photo permission state provider
@@ -10,18 +11,29 @@ final photoPermissionProvider = StateProvider<bool>((ref) => false);
 // Photo scanning state provider
 final isPhotoScanningProvider = StateProvider<bool>((ref) => false);
 
-// Recent photos provider - using actual PhotoService methods
-final recentPhotosProvider = FutureProvider.autoDispose<List<dynamic>>((ref) async {
-  final photoService = ref.watch(photoServiceProvider);
-  // The PhotoService might have different methods - we'll use what's available
-  // This is a placeholder that prevents compilation errors
-  return [];
+// Recent photos provider - fetches recent media items from database
+final recentPhotosProvider = FutureProvider.autoDispose<List<MediaItem>>((ref) async {
+  final mediaDb = ref.watch(mediaDatabaseProvider);
+  return await mediaDb.getRecentMedia(
+    duration: const Duration(days: 30),
+    limit: 100,
+    includeDeleted: false,
+  );
 });
 
-// Photos by date provider - placeholder
-final photosByDateProvider = FutureProvider.family<List<dynamic>, DateTime>((ref, date) async {
-  // Placeholder implementation
-  return [];
+// Photos by date provider - fetches media for a specific date
+final photosByDateProvider = FutureProvider.family<List<MediaItem>, DateTime>((ref, date) async {
+  final mediaDb = ref.watch(mediaDatabaseProvider);
+  // Get photos for the entire day (start to end of day)
+  final dayStart = DateTime(date.year, date.month, date.day);
+  final dayEnd = dayStart.add(const Duration(days: 1));
+
+  return await mediaDb.getMediaByDateRange(
+    startDate: dayStart,
+    endDate: dayEnd,
+    includeDeleted: false,
+    processedOnly: true,
+  );
 });
 
 // Photo album provider - placeholder
