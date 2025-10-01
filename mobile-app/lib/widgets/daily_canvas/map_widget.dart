@@ -4,7 +4,10 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../providers/location_clustering_provider.dart';
+import '../../providers/location_database_provider.dart';
+import '../../database/location_database.dart' as loc_db;
 import '../../services/ai/dbscan_clustering.dart';
+import '../location/path_visualizer.dart';
 import 'map_debug_overlay.dart';
 
 class MapWidget extends HookConsumerWidget {
@@ -29,6 +32,9 @@ class MapWidget extends HookConsumerWidget {
 
     // Get clusters for the target date
     final clustersAsync = ref.watch(clusteredLocationsProvider(targetDate));
+
+    // Get recent location history for path visualization (last 7 days)
+    final locationHistoryAsync = ref.watch(recentLocationPointsProvider(const Duration(days: 7)));
 
     return Container(
       height: 300,
@@ -133,6 +139,18 @@ class MapWidget extends HookConsumerWidget {
                   Container(
                     color: Colors.white.withValues(alpha: 0.15),
                   ),
+                // Add path visualization layers (polylines and direction arrows)
+                ...locationHistoryAsync.when(
+                  data: (locationHistory) => PathVisualizerWidget.buildPathLayers(
+                    locations: _filterLocationsByDate(locationHistory, targetDate),
+                    theme: theme,
+                    pathColor: theme.colorScheme.primary.withValues(alpha: 0.7),
+                    pathWidth: 3.0,
+                    arrowSpacing: 150.0, // Show arrows every 150 meters
+                  ),
+                  loading: () => [],
+                  error: (_, __) => [],
+                ),
                 MarkerLayer(
                   markers: _buildMarkers(clusters, theme),
                 ),
@@ -335,5 +353,18 @@ class MapWidget extends HookConsumerWidget {
     if (pointCount < 5) return theme.colorScheme.primary;
     if (pointCount < 10) return theme.colorScheme.tertiary;
     return theme.colorScheme.error;
+  }
+
+  List<loc_db.LocationPoint> _filterLocationsByDate(
+    List<loc_db.LocationPoint> locations,
+    DateTime targetDate,
+  ) {
+    final dayStart = DateTime(targetDate.year, targetDate.month, targetDate.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+
+    return locations
+        .where((loc) =>
+            loc.timestamp.isAfter(dayStart) && loc.timestamp.isBefore(dayEnd))
+        .toList();
   }
 }
