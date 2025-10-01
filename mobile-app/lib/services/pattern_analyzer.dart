@@ -368,7 +368,7 @@ class PatternAnalyzer {
     if (insights.isEmpty) return null;
 
     // Combine all insights text for analysis
-    final insightText = insights.toLowerCase();
+    final insightText = insights.join(' ').toLowerCase();
 
     // Sentiment word lists with weights
     final positiveWords = {
