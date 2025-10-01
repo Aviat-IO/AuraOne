@@ -1,3 +1,16 @@
+// NOTE: This service is currently DISABLED (see context_providers.dart)
+// Activity detection has been replaced by flutter_background_geolocation which provides:
+// - activity.type: still/walking/running/in_vehicle/on_bicycle/on_foot
+// - activity.confidence: confidence score for detected activity
+// - isMoving: boolean indicating if device is moving
+// - speed, heading, heading_accuracy: movement data
+//
+// Custom IMU sensor collection (accelerometer/gyroscope) is redundant with
+// flutter_background_geolocation's built-in activity recognition.
+//
+// This file is kept for reference but should be refactored to use
+// BackgroundLocationService activity data instead of custom sensor collection.
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;

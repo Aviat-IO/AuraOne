@@ -1,3 +1,12 @@
+// NOTE: This service requires tflite_flutter which is commented out in pubspec.yaml
+// Activity detection is now provided by flutter_background_geolocation which includes:
+// - activity.type: still/walking/running/in_vehicle/on_bicycle/on_foot
+// - activity.confidence: confidence score for detected activity
+// - No need for custom HAR (Human Activity Recognition) model
+//
+// This file is kept for reference but cannot be used without tflite_flutter.
+// Use BackgroundLocationService.activityType data instead.
+
 import 'dart:isolate';
 import 'dart:math';
 import 'dart:io';
@@ -8,6 +17,7 @@ import 'ai_service.dart';
 import 'imu_data_collector.dart';
 
 // Stage 1: Spatiotemporal Data Processing
+// [DEPRECATED] Use flutter_background_geolocation activity data instead
 class SpatiotemporalProcessor extends PipelineStage {
   final AIServiceConfig config;
   Interpreter? _harInterpreter;

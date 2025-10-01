@@ -1,3 +1,13 @@
+// NOTE: This service is REDUNDANT with flutter_background_geolocation
+// Activity detection is now provided by flutter_background_geolocation which includes:
+// - activity.type: still/walking/running/in_vehicle/on_bicycle/on_foot
+// - activity.confidence: confidence score for detected activity
+// - isMoving: boolean indicating if device is moving
+// - speed, heading, heading_accuracy: movement data
+//
+// Custom IMU data collection for HAR (Human Activity Recognition) is no longer needed.
+// This file is kept for reference but is not used in production.
+
 import 'dart:async';
 import 'dart:collection';
 import 'package:flutter/foundation.dart';
@@ -6,6 +16,7 @@ import 'spatiotemporal_processor.dart';
 
 /// Service for collecting IMU (Inertial Measurement Unit) data
 /// from device accelerometer and gyroscope sensors
+/// [DEPRECATED] Use flutter_background_geolocation activity data instead
 class IMUDataCollector {
   // Sampling configuration
   static const Duration samplingInterval = Duration(milliseconds: 20); // 50Hz
