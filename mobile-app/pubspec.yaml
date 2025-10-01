@@ -86,7 +86,6 @@ dependencies:
   device_info_plus: ^12.1.0
   string_similarity: ^2.1.1
   fuzzy: ^0.5.1
-  sentry_flutter: ^9.6.0
   media_picker_plus: ^0.1.0+2
   freezed_annotation: ^2.4.4
   json_annotation: ^4.9.0
@@ -94,7 +93,6 @@ dependencies:
   flutter_background_service_android: ^6.3.1
   flutter_background_service_ios: ^5.0.3
   flutter_background_geolocation: ^4.18.0
-  record: ^6.1.1
   flutter_dotenv: ^6.0.0
   # flutter_gemma: ^0.1.0  # Temporarily commented due to dependency conflict
 

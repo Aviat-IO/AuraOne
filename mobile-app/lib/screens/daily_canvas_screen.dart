@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:record/record.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:drift/drift.dart' as drift;
@@ -866,40 +865,11 @@ class DailyCanvasScreen extends HookConsumerWidget {
     }
   }
 
-  // Implementation for Voice Recording
+  // Implementation for Voice Recording (disabled - audio recording package removed)
   Future<void> _handleVoiceRecording(BuildContext context, WidgetRef ref) async {
-    // Show recording dialog
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => _VoiceRecordingDialog(
-        onRecordingComplete: (String? audioPath) async {
-          if (audioPath != null) {
-            try {
-              final selectedDate = ref.read(selectedDateProvider);
-              final journalService = ref.read(journalServiceProvider);
-
-              // Add audio to the journal entry
-              await journalService.addMediaToJournalEntry(
-                selectedDate,
-                audioPath,
-                'audio',
-              );
-
-              Fluttertoast.showToast(
-                msg: 'Voice recording added to journal',
-                toastLength: Toast.LENGTH_SHORT,
-              );
-            } catch (e) {
-              Fluttertoast.showToast(
-                msg: 'Failed to save recording: ${e.toString()}',
-                toastLength: Toast.LENGTH_LONG,
-                backgroundColor: Colors.red,
-              );
-            }
-          }
-        },
-      ),
+    Fluttertoast.showToast(
+      msg: 'Voice recording feature is currently unavailable',
+      toastLength: Toast.LENGTH_SHORT,
     );
   }
 
@@ -976,170 +946,3 @@ class DailyCanvasScreen extends HookConsumerWidget {
 }
 
 // Voice Recording Dialog Widget
-class _VoiceRecordingDialog extends StatefulWidget {
-  final Function(String?) onRecordingComplete;
-
-  const _VoiceRecordingDialog({required this.onRecordingComplete});
-
-  @override
-  State<_VoiceRecordingDialog> createState() => _VoiceRecordingDialogState();
-}
-
-class _VoiceRecordingDialogState extends State<_VoiceRecordingDialog> {
-  final _audioRecorder = AudioRecorder();
-  bool _isRecording = false;
-  String? _recordingPath;
-  int _recordingDuration = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkMicrophonePermission();
-  }
-
-  @override
-  void dispose() {
-    _audioRecorder.dispose();
-    super.dispose();
-  }
-
-  Future<void> _checkMicrophonePermission() async {
-    final permission = await Permission.microphone.request();
-    if (!permission.isGranted) {
-      Navigator.of(context).pop();
-      Fluttertoast.showToast(
-        msg: 'Microphone permission required',
-        toastLength: Toast.LENGTH_LONG,
-      );
-    }
-  }
-
-  Future<void> _toggleRecording() async {
-    if (_isRecording) {
-      // Stop recording
-      final path = await _audioRecorder.stop();
-      setState(() {
-        _isRecording = false;
-        _recordingPath = path;
-      });
-    } else {
-      // Start recording
-      final hasPermission = await _audioRecorder.hasPermission();
-      if (!hasPermission) {
-        Fluttertoast.showToast(
-          msg: 'Microphone permission required',
-          toastLength: Toast.LENGTH_LONG,
-        );
-        return;
-      }
-
-      // Get temporary directory for audio file
-      final tempDir = await getTemporaryDirectory();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final audioPath = '${tempDir.path}/voice_recording_$timestamp.m4a';
-
-      await _audioRecorder.start(
-        RecordConfig(
-          encoder: AudioEncoder.aacLc,
-          bitRate: 128000,
-          sampleRate: 44100,
-        ),
-        path: audioPath,
-      );
-
-      setState(() {
-        _isRecording = true;
-        _recordingDuration = 0;
-      });
-
-      // Update duration every second
-      Future.doWhile(() async {
-        await Future.delayed(const Duration(seconds: 1));
-        if (_isRecording) {
-          setState(() {
-            _recordingDuration++;
-          });
-          return true;
-        }
-        return false;
-      });
-    }
-  }
-
-  String _formatDuration(int seconds) {
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return AlertDialog(
-      title: const Text('Voice Recording'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            _isRecording ? Icons.mic : Icons.mic_none,
-            size: 64,
-            color: _isRecording ? Colors.red : theme.colorScheme.primary,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            _isRecording ? 'Recording...' : (_recordingPath != null ? 'Recording Complete' : 'Tap to start recording'),
-            style: theme.textTheme.titleMedium,
-          ),
-          if (_isRecording) ...[
-            const SizedBox(height: 8),
-            Text(
-              _formatDuration(_recordingDuration),
-              style: theme.textTheme.headlineMedium,
-            ),
-          ],
-        ],
-      ),
-      actions: [
-        if (!_isRecording && _recordingPath == null)
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              widget.onRecordingComplete(null);
-            },
-            child: const Text('Cancel'),
-          ),
-        if (_recordingPath != null) ...[
-          TextButton(
-            onPressed: () {
-              // Delete the recording and start over
-              if (_recordingPath != null && File(_recordingPath!).existsSync()) {
-                File(_recordingPath!).deleteSync();
-              }
-              setState(() {
-                _recordingPath = null;
-                _recordingDuration = 0;
-              });
-            },
-            child: const Text('Discard'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              widget.onRecordingComplete(_recordingPath);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-        if (_recordingPath == null)
-          ElevatedButton(
-            onPressed: _toggleRecording,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _isRecording ? Colors.red : theme.colorScheme.primary,
-            ),
-            child: Text(_isRecording ? 'Stop' : 'Record'),
-          ),
-      ],
-    );
-  }
-}

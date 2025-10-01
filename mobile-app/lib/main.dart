@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:models/models.dart';
 import 'package:purplebase/purplebase.dart';
@@ -24,7 +23,6 @@ import 'package:aura_one/providers/context_providers.dart';
 import 'package:aura_one/providers/settings_providers.dart';
 import 'package:aura_one/providers/location_database_provider.dart';
 import 'package:aura_one/services/journal_service.dart';
-import 'package:aura_one/config/sentry_config.dart';
 import 'package:aura_one/services/background_init_service.dart';
 import 'package:aura_one/screens/optimized_splash_screen.dart';
 import 'package:aura_one/utils/performance_monitor.dart';
@@ -98,75 +96,6 @@ void main() {
     // Load saved theme preference before app starts
     await BrightnessNotifier.loadInitialBrightness();
 
-    // Get package info for dynamic version
-    PackageInfo? packageInfo;
-    try {
-      packageInfo = await PackageInfo.fromPlatform();
-      // Set dynamic release version for Sentry
-      SentryConfig.release = 'aura-one@${packageInfo.version}+${packageInfo.buildNumber}';
-    } catch (e) {
-      appLogger.warning('Could not get package info for Sentry: $e');
-      // Fallback to a default version if package info fails
-      SentryConfig.release = 'aura-one@0.1.0+1';
-    }
-
-    // Initialize Sentry for crash reporting only if enabled and DSN is configured
-    if (SentryConfig.enabled && SentryConfig.dsn.isNotEmpty) {
-      await SentryFlutter.init(
-        (options) {
-          // Use DSN from configuration
-          options.dsn = SentryConfig.dsn;
-
-          // Set sample rates based on build mode
-          options.tracesSampleRate = kDebugMode
-              ? SentryConfig.debugTracesSampleRate
-              : SentryConfig.productionTracesSampleRate;
-          options.profilesSampleRate = kDebugMode
-              ? SentryConfig.debugProfilesSampleRate
-              : SentryConfig.productionProfilesSampleRate;
-
-          // Configure environment
-          options.environment = kDebugMode
-              ? SentryConfig.developmentEnvironment
-              : SentryConfig.productionEnvironment;
-
-          // Session tracking
-          options.enableAutoSessionTracking = SentryConfig.enableAutoSessionTracking && !kDebugMode;
-          options.autoSessionTrackingInterval = SentryConfig.autoSessionTrackingInterval;
-
-          // Set release version
-          options.release = SentryConfig.release;
-
-        // Privacy settings
-        options.sendDefaultPii = SentryConfig.sendDefaultPii;
-        options.attachScreenshot = SentryConfig.attachScreenshot;
-        options.attachViewHierarchy = SentryConfig.attachViewHierarchy;
-
-        // Breadcrumb configuration
-        options.maxBreadcrumbs = SentryConfig.maxBreadcrumbs;
-        options.enableAutoNativeBreadcrumbs = SentryConfig.enableAutoNativeBreadcrumbs;
-
-        // Configure before send callback for additional privacy filtering
-        options.beforeSend = (SentryEvent event, Hint hint) async {
-          // Skip sending if no DSN configured
-          if (SentryConfig.dsn.isEmpty) {
-            return null;
-          }
-
-          // Filter out sensitive error types if needed
-          if (event.throwable is NetworkImageLoadException) {
-            // Don't report image loading errors (might contain URLs with sensitive data)
-            return null;
-          }
-
-          return event;
-        };
-      },
-    );
-      appLogger.info('Sentry initialized with release: ${SentryConfig.release}');
-    } else {
-      appLogger.info('Sentry is disabled. Set enabled=true and configure DSN in SentryConfig to enable crash reporting.');
-    }
 
     // Initialize error handling after Sentry
     await ErrorHandler.initialize();

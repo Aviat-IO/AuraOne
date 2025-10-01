@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'logger.dart';
 
 /// Global error handler for the application
@@ -103,92 +102,30 @@ class ErrorHandler {
     _reportToCrashlytics(error, stackTrace);
   }
 
-  /// Log a message to Sentry as a breadcrumb
+  /// Log a message as a breadcrumb (no-op, Sentry removed)
   static void logBreadcrumb({
     required String message,
     String? category,
-    SentryLevel? level,
     Map<String, dynamic>? data,
   }) {
-    if (kDebugMode) {
-      return; // Don't log breadcrumbs in debug mode
-    }
-
-    Sentry.addBreadcrumb(
-      Breadcrumb(
-        message: message,
-        category: category ?? 'app',
-        level: level ?? SentryLevel.info,
-        timestamp: DateTime.now(),
-        data: data,
-      ),
-    );
+    // No-op: Sentry has been removed
+    appLogger.debug('Breadcrumb: $message');
   }
 
-  /// Capture a message (non-exception) to Sentry
+  /// Capture a message (no-op, Sentry removed)
   static Future<void> captureMessage(
     String message, {
-    SentryLevel? level,
     Map<String, String>? tags,
   }) async {
-    if (kDebugMode) {
-      appLogger.debug('Debug mode: Not sending message to Sentry: $message');
-      return;
-    }
-
-    await Sentry.captureMessage(
-      message,
-      level: level ?? SentryLevel.info,
-      withScope: (scope) {
-        if (tags != null) {
-          tags.forEach((key, value) {
-            scope.setTag(key, value);
-          });
-        }
-      },
-    );
+    // No-op: Sentry has been removed
+    appLogger.info('Message: $message');
   }
 
-  /// Report error to crash analytics service
+  /// Report error to crash analytics service (no-op, Sentry removed)
   static void _reportToCrashlytics(dynamic error, StackTrace? stackTrace) {
-    // Don't report in debug mode
-    if (kDebugMode) {
-      appLogger.debug('Debug mode: Not reporting error to Sentry');
-      return;
-    }
-
-    // Report to Sentry
-    Sentry.captureException(
-      error,
-      stackTrace: stackTrace,
-      withScope: (scope) {
-        // Add additional context while respecting privacy
-        scope.level = SentryLevel.error;
-
-        // Add error context without PII
-        scope.setContexts('error_context', {
-          'timestamp': DateTime.now().toIso8601String(),
-          'platform': Platform.operatingSystem,
-          'app_state': 'active',
-          ...getSafeContext(), // Include safe context
-        });
-
-        // Add breadcrumb for better debugging
-        scope.addBreadcrumb(
-          Breadcrumb(
-            message: 'Error captured',
-            category: 'error',
-            level: SentryLevel.error,
-            timestamp: DateTime.now(),
-            data: {
-              'error_type': error.runtimeType.toString(),
-            },
-          ),
-        );
-      },
-    );
-
-    appLogger.info('Error reported to Sentry: ${error.runtimeType}');
+    // No-op: Sentry has been removed
+    // Errors are logged via appLogger instead
+    appLogger.error('Error: ${error.runtimeType}', error: error, stackTrace: stackTrace);
   }
 
   /// Build a user-friendly error widget
@@ -264,16 +201,9 @@ class ErrorHandler {
         stackTrace: stackTrace,
       );
 
-      // Report to Sentry with context
-      if (!kDebugMode && context != null) {
-        await Sentry.captureException(
-          error,
-          stackTrace: stackTrace,
-          withScope: (scope) {
-            scope.setTag('operation_context', context);
-            scope.level = SentryLevel.warning;
-          },
-        );
+      // Log error with context (Sentry removed)
+      if (context != null) {
+        appLogger.warning('Operation failed: $context');
       }
 
       if (showError && kDebugMode) {

@@ -942,14 +942,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.5"
-  jni:
-    dependency: transitive
-    description:
-      name: jni
-      sha256: d2c361082d554d4593c3012e26f6b188f902acd291330f13d6427641a92b3da1
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.14.2"
   js:
     dependency: transitive
     description:
@@ -1457,70 +1449,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.0"
-  record:
-    dependency: "direct main"
-    description:
-      name: record
-      sha256: "9dbc6ff3e784612f90a9b001373c45ff76b7a08abd2bd9fdf72c242320c8911c"
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.1.1"
-  record_android:
-    dependency: transitive
-    description:
-      name: record_android
-      sha256: "854627cd78d8d66190377f98477eee06ca96ab7c9f2e662700daf33dbf7e6673"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.4.2"
-  record_ios:
-    dependency: transitive
-    description:
-      name: record_ios
-      sha256: "13e241ed9cbc220534a40ae6b66222e21288db364d96dd66fb762ebd3cb77c71"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.2"
-  record_linux:
-    dependency: transitive
-    description:
-      name: record_linux
-      sha256: "235b1f1fb84e810f8149cc0c2c731d7d697f8d1c333b32cb820c449bf7bb72d8"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.2.1"
-  record_macos:
-    dependency: transitive
-    description:
-      name: record_macos
-      sha256: "2849068bb59072f300ad63ed146e543d66afaef8263edba4de4834fc7c8d4d35"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.1"
-  record_platform_interface:
-    dependency: transitive
-    description:
-      name: record_platform_interface
-      sha256: b0065fdf1ec28f5a634d676724d388a77e43ce7646fb049949f58c69f3fcb4ed
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.4.0"
-  record_web:
-    dependency: transitive
-    description:
-      name: record_web
-      sha256: "4f0adf20c9ccafcc02d71111fd91fba1ca7b17a7453902593e5a9b25b74a5c56"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.2.0"
-  record_windows:
-    dependency: transitive
-    description:
-      name: record_windows
-      sha256: "223258060a1d25c62bae18282c16783f28581ec19401d17e56b5205b9f039d78"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.7"
   riverpod:
     dependency: transitive
     description:
@@ -1537,22 +1465,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.28.0"
-  sentry:
-    dependency: transitive
-    description:
-      name: sentry
-      sha256: d9f3dcf1ecdd600cf9ce134f622383adde5423ecfdaf0ca9b20fbc1c44849337
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.6.0"
-  sentry_flutter:
-    dependency: "direct main"
-    description:
-      name: sentry_flutter
-      sha256: "37deb4ef8837d10b5c1f527ec18591f8d2d2da9c34f19b3d97ccbbe7f84077c0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.6.0"
   share_plus:
     dependency: "direct main"
     description:
