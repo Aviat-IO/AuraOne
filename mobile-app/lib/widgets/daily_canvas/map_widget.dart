@@ -151,9 +151,8 @@ class MapWidget extends HookConsumerWidget {
                   loading: () => [],
                   error: (_, __) => [],
                 ),
-                MarkerLayer(
-                  markers: _buildMarkers(clusters, theme),
-                ),
+                // Cluster markers removed - clustering logic still runs for AI summary generation
+                // but we don't display the cluster markers on the map
                 // Show helpful overlay for very few location points (not clusters)
                 if (_getTotalLocationPoints(clusters) <= 2)
                   Container(
@@ -270,8 +269,8 @@ class MapWidget extends HookConsumerWidget {
 
   double _calculateOptimalZoom(List<LocationCluster> clusters) {
     if (clusters.isEmpty) return 10.0;
-    if (clusters.length == 1) return 13.0;  // Reduced from 15.0 for better context
-    if (clusters.length == 2) return 12.0;  // New case for two clusters
+    if (clusters.length == 1) return 15.0;  // Zoom in more for single location
+    if (clusters.length == 2) return 14.0;  // Zoom in more for two locations
 
     // Calculate bounding box
     double minLat = clusters.first.centerLatitude;
@@ -286,18 +285,18 @@ class MapWidget extends HookConsumerWidget {
       maxLng = maxLng > cluster.centerLongitude ? maxLng : cluster.centerLongitude;
     }
 
-    // Calculate appropriate zoom based on span - more generous zoom levels
+    // Calculate appropriate zoom based on span - tighter zoom for less padding
     final latSpan = maxLat - minLat;
     final lngSpan = maxLng - minLng;
     final maxSpan = latSpan > lngSpan ? latSpan : lngSpan;
 
-    // More generous zoom levels to show context better
-    if (maxSpan > 10) return 3.0;   // Reduced from 4.0
-    if (maxSpan > 5) return 5.0;    // Reduced from 6.0
-    if (maxSpan > 1) return 7.0;    // Reduced from 8.0
-    if (maxSpan > 0.1) return 9.0;  // Reduced from 11.0
-    if (maxSpan > 0.01) return 11.0; // Reduced from 13.0
-    return 13.0;  // Reduced from 15.0
+    // Tighter zoom levels with less padding around edges
+    if (maxSpan > 10) return 4.0;   // Very large area
+    if (maxSpan > 5) return 6.0;    // Large area
+    if (maxSpan > 1) return 9.0;    // Medium area
+    if (maxSpan > 0.1) return 11.0; // Small area
+    if (maxSpan > 0.01) return 13.0; // Very small area
+    return 15.0;  // Minimal area - zoom in close
   }
 
   List<Marker> _buildMarkers(List<LocationCluster> clusters, ThemeData theme) {
@@ -364,7 +363,8 @@ class MapWidget extends HookConsumerWidget {
 
     return locations
         .where((loc) =>
-            loc.timestamp.isAfter(dayStart) && loc.timestamp.isBefore(dayEnd))
+            (loc.timestamp.isAtSameMomentAs(dayStart) || loc.timestamp.isAfter(dayStart)) &&
+            loc.timestamp.isBefore(dayEnd))
         .toList();
   }
 }

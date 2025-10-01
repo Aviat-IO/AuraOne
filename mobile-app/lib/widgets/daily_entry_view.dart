@@ -245,6 +245,9 @@ class _JournalTab extends HookConsumerWidget {
 
     // Load existing journal entry for this date
     useEffect(() {
+      // Reset journal entry when date changes to prevent showing old data
+      journalEntry.value = null;
+      controller.text = '';
       loadEntry();
       return null;
     }, [date]);

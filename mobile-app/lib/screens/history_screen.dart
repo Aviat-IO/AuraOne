@@ -186,8 +186,7 @@ class HistoryScreen extends HookConsumerWidget {
               ref.read(historySelectedDatePersistentProvider.notifier).state = newDate;
               // Mark that user has selected a date
               ref.read(hasUserSelectedHistoryDateProvider.notifier).state = true;
-              // Reset to Journal subtab
-              ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
+              // Don't reset sub-tab - stay on current tab (Timeline, Map, etc.)
             },
             tooltip: 'Previous day',
           ),
@@ -235,8 +234,7 @@ class HistoryScreen extends HookConsumerWidget {
                 ref.read(historySelectedDatePersistentProvider.notifier).state = newDate;
                 // Mark that user has selected a date
                 ref.read(hasUserSelectedHistoryDateProvider.notifier).state = true;
-                // Reset to Journal subtab
-                ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
+                // Don't reset sub-tab - stay on current tab (Timeline, Map, etc.)
               }
             },
             tooltip: 'Next day',
@@ -305,8 +303,7 @@ class HistoryScreen extends HookConsumerWidget {
                         ref.read(historySelectedDatePersistentProvider.notifier).state = selected;
                         // Mark that user has selected a date
                         ref.read(hasUserSelectedHistoryDateProvider.notifier).state = true;
-                        // Reset to Journal subtab
-                        ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
+                        // Don't reset sub-tab - stay on current tab (Timeline, Map, etc.)
                         // Close the modal first
                         Navigator.of(context).pop();
                         // Then ensure focus is cleared after modal animation completes

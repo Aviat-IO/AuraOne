@@ -273,11 +273,20 @@ class OnboardingScreen extends HookConsumerWidget {
     ValueNotifier<int> locationButtonPressCount,
     ValueNotifier<bool> showSkipButton,
   ) {
+    // Define all permissions in order
+    final permissionsList = [
+      (Icons.notifications, 'Notifications', 'Daily reminders to write in your journal', Permission.notification, true),
+      (Icons.location_on, 'Location', 'Track your journeys and places visited. Tap "Allow While Using App" then change to "Allow All the Time" in Settings for background tracking.', Permission.locationAlways, true),
+      (Icons.photo_library, 'Photo Library', 'Include photos in your daily entries. Please choose "Allow All".', Permission.photos, false),
+      (Icons.calendar_today, 'Calendar', 'Import events and appointments for your daily summaries', Permission.calendar, false),
+      (Icons.directions_walk, 'Motion & Fitness', 'Track activities and movement patterns', Permission.activityRecognition, false),
+    ];
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         children: [
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
           Text(
             'Enable Features',
             style: theme.textTheme.headlineMedium?.copyWith(
@@ -285,108 +294,96 @@ class OnboardingScreen extends HookConsumerWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Text(
-            'Grant permissions to unlock Aura One\'s automatic journaling features. You can change these anytime in settings.',
-            style: theme.textTheme.bodyLarge,
+            'Grant permissions to unlock automatic journaling. You can change these anytime in settings.',
+            style: theme.textTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 8),
+
+          // Permission counter
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: ValueListenableBuilder<Map<Permission, bool>>(
+              valueListenable: permissionsGranted,
+              builder: (context, permissions, child) {
+                final grantedCount = permissions.values.where((granted) => granted).length;
+                final totalCount = permissionsList.length;
+                return Text(
+                  '$grantedCount of $totalCount permissions granted',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 24),
 
           Expanded(
-            child: Column(
+            child: ListView.separated(
+              itemCount: permissionsList.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final (icon, title, description, permission, isRequired) = permissionsList[index];
+                return _buildPermissionTile(
+                  context,
+                  theme,
+                  ref,
+                  icon,
+                  title,
+                  description,
+                  permission,
+                  permissionsGranted,
+                  isRequired: isRequired,
+                  onPressed: permission == Permission.locationAlways ? () {
+                    locationButtonPressCount.value++;
+                    if (locationButtonPressCount.value >= 3) {
+                      showSkipButton.value = true;
+                    }
+                  } : null,
+                );
+              },
+            ),
+          ),
+
+          // Helpful message at bottom
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: theme.colorScheme.outline.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Row(
               children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: ListView(
-                    children: [
-                      _buildPermissionTile(
-                        context,
-                        theme,
-                        ref,
-                        Icons.notifications,
-                        'Notifications',
-                        'Daily reminders to write in your journal',
-                        Permission.notification,
-                        permissionsGranted,
-                        isRequired: true,
-                      ),
-
-                      _buildPermissionTile(
-                        context,
-                        theme,
-                        ref,
-                        Icons.location_on,
-                        'Location',
-                        'Track your journeys and places visited. Tap "Allow While Using App" then change to "Allow All the Time" in Settings for background tracking.',
-                        Permission.locationAlways,
-                        permissionsGranted,
-                        isRequired: true,
-                        onPressed: () {
-                          locationButtonPressCount.value++;
-                          if (locationButtonPressCount.value >= 3) {
-                            showSkipButton.value = true;
-                          }
-                        },
-                      ),
-
-                      _buildPermissionTile(
-                        context,
-                        theme,
-                        ref,
-                        Icons.photo_library,
-                        'Photo Library',
-                        'Include photos in your daily entries. Please choose "Allow All".',
-                        Permission.photos,
-                        permissionsGranted,
-                      ),
-
-                      _buildPermissionTile(
-                        context,
-                        theme,
-                        ref,
-                        Icons.calendar_today,
-                        'Calendar',
-                        'Import events and appointments for your daily summaries',
-                        Permission.calendar,
-                        permissionsGranted,
-                        isRequired: false,
-                      ),
-
-                      _buildPermissionTile(
-                        context,
-                        theme,
-                        ref,
-                        Icons.directions_walk,
-                        'Motion & Fitness',
-                        'Track activities and movement patterns',
-                        Permission.activityRecognition,
-                        permissionsGranted,
-                      ),
-
-                      // Add some bottom padding to ensure last items are visible
-                      const SizedBox(height: 16),
-                    ],
-                  ),
-                ),
-
-                // Scroll indicator hint
-                Container(
-                  height: 3,
-                  margin: const EdgeInsets.symmetric(horizontal: 80),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.primary.withValues(alpha: 0.3),
-                        theme.colorScheme.primary.withValues(alpha: 0.1),
-                      ],
+                  child: Text(
+                    'Review all permissions above before continuing',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                     ),
-                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(height: 8),
               ],
             ),
           ),
+          const SizedBox(height: 8),
         ],
       ),
     );
