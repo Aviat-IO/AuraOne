@@ -1798,7 +1798,7 @@
         "testStrategy": "Test data extraction accuracy (object detection, geocoding, distance calc). Verify edit protection prevents data loss (100% success rate). Test narrative quality with timeline integration (80%+ events), calendar integration (100% enabled events), place names (3+ per day), object mentions (2+ per photo). Validate UI shows data availability and regenerates in <3s.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -1806,9 +1806,10 @@
             "description": "Extract rich descriptive data from photos: object detection, photo geocoding, enhanced metadata to feed narrative generation",
             "dependencies": [],
             "details": "Implement PhotoObjectDetector using google_mlkit_object_detection for object labels. Build PhotoGeocoder to extract EXIF GPS and reverse geocode to human-readable place names (Harbor Roast Coffee vs coordinates). Create EnhancedPhotoContext with objectLabels, location, placeName, objectConfidence. Store enhanced metadata in database.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify object detection returns valid labels. Test geocoding produces accurate place names matching Google Maps. Validate metadata storage and retrieval.",
-            "parentId": "44"
+            "parentId": "44",
+            "updatedAt": "2025-10-01T23:48:04.652Z"
           },
           {
             "id": 2,
@@ -1816,9 +1817,10 @@
             "description": "Calculate and expose geographic data: distance traveled, location cluster naming, movement patterns for narrative",
             "dependencies": [],
             "details": "Build DistanceCalculator to compute total km from location points. Create LocationClusterNamer using reverse geocoding for place names. Enhance LocationSummary with placeNames map, totalKilometers, detailed movement modes. Format distances human-readable (2.3km not 2300m).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify distance calculations accurate (±5% vs Google Timeline). Test place names match reality. Validate movement pattern detection.",
-            "parentId": "44"
+            "parentId": "44",
+            "updatedAt": "2025-10-01T23:51:33.008Z"
           },
           {
             "id": 3,
@@ -1826,9 +1828,10 @@
             "description": "Integrate timeline events and calendar data (only enabled calendars) into narrative structure",
             "dependencies": [],
             "details": "Create TimelineEventAggregator to merge JournalActivity timeline with CalendarEventData filtered by enabledCalendarIds. Build NarrativeEvent structure with type, timestamp, calendar-specific (meetingTitle, attendees), location-specific (placeName, duration), photo-specific (objectsSeen, sceneDescription). Modify DailyContextSynthesizer to pass enabledCalendarIds through.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify only enabled calendar events included (100%). Test timeline event aggregation and chronological sorting. Validate NarrativeEvent structure contains all required fields.",
-            "parentId": "44"
+            "parentId": "44",
+            "updatedAt": "2025-10-01T23:56:06.590Z"
           },
           {
             "id": 4,
@@ -1882,14 +1885,15 @@
             "testStrategy": "Verify style picker displays correctly. Test regeneration produces different outputs per style in <3s. Validate edit warning integration works. Test data availability card shows accurate counts.",
             "parentId": "44"
           }
-        ]
+        ],
+        "updatedAt": "2025-10-01T23:56:06.590Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-10-01T03:40:44.470Z",
-      "taskCount": 43,
-      "completedCount": 42,
+      "lastModified": "2025-10-01T23:56:06.591Z",
+      "taskCount": 44,
+      "completedCount": 43,
       "tags": [
         "master"
       ]

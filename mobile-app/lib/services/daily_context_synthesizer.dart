@@ -6,6 +6,9 @@ import '../database/location_database.dart';
 import '../services/calendar_service.dart';
 import '../providers/data_activity_tracker.dart';
 import 'ai_feature_extractor.dart';
+import 'distance_calculator.dart';
+import 'location_cluster_namer.dart';
+import 'timeline_event_aggregator.dart';
 
 /// Comprehensive daily context that synthesizes all collected data
 class DailyContext {
@@ -26,6 +29,9 @@ class DailyContext {
   final double overallConfidence;
   final Map<String, dynamic> metadata;
 
+  // Timeline integration
+  final List<NarrativeEvent> timelineEvents;
+
   DailyContext({
     required this.date,
     required this.photoContexts,
@@ -43,6 +49,7 @@ class DailyContext {
     required this.writtenContentSummary,
     required this.overallConfidence,
     required this.metadata,
+    required this.timelineEvents,
   });
 
   /// Generate a human-readable narrative overview
@@ -155,11 +162,16 @@ class ActivitySummary {
 /// Location and movement analysis
 class LocationSummary {
   final List<String> significantPlaces;
-  final double totalDistance;
+  final double totalDistance; // meters
   final Duration timeMoving;
   final Duration timeStationary;
   final List<String> movementModes; // walking, driving, stationary
   final Map<String, Duration> placeTimeSpent;
+
+  // Enhanced with place names from reverse geocoding
+  final Map<String, String> placeNames; // coordinate key -> place name
+  final double totalKilometers; // convenience accessor for distance in km
+  final String formattedDistance; // human-readable distance like "2.3km"
 
   LocationSummary({
     required this.significantPlaces,
@@ -168,7 +180,28 @@ class LocationSummary {
     required this.timeStationary,
     required this.movementModes,
     required this.placeTimeSpent,
-  });
+    this.placeNames = const {},
+    double? totalKilometers,
+    String? formattedDistance,
+  })  : totalKilometers = totalKilometers ?? totalDistance / 1000,
+        formattedDistance = formattedDistance ?? _formatDistance(totalDistance);
+
+  static String _formatDistance(double meters) {
+    if (meters < 1000) {
+      return '${meters.round()}m';
+    } else {
+      return '${(meters / 1000).toStringAsFixed(1)}km';
+    }
+  }
+
+  /// Get place name for a coordinate, fallback to coordinate string
+  String getPlaceName(double latitude, double longitude) {
+    final key = '${latitude.toStringAsFixed(4)},${longitude.toStringAsFixed(4)}';
+    return placeNames[key] ?? '$latitude, $longitude';
+  }
+
+  /// Check if we have place names available
+  bool get hasPlaceNames => placeNames.isNotEmpty;
 }
 
 /// Time of day analysis
@@ -232,6 +265,9 @@ class DailyContextSynthesizer {
 
   final AIFeatureExtractor _aiExtractor = AIFeatureExtractor();
   final CalendarService _calendarService = CalendarService();
+  final DistanceCalculator _distanceCalculator = DistanceCalculator();
+  final LocationClusterNamer _locationClusterNamer = LocationClusterNamer();
+  final TimelineEventAggregator _timelineAggregator = TimelineEventAggregator();
 
   /// Synthesize comprehensive daily context from all data sources
   Future<DailyContext> synthesizeDailyContext({
@@ -272,9 +308,21 @@ class DailyContextSynthesizer {
       final environmentSummary = _analyzeEnvironment(photoContexts, calendarEvents);
       final socialSummary = _analyzeSocialContext(photoContexts, calendarEvents);
       final activitySummary = _analyzeActivities(photoContexts, calendarEvents, dayActivities);
-      final locationSummary = _analyzeLocation(locationPoints, movementData, calendarEvents);
+      final locationSummary = await _analyzeLocation(locationPoints, movementData, calendarEvents);
       final proximitySummary = _analyzeProximity(geofenceEvents, locationPoints, locationNotes);
       final writtenContentSummary = _analyzeWrittenContent(locationNotes);
+
+      // Aggregate timeline events with calendar filtering
+      final timelineEvents = await _timelineAggregator.aggregateTimeline(
+        date: date,
+        calendarEvents: calendarEvents,
+        locationPoints: locationPoints,
+        photoContexts: photoContexts,
+        activities: dayActivities,
+        movementData: movementData,
+        enabledCalendarIds: enabledCalendarIds,
+        locationPlaceNames: locationSummary.placeNames,
+      );
 
       // Calculate overall confidence
       final overallConfidence = _calculateOverallConfidence(
@@ -303,6 +351,7 @@ class DailyContextSynthesizer {
         writtenContentSummary: writtenContentSummary,
         overallConfidence: overallConfidence,
         metadata: metadata,
+        timelineEvents: timelineEvents,
       );
     } catch (e) {
       debugPrint('Error synthesizing daily context: $e');
@@ -317,6 +366,7 @@ class DailyContextSynthesizer {
         movementData: [],
         geofenceEvents: [],
         locationNotes: [],
+        timelineEvents: [],
         environmentSummary: EnvironmentSummary(
           dominantEnvironments: [],
           environmentCounts: {},
@@ -664,31 +714,33 @@ class DailyContextSynthesizer {
   }
 
   /// Analyze location and movement patterns
-  LocationSummary _analyzeLocation(
+  Future<LocationSummary> _analyzeLocation(
     List<LocationPoint> locationPoints,
     List<MovementDataData> movementData,
     List<CalendarEventData> calendarEvents,
-  ) {
+  ) async {
     final significantPlaces = <String>{};
-    double totalDistance = 0.0;
     Duration timeMoving = Duration.zero;
     Duration timeStationary = Duration.zero;
     final movementModes = <String>{};
     final placeTimeSpent = <String, Duration>{};
 
+    // Calculate total distance using DistanceCalculator
+    final totalDistance = _distanceCalculator.calculateTotalDistance(locationPoints);
+
+    // Get place names using LocationClusterNamer (with reverse geocoding if enabled)
+    final placeNames = await _locationClusterNamer.getPlaceNames(locationPoints);
+
     // Analyze location clusters for significant places
     if (locationPoints.isNotEmpty) {
       final clusters = _clusterLocations(locationPoints);
-      significantPlaces.addAll(clusters.map((c) => _locationToPlaceName(c)));
 
-      // Calculate total distance
-      for (int i = 1; i < locationPoints.length; i++) {
-        final prev = locationPoints[i - 1];
-        final curr = locationPoints[i];
-        totalDistance += _calculateDistance(
-          prev.latitude, prev.longitude,
-          curr.latitude, curr.longitude,
-        );
+      // Add place names from reverse geocoding or coordinate-based names
+      for (final cluster in clusters) {
+        final centerPoint = _calculateClusterCenter(cluster);
+        final key = '${centerPoint.latitude.toStringAsFixed(4)},${centerPoint.longitude.toStringAsFixed(4)}';
+        final placeName = placeNames[key] ?? _locationToPlaceName(cluster);
+        significantPlaces.add(placeName);
       }
     }
 
@@ -721,6 +773,40 @@ class DailyContextSynthesizer {
       timeStationary: timeStationary,
       movementModes: movementModes.toList(),
       placeTimeSpent: placeTimeSpent,
+      placeNames: placeNames,
+    );
+  }
+
+  /// Calculate center point of a location cluster
+  LocationPoint _calculateClusterCenter(List<LocationPoint> cluster) {
+    if (cluster.length == 1) {
+      return cluster.first;
+    }
+
+    double sumLat = 0;
+    double sumLon = 0;
+
+    for (final point in cluster) {
+      sumLat += point.latitude;
+      sumLon += point.longitude;
+    }
+
+    final centerLat = sumLat / cluster.length;
+    final centerLon = sumLon / cluster.length;
+
+    return LocationPoint(
+      id: cluster.first.id,
+      timestamp: cluster.first.timestamp,
+      latitude: centerLat,
+      longitude: centerLon,
+      accuracy: cluster.first.accuracy,
+      altitude: cluster.first.altitude,
+      speed: cluster.first.speed,
+      heading: cluster.first.heading,
+      activityType: cluster.first.activityType,
+      confidence: cluster.first.confidence,
+      batteryLevel: cluster.first.batteryLevel,
+      isMoving: cluster.first.isMoving,
     );
   }
 

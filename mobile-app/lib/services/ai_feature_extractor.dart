@@ -5,6 +5,8 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import '../database/media_database.dart';
+import 'ai/photo_object_detector.dart';
+import 'photo_geocoder.dart';
 
 /// Represents the context extracted from a photo using AI analysis
 class PhotoContext {
@@ -17,6 +19,16 @@ class PhotoContext {
   final SocialContext socialContext;
   final double confidenceScore;       // Overall confidence in analysis
 
+  // NEW: Enhanced metadata from object detection and geocoding
+  final List<String> detectedObjects;  // Specific objects from ML Kit Object Detection
+  final Map<String, double> objectConfidence; // Object -> confidence score
+  final double? latitude;              // GPS coordinates from EXIF
+  final double? longitude;
+  final String? placeName;             // Reverse-geocoded place name ("Golden Gate Park")
+  final String? placeType;             // Inferred place type ("park", "restaurant", etc.)
+  final String? street;                // Street address component
+  final String? locality;              // City/locality component
+
   PhotoContext({
     required this.photoId,
     required this.timestamp,
@@ -26,7 +38,28 @@ class PhotoContext {
     required this.textContent,
     required this.socialContext,
     required this.confidenceScore,
+    this.detectedObjects = const [],
+    this.objectConfidence = const {},
+    this.latitude,
+    this.longitude,
+    this.placeName,
+    this.placeType,
+    this.street,
+    this.locality,
   });
+
+  /// Check if photo has GPS coordinates
+  bool get hasLocation => latitude != null && longitude != null;
+
+  /// Check if photo has a place name
+  bool get hasPlaceName => placeName != null && placeName!.isNotEmpty;
+
+  /// Get location description (place name if available, otherwise coordinates)
+  String get locationDescription {
+    if (hasPlaceName) return placeName!;
+    if (hasLocation) return '${latitude!.toStringAsFixed(4)}, ${longitude!.toStringAsFixed(4)}';
+    return 'Unknown location';
+  }
 
   /// Generate a human-readable description of what was happening in the photo
   String get activityDescription {
@@ -185,18 +218,26 @@ class AIFeatureExtractor {
       // Load and prepare image
       final inputImage = InputImage.fromFilePath(file.path);
 
+      // Initialize new services
+      final photoObjectDetector = PhotoObjectDetector();
+      final photoGeocoder = PhotoGeocoder();
+
       // Run all ML analyses in parallel for performance
       final results = await Future.wait([
         _extractImageLabels(inputImage),
         _detectFaces(inputImage),
         _recognizeText(inputImage),
         _detectObjects(inputImage),
+        photoObjectDetector.detectObjects(file.path),
+        photoGeocoder.extractLocationData(mediaItem),
       ]);
 
       final imageLabels = results[0] as List<String>;
       final faces = results[1] as List<Face>;
       final textBlocks = results[2] as List<TextBlock>;
       final objects = results[3] as List<DetectedObject>;
+      final detectedObjectsInfo = results[4] as List<DetectedObjectInfo>;
+      final photoLocation = results[5] as PhotoLocation;
 
       // Process results
       final sceneLabels = imageLabels.where(_isSceneLabel).toList();
@@ -213,6 +254,12 @@ class AIFeatureExtractor {
         isSelfie: _isSelfie(faces, inputImage),
       );
 
+      // Extract detected objects and confidence scores
+      final detectedObjects = detectedObjectsInfo.map((obj) => obj.label).toList();
+      final objectConfidence = Map<String, double>.fromEntries(
+        detectedObjectsInfo.map((obj) => MapEntry(obj.label, obj.confidence)),
+      );
+
       // Calculate confidence based on number of detected features
       final confidenceScore = _calculateConfidence(imageLabels.map((label) => ImageLabel(label: label, confidence: 0.8, index: 0)).toList(), faces, textBlocks, objects);
 
@@ -225,6 +272,15 @@ class AIFeatureExtractor {
         textContent: textContent,
         socialContext: socialContext,
         confidenceScore: confidenceScore,
+        // Enhanced metadata
+        detectedObjects: detectedObjects,
+        objectConfidence: objectConfidence,
+        latitude: photoLocation.latitude,
+        longitude: photoLocation.longitude,
+        placeName: photoLocation.placeName,
+        placeType: photoLocation.placeType,
+        street: photoLocation.street,
+        locality: photoLocation.locality,
       );
 
     } catch (e) {

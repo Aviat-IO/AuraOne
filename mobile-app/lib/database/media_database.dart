@@ -299,6 +299,117 @@ class MediaDatabase extends _$MediaDatabase {
     return result;
   }
 
+  // PhotoContext Metadata Methods
+  /// Save enhanced photo metadata (objects, location, etc.)
+  Future<void> savePhotoEnhancedMetadata({
+    required String mediaId,
+    List<String>? detectedObjects,
+    Map<String, double>? objectConfidence,
+    double? latitude,
+    double? longitude,
+    String? placeName,
+    String? placeType,
+    String? street,
+    String? locality,
+  }) async {
+    // Save detected objects
+    if (detectedObjects != null && detectedObjects.isNotEmpty) {
+      await insertMetadata(MediaMetadataCompanion(
+        mediaId: Value(mediaId),
+        metadataType: const Value('object_detection'),
+        key: const Value('detected_objects'),
+        value: Value(json.encode(detectedObjects)),
+      ));
+    }
+
+    // Save object confidence scores
+    if (objectConfidence != null && objectConfidence.isNotEmpty) {
+      await insertMetadata(MediaMetadataCompanion(
+        mediaId: Value(mediaId),
+        metadataType: const Value('object_detection'),
+        key: const Value('object_confidence'),
+        value: Value(json.encode(objectConfidence)),
+      ));
+    }
+
+    // Save GPS coordinates
+    if (latitude != null) {
+      await insertMetadata(MediaMetadataCompanion(
+        mediaId: Value(mediaId),
+        metadataType: const Value('location'),
+        key: const Value('latitude'),
+        value: Value(latitude.toString()),
+      ));
+    }
+
+    if (longitude != null) {
+      await insertMetadata(MediaMetadataCompanion(
+        mediaId: Value(mediaId),
+        metadataType: const Value('location'),
+        key: const Value('longitude'),
+        value: Value(longitude.toString()),
+      ));
+    }
+
+    // Save reverse-geocoded location data
+    if (placeName != null) {
+      await insertMetadata(MediaMetadataCompanion(
+        mediaId: Value(mediaId),
+        metadataType: const Value('location'),
+        key: const Value('place_name'),
+        value: Value(placeName),
+      ));
+    }
+
+    if (placeType != null) {
+      await insertMetadata(MediaMetadataCompanion(
+        mediaId: Value(mediaId),
+        metadataType: const Value('location'),
+        key: const Value('place_type'),
+        value: Value(placeType),
+      ));
+    }
+
+    if (street != null) {
+      await insertMetadata(MediaMetadataCompanion(
+        mediaId: Value(mediaId),
+        metadataType: const Value('location'),
+        key: const Value('street'),
+        value: Value(street),
+      ));
+    }
+
+    if (locality != null) {
+      await insertMetadata(MediaMetadataCompanion(
+        mediaId: Value(mediaId),
+        metadataType: const Value('location'),
+        key: const Value('locality'),
+        value: Value(locality),
+      ));
+    }
+  }
+
+  /// Retrieve enhanced photo metadata
+  Future<Map<String, dynamic>> getPhotoEnhancedMetadata(String mediaId) async {
+    final objectMetadata = await getMetadataMap(mediaId, 'object_detection');
+    final locationMetadata = await getMetadataMap(mediaId, 'location');
+
+    return {
+      'detected_objects': objectMetadata['detected_objects'],
+      'object_confidence': objectMetadata['object_confidence'],
+      'latitude': locationMetadata['latitude'] != null
+          ? double.tryParse(locationMetadata['latitude'])
+          : null,
+      'longitude': locationMetadata['longitude'] != null
+          ? double.tryParse(locationMetadata['longitude'])
+          : null,
+      'place_name': locationMetadata['place_name'],
+      'place_type': locationMetadata['place_type'],
+      'street': locationMetadata['street'],
+      'locality': locationMetadata['locality'],
+    };
+  }
+
   // Person Tags Methods
   Future<int> insertPersonTag(PersonTagsCompanion tag) {
     return into(personTags).insert(tag);
