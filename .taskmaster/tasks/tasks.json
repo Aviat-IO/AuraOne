@@ -1854,9 +1854,10 @@
               3
             ],
             "details": "Build DataRichNarrativeBuilder that weaves timeline events, place names, objects detected, calendar events, and distances into chronological narrative. Create ContextualPhraseGenerator for transitions based on distance/time. Implement event-specific descriptions for calendar (with attendees, place), photos (with objects, scene, place), locations (with dwell time, activity). Generate opening with time/location context, closing with day summary stats.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify narratives include place names (3+), object mentions (2+ per photo), distances, calendar events (100% enabled). Test sentence variety and vocabulary richness (80%+ unique). Validate 150-300 word length.",
-            "parentId": "44"
+            "parentId": "44",
+            "updatedAt": "2025-10-02T00:56:02.964Z"
           },
           {
             "id": 6,
@@ -1887,12 +1888,12 @@
             "parentId": "44"
           }
         ],
-        "updatedAt": "2025-10-02T00:03:46.888Z"
+        "updatedAt": "2025-10-02T00:56:02.964Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-10-02T00:03:46.889Z",
+      "lastModified": "2025-10-02T00:56:02.965Z",
       "taskCount": 44,
       "completedCount": 43,
       "tags": [

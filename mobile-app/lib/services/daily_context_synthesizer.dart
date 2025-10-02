@@ -9,6 +9,7 @@ import 'ai_feature_extractor.dart';
 import 'distance_calculator.dart';
 import 'location_cluster_namer.dart';
 import 'timeline_event_aggregator.dart';
+import 'data_rich_narrative_builder.dart';
 
 /// Comprehensive daily context that synthesizes all collected data
 class DailyContext {
@@ -52,7 +53,7 @@ class DailyContext {
     required this.timelineEvents,
   });
 
-  /// Generate a human-readable narrative overview
+  /// Generate a human-readable narrative overview (simple version)
   String get narrativeOverview {
     final buffer = StringBuffer();
 
@@ -103,6 +104,19 @@ class DailyContext {
     return buffer.toString().isEmpty
         ? 'A quiet day with collected memories'
         : '${buffer.toString()}.';
+  }
+
+  /// Generate rich AI narrative using all timeline and context data
+  ///
+  /// Creates 150-300 word narrative with:
+  /// - Opening with time/location context
+  /// - Chronological timeline events (calendar, photos, locations)
+  /// - Natural transitions based on time/distance
+  /// - Event descriptions with place names, objects, attendees
+  /// - Closing with day summary stats
+  Future<String> generateRichNarrative() async {
+    final builder = DataRichNarrativeBuilder();
+    return await builder.buildNarrative(context: this);
   }
 }
 
@@ -268,6 +282,7 @@ class DailyContextSynthesizer {
   final DistanceCalculator _distanceCalculator = DistanceCalculator();
   final LocationClusterNamer _locationClusterNamer = LocationClusterNamer();
   final TimelineEventAggregator _timelineAggregator = TimelineEventAggregator();
+  final DataRichNarrativeBuilder _narrativeBuilder = DataRichNarrativeBuilder();
 
   /// Synthesize comprehensive daily context from all data sources
   Future<DailyContext> synthesizeDailyContext({
