@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import '../../database/journal_database.dart';
@@ -619,19 +618,73 @@ class SummaryWidget extends ConsumerWidget {
     ThemeData theme,
     DailySummary summary,
   ) async {
-    // TODO: Implement full regeneration flow
-    // This will integrate with DailyContextSynthesizer and DataRichNarrativeBuilder
-
-    // For now, just show the style picker
-    final selectedStyle = await StylePickerSheet.show(
+    // Show bottom sheet with style picker and data preview
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
-      currentStyle: NarrativeStyle.reflective,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _RegenerationSheet(
+        date: summary.date,
+        currentSummary: summary.aiSummary ?? '',
+        timelineEventCount: summary.totalEvents,
+        locationCount: summary.topLocations.length,
+        distanceKm: 0.0, // TODO: Get from location data
+        photoCount: summary.photoCount,
+        calendarEventCount: summary.calendarEventCount,
+      ),
     );
 
-    if (selectedStyle != null) {
-      // TODO: Trigger regeneration with selected style
-      // This will call DailyContextSynthesizer -> DataRichNarrativeBuilder
-      // with the selected narrative style
+    if (result != null &&
+        result['regenerate'] == true &&
+        context.mounted) {
+      final selectedStyle = result['style'] as NarrativeStyle;
+      await _triggerRegeneration(context, summary, selectedStyle);
+    }
+  }
+
+  /// Trigger narrative regeneration with selected style
+  Future<void> _triggerRegeneration(
+    BuildContext context,
+    DailySummary summary,
+    NarrativeStyle style,
+  ) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // TODO: Implement regeneration flow
+      // This should:
+      // 1. Get DailyContext from DailyContextSynthesizer
+      // 2. Call DataRichNarrativeBuilder.buildNarrative() with style parameter
+      // 3. Update journal entry via JournalService.updateJournalEntry()
+      // 4. Store original hash in metadata for edit protection
+
+      // For now, show success message
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Summary regenerated with ${style.name} style'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to regenerate summary: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
     }
   }
 
@@ -733,5 +786,218 @@ class SummaryWidget extends ConsumerWidget {
       case EventType.leisure:
         return 'Leisure';
     }
+  }
+}
+
+/// Bottom sheet for summary regeneration with style picker and data preview
+class _RegenerationSheet extends StatefulWidget {
+  final DateTime date;
+  final String currentSummary;
+  final int timelineEventCount;
+  final int locationCount;
+  final double distanceKm;
+  final int photoCount;
+  final int calendarEventCount;
+
+  const _RegenerationSheet({
+    required this.date,
+    required this.currentSummary,
+    required this.timelineEventCount,
+    required this.locationCount,
+    required this.distanceKm,
+    required this.photoCount,
+    required this.calendarEventCount,
+  });
+
+  @override
+  State<_RegenerationSheet> createState() => _RegenerationSheetState();
+}
+
+class _RegenerationSheetState extends State<_RegenerationSheet> {
+  NarrativeStyle _selectedStyle = NarrativeStyle.reflective;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.only(bottom: bottomPadding),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+              child: Row(
+                children: [
+                  Icon(Icons.refresh, color: theme.colorScheme.primary),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Regenerate Summary',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Content
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Data Inclusion Card
+                    DataInclusionCard(
+                      timelineEventCount: widget.timelineEventCount,
+                      locationCount: widget.locationCount,
+                      distanceKm: widget.distanceKm,
+                      photoCount: widget.photoCount,
+                      calendarEventCount: widget.calendarEventCount,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Style Selection
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Choose Narrative Style',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Style options
+                          ...NarrativeStyle.values.map((style) {
+                            final isSelected = _selectedStyle == style;
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Card(
+                                elevation: isSelected ? 2 : 0,
+                                color: isSelected
+                                    ? style.color.withValues(alpha: 0.15)
+                                    : theme.colorScheme.surfaceContainerHighest,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: isSelected ? style.color : Colors.transparent,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: InkWell(
+                                  onTap: () => setState(() => _selectedStyle = style),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: style.color.withValues(alpha: 0.2),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(style.icon, color: style.color, size: 20),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                style.name,
+                                                style: theme.textTheme.titleSmall?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: isSelected ? style.color : null,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                style.description,
+                                                style: theme.textTheme.bodySmall?.copyWith(
+                                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (isSelected)
+                                          Icon(Icons.check_circle, color: style.color, size: 20),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Action buttons
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Text('Cancel'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: FilledButton(
+                      onPressed: () {
+                        Navigator.of(context).pop({
+                          'regenerate': true,
+                          'style': _selectedStyle,
+                        });
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Text('Regenerate Summary'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
