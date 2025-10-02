@@ -1,0 +1,49 @@
+# Task ID: 45
+# Title: Replace template-based narrative generation with Google Gemini Nano for AI-powered journal generation and visual analysis
+# Status: pending
+# Dependencies: 6, 17, 3, 5
+# Priority: medium
+# Description: Implement AI Service Adapter Pattern with multiple backend adapters to provide AI-powered narrative generation that gracefully degrades based on device capabilities. Create abstracted AI service interface supporting ML Kit GenAI APIs (Tier 1), hybrid ML Kit + TFLite models (Tier 2), existing DataRichNarrativeBuilder templates (Tier 3), and optional cloud Gemini API (Tier 4).
+# Details:
+Implement comprehensive AI Service Adapter Pattern to ensure ALL devices get AI journaling capabilities with graceful degradation. Architecture: 1) Abstract AIJournalGenerator interface with methods for generateSummary, describeImage, rewriteText, checkAvailability, getCapabilities. 2) Four-tier adapter system: Tier 1 MLKitGenAIAdapter (preferred, requires Android API 26+, AICore, Pixel 8+/Galaxy S24), Tier 2 HybridMLKitAdapter (partial fallback, basic ML Kit + custom TFLite, Android API 21+), Tier 3 TemplateAdapter (current DataRichNarrativeBuilder, guaranteed fallback), Tier 4 CloudGeminiAdapter (optional premium, requires network/consent). 3) Runtime selection with AdapterRegistry, CapabilityMatrix, RuntimeSelector, and GracefulDegradation. 4) User control via settings UI showing active adapter with privacy warnings for cloud features. Integration with existing journal_service.dart lines 131-132 for narrative generation while maintaining backward compatibility.
+
+# Test Strategy:
+Test adapter selection logic across different Android devices and API levels to ensure proper tier fallbacks. Validate ML Kit GenAI feature availability detection using checkFeatureStatus() and downloadFeature() callbacks. Test graceful degradation when higher-tier adapters fail or become unavailable. Compare narrative generation quality across all four adapter tiers using identical DailyContext inputs. Verify privacy controls prevent cloud adapter usage without explicit user consent. Test adapter switching in settings UI and validate seamless transitions between generation methods. Measure performance metrics including generation time, memory usage, and battery impact across different adapters. Test offline functionality ensures Tiers 1-3 work without network connectivity while Tier 4 requires internet. Validate comprehensive error handling and fallback mechanisms for each adapter tier.
+
+# Subtasks:
+## 1. Create AI Service Abstraction Layer with adapter registry and runtime selection [pending]
+### Dependencies: None
+### Description: Design and implement the core abstraction layer including AIJournalGenerator interface, AdapterRegistry for managing available adapters, CapabilityMatrix for device capability mapping, and RuntimeSelector for choosing the best adapter based on current device state and user preferences.
+### Details:
+Create AIJournalGenerator abstract interface in lib/services/ai/ai_journal_generator.dart with methods: generateSummary(DailyContext), describeImage(String imagePath), rewriteText(String text, String tone), checkAvailability(), getCapabilities(). Implement AdapterRegistry class to maintain list of available adapters with priority ordering. Create CapabilityMatrix to map device capabilities (Android version, AICore availability, device model) to adapter availability. Implement RuntimeSelector with logic to choose best adapter: try ML Kit GenAI first, fall back to hybrid ML Kit + TFLite, ultimate fallback to templates, cloud option only if user enabled. Add comprehensive logging using existing AppLogger utility for adapter selection decisions.
+
+## 2. Implement MLKitGenAIAdapter (Tier 1) with ML Kit GenAI APIs integration [pending]
+### Dependencies: 45.1
+### Description: Develop Tier 1 adapter that implements AIJournalGenerator interface using ML Kit GenAI APIs. Replace existing GeminiNanoService placeholder with production-ready implementation supporting GenAI Summarization API for narrative generation, GenAI Image Description API for photo analysis, and GenAI Rewriting API for post-generation editing.
+### Details:
+Replace placeholder GeminiNanoService with MLKitGenAIAdapter class implementing AIJournalGenerator interface. Add ML Kit GenAI dependencies to pubspec.yaml: com.google.mlkit:genai-summarization:1.0.0-beta1, com.google.mlkit:genai-image-description:1.0.0-beta1, com.google.mlkit:genai-rewriting:1.0.0-beta1. Implement device compatibility detection (Android API 26+, AICore app verification, supported device models). Add feature download management with downloadFeature() callbacks and progress indicators. Implement generateSummary() using GenAI Summarization API with InputType.ARTICLE, converting DailyContext to structured text input. Implement describeImage() using GenAI Image Description API for natural language photo descriptions. Implement rewriteText() supporting all available tones (Elaborate, Emojify, Shorten, Friendly, Professional, Rephrase) and languages.
+
+## 3. Implement HybridMLKitAdapter (Tier 2) with basic ML Kit and custom TFLite models [pending]
+### Dependencies: 45.1
+### Description: Develop Tier 2 adapter that provides partial AI functionality using basic ML Kit services (already available in project) combined with lightweight custom TFLite models for text processing. This adapter works on Android API 21+ and serves as fallback when ML Kit GenAI is unavailable.
+### Details:
+Create HybridMLKitAdapter implementing AIJournalGenerator interface using existing ML Kit services (google_mlkit_image_labeling, google_mlkit_text_recognition, google_mlkit_object_detection, google_mlkit_face_detection already in pubspec.yaml). Enhance photo analysis by combining ML Kit image labeling with object detection and face detection to create richer descriptions. Implement lightweight text summarization using custom TFLite model or rule-based approach for narrative generation from DailyContext. Create hybrid rewriting functionality using text pattern matching and template-based transformations. Ensure compatibility with Android API 21+ and devices without AICore support.
+
+## 4. Refactor TemplateAdapter (Tier 3) wrapping existing DataRichNarrativeBuilder [pending]
+### Dependencies: 45.1
+### Description: Wrap the existing DataRichNarrativeBuilder (lib/services/data_rich_narrative_builder.dart) with the AIJournalGenerator interface to serve as Tier 3 guaranteed fallback. This adapter ensures all devices have narrative generation capabilities regardless of AI support.
+### Details:
+Create TemplateAdapter class wrapping existing DataRichNarrativeBuilder to implement AIJournalGenerator interface. Implement generateSummary() by calling DataRichNarrativeBuilder.buildNarrative() with DailyContext input. For describeImage(), use existing ML Kit image labeling to generate basic object descriptions with simple template formatting. Implement basic rewriteText() using template-based text transformations and existing ContextualPhraseGenerator, EmotionalToneAnalyzer, and PersonalityEngine from DataRichNarrativeBuilder. Ensure this adapter has 100% availability as guaranteed fallback option.
+
+## 5. Implement CloudGeminiAdapter (Tier 4) for optional premium features [pending]
+### Dependencies: 45.1
+### Description: Develop Tier 4 adapter using Google Generative AI SDK (already in pubspec.yaml as google_generative_ai: ^0.4.7) to provide premium cloud-based AI features with Gemini 2.5 Pro API. This adapter requires network connectivity and explicit user consent with clear privacy warnings.
+### Details:
+Create CloudGeminiAdapter implementing AIJournalGenerator interface using existing google_generative_ai dependency. Implement high-quality narrative generation using Gemini 2.5 Pro API with sophisticated prompt engineering for DailyContext processing. Add advanced image analysis using Gemini's multimodal capabilities for detailed photo descriptions. Implement premium rewriting features with custom tone instructions and advanced language options. Add strict privacy controls requiring explicit user consent before any data leaves device. Implement proper API key management using flutter_secure_storage. Add network connectivity checks and comprehensive error handling for API failures.
+
+## 6. Integration with journal_service.dart and comprehensive testing framework [pending]
+### Dependencies: 45.2, 45.3, 45.4, 45.5
+### Description: Integrate the adapter system with existing journal_service.dart createEntryForDate method (lines 131-132), implement settings UI for adapter control, add comprehensive testing framework for A/B quality comparison, and ensure seamless user experience across all adapter tiers.
+### Details:
+Update journal_service.dart createEntryForDate method to use RuntimeSelector for choosing optimal adapter while maintaining backward compatibility. Implement SharedPreferences-based settings for user adapter preferences with automatic fallback logic. Create settings UI showing current active adapter, device capabilities, and privacy controls for cloud features. Add comprehensive testing framework for A/B comparison between adapter tiers using identical DailyContext inputs. Implement performance monitoring and logging to track adapter usage, generation times, and quality metrics. Add seamless adapter switching with proper state management and user feedback.
+

@@ -137,6 +137,7 @@ The primary monetization strategy will be an "Open Core" or Freemium model.90 Th
 * **Free Tier (Core Product):** Includes all features detailed in this document: automatic data capture, on-device AI summary generation, voice editing, manual entry, multimedia support, full data export, and standard encrypted backup options. The free version will be fully usable and not artificially limited.
 * **Potential "Pro" Features:**
   * **Advanced AI Insights:** Deeper, long-term trend analysis (e.g., "How has my mood correlated with my location over the past year?").
+  * **Advanced Models:** Give users the option to use more advanced, multi-modal models like Gemini 2.5 Pro to give better summaries (but with the warning that their data would leave the device)
   * **Enhanced Data Visualizations:** More sophisticated map overlays, activity charts, and relationship graphs.
   * **Expanded Backup & Sync Options:** Access to a wider range of automated, user-configured cloud sync providers.
   * **Premium Export Formats:** Beautifully designed PDF or eBook templates for printing physical copies of the journal.
