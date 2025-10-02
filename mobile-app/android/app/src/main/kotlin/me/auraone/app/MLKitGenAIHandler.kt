@@ -1,9 +1,24 @@
 package me.auraone.app
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Log
+import com.google.mlkit.genai.common.FeatureStatus
+import com.google.mlkit.genai.imagedescription.ImageDescription
+import com.google.mlkit.genai.imagedescription.ImageDescriptionRequest
+import com.google.mlkit.genai.imagedescription.ImageDescriberOptions
+import com.google.mlkit.genai.rewriting.Rewriting
+import com.google.mlkit.genai.rewriting.RewritingRequest
+import com.google.mlkit.genai.rewriting.RewriterOptions
+import com.google.mlkit.genai.summarization.Summarization
+import com.google.mlkit.genai.summarization.SummarizationRequest
+import com.google.mlkit.genai.summarization.SummarizerOptions
 import io.flutter.plugin.common.MethodChannel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.guava.await
+import kotlinx.coroutines.launch
 import java.io.File
 
 /**
@@ -34,11 +49,41 @@ class MLKitGenAIHandler(private val context: Context) {
 
     private var isInitialized = false
     private var isAvailable = false
+    private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
-    // TODO: These will be actual ML Kit GenAI API objects once we add dependencies
-    // private var summarizer: Summarizer? = null
-    // private var imageDescriber: ImageDescriber? = null
-    // private var rewriter: Rewriter? = null
+    // ML Kit GenAI clients (lazy initialization)
+    private val summarizer by lazy {
+        val options = SummarizerOptions.builder(context)
+            .setInputType(SummarizerOptions.InputType.ARTICLE)
+            .setOutputType(SummarizerOptions.OutputType.TWO_BULLETS)  // ~150-200 words
+            .setLanguage(SummarizerOptions.Language.ENGLISH)
+            .build()
+        Summarization.getClient(options)
+    }
+
+    private val imageDescriber by lazy {
+        val options = ImageDescriberOptions.builder(context).build()
+        ImageDescription.getClient(options)
+    }
+
+    private fun getRewriter(tone: String?): com.google.mlkit.genai.rewriting.Rewriter {
+        val outputType = when (tone?.lowercase()) {
+            "elaborate" -> RewriterOptions.OutputType.ELABORATE
+            "emojify" -> RewriterOptions.OutputType.EMOJIFY
+            "shorten" -> RewriterOptions.OutputType.SHORTEN
+            "friendly" -> RewriterOptions.OutputType.FRIENDLY
+            "professional" -> RewriterOptions.OutputType.PROFESSIONAL
+            "rephrase" -> RewriterOptions.OutputType.REPHRASE
+            else -> RewriterOptions.OutputType.REPHRASE
+        }
+
+        val options = RewriterOptions.builder(context)
+            .setOutputType(outputType)
+            .setLanguage(RewriterOptions.Language.ENGLISH)
+            .build()
+
+        return Rewriting.getClient(options)
+    }
 
     /**
      * Check if ML Kit GenAI is available on this device
@@ -122,27 +167,36 @@ class MLKitGenAIHandler(private val context: Context) {
      * Generate summary from structured text input
      */
     fun generateSummary(input: String, result: MethodChannel.Result) {
-        try {
-            if (!isAvailable) {
-                result.error("NOT_AVAILABLE", "ML Kit GenAI not available", null)
-                return
+        coroutineScope.launch {
+            try {
+                if (!isAvailable) {
+                    result.error("NOT_AVAILABLE", "ML Kit GenAI not available", null)
+                    return@launch
+                }
+
+                Log.d(TAG, "Generating summary (input length: ${input.length})")
+
+                // Check if feature is available
+                val featureStatus = summarizer.checkFeatureStatus().await()
+                if (featureStatus != FeatureStatus.AVAILABLE) {
+                    Log.w(TAG, "Summarization feature not available: $featureStatus")
+                    result.error("FEATURE_NOT_AVAILABLE", "Summarization feature needs to be downloaded first", null)
+                    return@launch
+                }
+
+                // Create summarization request
+                val request = SummarizationRequest.builder(input).build()
+
+                // Run inference (non-streaming for simplicity)
+                val summary = summarizer.runInference(request).await().summary
+
+                Log.i(TAG, "Generated summary: ${summary.length} characters")
+                result.success(summary)
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error generating summary", e)
+                result.error("GENERATION_ERROR", e.message, null)
             }
-
-            Log.d(TAG, "Generating summary (input length: ${input.length})")
-
-            // TODO: Implement actual summarization using ML Kit GenAI Summarization API
-            // This would:
-            // 1. Create SummarizationOptions with InputType.ARTICLE
-            // 2. Process the structured input text
-            // 3. Return natural language summary (150-200 words)
-            // 4. Handle API errors and timeouts
-
-            // Placeholder response
-            result.error("NOT_IMPLEMENTED", "Summarization API not yet implemented", null)
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error generating summary", e)
-            result.error("GENERATION_ERROR", e.message, null)
         }
     }
 
@@ -150,34 +204,51 @@ class MLKitGenAIHandler(private val context: Context) {
      * Describe image using natural language
      */
     fun describeImage(imagePath: String, result: MethodChannel.Result) {
-        try {
-            if (!isAvailable) {
-                result.error("NOT_AVAILABLE", "ML Kit GenAI not available", null)
-                return
+        coroutineScope.launch {
+            try {
+                if (!isAvailable) {
+                    result.error("NOT_AVAILABLE", "ML Kit GenAI not available", null)
+                    return@launch
+                }
+
+                val imageFile = File(imagePath)
+                if (!imageFile.exists()) {
+                    result.error("FILE_NOT_FOUND", "Image file not found: $imagePath", null)
+                    return@launch
+                }
+
+                Log.d(TAG, "Describing image: $imagePath")
+
+                // Check if feature is available
+                val featureStatus = imageDescriber.checkFeatureStatus().await()
+                if (featureStatus != FeatureStatus.AVAILABLE) {
+                    Log.w(TAG, "Image description feature not available: $featureStatus")
+                    result.error("FEATURE_NOT_AVAILABLE", "Image description feature needs to be downloaded first", null)
+                    return@launch
+                }
+
+                // Load image as bitmap
+                val bitmap = BitmapFactory.decodeFile(imagePath)
+                if (bitmap == null) {
+                    result.error("INVALID_IMAGE", "Could not decode image file", null)
+                    return@launch
+                }
+
+                // Create image description request
+                val request = ImageDescriptionRequest.builder(bitmap).build()
+
+                // Run inference (non-streaming)
+                val description = imageDescriber.runInference(request).await().description
+
+                bitmap.recycle() // Clean up bitmap
+
+                Log.i(TAG, "Generated image description: ${description.length} characters")
+                result.success(description)
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error describing image", e)
+                result.error("DESCRIPTION_ERROR", e.message, null)
             }
-
-            val imageFile = File(imagePath)
-            if (!imageFile.exists()) {
-                result.error("FILE_NOT_FOUND", "Image file not found: $imagePath", null)
-                return
-            }
-
-            Log.d(TAG, "Describing image: $imagePath")
-
-            // TODO: Implement actual image description using ML Kit GenAI Image Description API
-            // This would:
-            // 1. Load image from file
-            // 2. Create InputImage from file
-            // 3. Process with ImageDescriber
-            // 4. Return natural language description (30-50 words)
-            // 5. Handle API errors and unsupported images
-
-            // Placeholder response
-            result.error("NOT_IMPLEMENTED", "Image description API not yet implemented", null)
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error describing image", e)
-            result.error("DESCRIPTION_ERROR", e.message, null)
         }
     }
 
@@ -185,36 +256,46 @@ class MLKitGenAIHandler(private val context: Context) {
      * Rewrite text with specified tone and language
      */
     fun rewriteText(text: String, tone: String?, language: String?, result: MethodChannel.Result) {
-        try {
-            if (!isAvailable) {
-                result.error("NOT_AVAILABLE", "ML Kit GenAI not available", null)
-                return
+        coroutineScope.launch {
+            try {
+                if (!isAvailable) {
+                    result.error("NOT_AVAILABLE", "ML Kit GenAI not available", null)
+                    return@launch
+                }
+
+                Log.d(TAG, "Rewriting text (tone: $tone, language: $language)")
+
+                // Get rewriter with specified tone
+                val rewriter = getRewriter(tone)
+
+                // Check if feature is available
+                val featureStatus = rewriter.checkFeatureStatus().await()
+                if (featureStatus != FeatureStatus.AVAILABLE) {
+                    Log.w(TAG, "Rewriting feature not available: $featureStatus")
+                    result.error("FEATURE_NOT_AVAILABLE", "Rewriting feature needs to be downloaded first", null)
+                    return@launch
+                }
+
+                // Create rewriting request
+                val request = RewritingRequest.builder(text).build()
+
+                // Run inference (non-streaming)
+                val rewritingResult = rewriter.runInference(request).await()
+                val rewrittenResults = rewritingResult.results
+
+                // Get the rewritten text (usually just one result)
+                val rewrittenText: String = rewrittenResults.firstOrNull()?.text ?: text
+
+                Log.i(TAG, "Rewritten text: ${rewrittenText.length} characters")
+                result.success(rewrittenText)
+
+                // Clean up rewriter
+                rewriter.close()
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error rewriting text", e)
+                result.error("REWRITING_ERROR", e.message, null)
             }
-
-            Log.d(TAG, "Rewriting text (tone: $tone, language: $language)")
-
-            // TODO: Implement actual text rewriting using ML Kit GenAI Rewriting API
-            // This would:
-            // 1. Create RewritingOptions with specified tone
-            // 2. Handle language parameter (if supported)
-            // 3. Process input text
-            // 4. Return rewritten version
-            // 5. Handle API errors and unsupported tones/languages
-
-            // Supported tones:
-            // - ELABORATE: Add more detail
-            // - EMOJIFY: Add emojis
-            // - SHORTEN: Make more concise
-            // - FRIENDLY: Make more casual/warm
-            // - PROFESSIONAL: Make more formal
-            // - REPHRASE: Say differently
-
-            // Placeholder response
-            result.error("NOT_IMPLEMENTED", "Rewriting API not yet implemented", null)
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error rewriting text", e)
-            result.error("REWRITING_ERROR", e.message, null)
         }
     }
 
@@ -222,10 +303,15 @@ class MLKitGenAIHandler(private val context: Context) {
      * Clean up resources
      */
     fun dispose() {
-        // TODO: Clean up ML Kit GenAI resources
-        // summarizer?.close()
-        // imageDescriber?.close()
-        // rewriter?.close()
+        try {
+            // Clean up ML Kit GenAI resources
+            if (isInitialized && isAvailable) {
+                summarizer.close()
+                imageDescriber.close()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error disposing resources", e)
+        }
 
         isInitialized = false
         isAvailable = false
