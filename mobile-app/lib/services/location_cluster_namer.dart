@@ -141,9 +141,8 @@ class LocationClusterNamer {
       speed: cluster.first.speed,
       heading: cluster.first.heading,
       activityType: cluster.first.activityType,
-      confidence: cluster.first.confidence,
-      batteryLevel: cluster.first.batteryLevel,
-      isMoving: cluster.first.isMoving,
+      isSignificant: cluster.first.isSignificant,
+      createdAt: cluster.first.createdAt,
     );
   }
 

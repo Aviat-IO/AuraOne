@@ -94,9 +94,9 @@ class DistanceCalculator {
     required DateTime startTime,
     required DateTime endTime,
   }) async {
-    final points = await database.getLocationPointsInTimeRange(
-      startTime: startTime,
-      endTime: endTime,
+    final points = await database.getLocationPointsBetween(
+      startTime,
+      endTime,
     );
 
     return calculateTotalDistance(points);

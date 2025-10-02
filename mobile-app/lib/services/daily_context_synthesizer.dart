@@ -748,13 +748,12 @@ class DailyContextSynthesizer {
 
     // Analyze location clusters for significant places
     if (locationPoints.isNotEmpty) {
-      final clusters = _clusterLocations(locationPoints);
+      final clusterCenters = _clusterLocations(locationPoints);
 
       // Add place names from reverse geocoding or coordinate-based names
-      for (final cluster in clusters) {
-        final centerPoint = _calculateClusterCenter(cluster);
+      for (final centerPoint in clusterCenters) {
         final key = '${centerPoint.latitude.toStringAsFixed(4)},${centerPoint.longitude.toStringAsFixed(4)}';
-        final placeName = placeNames[key] ?? _locationToPlaceName(cluster);
+        final placeName = placeNames[key] ?? _locationToPlaceName(centerPoint);
         significantPlaces.add(placeName);
       }
     }
@@ -819,9 +818,8 @@ class DailyContextSynthesizer {
       speed: cluster.first.speed,
       heading: cluster.first.heading,
       activityType: cluster.first.activityType,
-      confidence: cluster.first.confidence,
-      batteryLevel: cluster.first.batteryLevel,
-      isMoving: cluster.first.isMoving,
+      isSignificant: cluster.first.isSignificant,
+      createdAt: cluster.first.createdAt,
     );
   }
 

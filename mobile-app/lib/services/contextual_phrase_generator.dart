@@ -17,7 +17,7 @@ class ContextualPhraseGenerator {
     String? firstLocation,
   }) {
     final hour = date.hour;
-    final dayOfWeek = _getDayOfWeek(date);
+    final dayOfWeek = getDayOfWeek(date);
 
     if (firstLocation != null) {
       return _openingWithLocation(hour, dayOfWeek, firstLocation);
