@@ -3,17 +3,24 @@ import '../services/timeline_event_aggregator.dart';
 import '../services/daily_context_synthesizer.dart';
 import '../utils/logger.dart';
 import 'contextual_phrase_generator.dart';
+import 'emotional_tone_analyzer.dart';
+import 'personality_engine.dart';
 
 /// Builds rich contextual narratives from timeline events and daily context
 ///
 /// Weaves together timeline events (calendar, photos, locations) with
 /// contextual data (place names, objects, distances) into a coherent
 /// chronological narrative with natural transitions.
+///
+/// Uses EmotionalToneAnalyzer to detect the day's emotional character and
+/// PersonalityEngine to adjust language accordingly.
 class DataRichNarrativeBuilder {
   static final _logger = AppLogger('DataRichNarrativeBuilder');
   static final DataRichNarrativeBuilder _instance = DataRichNarrativeBuilder._internal();
 
   final ContextualPhraseGenerator _phraseGen = ContextualPhraseGenerator();
+  final EmotionalToneAnalyzer _emotionAnalyzer = EmotionalToneAnalyzer();
+  final PersonalityEngine _personality = PersonalityEngine();
 
   factory DataRichNarrativeBuilder() => _instance;
   DataRichNarrativeBuilder._internal();
@@ -25,6 +32,7 @@ class DataRichNarrativeBuilder {
   /// - Chronological event descriptions
   /// - Natural transitions based on time/distance
   /// - Closing with day summary stats
+  /// - Tone-aware language based on emotional analysis
   Future<String> buildNarrative({
     required DailyContext context,
   }) async {
@@ -42,22 +50,31 @@ class DataRichNarrativeBuilder {
         return _buildQuietDayNarrative(context);
       }
 
+      // Analyze emotional tone of the day
+      final emotionalProfile = _emotionAnalyzer.analyzeDay(context);
+
       final narrative = StringBuffer();
 
-      // 1. Opening with time/location context
-      narrative.write(_buildOpening(significantEvents, context));
+      // 1. Opening with time/location context (tone-adjusted)
+      final opening = _buildOpening(significantEvents, context);
+      final tonedOpening = _personality.adjustOpening(opening, emotionalProfile);
+      narrative.write(tonedOpening);
       narrative.write(' ');
 
-      // 2. Event descriptions with transitions
-      narrative.write(_buildEventSequence(significantEvents, context));
+      // 2. Event descriptions with transitions (tone-adjusted)
+      narrative.write(_buildEventSequence(significantEvents, context, emotionalProfile));
 
-      // 3. Closing with day summary stats
+      // 3. Closing with day summary stats (tone-adjusted)
       narrative.write(' ');
-      narrative.write(_buildClosing(significantEvents, context));
+      final closing = _buildClosing(significantEvents, context);
+      final tonedClosing = _personality.adjustClosing(closing, emotionalProfile);
+      narrative.write(tonedClosing);
 
       final result = narrative.toString();
 
-      _logger.info('Generated narrative: ${result.split(' ').length} words');
+      _logger.info('Generated narrative: ${result.split(' ').length} words, '
+                  'tone: ${emotionalProfile.primaryTone.name}, '
+                  'profile: ${emotionalProfile.summary}');
 
       return result;
     } catch (e, stackTrace) {
@@ -90,8 +107,12 @@ class DataRichNarrativeBuilder {
     );
   }
 
-  /// Build sequence of events with transitions
-  String _buildEventSequence(List<NarrativeEvent> events, DailyContext context) {
+  /// Build sequence of events with transitions (tone-adjusted)
+  String _buildEventSequence(
+    List<NarrativeEvent> events,
+    DailyContext context,
+    EmotionalProfile emotionalProfile,
+  ) {
     final sentences = <String>[];
     NarrativeEvent? previousEvent;
 
@@ -100,7 +121,7 @@ class DataRichNarrativeBuilder {
 
       // Add transition if not first event
       if (previousEvent != null) {
-        final transition = _generateTransition(previousEvent, event);
+        final transition = _generateTransition(previousEvent, event, emotionalProfile);
         if (transition.isNotEmpty) {
           sentences.add(transition);
         }
@@ -118,8 +139,12 @@ class DataRichNarrativeBuilder {
     return sentences.join(' ');
   }
 
-  /// Generate transition between events
-  String _generateTransition(NarrativeEvent from, NarrativeEvent to) {
+  /// Generate transition between events (tone-adjusted)
+  String _generateTransition(
+    NarrativeEvent from,
+    NarrativeEvent to,
+    EmotionalProfile emotionalProfile,
+  ) {
     final timeDiff = to.timestamp.difference(from.timestamp);
 
     // Calculate distance if both have locations
@@ -132,12 +157,15 @@ class DataRichNarrativeBuilder {
       );
     }
 
-    final transitionPhrase = _phraseGen.generateTransition(
+    final baseTransition = _phraseGen.generateTransition(
       timeDiff: timeDiff,
       distanceMeters: distance,
       fromLocation: from.placeName,
       toLocation: to.placeName,
     );
+
+    // Adjust transition based on emotional tone
+    final transitionPhrase = _personality.adjustTransition(baseTransition, emotionalProfile);
 
     // Add movement description if significant distance
     if (distance != null && distance > 100) {
