@@ -84,6 +84,10 @@ class JournalDatabase extends _$JournalDatabase {
     return updatedRows > 0;
   }
 
+  Future<int> deleteJournalEntry(int id) {
+    return (delete(journalEntries)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
   /// Update journal entry summary with edit protection
   ///
   /// Stores the original AI summary and hash for edit detection.
