@@ -1798,7 +1798,7 @@
         "testStrategy": "Test data extraction accuracy (object detection, geocoding, distance calc). Verify edit protection prevents data loss (100% success rate). Test narrative quality with timeline integration (80%+ events), calendar integration (100% enabled events), place names (3+ per day), object mentions (2+ per photo). Validate UI shows data availability and regenerates in <3s.",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1884,20 +1884,20 @@
               6
             ],
             "details": "Add regeneration button to SummaryWidget that calls _handleRegenerationRequest with edit protection. Create StylePickerSheet with 5 styles (reflective, casual, poetic, concise, detailed) and DataInclusionCard showing what data will be included (timeline events count, locations, distance, photos, calendar events). Integrate with SummaryEditTracker to show warning when needed.",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": "Verify style picker displays correctly. Test regeneration produces different outputs per style in <3s. Validate edit warning integration works. Test data availability card shows accurate counts.",
             "parentId": "44",
-            "updatedAt": "2025-10-02T01:05:54.013Z"
+            "updatedAt": "2025-10-02T01:11:58.068Z"
           }
         ],
-        "updatedAt": "2025-10-02T01:05:54.013Z"
+        "updatedAt": "2025-10-02T01:11:58.068Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-10-02T01:05:54.014Z",
+      "lastModified": "2025-10-02T01:11:58.069Z",
       "taskCount": 44,
-      "completedCount": 43,
+      "completedCount": 44,
       "tags": [
         "master"
       ]
