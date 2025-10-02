@@ -6,7 +6,10 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import '../../database/journal_database.dart';
 import '../../services/journal_service.dart';
+import '../../services/summary_edit_tracker.dart';
 import 'timeline_widget.dart';
+import 'style_picker_sheet.dart';
+import 'data_inclusion_card.dart';
 
 // Provider for daily summary data
 final dailySummaryProvider = FutureProvider.family<DailySummary, DateTime>((ref, date) async {
@@ -204,7 +207,7 @@ class SummaryWidget extends ConsumerWidget {
 
           // AI Summary (if available)
           if (summary.aiSummary != null && summary.aiSummary!.isNotEmpty)
-            _buildAISummaryCard(theme, summary),
+            _buildAISummaryCard(context, theme, summary),
         ],
       ),
     );
@@ -509,26 +512,37 @@ class SummaryWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildAISummaryCard(ThemeData theme, DailySummary summary) {
+  Widget _buildAISummaryCard(BuildContext context, ThemeData theme, DailySummary summary) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header with regeneration button
             Row(
               children: [
                 Icon(Icons.auto_awesome, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Text(
-                  'AI Summary',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    'AI Summary',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                ),
+                // Regeneration button
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Regenerate with different style',
+                  onPressed: () => _handleRegenerationRequest(context, theme, summary),
                 ),
               ],
             ),
             const SizedBox(height: 16),
+
+            // Summary text
             Text(
               summary.aiSummary!,
               style: theme.textTheme.bodyLarge?.copyWith(
@@ -539,6 +553,86 @@ class SummaryWidget extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Handle summary regeneration request with edit protection
+  Future<void> _handleRegenerationRequest(
+    BuildContext context,
+    ThemeData theme,
+    DailySummary summary,
+  ) async {
+    final tracker = SummaryEditTracker();
+
+    // TODO: Get original hash from journal entry metadata
+    // For now, assume no edit protection (first implementation)
+    final String? originalHash = null;
+
+    // Check if regeneration is allowed
+    final canRegenerate = tracker.canRegenerate(
+      currentSummary: summary.aiSummary ?? '',
+      originalHash: originalHash,
+    );
+
+    if (!canRegenerate) {
+      // Show edit warning dialog
+      await _showEditWarningDialog(context, theme);
+      return;
+    }
+
+    // Show style picker and data inclusion
+    await _showRegenerationSheet(context, theme, summary);
+  }
+
+  /// Show warning when user has edited the summary
+  Future<void> _showEditWarningDialog(BuildContext context, ThemeData theme) async {
+    // Implementation will be added when we integrate with journal database
+    // For now, this is a placeholder
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded),
+        title: const Text('Summary Has Been Edited'),
+        content: const Text(
+          'This summary has been manually edited. Regenerating will overwrite your changes. '
+          'Are you sure you want to continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // TODO: Force regeneration
+            },
+            child: const Text('Regenerate Anyway'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show regeneration sheet with style picker and data preview
+  Future<void> _showRegenerationSheet(
+    BuildContext context,
+    ThemeData theme,
+    DailySummary summary,
+  ) async {
+    // TODO: Implement full regeneration flow
+    // This will integrate with DailyContextSynthesizer and DataRichNarrativeBuilder
+
+    // For now, just show the style picker
+    final selectedStyle = await StylePickerSheet.show(
+      context: context,
+      currentStyle: NarrativeStyle.reflective,
+    );
+
+    if (selectedStyle != null) {
+      // TODO: Trigger regeneration with selected style
+      // This will call DailyContextSynthesizer -> DataRichNarrativeBuilder
+      // with the selected narrative style
+    }
   }
 
   Widget _buildLoadingSkeleton(ThemeData theme) {

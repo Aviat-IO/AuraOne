@@ -1869,10 +1869,10 @@
               3
             ],
             "details": "Create EmotionalToneAnalyzer enhanced with richer data: object types (dogs=joy), place types (coffee shop=calm, gym=energetic), meeting titles (review=stress), distance (15km=adventurous, 0.5km=sedentary). Build PersonalityEngine for tone-aware phrasing. Implement EmotionalProfile with energy, social, contemplative, adventurous dimensions.",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": "Verify emotional profiles match day characteristics. Test personality-aware phrasing reflects appropriate tone. Validate emotional intelligence uses all data sources.",
             "parentId": "44",
-            "updatedAt": "2025-10-02T01:00:39.726Z"
+            "updatedAt": "2025-10-02T01:05:32.941Z"
           },
           {
             "id": 7,
@@ -1884,17 +1884,18 @@
               6
             ],
             "details": "Add regeneration button to SummaryWidget that calls _handleRegenerationRequest with edit protection. Create StylePickerSheet with 5 styles (reflective, casual, poetic, concise, detailed) and DataInclusionCard showing what data will be included (timeline events count, locations, distance, photos, calendar events). Integrate with SummaryEditTracker to show warning when needed.",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": "Verify style picker displays correctly. Test regeneration produces different outputs per style in <3s. Validate edit warning integration works. Test data availability card shows accurate counts.",
-            "parentId": "44"
+            "parentId": "44",
+            "updatedAt": "2025-10-02T01:05:54.013Z"
           }
         ],
-        "updatedAt": "2025-10-02T01:00:39.726Z"
+        "updatedAt": "2025-10-02T01:05:54.013Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-10-02T01:00:39.727Z",
+      "lastModified": "2025-10-02T01:05:54.014Z",
       "taskCount": 44,
       "completedCount": 43,
       "tags": [
