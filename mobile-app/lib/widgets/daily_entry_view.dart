@@ -280,11 +280,38 @@ class _JournalTab extends HookConsumerWidget {
     Future<void> generateSummary() async {
       if (!enableAI) return;
 
+      // Get existing entry first to check if it has edits
+      final existingEntry = await journalService.getEntryForDate(date);
+
+      // Check if entry exists and has been edited
+      if (existingEntry != null && existingEntry.isEdited) {
+        // Show confirmation dialog
+        final shouldRegenerate = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Regenerate Journal Entry?'),
+            content: const Text(
+              'This journal entry has been edited. Regenerating will overwrite your changes. Do you want to continue?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Regenerate'),
+              ),
+            ],
+          ),
+        );
+
+        // User cancelled - don't regenerate
+        if (shouldRegenerate != true) return;
+      }
+
       isGenerating.value = true;
       try {
-        // Get existing entry first to check if we should update or create
-        final existingEntry = await journalService.getEntryForDate(date);
-
         if (existingEntry != null) {
           // Delete existing entry so createEntryForDate creates a fresh one
           final db = ref.read(journalDatabaseProvider);
