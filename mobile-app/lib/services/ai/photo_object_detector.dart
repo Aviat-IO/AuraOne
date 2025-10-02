@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show Rect;
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import '../../utils/logger.dart';
 

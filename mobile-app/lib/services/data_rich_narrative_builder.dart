@@ -237,7 +237,7 @@ class DataRichNarrativeBuilder {
   /// Build narrative for empty day
   String _buildEmptyDayNarrative(DailyContext context) {
     final date = context.date;
-    final dayName = _phraseGen._getDayOfWeek(date);
+    final dayName = _phraseGen.getDayOfWeek(date);
 
     return '$dayName was a quiet day of rest and reflection. '
            'Sometimes the most meaningful moments are found in stillness.';
@@ -246,7 +246,7 @@ class DataRichNarrativeBuilder {
   /// Build narrative for quiet day (events but not significant)
   String _buildQuietDayNarrative(DailyContext context) {
     final date = context.date;
-    final dayName = _phraseGen._getDayOfWeek(date);
+    final dayName = _phraseGen.getDayOfWeek(date);
 
     if (context.locationSummary.totalKilometers > 0) {
       final km = context.locationSummary.totalKilometers.toStringAsFixed(1);
@@ -261,7 +261,7 @@ class DataRichNarrativeBuilder {
   /// Build fallback narrative on error
   String _buildFallbackNarrative(DailyContext context) {
     final date = context.date;
-    final dayName = _phraseGen._getDayOfWeek(date);
+    final dayName = _phraseGen.getDayOfWeek(date);
 
     return '$dayName brought its own unique rhythm. Though the details blur, '
            'the day held its own quiet significance.';

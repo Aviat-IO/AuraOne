@@ -58,10 +58,15 @@ class PhotoGeocoder {
   /// Extract location data from a photo
   Future<PhotoLocation> extractLocationData(MediaItem photo) async {
     try {
+      if (photo.filePath == null) {
+        _logger.debug('No file path available for photo: ${photo.id}');
+        return PhotoLocation();
+      }
+
       _logger.debug('Extracting location data from: ${photo.filePath}');
 
       // 1. Extract EXIF GPS coordinates
-      final coords = await _extractExifCoordinates(photo.filePath);
+      final coords = await _extractExifCoordinates(photo.filePath!);
 
       if (coords == null) {
         _logger.debug('No GPS coordinates found in EXIF data');
@@ -222,8 +227,10 @@ class PhotoGeocoder {
     final results = <String, PhotoLocation>{};
 
     for (final photo in photos) {
-      final location = await extractLocationData(photo);
-      results[photo.filePath] = location;
+      if (photo.filePath != null) {
+        final location = await extractLocationData(photo);
+        results[photo.filePath!] = location;
+      }
     }
 
     return results;

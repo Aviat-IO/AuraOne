@@ -247,7 +247,7 @@ class ContextualPhraseGenerator {
   }
 
   /// Get day of week name
-  String _getDayOfWeek(DateTime date) {
+  String getDayOfWeek(DateTime date) {
     const days = [
       'Monday',
       'Tuesday',
