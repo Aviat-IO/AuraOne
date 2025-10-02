@@ -147,6 +147,29 @@ class MLKitGenAIAdapter implements AIJournalGenerator {
       }
 
       return AIGenerationResult.failure('Empty response from ML Kit GenAI');
+    } on PlatformException catch (e) {
+      _logger.error('Platform error generating summary', error: e);
+
+      // Handle specific error codes with user-friendly messages
+      switch (e.code) {
+        case 'FEATURE_DOWNLOADING':
+          return AIGenerationResult.failure(
+            e.message ?? 'Downloading AI model. Please try again in a moment.',
+            isRetryable: true,
+          );
+        case 'FEATURE_UNAVAILABLE':
+          return AIGenerationResult.failure(
+            e.message ?? 'AI features not supported on this device',
+            isRetryable: false,
+          );
+        case 'FEATURE_NOT_AVAILABLE':
+          return AIGenerationResult.failure(
+            e.message ?? 'AI model needs to be downloaded first',
+            isRetryable: true,
+          );
+        default:
+          return AIGenerationResult.failure('Error: ${e.message ?? e.code}');
+      }
     } catch (e, stackTrace) {
       _logger.error('Error generating summary', error: e, stackTrace: stackTrace);
       return AIGenerationResult.failure('Error: $e');

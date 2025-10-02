@@ -4,7 +4,9 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Log
+import com.google.mlkit.genai.common.DownloadCallback
 import com.google.mlkit.genai.common.FeatureStatus
+import com.google.mlkit.genai.common.GenAiException
 import com.google.mlkit.genai.imagedescription.ImageDescription
 import com.google.mlkit.genai.imagedescription.ImageDescriptionRequest
 import com.google.mlkit.genai.imagedescription.ImageDescriberOptions
@@ -20,6 +22,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.guava.await
 import kotlinx.coroutines.launch
 import java.io.File
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * Handler for ML Kit GenAI platform channel
@@ -86,6 +91,43 @@ class MLKitGenAIHandler(private val context: Context) {
     }
 
     /**
+     * Suspend wrapper for callback-based downloadFeature API
+     */
+    private suspend fun downloadFeatureAsync(
+        client: Any,
+        onProgress: ((Long) -> Unit)? = null
+    ): Unit = suspendCoroutine { continuation ->
+        val callback = object : DownloadCallback {
+            override fun onDownloadStarted(bytesToDownload: Long) {
+                Log.i(TAG, "Download started: $bytesToDownload bytes")
+            }
+
+            override fun onDownloadProgress(totalBytesDownloaded: Long) {
+                Log.d(TAG, "Download progress: $totalBytesDownloaded bytes")
+                onProgress?.invoke(totalBytesDownloaded)
+            }
+
+            override fun onDownloadCompleted() {
+                Log.i(TAG, "Download completed successfully")
+                continuation.resume(Unit)
+            }
+
+            override fun onDownloadFailed(e: GenAiException) {
+                Log.e(TAG, "Download failed", e)
+                continuation.resumeWithException(e)
+            }
+        }
+
+        // Call the appropriate downloadFeature method based on client type
+        when (client) {
+            is com.google.mlkit.genai.summarization.Summarizer -> client.downloadFeature(callback)
+            is com.google.mlkit.genai.imagedescription.ImageDescriber -> client.downloadFeature(callback)
+            is com.google.mlkit.genai.rewriting.Rewriter -> client.downloadFeature(callback)
+            else -> continuation.resumeWithException(IllegalArgumentException("Unknown client type"))
+        }
+    }
+
+    /**
      * Check if ML Kit GenAI is available on this device
      */
     fun checkAvailability(): Boolean {
@@ -139,27 +181,50 @@ class MLKitGenAIHandler(private val context: Context) {
      * - Rewriting model
      */
     fun downloadFeatures(result: MethodChannel.Result) {
-        try {
-            if (!isAvailable) {
-                result.error("NOT_AVAILABLE", "ML Kit GenAI not available", null)
-                return
+        coroutineScope.launch {
+            try {
+                if (!isAvailable) {
+                    result.error("NOT_AVAILABLE", "ML Kit GenAI not available", null)
+                    return@launch
+                }
+
+                Log.i(TAG, "Starting feature download")
+
+                // Check and download each feature
+                var downloadCount = 0
+
+                // Download summarization feature
+                val summarizerStatus = summarizer.checkFeatureStatus().await()
+                if (summarizerStatus == FeatureStatus.DOWNLOADABLE) {
+                    Log.i(TAG, "Downloading summarization feature...")
+                    downloadFeatureAsync(summarizer)
+                    downloadCount++
+                }
+
+                // Download image description feature
+                val imageDescriberStatus = imageDescriber.checkFeatureStatus().await()
+                if (imageDescriberStatus == FeatureStatus.DOWNLOADABLE) {
+                    Log.i(TAG, "Downloading image description feature...")
+                    downloadFeatureAsync(imageDescriber)
+                    downloadCount++
+                }
+
+                // Download rewriting feature (check all tone variants)
+                val rewriter = getRewriter("rephrase")
+                val rewriterStatus = rewriter.checkFeatureStatus().await()
+                if (rewriterStatus == FeatureStatus.DOWNLOADABLE) {
+                    Log.i(TAG, "Downloading rewriting feature...")
+                    downloadFeatureAsync(rewriter)
+                    downloadCount++
+                }
+
+                Log.i(TAG, "Downloaded $downloadCount features successfully")
+                result.success(true)
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error downloading features", e)
+                result.error("DOWNLOAD_ERROR", e.message, null)
             }
-
-            Log.i(TAG, "Starting feature download")
-
-            // TODO: Implement actual feature download using ML Kit GenAI APIs
-            // This would:
-            // 1. Check which features are already downloaded
-            // 2. Request download for missing features
-            // 3. Report progress via Flutter method channel
-            // 4. Handle download errors gracefully
-
-            // For now, simulate successful download
-            result.success(true)
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error downloading features", e)
-            result.error("DOWNLOAD_ERROR", e.message, null)
         }
     }
 
@@ -176,12 +241,29 @@ class MLKitGenAIHandler(private val context: Context) {
 
                 Log.d(TAG, "Generating summary (input length: ${input.length})")
 
-                // Check if feature is available
+                // Check if feature is available, download if needed
                 val featureStatus = summarizer.checkFeatureStatus().await()
-                if (featureStatus != FeatureStatus.AVAILABLE) {
-                    Log.w(TAG, "Summarization feature not available: $featureStatus")
-                    result.error("FEATURE_NOT_AVAILABLE", "Summarization feature needs to be downloaded first", null)
-                    return@launch
+                when (featureStatus) {
+                    FeatureStatus.UNAVAILABLE -> {
+                        Log.e(TAG, "Summarization feature unavailable on this device")
+                        result.error("FEATURE_UNAVAILABLE", "AI summarization is not supported on this device. Requires Pixel 8+ or Galaxy S24+", null)
+                        return@launch
+                    }
+                    FeatureStatus.DOWNLOADABLE -> {
+                        Log.i(TAG, "Summarization feature needs download - triggering automatic download")
+                        result.error("FEATURE_DOWNLOADING", "Downloading AI model (first time only). This may take a few minutes. Please try again shortly.", null)
+                        // Trigger background download
+                        downloadFeatureAsync(summarizer)
+                        return@launch
+                    }
+                    FeatureStatus.DOWNLOADING -> {
+                        Log.i(TAG, "Summarization feature is currently downloading")
+                        result.error("FEATURE_DOWNLOADING", "AI model is downloading. Please wait a few moments and try again.", null)
+                        return@launch
+                    }
+                    FeatureStatus.AVAILABLE -> {
+                        // Continue with generation
+                    }
                 }
 
                 // Create summarization request

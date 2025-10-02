@@ -6,12 +6,14 @@ class AIGenerationResult {
   final bool success;
   final String? error;
   final Map<String, dynamic>? metadata;
+  final bool isRetryable; // Whether the operation can be retried
 
   AIGenerationResult({
     required this.content,
     required this.success,
     this.error,
     this.metadata,
+    this.isRetryable = false,
   });
 
   factory AIGenerationResult.success(String content, {Map<String, dynamic>? metadata}) {
@@ -22,11 +24,12 @@ class AIGenerationResult {
     );
   }
 
-  factory AIGenerationResult.failure(String error) {
+  factory AIGenerationResult.failure(String error, {bool isRetryable = false}) {
     return AIGenerationResult(
       content: '',
       success: false,
       error: error,
+      isRetryable: isRetryable,
     );
   }
 }
