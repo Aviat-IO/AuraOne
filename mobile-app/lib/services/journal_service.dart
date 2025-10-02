@@ -11,6 +11,7 @@ import '../database/dev_seed_data.dart';
 import '../services/ai/hybrid_ai_service.dart';
 import '../services/reverse_geocoding_service.dart';
 import '../services/data_rich_narrative_builder.dart';
+import '../services/ai/runtime_selector.dart';
 import '../providers/database_provider.dart';
 import '../providers/service_providers.dart';
 import '../providers/settings_providers.dart';
@@ -127,9 +128,31 @@ class JournalService {
       // Get DailyContext from dailyContextProvider
       final dailyContext = await _ref.read(dailyContextProvider(date).future);
 
-      // Generate rich narrative using DataRichNarrativeBuilder
-      final narrativeBuilder = DataRichNarrativeBuilder();
-      final richNarrative = await narrativeBuilder.buildNarrative(context: dailyContext);
+      // Select best available AI adapter
+      final selector = RuntimeSelector();
+      final adapter = await selector.selectAdapter();
+
+      String richNarrative;
+      if (adapter != null) {
+        // Use selected AI adapter
+        _logger.info('Using AI adapter: ${adapter.getCapabilities().adapterName}');
+        final result = await adapter.generateSummary(dailyContext);
+
+        if (result.success) {
+          richNarrative = result.content;
+          _logger.info('AI generation successful (${adapter.getCapabilities().tierLevel})');
+        } else {
+          // Fallback to template if AI generation fails
+          _logger.warning('AI generation failed: ${result.error}, falling back to template');
+          final narrativeBuilder = DataRichNarrativeBuilder();
+          richNarrative = await narrativeBuilder.buildNarrative(context: dailyContext);
+        }
+      } else {
+        // No adapter available, use template directly
+        _logger.warning('No AI adapter available, using template');
+        final narrativeBuilder = DataRichNarrativeBuilder();
+        richNarrative = await narrativeBuilder.buildNarrative(context: dailyContext);
+      }
 
       // Extract activities from the day
       final activities = await _extractActivitiesForDate(date);

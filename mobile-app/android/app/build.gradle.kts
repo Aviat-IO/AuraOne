@@ -58,4 +58,9 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+
+    // ML Kit GenAI APIs (Beta) - On-device AI for Pixel 8+ devices
+    implementation("com.google.mlkit:genai-summarization:1.0.0-beta1")
+    implementation("com.google.mlkit:genai-image-description:1.0.0-beta1")
+    implementation("com.google.mlkit:genai-rewriting:1.0.0-beta1")
 }

@@ -127,6 +127,24 @@ class DebugScreen extends ConsumerWidget {
                                 context.push('/test/har');
                               },
                             ),
+                            Divider(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                              height: 1,
+                            ),
+                            _buildDebugTile(
+                              icon: Icons.auto_awesome,
+                              title: 'ML Kit GenAI Test',
+                              subtitle: 'Test on-device AI (Pixel 9)',
+                              trailing: Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                              ),
+                              theme: theme,
+                              onTap: () {
+                                context.push('/test/mlkit-genai');
+                              },
+                            ),
                           ],
                         ),
                       ),

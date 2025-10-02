@@ -28,6 +28,10 @@ import 'package:aura_one/screens/optimized_splash_screen.dart';
 import 'package:aura_one/utils/performance_monitor.dart';
 import 'package:aura_one/services/data_restoration_service.dart';
 import 'package:aura_one/services/calendar_initialization_service.dart';
+import 'package:aura_one/services/ai/adapter_registry.dart';
+import 'package:aura_one/services/ai/mlkit_genai_adapter.dart';
+import 'package:aura_one/services/ai/template_adapter.dart';
+import 'package:aura_one/services/ai/cloud_gemini_adapter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Provider to store restoration status
@@ -96,6 +100,13 @@ void main() {
     // Load saved theme preference before app starts
     await BrightnessNotifier.loadInitialBrightness();
 
+    // Register AI adapters in priority order (Tier 1 > Tier 2 > Tier 3 > Tier 4)
+    appLogger.info('Registering AI adapters...');
+    final adapterRegistry = AdapterRegistry();
+    adapterRegistry.registerAdapter(MLKitGenAIAdapter(), 1); // Tier 1: Highest priority
+    adapterRegistry.registerAdapter(TemplateAdapter(), 3); // Tier 3: Guaranteed fallback
+    adapterRegistry.registerAdapter(CloudGeminiAdapter(), 4); // Tier 4: Cloud (requires consent)
+    appLogger.info('AI adapters registered successfully');
 
     // Initialize error handling after Sentry
     await ErrorHandler.initialize();

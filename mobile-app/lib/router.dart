@@ -29,6 +29,7 @@ import 'package:aura_one/screens/debug/database_viewer_screen.dart';
 import 'package:aura_one/screens/debug/journal_debug_screen.dart';
 import 'package:aura_one/screens/har_test_screen.dart';
 import 'package:aura_one/screens/debug_screen.dart';
+import 'package:aura_one/screens/test_mlkit_genai_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -174,6 +175,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/test/har',
         builder: (context, state) => const HARTestScreen(),
+      ),
+
+      // ML Kit GenAI test screen - for testing Tier 1 adapter on Pixel 9
+      GoRoute(
+        path: '/test/mlkit-genai',
+        builder: (context, state) => const TestMLKitGenAIScreen(),
       ),
 
       // Event detail screen

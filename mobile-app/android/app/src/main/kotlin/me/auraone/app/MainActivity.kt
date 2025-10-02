@@ -11,12 +11,16 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val CHANNEL = "aura_one/battery_optimization"
+    private val BATTERY_CHANNEL = "aura_one/battery_optimization"
+    private val MLKIT_GENAI_CHANNEL = "com.auraone.mlkit_genai"
+
+    private var mlkitGenAIHandler: MLKitGenAIHandler? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+        // Battery optimization channel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, BATTERY_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "requestIgnoreBatteryOptimizations" -> {
                     requestIgnoreBatteryOptimizations()
@@ -34,6 +38,53 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+
+        // ML Kit GenAI channel
+        mlkitGenAIHandler = MLKitGenAIHandler(this)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, MLKIT_GENAI_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "checkAvailability" -> {
+                    result.success(mlkitGenAIHandler?.checkAvailability() ?: false)
+                }
+                "downloadFeatures" -> {
+                    mlkitGenAIHandler?.downloadFeatures(result) ?: result.error("NOT_INITIALIZED", "Handler not initialized", null)
+                }
+                "generateSummary" -> {
+                    val input = call.argument<String>("input")
+                    if (input != null) {
+                        mlkitGenAIHandler?.generateSummary(input, result) ?: result.error("NOT_INITIALIZED", "Handler not initialized", null)
+                    } else {
+                        result.error("INVALID_ARGUMENT", "Missing input parameter", null)
+                    }
+                }
+                "describeImage" -> {
+                    val imagePath = call.argument<String>("imagePath")
+                    if (imagePath != null) {
+                        mlkitGenAIHandler?.describeImage(imagePath, result) ?: result.error("NOT_INITIALIZED", "Handler not initialized", null)
+                    } else {
+                        result.error("INVALID_ARGUMENT", "Missing imagePath parameter", null)
+                    }
+                }
+                "rewriteText" -> {
+                    val text = call.argument<String>("text")
+                    val tone = call.argument<String>("tone")
+                    val language = call.argument<String>("language")
+                    if (text != null) {
+                        mlkitGenAIHandler?.rewriteText(text, tone, language, result) ?: result.error("NOT_INITIALIZED", "Handler not initialized", null)
+                    } else {
+                        result.error("INVALID_ARGUMENT", "Missing text parameter", null)
+                    }
+                }
+                else -> {
+                    result.notImplemented()
+                }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mlkitGenAIHandler?.dispose()
     }
 
     private fun requestIgnoreBatteryOptimizations() {
