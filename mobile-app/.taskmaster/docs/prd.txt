@@ -1,0 +1,318 @@
+# Aura One - Product Requirements Document (PRD)
+
+## Product Vision
+
+Aura One is a privacy-first, location-aware personal wellness and journaling application that automatically captures and synthesizes daily experiences into meaningful narratives. The app prioritizes on-device processing and user privacy while optionally enabling cloud-based AI features for users who explicitly consent to enhanced quality.
+
+## Core Principles
+
+### 1. Privacy-First Architecture (CRITICAL)
+
+**Primary Directive**: The app MUST function fully and provide excellent user experience WITHOUT requiring any cloud services or data transmission.
+
+**Privacy Hierarchy**:
+- **Default**: 100% on-device processing, no data leaves the device
+- **Optional**: Cloud services only with explicit, informed user consent
+- **Transparent**: Users always know when and why data might be transmitted
+
+**Implementation Requirements**:
+- All core features work offline without degradation
+- Cloud services are opt-in only, never opt-out
+- Clear privacy warnings before any cloud data transmission
+- API keys are optional and stored securely
+- App provides value without any external services
+
+### 2. Graceful Degradation Through 4-Tier AI System
+
+The app uses a sophisticated 4-tier AI adapter system that automatically selects the best available option while maintaining quality:
+
+**Tier 1: ML Kit GenAI (Pixel 8+, Galaxy S24+)**
+- **Privacy**: 100% on-device via Google AICore
+- **Quality**: High (Google Gemini Nano)
+- **Availability**: Limited to specific devices
+- **APIs**: Summarization, Image Description, Rewriting
+- **Use Case**: Pixel/Galaxy users get premium on-device AI
+- **Limitation**: Summarization API expects prose, not structured data
+- **Status**: Implemented but not suitable for journal narrative generation
+
+**Tier 3: Template-Based Generation (All Devices)**
+- **Privacy**: 100% on-device, deterministic
+- **Quality**: Good (rule-based, contextual)
+- **Availability**: 100% guaranteed on all devices
+- **Features**: Timeline weaving, emotional tone analysis, personality engine
+- **Use Case**: Reliable fallback that always works
+- **Status**: Primary on-device option for narrative generation
+
+**Tier 4: Cloud Gemini (Requires User Consent)**
+- **Privacy**: Requires explicit user consent, data sent to Google
+- **Quality**: Excellent (Gemini 2.0 Flash)
+- **Availability**: Requires API key + network + consent
+- **Features**: Superior narrative quality, multimodal understanding
+- **Use Case**: Users who trade privacy for best-in-class quality
+- **Status**: Optional premium tier for consenting users
+
+**Tier 2: Reserved for Future Expansion**
+- Potential for other on-device models (e.g., TensorFlow Lite, ONNX Runtime)
+- Keeps architecture flexible for new options
+
+### 3. Quality vs. Privacy Trade-off Framework
+
+Users explicitly choose their preference:
+
+**Maximum Privacy (Default)**
+- Tier 3 (Template) only
+- No data leaves device ever
+- Good narrative quality
+- Works 100% offline
+- No API keys needed
+
+**Balanced**
+- Tier 1 (ML Kit) if available, else Tier 3 (Template)
+- On-device AI when possible
+- Template fallback guaranteed
+- No cloud transmission
+
+**Maximum Quality (Opt-In)**
+- Tier 4 (Cloud Gemini) preferred when available
+- Tier 3 (Template) fallback when offline or key missing
+- Requires explicit consent acknowledgment
+- User understands data transmission
+- Best narrative quality
+
+### 4. User Consent Requirements for Cloud Services
+
+Before enabling Cloud Gemini (Tier 4), users must:
+
+1. **Read Privacy Warning**: Clear explanation that journal data will be sent to Google's servers
+2. **Acknowledge Trade-off**: Understand they're trading privacy for quality
+3. **Provide API Key**: Obtain and enter their own Gemini API key from Google
+4. **Explicit Consent**: Toggle consent setting in app preferences
+5. **Revocable**: Can revoke consent at any time, reverting to on-device only
+
+**Privacy Warning Template**:
+```
+⚠️ Cloud AI Features
+
+Using Cloud Gemini will send your journal data to Google's servers for processing.
+
+What this means:
+• Your daily activities, locations, and photos will be transmitted to Google
+• Processing happens on Google's cloud infrastructure
+• Data is sent over encrypted connections
+• Google's privacy policy applies to transmitted data
+
+Benefits:
+• Superior narrative quality and natural language
+• Advanced multimodal understanding of photos
+• Sophisticated contextual awareness
+
+Alternative:
+• Keep "Maximum Privacy" mode for 100% on-device processing
+• Template-based narratives work fully offline
+• No data ever leaves your device
+
+Do you consent to cloud processing?
+[ ] I understand and consent to sending my journal data to Google
+```
+
+## Feature Specifications
+
+### Journal Narrative Generation
+
+**Requirements**:
+- Generate 150-200 word daily narratives from structured context
+- Weave together timeline events (calendar, photos, locations)
+- Natural language with emotional awareness
+- Chronological flow with smooth transitions
+- First-person perspective
+
+**Privacy Compliance**:
+- Default: Template adapter (Tier 3)
+- With consent: Cloud Gemini adapter (Tier 4)
+- Fallback: Always available template generation
+- User choice: Settings control adapter preference
+
+**Quality Standards**:
+- **Template (Tier 3)**: Good quality, contextually aware, emotionally adaptive
+- **Cloud Gemini (Tier 4)**: Excellent quality, highly natural, sophisticated understanding
+- **Minimum Acceptable**: Template quality is the baseline - always acceptable
+
+### Data Collection
+
+**On-Device Data Sources**:
+- Location tracking (background geolocation)
+- Calendar events (with permission)
+- Photos with EXIF metadata
+- Health/fitness data (future)
+- Bluetooth proximity (future)
+
+**Privacy Requirements**:
+- All raw data stays on device
+- Local SQLite storage only
+- No automatic syncing or backup
+- User controls all data retention
+- Export functionality for user data portability
+
+### Settings & Preferences
+
+**Privacy Settings**:
+- [ ] Enable Cloud AI Features (default: OFF)
+- [ ] Gemini API Key (optional, secure storage)
+- AI Quality Preference:
+  - ( ) Maximum Privacy (Template only)
+  - (•) Balanced (ML Kit + Template)
+  - ( ) Maximum Quality (Cloud Gemini + Template)
+
+**Data Retention**:
+- Location data: 30 days (configurable)
+- Movement data: 3 days (configurable)
+- Journal entries: Forever (user managed)
+- Photos: User controlled via system
+
+## Technical Architecture
+
+### AI Adapter Selection Logic
+
+**Priority Order for Narrative Generation**:
+
+1. **Check User Consent**: Has user opted in to cloud services?
+2. **Check API Key**: Is GEMINI_API_KEY present (env or storage)?
+3. **Check Network**: Is internet connectivity available?
+4. **Select Adapter**:
+   - If consent + key + network: Use Cloud Gemini (Tier 4)
+   - Else: Use Template (Tier 3)
+5. **Fallback**: If Cloud Gemini fails, gracefully fall back to Template
+
+**Note on ML Kit (Tier 1)**:
+- ML Kit Summarization API is NOT used for narrative generation
+- API expects prose to condense, we have structured data to expand
+- ML Kit Image Description may be used for photo analysis (future)
+- Keep Tier 1 registration for future multimodal use cases
+
+### API Key Management
+
+**Priority Order**:
+1. `.env` file (`GEMINI_API_KEY`)
+2. Secure storage (user entered via UI)
+3. None (graceful degradation to Template)
+
+**Security**:
+- `.env` file is gitignored
+- Keys never logged or exposed
+- Secure storage via flutter_secure_storage
+- Keys only used when user has granted consent
+
+### Graceful Degradation Examples
+
+**Scenario 1: New User, No Setup**
+- State: No API key, no consent
+- Adapter: Template (Tier 3)
+- Experience: Excellent on-device narratives
+- Privacy: 100% local processing
+
+**Scenario 2: User Adds API Key, No Consent**
+- State: API key present, consent not granted
+- Adapter: Template (Tier 3)
+- Experience: Same as Scenario 1
+- Privacy: 100% local (API key ignored)
+
+**Scenario 3: User Grants Consent + API Key**
+- State: API key present, consent granted
+- Adapter: Cloud Gemini (Tier 4) → Template fallback
+- Experience: Best quality narratives when online
+- Privacy: User accepted cloud processing
+
+**Scenario 4: Offline with Consent**
+- State: API key present, consent granted, no network
+- Adapter: Template (Tier 3)
+- Experience: Seamless fallback to on-device
+- Privacy: No data transmitted (offline)
+
+**Scenario 5: Cloud Gemini Error**
+- State: API call fails (rate limit, error, etc.)
+- Adapter: Automatic fallback to Template (Tier 3)
+- Experience: Slight quality reduction but seamless
+- Privacy: Falls back to on-device processing
+
+## Success Metrics
+
+### Privacy Metrics
+- **Default Privacy Rate**: % of users using default (on-device only) settings
+  - Target: >80%
+- **Informed Consent Rate**: % of cloud users who acknowledged privacy warning
+  - Target: 100%
+- **Data Transmission Events**: Number of times data sent to cloud
+  - Monitoring: Track and audit
+
+### Quality Metrics
+- **Narrative Quality Score**: User ratings of generated narratives
+  - Template Target: >3.5/5
+  - Cloud Gemini Target: >4.5/5
+- **Generation Success Rate**: % of successful narrative generations
+  - Template Target: 100%
+  - Cloud Gemini Target: >95% (when online)
+- **Fallback Rate**: How often Cloud Gemini falls back to Template
+  - Target: <5% (when online with valid key)
+
+### User Experience Metrics
+- **Time to First Journal Entry**: From onboarding to first generated entry
+  - Target: <3 minutes
+- **Offline Functionality**: % of features working offline
+  - Target: 100% of core features
+- **Setup Friction**: % of users completing onboarding without cloud setup
+  - Target: >90%
+
+## Privacy Compliance
+
+### Data Handling
+- **Collection**: Only with explicit permission per data source
+- **Storage**: Local SQLite, encrypted at rest (OS level)
+- **Processing**: On-device by default, cloud opt-in
+- **Transmission**: Only with consent, over TLS
+- **Retention**: User-controlled deletion
+- **Export**: Full data export capability
+
+### Regulatory Considerations
+- **GDPR**: User rights to access, delete, export data
+- **CCPA**: California privacy rights compliance
+- **COPPA**: No data collection from children
+- **HIPAA**: Not a medical app, health data handled carefully
+
+### Privacy Policy Requirements
+- Clear disclosure of data collection
+- Explanation of on-device vs. cloud processing
+- Third-party services disclosure (Google Gemini when used)
+- User rights and data control
+- Contact for privacy concerns
+
+## Future Enhancements
+
+### Additional On-Device AI (Tier 2)
+- TensorFlow Lite models for custom narratives
+- ONNX Runtime for cross-platform models
+- Smaller language models (Gemma, Phi)
+
+### Enhanced Privacy Features
+- End-to-end encrypted cloud sync (Nostr protocol)
+- Local-only backup and restore
+- Secure multi-device sync via user-controlled relays
+
+### Quality Improvements
+- Multi-modal fusion for richer context
+- Personalized writing style learning
+- Emotional intelligence and sentiment analysis
+
+## Open Questions
+
+1. **ML Kit Usage**: Should we completely remove ML Kit registration or keep for future image description?
+   - **Decision**: Keep registered but don't use for narratives, may use for photo analysis
+
+2. **User Education**: How to best communicate privacy trade-offs?
+   - **Decision**: In-app privacy wizard during onboarding, clear warnings before cloud features
+
+3. **Template Quality**: What's the minimum acceptable quality for Template adapter?
+   - **Decision**: Current template is baseline, improvements welcome but not required
+
+## Version History
+
+- v1.0 (2025-01-02): Initial PRD covering privacy-first architecture and graceful degradation

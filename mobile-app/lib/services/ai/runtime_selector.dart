@@ -120,40 +120,54 @@ class RuntimeSelector {
         }
       }
 
-      // Otherwise, get best available from registry
-      final bestAdapter = await _registry.getBestAvailableAdapter();
-
-      if (bestAdapter == null) {
-        _logger.error('No adapters available!');
-        return null;
-      }
-
-      final capabilities = bestAdapter.getCapabilities();
-
-      // Verify cloud adapter is allowed
-      if (capabilities.requiresNetwork && !preferences.cloudEnabled) {
-        _logger.warning('Best adapter ${capabilities.adapterName} requires cloud but cloud is disabled, finding next best');
-
-        // Find next best non-cloud adapter
-        final adapters = _registry.getAllAdapters();
-        for (final adapter in adapters) {
-          final caps = adapter.getCapabilities();
-          if (!caps.requiresNetwork) {
-            final isAvailable = await adapter.checkAvailability();
-            if (isAvailable) {
-              _logger.info('Selected non-cloud adapter: ${caps.adapterName}');
-              _selectedAdapter = adapter;
-              return _selectedAdapter;
-            }
+      // Special logic: If cloud is enabled, prefer Cloud Gemini (Tier 4) for narrative generation
+      if (preferences.cloudEnabled) {
+        _logger.info('Cloud enabled - checking for Cloud Gemini adapter');
+        final cloudGemini = _registry.getAdapterByName('CloudGemini');
+        if (cloudGemini != null) {
+          final isAvailable = await cloudGemini.checkAvailability();
+          if (isAvailable) {
+            _logger.info('Using Cloud Gemini adapter (user consented to cloud processing)');
+            _selectedAdapter = cloudGemini;
+            return _selectedAdapter;
+          } else {
+            _logger.warning('Cloud Gemini not available (likely missing API key or network), falling back');
           }
         }
+      }
 
-        _logger.error('No non-cloud adapters available!');
+      // Find best available on-device adapter (Tier 1 or Tier 3)
+      _logger.info('Selecting best on-device adapter');
+      final adapters = _registry.getAllAdapters();
+      AIJournalGenerator? bestOnDevice;
+      int highestTier = 0;
+
+      for (final adapter in adapters) {
+        final caps = adapter.getCapabilities();
+        // Skip cloud adapters when cloudEnabled is false
+        if (caps.requiresNetwork && !preferences.cloudEnabled) {
+          continue;
+        }
+        // Skip cloud adapters in general for on-device preference
+        if (caps.requiresNetwork) {
+          continue;
+        }
+
+        final isAvailable = await adapter.checkAvailability();
+        if (isAvailable && caps.tierLevel > highestTier) {
+          bestOnDevice = adapter;
+          highestTier = caps.tierLevel;
+        }
+      }
+
+      if (bestOnDevice == null) {
+        _logger.error('No on-device adapters available!');
         return null;
       }
 
-      _logger.info('Selected adapter: ${capabilities.adapterName} (tier ${capabilities.tierLevel})');
-      _selectedAdapter = bestAdapter;
+      final capabilities = bestOnDevice.getCapabilities();
+      _logger.info('Selected on-device adapter: ${capabilities.adapterName} (tier ${capabilities.tierLevel})');
+      _selectedAdapter = bestOnDevice;
       return _selectedAdapter;
     } catch (e, stackTrace) {
       _logger.error('Error selecting adapter', error: e, stackTrace: stackTrace);

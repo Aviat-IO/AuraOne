@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../utils/logger.dart';
 import '../daily_context_synthesizer.dart';
 import 'ai_journal_generator.dart';
@@ -59,9 +60,16 @@ class CloudGeminiAdapter implements AIJournalGenerator {
     }
   }
 
-  /// Get stored API key
+  /// Get stored API key (prioritizes .env file over secure storage)
   Future<String?> _getApiKey() async {
     try {
+      // First check .env file (for development/user-provided key)
+      final envApiKey = dotenv.env['GEMINI_API_KEY'];
+      if (envApiKey != null && envApiKey.isNotEmpty && envApiKey != 'your_gemini_api_key_here') {
+        return envApiKey;
+      }
+
+      // Fallback to secure storage (for keys set via UI)
       return await _storage.read(key: _apiKeyStorageKey);
     } catch (e, stackTrace) {
       _logger.error('Error reading API key', error: e, stackTrace: stackTrace);

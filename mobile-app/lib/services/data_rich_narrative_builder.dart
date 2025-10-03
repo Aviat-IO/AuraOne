@@ -83,7 +83,7 @@ class DataRichNarrativeBuilder {
     }
   }
 
-  /// Build opening sentence
+  /// Build opening sentence with enhanced context
   String _buildOpening(List<NarrativeEvent> events, DailyContext context) {
     final firstEvent = events.first;
     final date = firstEvent.timestamp;
@@ -101,10 +101,19 @@ class DataRichNarrativeBuilder {
       firstLocation = firstLocationEvent.placeName;
     }
 
-    return _phraseGen.generateOpening(
+    // Enhanced opening with weather/mood context
+    String opening = _phraseGen.generateOpening(
       date: date,
       firstLocation: firstLocation,
     );
+
+    // Add weather hint if available from first event
+    if (firstEvent.description != null && firstEvent.description!.isNotEmpty) {
+      // Simple enhancement - can be expanded with weather API
+      opening = '$opening ${firstEvent.description}';
+    }
+
+    return opening;
   }
 
   /// Build sequence of events with transitions (tone-adjusted)
@@ -196,7 +205,7 @@ class DataRichNarrativeBuilder {
     }
   }
 
-  /// Describe calendar event
+  /// Describe calendar event with enhanced details
   String _describeCalendarEvent(NarrativeEvent event) {
     if (event.meetingTitle == null) return '';
 
@@ -206,15 +215,41 @@ class DataRichNarrativeBuilder {
       isAllDay: event.isAllDay,
     );
 
+    // Build richer description with attendee context
+    final buffer = StringBuffer();
+    buffer.write('I $phrase');
+
+    // Add attendee details for social context
+    if (event.attendees != null && event.attendees!.isNotEmpty) {
+      final attendeeCount = event.attendees!.length;
+      if (attendeeCount == 1) {
+        buffer.write(' with ${event.attendees!.first}');
+      } else if (attendeeCount <= 3) {
+        buffer.write(' with ${event.attendees!.join(', ')}');
+      } else {
+        buffer.write(' with $attendeeCount people');
+      }
+    }
+
     // Add location if available
     if (event.placeName != null) {
-      return 'I $phrase at ${event.placeName}.';
-    } else {
-      return 'I $phrase.';
+      buffer.write(' at ${event.placeName}');
     }
+
+    // Add duration context for longer meetings
+    if (event.duration != null && event.duration!.inMinutes > 30) {
+      final hours = event.duration!.inHours;
+      final minutes = event.duration!.inMinutes % 60;
+      if (hours > 0) {
+        buffer.write(', spanning ${hours}h ${minutes}m');
+      }
+    }
+
+    buffer.write('.');
+    return buffer.toString();
   }
 
-  /// Describe photo event
+  /// Describe photo event with richer context
   String _describePhotoEvent(NarrativeEvent event) {
     final phrase = _phraseGen.generatePhotoPhrase(
       objects: event.objectsSeen ?? [],
@@ -222,12 +257,42 @@ class DataRichNarrativeBuilder {
       peopleCount: event.peopleCount,
     );
 
+    // Build richer description with scene details
+    final buffer = StringBuffer();
+
     // Add location context if available
     if (event.placeName != null) {
-      return 'At ${event.placeName}, I $phrase.';
-    } else {
-      return 'I $phrase.';
+      buffer.write('At ${event.placeName}, ');
     }
+
+    buffer.write('I $phrase');
+
+    // Add scene description if available and not redundant
+    if (event.sceneDescription != null &&
+        event.sceneDescription!.isNotEmpty &&
+        !phrase.toLowerCase().contains(event.sceneDescription!.toLowerCase())) {
+      buffer.write(' - ${event.sceneDescription}');
+    }
+
+    // Add object context for visual richness
+    if (event.objectsSeen != null && event.objectsSeen!.isNotEmpty) {
+      final objects = event.objectsSeen!.take(3).join(', ');
+      if (!phrase.contains(objects)) {
+        buffer.write(', capturing $objects in the frame');
+      }
+    }
+
+    // Add people context
+    if (event.peopleCount != null && event.peopleCount! > 0) {
+      if (event.peopleCount == 1) {
+        buffer.write(', someone present in the moment');
+      } else {
+        buffer.write(', ${event.peopleCount} people sharing the experience');
+      }
+    }
+
+    buffer.write('.');
+    return buffer.toString();
   }
 
   /// Describe location event
@@ -245,21 +310,53 @@ class DataRichNarrativeBuilder {
     }
   }
 
-  /// Build closing summary
+  /// Build closing summary with reflective context
   String _buildClosing(List<NarrativeEvent> events, DailyContext context) {
     // Count event types
     final photoCount = events.where((e) => e.type == NarrativeEventType.photo).length;
     final calendarCount = events.where((e) => e.type == NarrativeEventType.calendar).length;
+    final locationCount = context.locationSummary.significantPlaces.length;
 
     // Get distance from context
     final totalKm = context.locationSummary.totalKilometers;
 
-    return _phraseGen.generateClosing(
+    // Build richer closing with multiple elements
+    final buffer = StringBuffer();
+
+    // Start with base closing
+    final baseClosing = _phraseGen.generateClosing(
       eventCount: events.length,
       totalKilometers: totalKm,
       photoCount: photoCount,
       calendarEventCount: calendarCount,
     );
+    buffer.write(baseClosing);
+
+    // Add location diversity context
+    if (locationCount > 2) {
+      buffer.write(' I moved through $locationCount different places, each adding its own character to the day.');
+    } else if (locationCount == 2) {
+      buffer.write(' The day unfolded across ${context.locationSummary.significantPlaces.join(' and ')}.');
+    } else if (locationCount == 1) {
+      buffer.write(' ${context.locationSummary.significantPlaces.first} was the anchor of my day.');
+    }
+
+    // Add activity summary if available
+    if (context.activitySummary.primaryActivities.isNotEmpty) {
+      final activities = context.activitySummary.primaryActivities.take(2).join(' and ');
+      buffer.write(' The rhythm was shaped by $activities.');
+    }
+
+    // Add social context if available
+    if (context.socialSummary.totalPeopleDetected > 0) {
+      if (context.socialSummary.totalPeopleDetected == 1) {
+        buffer.write(' A moment of connection brightened the hours.');
+      } else {
+        buffer.write(' ${context.socialSummary.totalPeopleDetected} people shared the day\'s tapestry.');
+      }
+    }
+
+    return buffer.toString();
   }
 
   /// Build narrative for empty day
