@@ -216,7 +216,7 @@ class HARTestService {
     final inferenceTime = DateTime.now().difference(startTime);
 
     // Process outputs
-    final predictions = outputs[0] as List<double>;
+    final predictions = outputs[0];
     final predictedActivity = _getPredictedActivity(predictions);
     final confidence = _getConfidence(predictions);
 
@@ -367,7 +367,7 @@ class HARTestService {
       final inferenceTime = DateTime.now().difference(startTime);
 
       // Process outputs
-      final predictions = outputs[0] as List<double>;
+      final predictions = outputs[0];
       final predictedActivity = _getPredictedActivity(predictions);
       final confidence = _getConfidence(predictions);
 

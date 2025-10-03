@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // Temporarily disabled for APK size optimization
 // import 'package:speech_to_text/speech_to_text.dart';

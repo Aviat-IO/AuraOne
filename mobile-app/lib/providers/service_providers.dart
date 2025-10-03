@@ -4,7 +4,6 @@ import '../services/calendar_service.dart';
 // import '../services/health_service.dart';  // Temporarily disabled for APK size optimization
 // import '../services/ble_scanning_service.dart';  // Temporarily disabled for APK size optimization
 import '../services/ai/hybrid_ai_service.dart';  // Privacy-first hybrid AI service
-import '../services/background_location_service.dart';
 import './settings_providers.dart';
 
 // Data Attribution Service Provider - Temporarily disabled

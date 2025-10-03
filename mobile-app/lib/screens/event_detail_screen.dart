@@ -4,7 +4,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:intl/intl.dart';
 import '../widgets/daily_canvas/timeline_widget.dart';
 import '../services/journal_service.dart';
-import '../providers/photo_providers.dart';
 import '../providers/media_thumbnail_provider.dart' show CachedThumbnailWidget;
 
 /// Event Detail Screen with journal-like editing capabilities

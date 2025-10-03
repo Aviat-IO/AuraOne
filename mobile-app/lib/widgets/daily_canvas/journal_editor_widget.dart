@@ -1,13 +1,10 @@
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-import '../../theme/colors.dart';
 import '../../services/voice_editing_service.dart';
-import '../../services/permission_service.dart';
 import '../../services/nlp_command_parser.dart';
 import '../../services/journal_service.dart';
 import '../../database/journal_database.dart';

@@ -356,7 +356,7 @@ class PersonalContextEngine {
       descriptions.add(desc);
     });
 
-    narrative.writeln(descriptions.join('. ') + '.');
+    narrative.writeln('${descriptions.join('. ')}.');
     return narrative.toString();
   }
 
@@ -400,7 +400,7 @@ class PersonalContextEngine {
         .length;
 
     if (uniqueLocations > 3) {
-      insights.add("🗺️ Diverse day with ${uniqueLocations} different locations - variety enriches life!");
+      insights.add("🗺️ Diverse day with $uniqueLocations different locations - variety enriches life!");
     }
 
     // Add trend-based insights

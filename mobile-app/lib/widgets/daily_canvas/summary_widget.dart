@@ -378,7 +378,7 @@ class SummaryWidget extends ConsumerWidget {
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -953,7 +953,7 @@ class _RegenerationSheetState extends State<_RegenerationSheet> {
                                 ),
                               ),
                             );
-                          }).toList(),
+                          }),
                         ],
                       ),
                     ),

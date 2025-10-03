@@ -6,9 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/simple_location_service.dart';
 import '../services/background_location_service.dart';
-import '../providers/location_database_provider.dart';
 import '../providers/settings_providers.dart';
 
 // Provider to track if onboarding has been completed

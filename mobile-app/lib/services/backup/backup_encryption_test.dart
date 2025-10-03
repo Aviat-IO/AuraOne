@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../export/enhanced_encryption_service.dart';
@@ -124,7 +123,7 @@ class BackupEncryptionTest {
         if (integrityOk) {
           for (int j = 0; j < testBytes.length; j++) {
             if (testBytes[j] != decryptedBytes[j]) {
-              result['integrity_error_${size}'] = 'Byte mismatch at position $j';
+              result['integrity_error_$size'] = 'Byte mismatch at position $j';
               break;
             }
           }
@@ -197,7 +196,7 @@ class BackupEncryptionTest {
       result['keys_cleared'] = keysCleared;
       result['password_matches'] = originalKeyInfo.password == recoveredKeyInfo.password;
       result['data_recovery_works'] = testData == recoveredText;
-      result['original_device_id'] = originalKeyInfo.recoveryInfo!.deviceIdentifier.substring(0, 8) + '...';
+      result['original_device_id'] = '${originalKeyInfo.recoveryInfo!.deviceIdentifier.substring(0, 8)}...';
       
     } catch (e) {
       result['success'] = false;
@@ -294,7 +293,7 @@ class BackupEncryptionTest {
       'total_tests': totalTests,
       'passed_tests': passedTests,
       'failed_tests': totalTests - passedTests,
-      'success_rate': (passedTests / totalTests * 100).toStringAsFixed(1) + '%',
+      'success_rate': '${(passedTests / totalTests * 100).toStringAsFixed(1)}%',
     };
     
     print('\n📊 Test Summary:');

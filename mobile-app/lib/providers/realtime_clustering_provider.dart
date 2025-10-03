@@ -1,11 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../database/location_database.dart' as loc_db;
 import '../services/ai/ultra_fast_clustering.dart';
 import '../services/ai/dbscan_clustering.dart';
-import '../utils/logger.dart';
 import 'location_database_provider.dart';
-
-final _logger = AppLogger('RealtimeClusteringProvider');
 
 /// Progressive clustering instance that updates in real-time
 /// Optimized for flutter_background_geolocation's motion-based tracking
@@ -17,53 +13,49 @@ final progressiveClusteringProvider = StateProvider<ProgressiveClustering>((ref)
 });
 
 /// Real-time clusters that update as new points arrive
-final realtimeClusterProvider = StreamProvider<List<LocationCluster>>((ref) async* {
+final realtimeClusterProvider = FutureProvider<List<LocationCluster>>((ref) async {
   final progressive = ref.watch(progressiveClusteringProvider);
 
-  // Watch for new location points
-  final locationStream = ref.watch(
-    recentLocationPointsProvider(const Duration(hours: 24)).stream,
+  // Watch for new location points directly
+  final locations = await ref.watch(
+    recentLocationPointsProvider(const Duration(hours: 24)).future,
   );
 
-  await for (final locations in locationStream) {
-    if (locations.isEmpty) {
-      yield [];
-      continue;
-    }
-
-    // Get only today's locations
-    // With flutter_background_geolocation, filter by isSignificant to get motion-detected points
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day);
-    final todayLocations = locations
-        .where((loc) =>
-            loc.timestamp.isAfter(todayStart) &&
-            loc.isSignificant  // Only include significant movement points from motion detection
-        )
-        .toList();
-
-    if (todayLocations.isEmpty) {
-      yield [];
-      continue;
-    }
-
-    // Sort by timestamp
-    todayLocations.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-
-    // Process new points incrementally
-    for (final dbPoint in todayLocations) {
-      final clusterPoint = LocationPoint(
-        id: dbPoint.id.toString(),
-        latitude: dbPoint.latitude,
-        longitude: dbPoint.longitude,
-        timestamp: dbPoint.timestamp,
-      );
-      progressive.addPoint(clusterPoint);
-    }
-
-    // Yield current clusters
-    yield progressive.getClusters();
+  if (locations.isEmpty) {
+    return [];
   }
+
+  // Get only today's locations
+  // With flutter_background_geolocation, filter by isSignificant to get motion-detected points
+  final now = DateTime.now();
+  final todayStart = DateTime(now.year, now.month, now.day);
+  final todayLocations = locations
+      .where((loc) =>
+          loc.timestamp.isAfter(todayStart) &&
+          loc.isSignificant  // Only include significant movement points from motion detection
+      )
+      .toList();
+
+  if (todayLocations.isEmpty) {
+    return [];
+  }
+
+  // Sort by timestamp
+  todayLocations.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+  // Process new points incrementally
+  for (final dbPoint in todayLocations) {
+    final clusterPoint = LocationPoint(
+      id: dbPoint.id.toString(),
+      latitude: dbPoint.latitude,
+      longitude: dbPoint.longitude,
+      timestamp: dbPoint.timestamp,
+    );
+    progressive.addPoint(clusterPoint);
+  }
+
+  // Return current clusters
+  return progressive.getClusters();
 });
 
 /// Optimized cluster count for UI display

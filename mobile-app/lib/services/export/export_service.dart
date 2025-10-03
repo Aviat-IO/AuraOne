@@ -74,9 +74,6 @@ class ExportService {
     // Encode archive to ZIP
     final zipEncoder = ZipEncoder();
     final zipBytes = zipEncoder.encode(archive);
-    if (zipBytes == null) {
-      throw Exception('Failed to create ZIP archive');
-    }
     
     // Get appropriate directory
     Directory directory;
@@ -185,9 +182,6 @@ class ExportService {
     // Encode archive to ZIP
     final zipEncoder = ZipEncoder();
     final zipBytes = zipEncoder.encode(archive);
-    if (zipBytes == null) {
-      throw Exception('Failed to create ZIP archive');
-    }
     
     onProgress?.call(0.8);
     
@@ -463,9 +457,6 @@ class ExportService {
     // Encode archive to ZIP
     final zipEncoder = ZipEncoder();
     var zipBytes = zipEncoder.encode(archive);
-    if (zipBytes == null) {
-      throw Exception('Failed to create ZIP archive');
-    }
     
     onProgress?.call(0.6);
     

@@ -12,7 +12,6 @@
 // BackgroundLocationService activity data instead of custom sensor collection.
 
 import 'dart:async';
-import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
@@ -434,23 +433,21 @@ class MultiModalFusionEngine {
 
       try {
         final analysis = await _photoAnalyzer.analyzePhoto(photo.filePath!);
-        if (analysis != null) {
-          contexts.add(PhotoContext(
-            photoPath: photo.filePath!,
-            timestamp: photo.createdDate ?? DateTime.now(),
-            objects: (analysis['objects'] as List<dynamic>? ?? [])
-              .map((o) => o.toString())
-              .toList(),
-            labels: (analysis['labels'] as List<dynamic>? ?? [])
-              .map((l) => l.toString())
-              .toList(),
-            faceCount: analysis['faceCount'] as int? ?? 0,
-            recognizedText: analysis['recognizedText'] as String? ?? '',
-            sceneDescription: analysis['sceneDescription'] as String? ?? '',
-            metadata: analysis['metadata'] as Map<String, dynamic>? ?? {},
-          ));
-        }
-      } catch (e) {
+        contexts.add(PhotoContext(
+          photoPath: photo.filePath!,
+          timestamp: photo.createdDate ?? DateTime.now(),
+          objects: (analysis['objects'] as List<dynamic>? ?? [])
+            .map((o) => o.toString())
+            .toList(),
+          labels: (analysis['labels'] as List<dynamic>? ?? [])
+            .map((l) => l.toString())
+            .toList(),
+          faceCount: analysis['faceCount'] as int? ?? 0,
+          recognizedText: analysis['recognizedText'] as String? ?? '',
+          sceneDescription: analysis['sceneDescription'] as String? ?? '',
+          metadata: analysis['metadata'] as Map<String, dynamic>? ?? {},
+        ));
+            } catch (e) {
         debugPrint('Error analyzing photo: $e');
       }
     }

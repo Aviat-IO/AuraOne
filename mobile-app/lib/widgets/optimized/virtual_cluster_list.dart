@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import '../../services/ai/dbscan_clustering.dart';
-import '../../providers/realtime_clustering_provider.dart';
 
 /// Virtual scrolling list for clusters - only renders visible items
 class VirtualClusterList extends HookConsumerWidget {

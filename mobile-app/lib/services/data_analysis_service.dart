@@ -268,7 +268,7 @@ class DataAnalysisService {
         'media_count': filteredMedia.length,
         'photos': filteredPhotos.take(10).map((p) => {
           'id': p.id,
-          'created_date': p.createDateTime?.toIso8601String() ??
+          'created_date': p.createDateTime.toIso8601String() ??
             DateTime.fromMillisecondsSinceEpoch(p.createDateSecond! * 1000).toIso8601String(),
           'has_location': p.latitude != null && p.longitude != null,
         }).toList(),

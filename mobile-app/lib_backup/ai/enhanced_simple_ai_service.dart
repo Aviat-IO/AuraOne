@@ -256,7 +256,7 @@ class EnhancedSimpleAIService {
             }
           }
 
-          debugPrint('Photo analysis: ${finalCaption} (${analysis.objects.length} objects, ${analysis.labels.length} labels)');
+          debugPrint('Photo analysis: $finalCaption (${analysis.objects.length} objects, ${analysis.labels.length} labels)');
 
           return PhotoCaption(
             photoId: photo.id,
@@ -492,8 +492,11 @@ class EnhancedSimpleAIService {
     }
 
     if (foodPhotos.isNotEmpty) {
-      if (buffer.isNotEmpty) buffer.write("You also documented ");
-      else buffer.write("You documented ");
+      if (buffer.isNotEmpty) {
+        buffer.write("You also documented ");
+      } else {
+        buffer.write("You documented ");
+      }
 
       if (foodPhotos.length == 1) {
         buffer.write(foodPhotos.first.caption.toLowerCase());
@@ -504,8 +507,11 @@ class EnhancedSimpleAIService {
     }
 
     if (peoplePhotos.isNotEmpty) {
-      if (buffer.isNotEmpty) buffer.write("There were ");
-      else buffer.write("You captured ");
+      if (buffer.isNotEmpty) {
+        buffer.write("There were ");
+      } else {
+        buffer.write("You captured ");
+      }
 
       if (peoplePhotos.length == 1) {
         buffer.write("a special moment with others");

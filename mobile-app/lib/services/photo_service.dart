@@ -254,10 +254,8 @@ class PhotoService {
       ));
 
       // Store new media items in database if we have database access
-      if (_ref != null) {
-        await _storeMediaItemsInDatabase(assets);
-      }
-
+      await _storeMediaItemsInDatabase(assets);
+    
       return assets;
     } catch (e, stack) {
       _logger.error('Failed to scan for new photos', error: e, stackTrace: stack);
@@ -821,8 +819,6 @@ class PhotoService {
 
   /// Store media items in the database
   Future<void> _storeMediaItemsInDatabase(List<AssetEntity> assets) async {
-    if (_ref == null) return;
-
     try {
       _logger.info('Storing ${assets.length} media items in database');
 
@@ -861,7 +857,7 @@ class PhotoService {
         filePath: file?.path,
         width: asset.width,
         height: asset.height,
-        duration: asset.videoDuration?.inSeconds,
+        duration: asset.videoDuration.inSeconds,
       );
 
       _logger.debug('Stored media item: ${asset.id}');
@@ -884,15 +880,13 @@ class PhotoService {
         value: asset.type.name,
       );
 
-      if (asset.orientation != null) {
-        await mediaManagement.addMetadata(
-          mediaId: asset.id,
-          metadataType: 'asset_info',
-          key: 'orientation',
-          value: asset.orientation.toString(),
-        );
-      }
-
+      await mediaManagement.addMetadata(
+        mediaId: asset.id,
+        metadataType: 'asset_info',
+        key: 'orientation',
+        value: asset.orientation.toString(),
+      );
+    
       // Extract and store metadata based on media type
       if (asset.type == AssetType.image) {
         final exifData = await extractExifData(asset);
@@ -1083,10 +1077,8 @@ class PhotoService {
     bool includeDeleted = false,
     bool processedOnly = false,
   }) async {
-    if (_ref == null) return [];
-
     try {
-      final items = await _ref!.read(mediaItemsProvider(
+      final items = await _ref.read(mediaItemsProvider(
         (includeDeleted: includeDeleted, processedOnly: processedOnly)
       ).future);
       return items;
@@ -1098,10 +1090,8 @@ class PhotoService {
 
   /// Get media statistics from database
   Future<Map<String, int>> getStoredMediaStatistics() async {
-    if (_ref == null) return {};
-
     try {
-      return await _ref!.read(mediaStatisticsProvider.future);
+      return await _ref.read(mediaStatisticsProvider.future);
     } catch (e, stack) {
       _logger.error('Failed to get media statistics', error: e, stackTrace: stack);
       return {};
@@ -1193,7 +1183,7 @@ class PhotoService {
         onProgress?.call(processedCount, totalAssets);
         onBatchProcessed?.call(pageAssets);
 
-        _logger.debug('Processed batch ${page + 1}/$pageCount (${processedCount}/$totalAssets assets)');
+        _logger.debug('Processed batch ${page + 1}/$pageCount ($processedCount/$totalAssets assets)');
 
         // Add small delay between batches to prevent overwhelming the system
         if (page < pageCount - 1) {

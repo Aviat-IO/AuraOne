@@ -152,8 +152,8 @@ class SpatiotemporalProcessor extends PipelineStage {
     // Grid-based optimization for O(n log n) complexity
     final grid = _createSpatialGrid(points);
     final clusters = <LocationCluster>[];
-    final visited = Set<int>();
-    final noise = Set<int>();
+    final visited = <int>{};
+    final noise = <int>{};
     int currentClusterId = 0;
 
     for (int i = 0; i < points.length; i++) {

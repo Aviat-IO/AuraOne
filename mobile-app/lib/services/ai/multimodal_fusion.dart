@@ -1,10 +1,7 @@
-import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import '../../utils/logger.dart';
 import 'dbscan_clustering.dart';
 import 'activity_recognition.dart';
 import 'image_captioning.dart';
-import '../photo_service.dart';
 import '../calendar_service.dart';
 import '../health_service.dart';
 import '../daily_context_synthesizer.dart';

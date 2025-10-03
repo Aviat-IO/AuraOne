@@ -1,6 +1,4 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
-import 'package:flutter/foundation.dart';
 import '../../utils/logger.dart';
 import 'dbscan_clustering.dart';
 
@@ -228,7 +226,7 @@ class HybridClustering {
     final timeSpan = _calculateTimeSpan(points);
     final pointCount = points.length;
 
-    _logger.info('Data analysis: ${pointCount} points, density: ${density.toStringAsFixed(2)}, timespan: ${timeSpan.inHours}h');
+    _logger.info('Data analysis: $pointCount points, density: ${density.toStringAsFixed(2)}, timespan: ${timeSpan.inHours}h');
 
     List<LocationCluster> clusters;
     List<JourneySegment> journeys = [];

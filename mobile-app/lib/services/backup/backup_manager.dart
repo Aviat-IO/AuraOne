@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
-import 'package:meta/meta.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
@@ -13,7 +11,6 @@ import 'package:http/http.dart' as http;
 import '../export/backup_scheduler.dart';
 import '../export/export_service.dart';
 import '../export/export_schema.dart';
-import '../export/encryption_service.dart' as legacy_encryption;
 import '../export/enhanced_encryption_service.dart';
 import '../export/syncthing_service.dart';
 import '../export/blossom_storage_service.dart';
@@ -21,7 +18,6 @@ import '../database/database_provider.dart';
 import 'backup_restoration_service.dart';
 import '../../database/journal_database.dart';
 import '../../database/media_database.dart';
-import '../../database/location_database.dart';
 
 /// Backup provider types
 enum BackupProvider {

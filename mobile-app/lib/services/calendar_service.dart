@@ -80,7 +80,7 @@ class CalendarEventData {
       recurrenceRule: event.recurrenceRule,
       reminders: event.reminders,
       metadata: {
-        'availability': event.availability?.toString(),
+        'availability': event.availability.toString(),
         'status': event.status?.toString(),
       },
     );

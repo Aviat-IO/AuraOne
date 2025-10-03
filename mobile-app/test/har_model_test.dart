@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/services.dart';
 import 'package:aura_one/services/ai/model_download_manager.dart';
 import 'package:aura_one/services/ai/tflite_manager.dart';
 import 'package:aura_one/services/ai/har_test_service.dart';

@@ -4,7 +4,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../providers/pattern_analysis_provider.dart';
 import '../widgets/pattern_analysis/weekly_summary_widget.dart';
 import '../widgets/pattern_analysis/monthly_summary_widget.dart';
-import '../services/pattern_analyzer.dart';
 import '../models/pattern_analysis_models.dart' as models;
 import '../utils/time_utils.dart';
 

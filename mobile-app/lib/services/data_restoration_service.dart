@@ -4,7 +4,6 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/logger.dart';
-import '../database/location_database.dart';
 import 'database/database_provider.dart';
 
 /// Service to handle data restoration after app reinstall

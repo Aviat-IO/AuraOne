@@ -45,7 +45,7 @@ class HARTestScreen extends HookConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('HAR Model Test'),
-        backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

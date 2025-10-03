@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../providers/pattern_analysis_provider.dart';
-import '../../services/pattern_analyzer.dart';
 import '../../models/pattern_analysis_models.dart' as models;
 import '../../utils/time_utils.dart';
 

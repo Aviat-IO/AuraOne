@@ -8,7 +8,6 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:go_router/go_router.dart';
 import '../../database/journal_database.dart';
 import '../../database/media_database.dart';
-import '../../utils/date_utils.dart';
 import '../../services/journal_service.dart';
 import '../../services/calendar_service.dart';
 import '../../services/calendar_initialization_service.dart';
@@ -407,8 +406,8 @@ class TimelineWidget extends HookConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEventDialog(context, ref),
-        child: const Icon(Icons.add),
         tooltip: 'Add Timeline Event',
+        child: const Icon(Icons.add),
       ),
     );
   }

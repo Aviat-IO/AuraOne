@@ -103,7 +103,7 @@ class ImageCaptioningService {
       }
     } catch (e) {
       _logger.error('Failed to load caption model', error: e);
-      throw e;
+      rethrow;
     }
   }
 

@@ -129,7 +129,7 @@ class ContextualPhraseGenerator {
     } else if (hours < 2) {
       timePhrase = 'for about an hour';
     } else {
-      timePhrase = 'for ${hours} hours';
+      timePhrase = 'for $hours hours';
     }
 
     if (activity != null) {

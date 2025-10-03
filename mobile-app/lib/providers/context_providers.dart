@@ -1,16 +1,13 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/ai/personal_context_engine.dart';
-import '../services/data_fusion/multi_modal_fusion_engine.dart';
 import '../utils/logger.dart';
 import 'database_provider.dart';
-import 'fusion_providers.dart';
 
 /// Provider for the Personal Context Engine
 /// 100% ON-DEVICE - NO API CALLS
 final personalContextEngineProvider = Provider<PersonalContextEngine>((ref) {
   final databaseService = ref.watch(databaseServiceProvider);
-  final fusionEngine = ref.watch(fusionEngineProvider);
 
   return PersonalContextEngine(
     databaseService: databaseService,

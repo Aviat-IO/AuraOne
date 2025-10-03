@@ -150,7 +150,7 @@ class ImageCaptioningProcessor extends PipelineStage {
       });
       
       // Decode caption from token IDs
-      final caption = _decodeCaption(result as List<List<double>>);
+      final caption = _decodeCaption(result);
       
       stopwatch.stop();
       final inferenceTime = stopwatch.elapsedMilliseconds.toDouble();
@@ -509,7 +509,7 @@ extension ListReshape<T> on List<T> {
     final cols = shape[1];
     
     if (rows * cols != length) {
-      throw ArgumentError('Cannot reshape list of length $length to ${shape}');
+      throw ArgumentError('Cannot reshape list of length $length to $shape');
     }
     
     final result = <List<T>>[];

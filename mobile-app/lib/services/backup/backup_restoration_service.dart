@@ -1,14 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path/path.dart' as path;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
-import '../export/export_schema.dart';
 import '../export/encryption_service.dart' as legacy_encryption;
 import '../export/enhanced_encryption_service.dart';
 import '../database/database_provider.dart';
@@ -687,9 +682,7 @@ class BackupRestorationService {
   
   
   Future<int> _restoreMediaFiles(
-    List<dynamic> mediaReferences,
-    {void Function(int processed, int total)? onProgress}
-  ) async {
+    List<dynamic> mediaReferences) async {
     // This method is now handled in executeRestore
     // Keeping for compatibility with old backup formats
     return 0;

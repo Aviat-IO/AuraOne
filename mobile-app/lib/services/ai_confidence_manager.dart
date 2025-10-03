@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../database/media_database.dart';
 import 'ai_feature_extractor.dart';
 import 'daily_context_synthesizer.dart';
 import 'ai_journal_generator.dart';

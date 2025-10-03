@@ -1,4 +1,3 @@
-import 'dart:collection';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Activity types for tracking

@@ -67,17 +67,15 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
   
   Future<void> _loadBackupSettings() async {
     final config = await BackupScheduler.getConfig();
-    if (config != null) {
-      if (mounted) {
-        setState(() {
-          _enableAutoBackup = config.frequency != BackupFrequency.disabled;
-          _backupFrequency = config.frequency;
-          _enableEncryption = config.enableEncryption;
-          _includeMedia = config.includeMedia;
-        });
-      }
+    if (mounted) {
+      setState(() {
+        _enableAutoBackup = config.frequency != BackupFrequency.disabled;
+        _backupFrequency = config.frequency;
+        _enableEncryption = config.enableEncryption;
+        _includeMedia = config.includeMedia;
+      });
     }
-  }
+    }
   
   @override
   Widget build(BuildContext context) {

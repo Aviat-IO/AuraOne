@@ -135,7 +135,7 @@ class EnhancedAIService {
       _logger.info('Sub-services initialized in ${stopwatch.elapsedMilliseconds}ms');
     } catch (e) {
       _logger.error('Failed to initialize sub-services', error: e);
-      throw e;
+      rethrow;
     }
   }
 

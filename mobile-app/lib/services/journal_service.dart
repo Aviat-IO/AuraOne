@@ -794,9 +794,7 @@ class JournalService {
 
       // Get or create journal entry for the date
       var journalEntry = await getEntryForDate(date);
-      if (journalEntry == null) {
-        journalEntry = await createEntryForDate(date);
-      }
+      journalEntry ??= await createEntryForDate(date);
 
       // Create activity for the media
       final activity = JournalActivitiesCompanion(
@@ -826,9 +824,7 @@ class JournalService {
 
       // Get or create journal entry for the date
       var journalEntry = await getEntryForDate(date);
-      if (journalEntry == null) {
-        journalEntry = await createEntryForDate(date);
-      }
+      journalEntry ??= await createEntryForDate(date);
 
       // Try to get reverse geocoded address if user has enabled it
       String address = description;

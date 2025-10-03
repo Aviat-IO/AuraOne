@@ -174,7 +174,7 @@ class NLPCommandParser {
 
     // If no section found, look for quoted text
     if (bestMatch == null) {
-      final quotedPattern = RegExp(r'"([^"]+)"|' + r"'([^']+)'");
+      final quotedPattern = RegExp(r'"([^"]+)"|' r"'([^']+)'");
       final match = quotedPattern.firstMatch(input);
       if (match != null) {
         bestMatch = match.group(1) ?? match.group(2);
@@ -228,7 +228,7 @@ class NLPCommandParser {
 
     // For quoted content
     if (content == null) {
-      final quotedPattern = RegExp(r'"([^"]+)"|' + r"'([^']+)'");
+      final quotedPattern = RegExp(r'"([^"]+)"|' r"'([^']+)'");
       final matches = quotedPattern.allMatches(input);
       if (matches.length > 1) {
         // If there are multiple quotes, the last one might be the content

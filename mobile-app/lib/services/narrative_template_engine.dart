@@ -1,7 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'daily_context_synthesizer.dart';
-import 'ai_feature_extractor.dart';
 
 /// Advanced narrative template engine for generating high-quality,
 /// contextual journal narratives that feel natural and personalized
@@ -237,7 +236,7 @@ class NarrativeTemplateEngine {
     }
 
     // Written content variables
-    if (context.writtenContentSummary != null && context.writtenContentSummary.hasSignificantContent) {
+    if (context.writtenContentSummary.hasSignificantContent) {
       try {
       final themes = context.writtenContentSummary.significantThemes;
       final dominantTone = context.writtenContentSummary.emotionalTones.isNotEmpty
@@ -305,7 +304,7 @@ class NarrativeTemplateEngine {
     // Don't add defaults if no written content
 
     // Proximity and location awareness variables
-    if (context.proximitySummary != null && context.proximitySummary.hasProximityInteractions) {
+    if (context.proximitySummary.hasProximityInteractions) {
       try {
       final transitions = context.proximitySummary.geofenceTransitions;
       final dwellTimes = context.proximitySummary.locationDwellTimes;
@@ -453,11 +452,9 @@ class NarrativeTemplateEngine {
       case BodyType.movement:
         return context.movementData.isNotEmpty;
       case BodyType.content:
-        return context.writtenContentSummary != null &&
-               context.writtenContentSummary.hasSignificantContent;
+        return context.writtenContentSummary.hasSignificantContent;
       case BodyType.proximity:
-        return context.proximitySummary != null &&
-               context.proximitySummary.hasProximityInteractions;
+        return context.proximitySummary.hasProximityInteractions;
     }
   }
 

@@ -111,7 +111,7 @@ class LocationDatabase extends _$LocationDatabase {
       : super(openConnection);
 
   // Constructor for testing with custom executor
-  LocationDatabase.forTesting(QueryExecutor e) : super(e);
+  LocationDatabase.forTesting(super.e);
 
   @override
   int get schemaVersion => 3;

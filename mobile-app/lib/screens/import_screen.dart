@@ -24,7 +24,7 @@ class ImportScreen extends ConsumerStatefulWidget {
 class _ImportScreenState extends ConsumerState<ImportScreen> {
   Map<String, dynamic>? _importData;
   bool _isAnalyzing = false;
-  ImportSettings _settings = ImportSettings();
+  final ImportSettings _settings = ImportSettings();
   Directory? _mediaDirectory;
   int _totalEntries = 0;
   int _processedEntries = 0;

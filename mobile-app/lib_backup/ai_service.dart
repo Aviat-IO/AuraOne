@@ -380,7 +380,7 @@ Summary:
       return _decodeOutput(output);
     } catch (e) {
       _logger.error('TFLite inference failed', error: e);
-      throw e;
+      rethrow;
     }
   }
   
@@ -414,7 +414,7 @@ Summary:
       return _decodeOutput(outputTensor);
     } catch (e) {
       _logger.error('ONNX inference failed', error: e);
-      throw e;
+      rethrow;
     }
   }
   

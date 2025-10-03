@@ -470,7 +470,7 @@ class SimpleLocationService {
   Future<void> _createGeofenceNote(GeofenceArea geofence, String action) async {
     try {
       // Create note when authenticated
-      debugPrint('Geofence ${action}: ${geofence.name}');
+      debugPrint('Geofence $action: ${geofence.name}');
     } catch (e) {
       debugPrint('Error creating geofence note: $e');
     }

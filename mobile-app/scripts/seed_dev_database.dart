@@ -3,7 +3,6 @@
 // Run with: dart scripts/seed_dev_database.dart
 
 import 'dart:io';
-import 'package:path/path.dart' as path;
 
 void main() async {
   print('========================================');

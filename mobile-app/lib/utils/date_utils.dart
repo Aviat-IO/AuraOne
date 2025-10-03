@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 
 /// Utility functions for handling dates with timezone awareness
 class DateTimeUtils {
@@ -57,7 +56,7 @@ class DateTimeUtils {
     } else {
       final hour = local.hour > 12 ? local.hour - 12 : (local.hour == 0 ? 12 : local.hour);
       final period = local.hour >= 12 ? 'PM' : 'AM';
-      return '${hour}:${local.minute.toString().padLeft(2, '0')} $period';
+      return '$hour:${local.minute.toString().padLeft(2, '0')} $period';
     }
   }
 }

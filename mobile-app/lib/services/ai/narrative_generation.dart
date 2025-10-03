@@ -1,7 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/services.dart';
 // import 'package:tflite_flutter/tflite_flutter.dart'; // Temporarily disabled for APK size optimization
 import '../../utils/logger.dart';
 import 'multimodal_fusion.dart';
@@ -231,7 +229,7 @@ Poetic interpretation:''',
       }
     } catch (e) {
       _logger.error('Failed to load SLM model', error: e);
-      throw e;
+      rethrow;
     }
   }
 
@@ -637,7 +635,7 @@ Poetic interpretation:''',
     final summary = sentences.take(summaryLength).join('. ');
 
     return summary.length > 200
-        ? summary.substring(0, 197) + '...'
+        ? '${summary.substring(0, 197)}...'
         : summary;
   }
 

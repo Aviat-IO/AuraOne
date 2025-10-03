@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:go_router/go_router.dart';
@@ -703,7 +702,7 @@ class EnhancedSummaryWidget extends ConsumerWidget {
                     ),
                   ],
                 ),
-              )).toList(),
+              )),
             ],
 
             // Highlights
@@ -733,7 +732,7 @@ class EnhancedSummaryWidget extends ConsumerWidget {
                     color: theme.colorScheme.onSurface,
                   ),
                 ),
-              )).toList(),
+              )),
             ],
           ],
         ),
@@ -1006,7 +1005,7 @@ class EnhancedSummaryWidget extends ConsumerWidget {
                     ],
                   ),
                 );
-              }).toList(),
+              }),
           ],
         ),
       ),
@@ -1446,7 +1445,7 @@ class EnhancedSummaryWidget extends ConsumerWidget {
                     ),
                   ],
                 ),
-              )).toList(),
+              )),
             ],
 
             // Component breakdown (warning if needed)

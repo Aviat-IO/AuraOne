@@ -7,8 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:drift/drift.dart' as drift;
 import '../theme/colors.dart';
 import '../widgets/daily_canvas/timeline_widget.dart';
@@ -17,10 +15,8 @@ import '../widgets/daily_canvas/map_widget.dart';
 import '../widgets/daily_canvas/media_gallery_widget.dart';
 import '../widgets/common/pill_tab_bar.dart';
 import '../services/media_picker_service.dart';
-import '../services/background_location_service.dart';
 import '../services/journal_service.dart';
 import '../providers/location_database_provider.dart';
-import '../providers/media_database_provider.dart';
 import '../database/location_database.dart';
 
 // Provider for selected date
@@ -645,8 +641,8 @@ class DailyCanvasScreen extends HookConsumerWidget {
     return FloatingActionButton(
       onPressed: () => _showQuickAddMenu(context, theme, ref),
       backgroundColor: theme.colorScheme.primary,
-      child: const Icon(Icons.add, color: Colors.white),
       tooltip: 'Add content',
+      child: const Icon(Icons.add, color: Colors.white),
     );
   }
 

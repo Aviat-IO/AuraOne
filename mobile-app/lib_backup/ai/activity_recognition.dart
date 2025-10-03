@@ -163,7 +163,7 @@ class ActivityRecognitionService {
       }
     } catch (e) {
       _logger.error('Failed to load HAR model', error: e);
-      throw e;
+      rethrow;
     }
   }
 

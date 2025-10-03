@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'daily_context_synthesizer.dart';
-import 'ai_feature_extractor.dart';
 import 'narrative_template_engine.dart';
-import '../database/location_database.dart';
 
 /// On-device AI journal generator that creates personalized narratives
 /// Uses contextual analysis from Phase 1 to generate meaningful journal entries

@@ -1,14 +1,9 @@
 import 'dart:async';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import '../../utils/logger.dart';
 import '../../database/location_database.dart';
 import '../../database/media_database.dart';
 import 'model_download_manager.dart';
 import 'tflite_manager.dart';
-import 'dbscan_clustering.dart';
-import 'activity_recognition.dart';
-import 'image_captioning.dart';
 import 'multimodal_fusion.dart';
 import 'multimodal_fusion_processor.dart';
 import 'narrative_generation.dart';
@@ -491,7 +486,7 @@ class PipelineOrchestrator {
         endTime: event.endTime,
         type: event.type.name,
         activity: event.activity,
-        location: event.location?.name,
+        location: event.location.name,
         description: null,
         imageCaptions: null,
         attributes: {

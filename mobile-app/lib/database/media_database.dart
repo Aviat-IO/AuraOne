@@ -145,7 +145,7 @@ class MediaDatabase extends _$MediaDatabase {
   MediaDatabase() : super(_openConnection());
 
   // Constructor for testing with custom executor
-  MediaDatabase.forTesting(QueryExecutor e) : super(e);
+  MediaDatabase.forTesting(super.e);
 
   MediaDatabase.withPath(String path) : super(_openConnectionWithPath(path));
 

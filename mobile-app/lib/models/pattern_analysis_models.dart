@@ -1,4 +1,5 @@
 /// Pattern analysis data models for long-term behavioral insights
+library;
 
 enum ActivityPatternType {
   weekly,

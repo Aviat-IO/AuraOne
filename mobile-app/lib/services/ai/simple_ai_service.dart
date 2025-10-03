@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import '../../database/location_database.dart' as loc_db;
 import '../../database/media_database.dart';

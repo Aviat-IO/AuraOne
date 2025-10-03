@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 
 /// Optimized list view that uses lazy loading and efficient rendering
 /// to prevent frame drops and improve performance

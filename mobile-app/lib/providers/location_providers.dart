@@ -1,4 +1,3 @@
-import 'package:geolocator/geolocator.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../services/simple_location_service.dart';
 

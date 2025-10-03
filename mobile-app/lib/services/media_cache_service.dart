@@ -289,13 +289,13 @@ class CachedThumbnail extends StatefulWidget {
   final BoxFit fit;
 
   const CachedThumbnail({
-    Key? key,
+    super.key,
     required this.assetId,
     required this.width,
     required this.height,
     required this.loader,
     this.fit = BoxFit.cover,
-  }) : super(key: key);
+  });
 
   @override
   State<CachedThumbnail> createState() => _CachedThumbnailState();

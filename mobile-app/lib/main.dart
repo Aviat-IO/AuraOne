@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:models/models.dart';
 import 'package:purplebase/purplebase.dart';
@@ -57,7 +56,6 @@ void main() {
     // We'll use a simple approach to determine timezone offset
     try {
       final now = DateTime.now();
-      final utcNow = now.toUtc();
       final offset = now.timeZoneOffset;
 
       // Find a timezone with the matching offset

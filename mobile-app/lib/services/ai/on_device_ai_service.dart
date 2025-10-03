@@ -247,7 +247,7 @@ class OnDeviceAIService {
 
         if (duration > 60) {
           final hours = duration ~/ 60;
-          placeNarrative = 'You spent ${hours} hour${hours > 1 ? 's' : ''} at $placeName';
+          placeNarrative = 'You spent $hours hour${hours > 1 ? 's' : ''} at $placeName';
         } else if (duration > 30) {
           placeNarrative = 'You had a meaningful visit to $placeName';
         } else if (duration > 5) {
@@ -335,7 +335,7 @@ class OnDeviceAIService {
       }
 
       if (activeMinutes > 30) {
-        narrativeParts.add('You achieved ${activeMinutes} minutes of active movement, contributing to your wellness.');
+        narrativeParts.add('You achieved $activeMinutes minutes of active movement, contributing to your wellness.');
       }
     }
 
@@ -373,7 +373,7 @@ class OnDeviceAIService {
     // If still minimal content, use enhanced fallback generation
     if (narrativeParts.length <= 2) {
       // Try to build a better narrative from available data
-      if (calendarEvents.length > 0) {
+      if (calendarEvents.isNotEmpty) {
         narrativeParts.add('\n## Activities and Events\n');
         for (final event in calendarEvents.take(5)) {
           final title = event['title']?.toString() ?? 'Activity';

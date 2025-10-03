@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:photo_manager/photo_manager.dart';
 import '../database/media_database.dart';
 import '../utils/logger.dart';
-import 'exif_extractor.dart';
 import 'media_format_handler.dart';
 
 /// Message types for isolate communication

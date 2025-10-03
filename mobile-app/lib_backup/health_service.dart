@@ -250,9 +250,10 @@ class HealthService {
         double value = 0.0;
         if (point.value is num) {
           value = (point.value as num).toDouble();
-        } else if (point.value.toString() != null) {
+        } else {
           value = double.tryParse(point.value.toString()) ?? 0.0;
         }
+      
 
         points.add(HealthDataPoint(
           type: point.type,

@@ -2,6 +2,7 @@
 /// 
 /// This file defines the JSON schema structure for exporting journal data
 /// in a standardized, documented format that can be imported by other systems.
+library;
 
 class ExportSchema {
   static const String schemaVersion = '1.0.0';
