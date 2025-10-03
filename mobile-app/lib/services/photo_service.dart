@@ -8,6 +8,7 @@ import 'package:drift/drift.dart' show Value;
 import '../utils/logger.dart';
 import '../database/media_database.dart';
 import '../providers/media_database_provider.dart';
+import '../providers/photo_service_provider.dart';
 import 'exif_extractor.dart';
 import 'media_format_handler.dart';
 import 'person_service.dart';
@@ -19,7 +20,7 @@ class PhotoService {
   static final _logger = AppLogger('PhotoService');
 
   /// Reference to Riverpod container for database access
-  final Ref? _ref;
+  final Ref _ref;
 
   /// Media database for storing photo metadata
   MediaDatabase? _mediaDatabase;
@@ -72,30 +73,18 @@ class PhotoService {
   /// Check if we have full photo library access
   bool get hasFullAccess => _permissionState?.isAuth ?? false;
 
-  /// Constructor that optionally accepts a Riverpod ref for database access
-  PhotoService([this._ref]);
+  /// Constructor that requires a Riverpod ref for database access
+  PhotoService(this._ref);
 
   /// Get media database instance
   MediaDatabase get mediaDatabase {
-    if (_mediaDatabase == null) {
-      if (_ref != null) {
-        _mediaDatabase = _ref!.read(mediaDatabaseProvider);
-      } else {
-        _mediaDatabase = MediaDatabase();
-      }
-    }
+    _mediaDatabase ??= _ref.read(mediaDatabaseProvider);
     return _mediaDatabase!;
   }
 
   /// Get media management service
   MediaManagementService get mediaManagement {
-    if (_mediaManagement == null) {
-      if (_ref != null) {
-        _mediaManagement = _ref!.read(mediaManagementProvider);
-      } else {
-        _mediaManagement = MediaManagementService(_ref!);
-      }
-    }
+    _mediaManagement ??= _ref.read(mediaManagementProvider);
     return _mediaManagement!;
   }
 
@@ -1476,13 +1465,6 @@ class PhotoWithLocation {
     'timestamp': timestamp.toIso8601String(),
   };
 }
-
-/// Provider for PhotoService
-final photoServiceProvider = Provider<PhotoService>((ref) {
-  final service = PhotoService();
-  ref.onDispose(() => service.dispose());
-  return service;
-});
 
 /// Provider for photo library permission state
 final photoPermissionStateProvider = FutureProvider<PermissionState>((ref) async {

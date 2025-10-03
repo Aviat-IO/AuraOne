@@ -75,7 +75,8 @@ class MultiModalFusionService {
   final ImageCaptioningService _captionService = ImageCaptioningService();
   final CalendarService _calendarService = CalendarService();
   final HealthService _healthService = HealthService();
-  final PhotoService _photoService = PhotoService();
+  // TODO: PhotoService requires Riverpod Ref - needs refactoring
+  // final PhotoService _photoService = PhotoService();
   // final DataAttributionService _attributionService = DataAttributionService();
 
   /// Build a unified timeline for a specific date

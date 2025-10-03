@@ -4,5 +4,5 @@ import '../services/photo_service.dart';
 
 // Photo Service Provider
 final photoServiceProvider = Provider<PhotoService>((ref) {
-  return PhotoService();
+  return PhotoService(ref);
 });

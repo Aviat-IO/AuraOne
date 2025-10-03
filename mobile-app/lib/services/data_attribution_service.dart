@@ -129,7 +129,8 @@ class DataAttributionService {
   final CalendarService _calendarService = CalendarService();
   final HealthService _healthService = HealthService();
   final BleScanningService _bleService = BleScanningService();
-  final PhotoService _photoService = PhotoService();
+  // TODO: PhotoService requires Riverpod Ref - needs refactoring
+  // final PhotoService _photoService = PhotoService();
 
   /// Aggregate data from all sources for a time period
   Future<List<AttributedDataEntry>> aggregateDataForPeriod({
