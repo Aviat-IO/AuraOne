@@ -27,16 +27,16 @@ final privacyPresetProvider = Provider.family<PrivacyPreset?, PrivacyPresetLevel
 
 /// State notifier for managing privacy settings
 class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>> {
-  PrivacySettingsNotifier(this._privacyService) : super(const AsyncValue.loading()) {
-    _loadSettings();
+  PrivacySettingsNotifier(this.privacyService) : super(const AsyncValue.loading()) {
+    loadSettings();
   }
 
-  final PrivacyService _privacyService;
+  final PrivacyService privacyService;
 
-  Future<void> _loadSettings() async {
+  Future<void> loadSettings() async {
     try {
       state = const AsyncValue.loading();
-      final settings = await _privacyService.getPrivacySettings();
+      final settings = await privacyService.getPrivacySettings();
       state = AsyncValue.data(settings);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -47,7 +47,7 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
   Future<void> applyPreset(PrivacyPresetLevel presetLevel) async {
     try {
       state = const AsyncValue.loading();
-      final newSettings = await _privacyService.applyPreset(presetLevel);
+      final newSettings = await privacyService.applyPreset(presetLevel);
       state = AsyncValue.data(newSettings);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -61,7 +61,7 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
 
     try {
       state = const AsyncValue.loading();
-      final newSettings = await _privacyService.updateSetting<LocationPrecision>(
+      final newSettings = await privacyService.updateSetting<LocationPrecision>(
         currentSettings,
         (settings) => settings.locationPrecision,
         (settings, value) => settings.copyWith(
@@ -83,7 +83,7 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
 
     try {
       state = const AsyncValue.loading();
-      final newSettings = await _privacyService.updateSetting<DataRetentionPeriod>(
+      final newSettings = await privacyService.updateSetting<DataRetentionPeriod>(
         currentSettings,
         (settings) => settings.dataRetention,
         (settings, value) => settings.copyWith(dataRetention: value),
@@ -157,7 +157,7 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
           throw ArgumentError('Unknown permission type: $permissionType');
       }
 
-      await _privacyService.savePrivacySettings(updatedSettings);
+      await privacyService.savePrivacySettings(updatedSettings);
       state = AsyncValue.data(updatedSettings);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -171,7 +171,7 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
 
     try {
       state = const AsyncValue.loading();
-      final newSettings = await _privacyService.updateSetting<bool>(
+      final newSettings = await privacyService.updateSetting<bool>(
         currentSettings,
         (settings) => settings.automaticCleanupEnabled,
         (settings, value) => settings.copyWith(automaticCleanupEnabled: value),
@@ -190,7 +190,7 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
 
     try {
       state = const AsyncValue.loading();
-      final newSettings = await _privacyService.updateSetting<bool>(
+      final newSettings = await privacyService.updateSetting<bool>(
         currentSettings,
         (settings) => settings.appLockEnabled,
         (settings, value) => settings.copyWith(appLockEnabled: value),
@@ -209,7 +209,7 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
 
     try {
       state = const AsyncValue.loading();
-      final newSettings = await _privacyService.updateSetting<bool>(
+      final newSettings = await privacyService.updateSetting<bool>(
         currentSettings,
         (settings) => settings.biometricLockEnabled,
         (settings, value) => settings.copyWith(biometricLockEnabled: value),
@@ -225,7 +225,7 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
   Future<void> resetToDefaults() async {
     try {
       state = const AsyncValue.loading();
-      final defaultSettings = await _privacyService.resetToDefaults();
+      final defaultSettings = await privacyService.resetToDefaults();
       state = AsyncValue.data(defaultSettings);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -234,7 +234,7 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
 
   /// Refresh settings from storage
   Future<void> refresh() async {
-    await _loadSettings();
+    await loadSettings();
   }
 
   /// Validate current settings
@@ -242,7 +242,7 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
     final currentSettings = state.value;
     if (currentSettings == null) return [];
 
-    return _privacyService.validateSettings(currentSettings);
+    return privacyService.validateSettings(currentSettings);
   }
 
   /// Check if current settings match a preset
@@ -250,7 +250,7 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
     final currentSettings = state.value;
     if (currentSettings == null) return false;
 
-    return _privacyService.isPresetMatch(currentSettings, presetLevel);
+    return privacyService.isPresetMatch(currentSettings, presetLevel);
   }
 }
 

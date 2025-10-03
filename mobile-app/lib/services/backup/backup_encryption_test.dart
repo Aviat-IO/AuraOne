@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../export/enhanced_encryption_service.dart';
 import 'backup_manager.dart';
+import '../../utils/logger.dart';
 
 /// Test class for backup encryption functionality
 /// This class provides methods to test and validate the enhanced encryption system
@@ -245,39 +246,40 @@ class BackupEncryptionTest {
 
   /// Run all tests and return comprehensive results
   static Future<Map<String, dynamic>> runAllTests() async {
+    final logger = AppLogger('BackupEncryptionTest');
     final allResults = <String, dynamic>{};
-    
-    print('🔐 Running Backup Encryption Tests...\n');
+
+    logger.info('🔐 Running Backup Encryption Tests...\n');
     
     // Test 1: Key Generation
-    print('1. Testing Key Generation...');
+    logger.info('1. Testing Key Generation...');
     final keyGenResults = await testKeyGeneration();
     allResults['key_generation'] = keyGenResults;
-    print('   ${keyGenResults['success'] ? '✅' : '❌'} ${keyGenResults['success'] ? 'PASSED' : 'FAILED: ${keyGenResults['error']}'}');
-    
+    logger.info('   ${keyGenResults['success'] ? '✅' : '❌'} ${keyGenResults['success'] ? 'PASSED' : 'FAILED: ${keyGenResults['error']}'}');
+
     // Test 2: Metadata Encryption
-    print('2. Testing Metadata Encryption...');
+    logger.info('2. Testing Metadata Encryption...');
     final metadataResults = await testMetadataEncryption();
     allResults['metadata_encryption'] = metadataResults;
-    print('   ${metadataResults['success'] ? '✅' : '❌'} ${metadataResults['success'] ? 'PASSED' : 'FAILED: ${metadataResults['error']}'}');
-    
+    logger.info('   ${metadataResults['success'] ? '✅' : '❌'} ${metadataResults['success'] ? 'PASSED' : 'FAILED: ${metadataResults['error']}'}');
+
     // Test 3: Large File Encryption
-    print('3. Testing Large File Encryption...');
+    logger.info('3. Testing Large File Encryption...');
     final fileEncResults = await testLargeFileEncryption();
     allResults['large_file_encryption'] = fileEncResults;
-    print('   ${fileEncResults['success'] ? '✅' : '❌'} ${fileEncResults['success'] ? 'PASSED' : 'FAILED: ${fileEncResults['error']}'}');
-    
+    logger.info('   ${fileEncResults['success'] ? '✅' : '❌'} ${fileEncResults['success'] ? 'PASSED' : 'FAILED: ${fileEncResults['error']}'}');
+
     // Test 4: Key Recovery
-    print('4. Testing Key Recovery...');
+    logger.info('4. Testing Key Recovery...');
     final recoveryResults = await testKeyRecovery();
     allResults['key_recovery'] = recoveryResults;
-    print('   ${recoveryResults['success'] ? '✅' : '❌'} ${recoveryResults['success'] ? 'PASSED' : 'FAILED: ${recoveryResults['error']}'}');
-    
+    logger.info('   ${recoveryResults['success'] ? '✅' : '❌'} ${recoveryResults['success'] ? 'PASSED' : 'FAILED: ${recoveryResults['error']}'}');
+
     // Test 5: BackupManager Integration
-    print('5. Testing BackupManager Integration...');
+    logger.info('5. Testing BackupManager Integration...');
     final integrationResults = await testBackupManagerIntegration();
     allResults['backup_manager_integration'] = integrationResults;
-    print('   ${integrationResults['success'] ? '✅' : '❌'} ${integrationResults['success'] ? 'PASSED' : 'FAILED: ${integrationResults['error']}'}');
+    logger.info('   ${integrationResults['success'] ? '✅' : '❌'} ${integrationResults['success'] ? 'PASSED' : 'FAILED: ${integrationResults['error']}'}');
     
     // Overall summary
     final totalTests = 5;
@@ -296,10 +298,10 @@ class BackupEncryptionTest {
       'success_rate': '${(passedTests / totalTests * 100).toStringAsFixed(1)}%',
     };
     
-    print('\n📊 Test Summary:');
-    print('   Passed: $passedTests/$totalTests tests');
-    print('   Success Rate: ${allResults['summary']['success_rate']}');
-    print('   ${passedTests == totalTests ? '🎉 All tests passed!' : '⚠️  Some tests failed'}');
+    logger.info('\n📊 Test Summary:');
+    logger.info('   Passed: $passedTests/$totalTests tests');
+    logger.info('   Success Rate: ${allResults['summary']['success_rate']}');
+    logger.info('   ${passedTests == totalTests ? '🎉 All tests passed!' : '⚠️  Some tests failed'}');
     
     return allResults;
   }

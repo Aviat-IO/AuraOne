@@ -126,15 +126,15 @@ class BackupManager {
   Future<void> initialize() async {
     await _loadBackupHistory();
     await BackupScheduler.initialize();
-    
+
     // Initialize secure backup encryption in background (non-blocking)
-    _initializeSecureEncryption().catchError((e) {
+    initializeSecureEncryption().catchError((e) {
       debugPrint('Background encryption initialization failed: $e');
     });
   }
 
   /// Initialize secure backup encryption
-  Future<void> _initializeSecureEncryption() async {
+  Future<void> initializeSecureEncryption() async {
     if (!await EnhancedEncryptionService.isBackupEncryptionConfigured()) {
       // Generate and store secure backup encryption key automatically
       await EnhancedEncryptionService.generateSecureBackupPassword();

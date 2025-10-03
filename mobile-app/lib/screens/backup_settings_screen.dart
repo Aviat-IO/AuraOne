@@ -579,8 +579,9 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
       await backupManager.initialize();
       
       String? encryptionPassword;
-      
+
       if (_enableEncryption) {
+        if (!mounted) return;
         encryptionPassword = await _showPasswordDialog(context, 'Enter Backup Password');
         if (encryptionPassword == null || encryptionPassword.isEmpty) {
           setState(() => _isBackupInProgress = false);
@@ -679,12 +680,14 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
     
     String? encryptionPassword;
     if (backup.incrementalData['encrypted'] == true) {
+      if (!mounted) return;
       encryptionPassword = await _showPasswordDialog(context, 'Enter Backup Password');
       if (encryptionPassword == null || encryptionPassword.isEmpty) return;
     }
-    
+
+    if (!mounted) return;
     final restorationService = ref.read(backupRestorationProvider);
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,

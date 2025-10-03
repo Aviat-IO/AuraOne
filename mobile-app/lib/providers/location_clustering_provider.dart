@@ -10,20 +10,20 @@ import 'location_database_provider.dart';
 
 /// Simple cache for clustering results
 class _ClusteringCache {
-  final Map<String, _CacheEntry> _cache = {};
-  static const Duration _cacheExpiry = Duration(hours: 1);
+  final Map<String, _CacheEntry> cache = {};
+  static const Duration cacheExpiry = Duration(hours: 1);
 
   _CacheEntry? get(String key) {
-    final entry = _cache[key];
-    if (entry != null && DateTime.now().difference(entry.timestamp) < _cacheExpiry) {
+    final entry = cache[key];
+    if (entry != null && DateTime.now().difference(entry.timestamp) < cacheExpiry) {
       return entry;
     }
-    _cache.remove(key);
+    cache.remove(key);
     return null;
   }
 
   void put(String key, List<LocationCluster> clusters, List<JourneySegment> journeys) {
-    _cache[key] = _CacheEntry(
+    cache[key] = _CacheEntry(
       clusters: clusters,
       journeys: journeys,
       timestamp: DateTime.now(),
@@ -31,7 +31,7 @@ class _ClusteringCache {
   }
 
   void invalidate() {
-    _cache.clear();
+    cache.clear();
   }
 }
 

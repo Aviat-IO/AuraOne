@@ -7,6 +7,7 @@ import 'dart:io';
 import '../services/export/export_service.dart';
 import '../services/export/export_schema.dart';
 import '../services/export/syncthing_service.dart';
+import '../utils/logger.dart';
 
 class ExportScreen extends ConsumerStatefulWidget {
   const ExportScreen({super.key});
@@ -502,10 +503,9 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                   if (result.filePath != null && (Platform.isAndroid || Platform.isIOS))
                     TextButton(
                       onPressed: () {
-                        Share.shareXFiles(
-                          [XFile(result.filePath!)],
-                          subject: 'Aura One Journal Export',
-                          text: 'Syncthing backup location: ${result.syncFolderPath}',
+                        Share.shareUri(
+                          Uri.file(result.filePath!),
+                          sharePositionOrigin: Rect.zero,
                         );
                         Navigator.of(context).pop();
                       },
@@ -552,7 +552,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
           },
           onServerResult: (server, error) {
             if (error != null) {
-              print('Failed to upload to $server: $error');
+              AppLogger('ExportScreen').warning('Failed to upload to $server: $error');
             }
           },
         );
@@ -595,9 +595,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                   TextButton(
                     onPressed: () {
                       // Share backup details
-                      Share.shareXFiles(
-                        [],
-                        text: 'Aura One Backup\nHash: ${result.hash}\nURL: ${result.urls.first}',
+                      Share.share(
+                        'Aura One Backup\nHash: ${result.hash}\nURL: ${result.urls.first}',
                         subject: 'Aura One Journal Backup',
                       );
                       Navigator.of(context).pop();
@@ -664,10 +663,9 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
 
         // Share the file
         if (Platform.isAndroid || Platform.isIOS) {
-          await Share.shareXFiles(
-            [XFile(filePath)],
-            subject: 'Aura One Journal Export',
-            text: 'My journal export from Aura One',
+          await Share.shareUri(
+            Uri.file(filePath),
+            sharePositionOrigin: Rect.zero,
           );
         }
       }

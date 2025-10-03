@@ -226,9 +226,11 @@ class DataViewerScreen extends HookConsumerWidget {
                         final location = await locationService.getCurrentLocation();
                         if (location != null) {
                           currentLocation.value = location;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Current location retrieved')),
-                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Current location retrieved')),
+                            );
+                          }
                         }
                       },
                       icon: const Icon(Icons.my_location),
@@ -238,9 +240,11 @@ class DataViewerScreen extends HookConsumerWidget {
                     ElevatedButton.icon(
                       onPressed: () async {
                         await locationService.changePace(true);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Pace set to MOVING')),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Pace set to MOVING')),
+                          );
+                        }
                       },
                       icon: const Icon(Icons.directions_run),
                       label: const Text('Simulate Moving'),
@@ -249,9 +253,11 @@ class DataViewerScreen extends HookConsumerWidget {
                     ElevatedButton.icon(
                       onPressed: () async {
                         await locationService.changePace(false);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Pace set to STATIONARY')),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Pace set to STATIONARY')),
+                          );
+                        }
                       },
                       icon: const Icon(Icons.stop),
                       label: const Text('Simulate Stationary'),
