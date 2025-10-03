@@ -37,7 +37,6 @@ dependencies:
   any_link_preview: ^3.0.3
   http: ^1.2.1
   url_launcher: ^6.3.0
-  flutter_markdown: ^0.7.7+1
   percent_indicator: ^4.2.5
   chewie: ^1.8.5
   video_player: ^2.9.2
@@ -96,6 +95,7 @@ dependencies:
   flutter_dotenv: ^6.0.0
   geocoding: ^4.0.0
   native_exif: ^0.6.2
+  markdown_widget: ^2.3.2+8
   # flutter_gemma: ^0.1.0  # Temporarily commented due to dependency conflict
 
 dependency_overrides:

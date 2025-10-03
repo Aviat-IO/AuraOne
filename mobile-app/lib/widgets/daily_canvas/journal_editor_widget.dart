@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../services/voice_editing_service.dart';
 import '../../services/nlp_command_parser.dart';
@@ -389,36 +389,53 @@ class JournalEditorWidget extends HookConsumerWidget {
                             ),
                           )
                         else if (journalEntry != null)
-                          MarkdownBody(
+                          MarkdownWidget(
                             data: journalEntry.content,
-                            styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-                              p: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
-                              h1: theme.textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                height: 1.8,
-                              ),
-                              h2: theme.textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                height: 1.6,
-                              ),
-                              h3: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                height: 1.5,
-                              ),
-                              blockquote: theme.textTheme.bodyLarge?.copyWith(
-                                fontStyle: FontStyle.italic,
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                              ),
-                              listBullet: theme.textTheme.bodyLarge,
-                              blockquoteDecoration: BoxDecoration(
-                                border: Border(
-                                  left: BorderSide(
-                                    color: theme.colorScheme.primary.withValues(alpha: 0.5),
-                                    width: 4,
-                                  ),
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            config: MarkdownConfig(
+                              configs: [
+                                PConfig(
+                                  textStyle: theme.textTheme.bodyLarge?.copyWith(height: 1.6) ?? const TextStyle(height: 1.6),
                                 ),
-                              ),
-                              blockquotePadding: const EdgeInsets.only(left: 16),
+                                H1Config(
+                                  style: theme.textTheme.headlineMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.8,
+                                  ) ?? const TextStyle(fontWeight: FontWeight.bold, height: 1.8),
+                                ),
+                                H2Config(
+                                  style: theme.textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.6,
+                                  ) ?? const TextStyle(fontWeight: FontWeight.bold, height: 1.6),
+                                ),
+                                H3Config(
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.5,
+                                  ) ?? const TextStyle(fontWeight: FontWeight.bold, height: 1.5),
+                                ),
+                                BlockquoteConfig(
+                                  textStyle: theme.textTheme.bodyLarge?.copyWith(
+                                    fontStyle: FontStyle.italic,
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                                  ) ?? TextStyle(
+                                    fontStyle: FontStyle.italic,
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                                  ),
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      left: BorderSide(
+                                        color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                                        width: 4,
+                                      ),
+                                    ),
+                                    color: theme.colorScheme.surface.withValues(alpha: 0.5),
+                                  ),
+                                  padding: const EdgeInsets.all(12),
+                                ),
+                              ],
                             ),
                           ),
 
