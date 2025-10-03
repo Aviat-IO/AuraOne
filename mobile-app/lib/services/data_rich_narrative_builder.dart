@@ -107,10 +107,21 @@ class DataRichNarrativeBuilder {
       firstLocation: firstLocation,
     );
 
-    // Add weather hint if available from first event
-    if (firstEvent.description != null && firstEvent.description!.isNotEmpty) {
-      // Simple enhancement - can be expanded with weather API
-      opening = '$opening ${firstEvent.description}';
+    // Add contextual richness based on time of day and location diversity
+    final hour = firstEvent.timestamp.hour;
+    if (hour < 6) {
+      opening = 'The day began in the quiet hours before dawn. $opening';
+    } else if (hour >= 6 && hour < 9) {
+      opening = 'Morning light brought a fresh start. $opening';
+    } else if (hour >= 18 && hour < 21) {
+      opening = 'As evening settled in, $opening';
+    }
+
+    // Add activity context if day was notably active
+    if (context.locationSummary.totalKilometers > 10) {
+      opening = '$opening The day promised movement and exploration.';
+    } else if (context.locationSummary.significantPlaces.length > 3) {
+      opening = '$opening Multiple destinations awaited.';
     }
 
     return opening;
@@ -257,37 +268,52 @@ class DataRichNarrativeBuilder {
       peopleCount: event.peopleCount,
     );
 
-    // Build richer description with scene details
+    // Build vivid description with sensory details
     final buffer = StringBuffer();
 
-    // Add location context if available
+    // Add location context with vivid phrasing
     if (event.placeName != null) {
-      buffer.write('At ${event.placeName}, ');
+      // Vary the location introduction for naturalness
+      final locationIntros = [
+        'At ${event.placeName}',
+        'While at ${event.placeName}',
+        'Finding myself at ${event.placeName}',
+      ];
+      final intro = locationIntros[event.timestamp.minute % locationIntros.length];
+      buffer.write('$intro, ');
     }
 
     buffer.write('I $phrase');
 
-    // Add scene description if available and not redundant
-    if (event.sceneDescription != null &&
-        event.sceneDescription!.isNotEmpty &&
-        !phrase.toLowerCase().contains(event.sceneDescription!.toLowerCase())) {
-      buffer.write(' - ${event.sceneDescription}');
-    }
-
-    // Add object context for visual richness
-    if (event.objectsSeen != null && event.objectsSeen!.isNotEmpty) {
-      final objects = event.objectsSeen!.take(3).join(', ');
-      if (!phrase.contains(objects)) {
-        buffer.write(', capturing $objects in the frame');
+    // Add vivid scene description if available
+    if (event.sceneDescription != null && event.sceneDescription!.isNotEmpty) {
+      if (!phrase.toLowerCase().contains(event.sceneDescription!.toLowerCase())) {
+        buffer.write('. ${event.sceneDescription} filled the scene');
       }
     }
 
-    // Add people context
+    // Add object context with more engaging language
+    if (event.objectsSeen != null && event.objectsSeen!.isNotEmpty) {
+      final objects = event.objectsSeen!.take(3).toList();
+      if (!phrase.contains(objects.join(', '))) {
+        if (objects.length == 1) {
+          buffer.write(', with ${objects[0]} catching my attention');
+        } else if (objects.length == 2) {
+          buffer.write(', drawn to ${objects[0]} and ${objects[1]}');
+        } else {
+          buffer.write(', noticing ${objects[0]}, ${objects[1]}, and ${objects[2]} in the composition');
+        }
+      }
+    }
+
+    // Add people context with warmth
     if (event.peopleCount != null && event.peopleCount! > 0) {
       if (event.peopleCount == 1) {
-        buffer.write(', someone present in the moment');
+        buffer.write('. A companion shared the moment');
+      } else if (event.peopleCount! <= 3) {
+        buffer.write('. ${event.peopleCount} others joined in the experience');
       } else {
-        buffer.write(', ${event.peopleCount} people sharing the experience');
+        buffer.write('. A gathering of ${event.peopleCount} people brought energy to the scene');
       }
     }
 
@@ -320,8 +346,11 @@ class DataRichNarrativeBuilder {
     // Get distance from context
     final totalKm = context.locationSummary.totalKilometers;
 
-    // Build richer closing with multiple elements
+    // Build richer, more reflective closing
     final buffer = StringBuffer();
+
+    // Add reflective transition
+    buffer.write('Looking back, ');
 
     // Start with base closing
     final baseClosing = _phraseGen.generateClosing(
@@ -330,30 +359,47 @@ class DataRichNarrativeBuilder {
       photoCount: photoCount,
       calendarEventCount: calendarCount,
     );
-    buffer.write(baseClosing);
+    buffer.write(baseClosing.toLowerCase()); // lowercase since we added "Looking back, "
 
-    // Add location diversity context
-    if (locationCount > 2) {
-      buffer.write(' I moved through $locationCount different places, each adding its own character to the day.');
+    // Add location diversity context with more vivid language
+    if (locationCount > 3) {
+      buffer.write(' The day wove through $locationCount distinct places, each leaving its mark on the hours.');
+    } else if (locationCount == 3) {
+      final places = context.locationSummary.significantPlaces.take(3).toList();
+      buffer.write(' My path traced through ${places[0]}, ${places[1]}, and ${places[2]}.');
     } else if (locationCount == 2) {
-      buffer.write(' The day unfolded across ${context.locationSummary.significantPlaces.join(' and ')}.');
+      final places = context.locationSummary.significantPlaces.toList();
+      buffer.write(' ${places[0]} and ${places[1]} bookended the day\'s journey.');
     } else if (locationCount == 1) {
-      buffer.write(' ${context.locationSummary.significantPlaces.first} was the anchor of my day.');
+      buffer.write(' ${context.locationSummary.significantPlaces.first} held the entire day within its boundaries.');
     }
 
-    // Add activity summary if available
+    // Add activity summary with more engaging phrasing
     if (context.activitySummary.primaryActivities.isNotEmpty) {
-      final activities = context.activitySummary.primaryActivities.take(2).join(' and ');
-      buffer.write(' The rhythm was shaped by $activities.');
+      final activities = context.activitySummary.primaryActivities.take(2).toList();
+      if (activities.length == 1) {
+        buffer.write(' ${activities[0]} gave the day its pulse.');
+      } else {
+        buffer.write(' The rhythm flowed between ${activities.join(' and ')}.');
+      }
     }
 
-    // Add social context if available
+    // Add social context with warmth and reflection
     if (context.socialSummary.totalPeopleDetected > 0) {
       if (context.socialSummary.totalPeopleDetected == 1) {
-        buffer.write(' A moment of connection brightened the hours.');
+        buffer.write(' A meaningful connection illuminated the hours.');
+      } else if (context.socialSummary.totalPeopleDetected <= 5) {
+        buffer.write(' ${context.socialSummary.totalPeopleDetected} people wove their presence into the day\'s story.');
       } else {
-        buffer.write(' ${context.socialSummary.totalPeopleDetected} people shared the day\'s tapestry.');
+        buffer.write(' ${context.socialSummary.totalPeopleDetected} lives intersected with mine, creating a rich tapestry of moments.');
       }
+    }
+
+    // Add distance reflection if notable
+    if (totalKm > 20) {
+      buffer.write(' The ${ totalKm.toStringAsFixed(1)} kilometers traveled tell their own story of movement and discovery.');
+    } else if (totalKm > 5) {
+      buffer.write(' ${ totalKm.toStringAsFixed(1)} kilometers of ground covered, each meter part of the day\'s narrative.');
     }
 
     return buffer.toString();

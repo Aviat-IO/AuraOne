@@ -135,15 +135,61 @@ Monetizing an open-source, privacy-first application presents a unique challenge
 The primary monetization strategy will be an "Open Core" or Freemium model.90 The core application will be free, open-source, and fully functional for all essential journaling features. A paid "Pro" version, available via a subscription or a one-time purchase, will unlock advanced, non-essential features for power users.
 
 * **Free Tier (Core Product):** Includes all features detailed in this document: automatic data capture, on-device AI summary generation, voice editing, manual entry, multimedia support, full data export, and standard encrypted backup options. The free version will be fully usable and not artificially limited.
-* **Potential "Pro" Features:**
-  * **Advanced AI Insights:** Deeper, long-term trend analysis (e.g., "How has my mood correlated with my location over the past year?").
-  * **Advanced Models:** Give users the option to use more advanced, multi-modal models like Gemini 2.5 Pro to give better summaries (but with the warning that their data would leave the device)
-  * **Enhanced Data Visualizations:** More sophisticated map overlays, activity charts, and relationship graphs.
-  * **Expanded Backup & Sync Options:** Access to a wider range of automated, user-configured cloud sync providers.
-  * **Premium Export Formats:** Beautifully designed PDF or eBook templates for printing physical copies of the journal.
-  * **Exclusive Themes & Customization:** A wider selection of UI themes, fonts, and layout options.
+  * **Cloud AI Limit:** 3 AI-powered summaries per day via managed Cloud Gemini endpoint
+  * **Template Fallback:** Unlimited high-quality on-device narrative generation
+  * **Reset Schedule:** Daily limit resets at midnight local time
+  * **UI Indicators:** Clear counter showing remaining AI generations (e.g., "✨ 2/3 AI summaries remaining today")
+  * **Graceful Degradation:** Automatic fallback to Template adapter when limit reached
+
+* **Pro Tier Features ($4.99/month or $49.99/year):**
+  * **Unlimited Cloud AI:** 25 AI-powered summaries per day via managed endpoint
+    * Covers Today page auto-generation
+    * Covers History page regeneration requests
+    * Includes manual "Regenerate with AI" actions
+    * No watermarks or branding on generated content
+  * **Advanced AI Insights:** Deeper, long-term trend analysis (e.g., "How has my mood correlated with my location over the past year?")
+  * **Priority Processing:** Faster AI response times during peak usage
+  * **Advanced AI Features:**
+    * Multimodal image descriptions for photo context
+    * Custom prompt templates for personalized narrative style
+    * Voice-to-text with AI enhancement
+  * **Enhanced Data Visualizations:** More sophisticated map overlays, activity charts, and relationship graphs
+  * **Expanded Backup & Sync Options:** Access to a wider range of automated, user-configured cloud sync providers
+  * **Premium Export Formats:** Beautifully designed PDF or eBook templates for printing physical copies of the journal
+  * **Exclusive Themes & Customization:** A wider selection of UI themes, fonts, and layout options
+  * **Priority Support:** Faster response times for support inquiries
+
+* **Power User Option (BYOK - Free or Pro):**
+  * **Bring Your Own Key:** Users can provide their own Gemini API key
+  * **No Limits:** Unlimited AI generations (user pays Google directly)
+  * **Full Control:** Complete data and cost control
+  * **Privacy Option:** For users who want cloud AI but prefer direct API relationship
+  * **Configuration:** API key stored securely via flutter_secure_storage or .env file
 
 This model provides a clear value proposition for users to upgrade while ensuring the free, open-source version remains a powerful tool in its own right.90
+
+#### **4.1.1. Authentication & Tier Detection Strategy**
+
+The application implements a **Hybrid Anonymous-First Authentication Model** designed to maximize user convenience while supporting both free and Pro tiers without compromising privacy principles.
+
+* **Free Tier Users (Anonymous, Zero Friction):**
+  * No account or sign-up required
+  * Anonymous device ID for rate limiting only (3 AI generations per day)
+  * Complete privacy - no personal information collected
+  * All journal data remains on-device
+
+* **Pro Tier Users (Minimal Friction with Optional Sync):**
+  * Immediate activation after in-app purchase (25 AI generations per day)
+  * Device-specific by default - no account needed
+  * Optional account linking for multi-device sync
+  * Privacy-respecting authentication options (Sign in with Apple, email/magic link)
+
+* **Key Principles:**
+  * Free tier is completely anonymous with zero friction
+  * Pro tier activates instantly via receipt validation
+  * Account creation is optional, even for Pro users
+  * Privacy guarantees maintained across all tiers
+  * BYOK users can bypass rate limiting entirely with their own API key
 
 #### **4.2. Secondary Models: Direct Support**
 
@@ -177,16 +223,42 @@ The system's architecture is fundamentally local-first, a paradigm where the pri
 * **Performance:** By eliminating network latency for all primary operations, the user experience will be exceptionally fast and responsive, avoiding loading spinners and delays common in cloud-dependent apps.15
 * **Data Control:** The user retains complete physical control of their data. Network connectivity is relegated to an optional, user-initiated role for specific tasks such as pulling data from external APIs (e.g., weather), publishing to Nostr, or executing encrypted backups.
 
-#### **5.3. Strictly On-Device AI and Data Processing Pipeline**
+#### **5.3. AI Architecture: Privacy-First with Optional Cloud Enhancement**
 
-To maintain the absolute privacy and local-first principles, the entire AI processing pipeline is designed to execute on the user's device. This guarantees that sensitive personal data is never sent to any third-party servers for analysis.
+The AI system employs a tiered adapter architecture that prioritizes privacy while optionally allowing users to trade privacy for enhanced quality. This architecture ensures the app remains fully functional regardless of user privacy preferences.
 
-* **Pipeline Architecture:**
+* **Tier 1: Cloud AI (Optional, Requires Consent & API Key)**
+  * **Provider:** Google Gemini 2.0 Flash (or user-configured cloud model)
+  * **Quality:** Highest quality narratives with superior context understanding
+  * **Requirements:**
+    * Explicit user consent via settings with clear privacy warning
+    * User-provided API key (loaded from .env file or settings UI)
+    * Network connectivity
+  * **Privacy Trade-off:** Journal data is sent to Google's servers for processing
+  * **Availability:** Automatically disabled if user hasn't consented or API key is missing
+
+* **Tier 3: Template-Based Generation (Privacy-First Fallback)**
+  * **Provider:** On-device template-based narrative builder
+  * **Quality:** Good quality narratives using contextual templates and phrase generation
+  * **Requirements:** None - always available
+  * **Privacy:** 100% on-device, zero network communication
+  * **Availability:** Guaranteed fallback ensuring app never fails to generate summaries
+
+* **Graceful Degradation Guarantees:**
+  1. App works perfectly without any cloud AI configuration
+  2. Users who never provide API key or consent get full functionality via Template adapter
+  3. Cloud AI fails gracefully to Template adapter on network issues or API errors
+  4. Clear UI indication of which adapter is active (cloud vs. local)
+  5. No degradation in app features - only narrative quality varies by user choice
+
+* **Privacy-First Pipeline Architecture:**
   1. **Ingestion:** The Data Acquisition Layer continuously gathers raw data points (e.g., GPS coordinates, photo file paths, calendar event objects) from device sensors and APIs.
   2. **Normalization:** This raw data is transformed into a standardized, structured format and persisted in the local database. For example, a raw GPS coordinate is stored as a Location object with a timestamp and associated metadata.
-  3. **Analysis & Synthesis:** At the end of the day (or on-demand), a service layer retrieves all normalized data for that period. An on-device Natural Language Processing (NLP) model processes this structured data to identify key events, locations, and themes.
-  4. **Generation:** The output of the analysis phase is fed into a text generation model (e.g., a mobile-optimized version of a model like Google's Gemma), also running on-device, which produces a draft journal entry in a structured format like Markdown.
-  5. **Interaction & Curation:** The generated draft is presented to the user in the UI. User edits, including those initiated by voice commands, are processed by on-device Speech-to-Text (STT) and NLP models.
+  3. **Analysis & Synthesis:** At the end of the day (or on-demand), a service layer retrieves all normalized data for that period. This data is processed by the active AI adapter based on availability and user preferences.
+  4. **Generation:**
+     * If Cloud AI is available (consent granted, API key configured, network accessible): Structured data is sent to Gemini API for narrative generation
+     * Otherwise: Template-based builder uses contextual phrase generation and emotional tone analysis for on-device narrative creation
+  5. **Interaction & Curation:** The generated draft is presented to the user in the UI. All edits remain on-device regardless of generation method.
 
 ### **6\. Core Module Implementation**
 

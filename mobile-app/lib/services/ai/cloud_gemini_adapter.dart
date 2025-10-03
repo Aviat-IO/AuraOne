@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/logger.dart';
 import '../daily_context_synthesizer.dart';
 import 'ai_journal_generator.dart';
 
-/// Tier 4 adapter using Google Gemini 2.5 Pro cloud API
+/// Tier 1 adapter using Google Gemini 2.0 Flash cloud API
 ///
 /// Premium cloud-based AI features with superior quality
 /// but requires network connectivity and user consent.
@@ -14,76 +14,53 @@ import 'ai_journal_generator.dart';
 /// Privacy Requirements:
 /// - Explicit user consent before data leaves device
 /// - Clear privacy warnings about cloud usage
-/// - API key stored securely using flutter_secure_storage
+/// - API key from .env file
 /// - Network connectivity required
 class CloudGeminiAdapter implements AIJournalGenerator {
   static final _logger = AppLogger('CloudGeminiAdapter');
-  static const _storage = FlutterSecureStorage();
-  static const _apiKeyStorageKey = 'gemini_api_key';
+  static const String _consentKey = 'cloud_ai_consent';
 
   static const String _adapterName = 'CloudGemini';
-  static const int _tierLevel = 4;
+  static const int _tierLevel = 1;
 
   GenerativeModel? _model;
-  bool _userConsentGranted = false;
 
   /// Check if user has granted consent for cloud usage
   Future<bool> hasUserConsent() async {
-    // TODO: Implement consent checking via SharedPreferences
-    // This should be set by settings UI
-    return _userConsentGranted;
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_consentKey) ?? false;
   }
 
   /// Grant user consent for cloud usage
   Future<void> grantConsent() async {
-    // TODO: Store consent in SharedPreferences
-    _userConsentGranted = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_consentKey, true);
     _logger.info('User granted consent for cloud AI usage');
   }
 
   /// Revoke user consent for cloud usage
   Future<void> revokeConsent() async {
-    // TODO: Remove consent from SharedPreferences
-    _userConsentGranted = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_consentKey, false);
     _logger.info('User revoked consent for cloud AI usage');
   }
 
-  /// Set API key for Gemini access
-  Future<void> setApiKey(String apiKey) async {
-    try {
-      await _storage.write(key: _apiKeyStorageKey, value: apiKey);
-      _model = null; // Force re-initialization
-      _logger.info('API key stored securely');
-    } catch (e, stackTrace) {
-      _logger.error('Error storing API key', error: e, stackTrace: stackTrace);
-      rethrow;
+  /// Get API key from .env file
+  String? _getApiKey() {
+    final envApiKey = dotenv.env['GEMINI_API_KEY'];
+    if (envApiKey != null && envApiKey.isNotEmpty && envApiKey != 'your_gemini_api_key_here') {
+      return envApiKey;
     }
-  }
-
-  /// Get stored API key (prioritizes .env file over secure storage)
-  Future<String?> _getApiKey() async {
-    try {
-      // First check .env file (for development/user-provided key)
-      final envApiKey = dotenv.env['GEMINI_API_KEY'];
-      if (envApiKey != null && envApiKey.isNotEmpty && envApiKey != 'your_gemini_api_key_here') {
-        return envApiKey;
-      }
-
-      // Fallback to secure storage (for keys set via UI)
-      return await _storage.read(key: _apiKeyStorageKey);
-    } catch (e, stackTrace) {
-      _logger.error('Error reading API key', error: e, stackTrace: stackTrace);
-      return null;
-    }
+    return null;
   }
 
   /// Initialize Gemini model if not already initialized
-  Future<bool> _initializeModel() async {
+  bool _initializeModel() {
     if (_model != null) {
       return true;
     }
 
-    final apiKey = await _getApiKey();
+    final apiKey = _getApiKey();
     if (apiKey == null || apiKey.isEmpty) {
       _logger.warning('No API key configured');
       return false;
@@ -128,7 +105,7 @@ class CloudGeminiAdapter implements AIJournalGenerator {
     }
 
     // Check API key
-    final apiKey = await _getApiKey();
+    final apiKey = _getApiKey();
     if (apiKey == null || apiKey.isEmpty) {
       _logger.info('Cloud adapter unavailable: no API key');
       return false;
@@ -186,7 +163,7 @@ class CloudGeminiAdapter implements AIJournalGenerator {
       return AIGenerationResult.failure('Cloud adapter not available');
     }
 
-    if (!await _initializeModel()) {
+    if (!_initializeModel()) {
       return AIGenerationResult.failure('Failed to initialize Gemini model');
     }
 
@@ -226,7 +203,7 @@ class CloudGeminiAdapter implements AIJournalGenerator {
       return AIGenerationResult.failure('Cloud adapter not available');
     }
 
-    if (!await _initializeModel()) {
+    if (!_initializeModel()) {
       return AIGenerationResult.failure('Failed to initialize Gemini model');
     }
 
@@ -293,7 +270,7 @@ Keep the description conversational and under 100 words.
       return AIGenerationResult.failure('Cloud adapter not available');
     }
 
-    if (!await _initializeModel()) {
+    if (!_initializeModel()) {
       return AIGenerationResult.failure('Failed to initialize Gemini model');
     }
 

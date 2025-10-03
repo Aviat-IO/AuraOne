@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/simple_location_service.dart';
 import '../theme/colors.dart';
 import '../widgets/privacy/privacy_help_guide.dart';
@@ -11,6 +12,30 @@ import '../widgets/grouped_list_container.dart';
 
 // Providers for privacy settings
 final locationTrackingEnabledProvider = StateProvider<bool>((ref) => true);
+
+// Cloud AI consent provider
+final cloudAIConsentProvider = StateNotifierProvider<CloudAIConsentNotifier, bool>((ref) {
+  return CloudAIConsentNotifier();
+});
+
+class CloudAIConsentNotifier extends StateNotifier<bool> {
+  static const String _key = 'cloud_ai_consent';
+
+  CloudAIConsentNotifier() : super(false) {
+    _loadConsent();
+  }
+
+  Future<void> _loadConsent() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool(_key) ?? false;
+  }
+
+  Future<void> setConsent(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_key, value);
+    state = value;
+  }
+}
 
 // Photo access provider that checks actual permission state
 final photoAccessEnabledProvider = StateNotifierProvider<PhotoAccessNotifier, bool>((ref) {
@@ -454,6 +479,54 @@ class PrivacyScreen extends ConsumerWidget {
                         );
                       },
                     ),
+                    // Cloud AI toggle
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final cloudAIEnabled = ref.watch(cloudAIConsentProvider);
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.cloud,
+                              color: theme.colorScheme.primary,
+                              size: 20,
+                            ),
+                          ),
+                          title: Text(
+                            'Cloud AI',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Use cloud AI for higher quality summaries',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
+                          ),
+                          trailing: Switch(
+                            value: cloudAIEnabled,
+                            onChanged: (value) async {
+                              if (value) {
+                                // Show privacy warning dialog
+                                final result = await _showCloudAIWarning(context);
+                                if (result == true) {
+                                  await ref.read(cloudAIConsentProvider.notifier).setConsent(true);
+                                }
+                              } else {
+                                // No warning needed to turn off
+                                await ref.read(cloudAIConsentProvider.notifier).setConsent(false);
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -809,6 +882,94 @@ class PrivacyScreen extends ConsumerWidget {
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Enable'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> _showCloudAIWarning(BuildContext context) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.warning_amber,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(width: 8),
+            const Text('Privacy Warning'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Enabling Cloud AI will send your journal data to Google\'s servers for AI-powered summary generation.',
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Privacy Trade-off:',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '• Your journal entries will leave your device\n'
+                '• Data is sent to Google Gemini API for processing\n'
+                '• Google\'s privacy policy applies to this data\n'
+                '• This trades privacy for higher quality summaries',
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'The app works fully without Cloud AI using privacy-first local generation.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Do you want to enable Cloud AI?',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('I Understand, Enable'),
           ),
         ],
       ),
