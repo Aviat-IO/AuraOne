@@ -53,6 +53,10 @@ Each day's entry is conceptualized as a "Daily Canvas," a rich, multimedia docum
   * **Image Gallery:** A curated collection of photos and videos captured by the user on that day, automatically sourced from the device's local media library.
   * **Location Map:** An interactive map visualization that displays the user's movements, routes, and significant locations visited throughout the day. This provides a geographic context to the day's events, similar to the map views offered by Day One.17
   * **Data Timeline:** A chronological, itemized list of discrete, automatically captured events. This can include calendar appointments, fitness activities, music listened to, and other integrated data points, providing a factual backbone to the narrative summary.
+    * **Location Display:** Rather than showing individual location points, the timeline displays location clusters representing meaningful stays. Each cluster entry shows:
+      * With reverse geocoding enabled: Named location (e.g., "Empire State Building") with duration spent (e.g., "You spent 45 min here")
+      * Without reverse geocoding: Generic "Location" label, or high-level region (city/county) if determinable (e.g., "Brooklyn"), with duration spent
+      * The timeline header shows total clusters visited (e.g., "5 locations") rather than raw data point counts
 
 #### **2.2. The Passive Data Capture Engine**
 

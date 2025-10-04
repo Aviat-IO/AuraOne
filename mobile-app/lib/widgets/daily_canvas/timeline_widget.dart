@@ -16,6 +16,75 @@ import '../../providers/media_thumbnail_provider.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/settings_providers.dart';
 
+// Helper function to cluster location activities by proximity and time
+List<List<JournalActivity>> _clusterLocationActivities(
+  List<JournalActivity> locationActivities, {
+  Duration maxTimeBetween = const Duration(hours: 2),
+}) {
+  if (locationActivities.isEmpty) return [];
+
+  // Sort by timestamp
+  final sorted = List<JournalActivity>.from(locationActivities)
+    ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+  final clusters = <List<JournalActivity>>[];
+  List<JournalActivity> currentCluster = [sorted.first];
+
+  for (int i = 1; i < sorted.length; i++) {
+    final current = sorted[i];
+    final previous = sorted[i - 1];
+
+    // Parse metadata to get coordinates
+    Map<String, dynamic>? currentMeta;
+    Map<String, dynamic>? previousMeta;
+
+    try {
+      if (current.metadata != null) {
+        currentMeta = jsonDecode(current.metadata!);
+      }
+      if (previous.metadata != null) {
+        previousMeta = jsonDecode(previous.metadata!);
+      }
+    } catch (_) {}
+
+    final timeDiff = current.timestamp.difference(previous.timestamp);
+
+    // Check if locations are close enough (simple distance check)
+    bool isNearby = false;
+    if (currentMeta != null && previousMeta != null) {
+      final lat1 = currentMeta['latitude'] as double?;
+      final lon1 = currentMeta['longitude'] as double?;
+      final lat2 = previousMeta['latitude'] as double?;
+      final lon2 = previousMeta['longitude'] as double?;
+
+      if (lat1 != null && lon1 != null && lat2 != null && lon2 != null) {
+        // Simple Euclidean distance approximation (good enough for small distances)
+        final latDiff = (lat1 - lat2).abs();
+        final lonDiff = (lon1 - lon2).abs();
+        final distance = (latDiff * latDiff + lonDiff * lonDiff);
+        // ~0.002 degrees is approximately 200 meters
+        isNearby = distance < 0.000004; // 0.002^2
+      }
+    }
+
+    // Cluster if within time window AND nearby
+    if (timeDiff <= maxTimeBetween && isNearby) {
+      currentCluster.add(current);
+    } else {
+      if (currentCluster.isNotEmpty) {
+        clusters.add(currentCluster);
+      }
+      currentCluster = [current];
+    }
+  }
+
+  if (currentCluster.isNotEmpty) {
+    clusters.add(currentCluster);
+  }
+
+  return clusters;
+}
+
 // Helper function to get calendar events for a specific date
 Future<List<CalendarEventData>> _getCalendarEventsForDate(
   CalendarService calendarService,
@@ -72,17 +141,13 @@ final calendarEventsProvider = FutureProvider.family<List<CalendarEventData>, Da
   }
 });
 
-// Provider for calendar metadata (names, colors, etc.) - cached and shared across all dates
+// Provider for calendar metadata (names, colors, etc.) - cached permanently in session
 final calendarMetadataProvider = FutureProvider.autoDispose<Map<String, String>>((ref) async {
   final calendarService = ref.watch(calendarServiceProvider);
 
   try {
-    // Cache for 5 minutes to avoid frequent calendar queries
+    // Keep cached indefinitely during session - no auto-invalidation
     ref.keepAlive();
-    final timer = Timer(const Duration(minutes: 5), () {
-      ref.invalidateSelf();
-    });
-    ref.onDispose(() => timer.cancel());
 
     final calendars = await calendarService.getCalendars();
     return Map.fromEntries(
@@ -130,8 +195,70 @@ final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTi
     return true;
   }).toList();
 
-  // Convert JournalActivity to TimelineEvent
-  final journalEvents = filteredActivities.map((activity) {
+  // Cluster location activities
+  final locationClusters = _clusterLocationActivities(
+    filteredActivities.where((a) => a.activityType == 'location').toList(),
+  );
+
+  // Convert JournalActivity to TimelineEvent (excluding individual location activities)
+  final journalEvents = <TimelineEvent>[];
+
+  // Add clustered location events
+  for (final cluster in locationClusters) {
+    final firstActivity = cluster.first;
+    final lastActivity = cluster.last;
+    final duration = lastActivity.timestamp.difference(firstActivity.timestamp);
+
+    // Parse metadata to get address info
+    Map<String, dynamic>? metadata;
+    if (firstActivity.metadata != null) {
+      try {
+        metadata = jsonDecode(firstActivity.metadata!);
+      } catch (_) {}
+    }
+
+    // Determine the display name
+    String title = firstActivity.description;
+    final address = metadata?['address'] as String?;
+
+    // Clean up the title - prefer address over raw coordinates
+    if (address != null && address.isNotEmpty && !address.startsWith('Location:')) {
+      title = address;
+    } else if (title.startsWith('Location:') && title.contains(',')) {
+      // Try to extract region from coordinate-based description
+      // For now, just use generic "Location"
+      title = 'Location';
+    }
+
+    // Format duration
+    String durationText;
+    if (duration.inMinutes < 1) {
+      durationText = 'Less than a minute';
+    } else if (duration.inMinutes < 60) {
+      durationText = 'You spent ${duration.inMinutes} min here';
+    } else {
+      final hours = duration.inHours;
+      final minutes = duration.inMinutes % 60;
+      if (minutes == 0) {
+        durationText = 'You spent $hours ${hours == 1 ? "hour" : "hours"} here';
+      } else {
+        durationText = 'You spent $hours ${hours == 1 ? "hour" : "hours"} $minutes min here';
+      }
+    }
+
+    journalEvents.add(TimelineEvent(
+      time: firstActivity.timestamp.toLocal(),
+      title: title,
+      description: durationText,
+      type: EventType.routine,
+      icon: Icons.location_on,
+    ));
+  }
+
+  // Add non-location activities
+  for (final activity in filteredActivities) {
+    if (activity.activityType == 'location') continue; // Skip - already handled in clusters
+
     // Parse metadata if available
     Map<String, dynamic>? metadata;
     if (activity.metadata != null) {
@@ -147,10 +274,6 @@ final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTi
     IconData icon;
 
     switch (activity.activityType) {
-      case 'location':
-        eventType = EventType.routine;
-        icon = Icons.location_on;
-        break;
       case 'photo':
         eventType = EventType.leisure;
         icon = Icons.photo_camera;
@@ -205,14 +328,14 @@ final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTi
       }
     }
 
-    return TimelineEvent(
-      time: activity.timestamp.toLocal(),  // Convert UTC to local time for journal activities
+    journalEvents.add(TimelineEvent(
+      time: activity.timestamp.toLocal(),
       title: title,
       description: description,
       type: eventType,
       icon: icon,
-    );
-  }).toList();
+    ));
+  }
 
   // Convert calendar events to TimelineEvent and filter all-day events
   final calendarTimelineEvents = calendarEvents
@@ -908,25 +1031,6 @@ class TimelineWidget extends HookConsumerWidget {
     return null;
   }
 
-  String _getEventDescription(TimelineEvent event) {
-    if (event.isCalendarEvent && event.calendarEventData != null) {
-      final calendarEvent = event.calendarEventData!;
-      final parts = <String>[];
-
-      if (event.description.isNotEmpty) {
-        parts.add(event.description);
-      }
-
-      if (calendarEvent.location != null && calendarEvent.location!.isNotEmpty) {
-        parts.add('📍 ${calendarEvent.location}');
-      }
-
-      return parts.join(' • ');
-    }
-
-    return event.description;
-  }
-
   Color _getEventColor(EventType type, ThemeData theme) {
     switch (type) {
       case EventType.routine:
@@ -1048,24 +1152,6 @@ class AddEventDialog extends HookConsumerWidget {
         return 'Entertainment and relaxation';
     }
   }
-
-  String _getActivityType(EventType type) {
-    switch (type) {
-      case EventType.routine:
-        return 'manual';
-      case EventType.work:
-        return 'calendar';
-      case EventType.movement:
-        return 'movement';
-      case EventType.social:
-        return 'manual';
-      case EventType.exercise:
-        return 'movement';
-      case EventType.leisure:
-        return 'manual';
-    }
-  }
-
 }
 
 // New event creation screen

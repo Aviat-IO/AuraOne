@@ -1,0 +1,27 @@
+{
+  "name": "aura-one-backend",
+  "version": "1.0.0",
+  "description": "Aura One backend proxy service for secure Vertex AI access",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target node",
+    "test": "bun test",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write 'src/**/*.ts'"
+  },
+  "dependencies": {
+    "@google-cloud/vertexai": "^1.9.1",
+    "@google-cloud/firestore": "^7.10.0",
+    "hono": "^4.6.12",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}

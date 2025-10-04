@@ -72,9 +72,11 @@ class BackgroundLocationService {
         // Android specific
         foregroundService: true,
         notification: bg.Notification(
-          title: "Aura One Location Tracking",
+          title: "Aura One",
           text: "Tracking your location for journal context",
           sticky: false,
+          priority: bg.Config.NOTIFICATION_PRIORITY_MIN, // Minimal visibility
+          channelName: "Location Services", // Android 8+ channel name
         ),
 
         // Battery optimization

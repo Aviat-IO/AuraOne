@@ -1,0 +1,119 @@
+# Task ID: 46
+# Title: Create Secure Gemini AI Proxy Service with Rate Limiting and ManagedCloudGeminiAdapter
+# Status: pending
+# Dependencies: 1, 37
+# Priority: medium
+# Description: Develop a complete backend proxy architecture using Bun/TypeScript with GCP integration that provides secure Vertex AI access, implements device-based rate limiting (3/day free, 25/day Pro), and includes a new Tier 1 ManagedCloudGeminiAdapter in the Flutter app replacing direct API access.
+# Details:
+Create a comprehensive backend proxy system with privacy-first authentication and cloud infrastructure: 1) GCP Infrastructure: Use Terraform with Cloud Foundation Fabric to create new GCP project, enable Vertex AI API, configure Firestore database, set up Cloud Run deployment, implement IAM with Application Default Credentials (no service account keys). 2) Backend Service (/Users/alancolver/dev/auraone/backend): Bun/TypeScript runtime with Express/Hono framework, Vertex AI Gemini 2.0 Flash integration, device ID-based rate limiting using Firestore, receipt validation for Apple/Google Play, containerized with Docker + docker-compose.yml (port 5566). 3) Authentication Strategy (Hybrid Privacy-First): Free tier uses anonymous device UUID only (no PII), Pro tier adds receipt validation for immediate activation, optional account linking for multi-device sync, Firestore data model with /usage/{device_id} and /accounts/{account_id} collections. 4) Mobile App Integration: Create ManagedCloudGeminiAdapter as new Tier 1 adapter calling backend proxy, update existing CloudGeminiAdapter to Tier 2 (BYOK users), maintain TemplateAdapter as Tier 3 fallback, implement device ID generation/storage, add quota tracking UI and graceful 429 handling. 5) API Design: POST /api/generate-summary (main AI endpoint), POST /api/validate-receipt (Pro activation), GET /health (monitoring), GET /api/usage/:device_id (quota status). 6) Security: No API credentials in mobile app binary, Firestore security rules, proper CORS policies, logging and monitoring.
+
+# Test Strategy:
+Deploy infrastructure via 'terraform apply' and verify all GCP resources created correctly. Test backend starts locally via 'docker-compose up' on port 5566 and responds to health checks. Verify mobile app generates persistent device ID on first launch and stores it securely. Test free users get exactly 3 AI generations per day with proper quota tracking. Test Pro users can validate receipts and receive 25/day quota. Verify rate limiting enforces daily quotas with proper user feedback when exceeded. Test graceful fallback to TemplateAdapter when proxy unavailable or quota exceeded. Inspect mobile app build artifacts to confirm no Vertex AI credentials present. Test Firestore security rules prevent unauthorized access to usage data. Verify backend proxy correctly calls Vertex AI and returns quality responses matching CloudGeminiAdapter expectations.
+
+# Subtasks:
+## 1.  [pending]
+### Dependencies: None
+### Description: Set up GCP project and Terraform infrastructure
+### Details:
+Create new GCP project for Aura One backend. Set up Terraform configuration using Cloud Foundation Fabric patterns. Enable required APIs (Vertex AI, Firestore, Cloud Run). Configure IAM roles for Application Default Credentials access. Set up Firestore database with security rules for usage tracking.
+
+## 2.  [pending]
+### Dependencies: None
+### Description: Create backend directory structure and Bun/TypeScript setup
+### Details:
+Create /Users/alancolver/dev/auraone/backend directory. Initialize Bun project with TypeScript configuration. Set up Express/Hono framework for API routes. Configure environment variables for GCP project ID and Vertex AI settings. Create package.json with required dependencies.
+
+## 3.  [pending]
+### Dependencies: None
+### Description: Implement Firestore data models and rate limiting logic
+### Details:
+Create Firestore collections schema for /usage/{device_id} and /accounts/{account_id}. Implement rate limiting service that tracks daily usage counts and resets at midnight. Create user tier management (free=3/day, pro=25/day). Add device ID validation and usage tracking functions.
+
+## 4.  [pending]
+### Dependencies: None
+### Description: Implement Vertex AI integration and proxy endpoints
+### Details:
+Create Vertex AI Gemini 2.0 Flash client using Application Default Credentials. Implement POST /api/generate-summary endpoint that proxies requests to Vertex AI. Add request validation, error handling, and response formatting to match existing CloudGeminiAdapter interface. Include usage tracking integration.
+
+## 5.  [pending]
+### Dependencies: None
+### Description: Add receipt validation for Pro tier activation
+### Details:
+Implement POST /api/validate-receipt endpoint for Apple App Store and Google Play receipt validation. Create receipt validation services for both platforms. Update user tier to 'pro' and set 25/day quota upon successful validation. Add account linking functionality for multi-device sync.
+
+## 6.  [pending]
+### Dependencies: None
+### Description: Create Docker containerization and docker-compose setup
+### Details:
+Create Dockerfile for Bun/TypeScript backend with proper Node.js runtime. Create top-level docker-compose.yml for local development environment. Configure port 5566 for backend service. Add health check endpoints (/health, /status) and monitoring configuration.
+
+## 7.  [pending]
+### Dependencies: None
+### Description: Implement device ID generation and storage in mobile app
+### Details:
+Create device ID service that generates UUID on first app launch and stores persistently using SharedPreferences. Ensure device ID survives app updates but not fresh installations. Add device ID to all backend API requests for user identification.
+
+## 8.  [pending]
+### Dependencies: None
+### Description: Create ManagedCloudGeminiAdapter (Tier 1) for backend proxy calls
+### Details:
+Create new ManagedCloudGeminiAdapter class implementing AIJournalGenerator interface. Replace direct Vertex AI calls with backend proxy HTTP requests. Implement quota tracking, error handling, and graceful degradation. Set as Tier 1 adapter with highest priority. Handle 429 rate limit responses with appropriate user feedback.
+
+## 9.  [pending]
+### Dependencies: None
+### Description: Update CloudGeminiAdapter to Tier 2 (BYOK) and add quota UI
+### Details:
+Modify existing CloudGeminiAdapter to Tier 2 status for Bring-Your-Own-Key users only. Add quota tracking UI that shows daily usage and remaining counts. Implement user feedback when rate limits exceeded. Add graceful fallback to TemplateAdapter when proxy unavailable.
+
+## 10.  [pending]
+### Dependencies: None
+### Description: Add Pro tier receipt validation UI flow
+### Details:
+Create UI flow for Pro tier activation through in-app purchase receipt validation. Add receipt validation calls to backend endpoint. Implement immediate quota upgrade from 3 to 25 requests per day. Add account linking option for multi-device sync.
+
+## 11.  [pending]
+### Dependencies: None
+### Description: Implement comprehensive testing and security validation
+### Details:
+Test complete infrastructure deployment via Terraform. Verify backend containerization and local development setup. Test mobile app device ID generation and persistence. Validate rate limiting enforces correct quotas for free and Pro users. Test receipt validation flow and quota upgrades. Verify no API credentials in mobile app binary through build artifact inspection. Test Firestore security rules and backend authentication.
+
+## 12. Set up GCP Infrastructure with Terraform [pending]
+### Dependencies: None
+### Description: Create GCP infrastructure using Terraform and Cloud Foundation Fabric to establish the backend hosting environment. This includes creating a new GCP project, enabling required APIs, and setting up Firestore database and Cloud Run deployment infrastructure.
+### Details:
+Create /backend directory structure with terraform/ subdirectory. Use Cloud Foundation Fabric modules to: 1) Create new GCP project with unique ID and billing account 2) Enable Vertex AI API, Cloud Run API, Firestore API, and IAM API 3) Configure Firestore database in Native mode for device usage tracking 4) Set up Cloud Run service configuration with proper IAM roles 5) Create Application Default Credentials setup for Vertex AI access 6) Configure VPC and networking if needed 7) Output project ID and service URLs for backend configuration
+### Test Strategy:
+Run 'terraform plan' to validate configuration without applying changes. Execute 'terraform apply' and verify all GCP resources are created correctly. Test Firestore connectivity and Vertex AI API access using gcloud CLI commands.
+
+## 13. Develop Backend Proxy Service with Bun/TypeScript [pending]
+### Dependencies: 46.12
+### Description: Build the core backend service using Bun runtime and TypeScript that proxies requests to Vertex AI Gemini 2.0 Flash while implementing device-based rate limiting and receipt validation functionality.
+### Details:
+Create backend service in /backend directory: 1) Initialize Bun project with TypeScript configuration 2) Implement Express/Hono server framework with middleware for CORS, logging, and error handling 3) Create Vertex AI client using @google-cloud/vertexai SDK with Application Default Credentials 4) Implement device ID-based rate limiting using Firestore collections (/usage/{device_id}) 5) Add receipt validation endpoints for Apple App Store and Google Play Store 6) Create API endpoints: POST /api/generate-summary, POST /api/validate-receipt, GET /health, GET /api/usage/:device_id 7) Add proper error handling, logging, and security headers 8) Create Dockerfile and docker-compose.yml for local development on port 5566
+### Test Strategy:
+Test backend starts locally via 'docker-compose up' and responds to health checks on port 5566. Verify Vertex AI integration with test prompts. Test rate limiting by making multiple requests with same device ID. Validate receipt endpoints with mock receipts.
+
+## 14. Implement Privacy-First Authentication System [pending]
+### Dependencies: 46.13
+### Description: Design and implement a hybrid authentication strategy that supports anonymous free users with device UUIDs while enabling Pro users to validate receipts and optionally link accounts for multi-device sync.
+### Details:
+Implement authentication system: 1) Create device ID generation and secure storage in Flutter app using flutter_secure_storage 2) Design Firestore data model with /usage/{device_id} for tracking free tier usage (3/day limit) and /accounts/{account_id} for Pro users with receipt validation 3) Implement anonymous authentication flow for free users using only device UUID 4) Add receipt validation for Pro tier activation (Apple/Google Play) with immediate quota increase to 25/day 5) Create optional account linking system for Pro users to sync across devices 6) Implement Firestore security rules to enforce rate limits and data access permissions 7) Add quota tracking and graceful 429 rate limit handling in mobile app
+### Test Strategy:
+Test device ID generation persists across app restarts. Verify free users are limited to 3 requests per day. Test Pro activation via receipt validation increases quota to 25/day. Validate Firestore security rules prevent unauthorized access.
+
+## 15. Create ManagedCloudGeminiAdapter as Tier 1 AI Service [pending]
+### Dependencies: 46.14
+### Description: Develop a new ManagedCloudGeminiAdapter that integrates with the backend proxy service, replacing direct Vertex AI API access for managed users while maintaining the existing CloudGeminiAdapter for BYOK users.
+### Details:
+Create ManagedCloudGeminiAdapter in /lib/services/ai/: 1) Implement AIJournalGenerator interface as Tier 1 adapter (highest priority) 2) Replace direct google_generative_ai calls with HTTP requests to backend proxy service 3) Integrate device ID for rate limiting and quota tracking 4) Add quota status checking and display in UI 5) Implement graceful 429 handling with user-friendly messaging 6) Update existing CloudGeminiAdapter to Tier 2 (BYOK users with API keys) 7) Ensure TemplateAdapter remains as Tier 3 fallback 8) Register new adapter in AdapterRegistry with priority 1 9) Update AI service selection logic to prefer managed service when available 10) Add quota tracking UI components and upgrade prompts for Pro features
+### Test Strategy:
+Verify ManagedCloudGeminiAdapter is selected as Tier 1 when registered. Test quota tracking displays correctly in UI. Verify graceful degradation to CloudGeminiAdapter when managed service unavailable. Test rate limiting shows appropriate user messaging when limits exceeded.
+
+## 16. Deploy and Integrate Complete System [pending]
+### Dependencies: 46.15
+### Description: Deploy the backend service to Google Cloud Run, integrate all components, and ensure end-to-end functionality from mobile app through proxy service to Vertex AI with proper monitoring and security.
+### Details:
+Complete system integration and deployment: 1) Deploy backend service to Cloud Run using terraform configuration 2) Configure environment variables and secrets for production deployment 3) Set up Cloud Run service with proper scaling, memory limits, and timeout configurations 4) Update mobile app to use production backend URLs instead of localhost 5) Implement comprehensive logging and monitoring using Cloud Logging 6) Add health checks and uptime monitoring for the proxy service 7) Configure CORS policies for mobile app domains 8) Test complete flow: device registration → quota tracking → AI generation → rate limiting 9) Validate security: no API credentials in mobile binary, proper Firestore rules, secure communication 10) Create deployment documentation and monitoring dashboards
+### Test Strategy:
+Deploy infrastructure via 'terraform apply' and verify all GCP resources created correctly. Test mobile app can successfully communicate with deployed backend service. Verify AI generation works end-to-end through proxy. Test rate limiting enforces 3/day for free users and 25/day for Pro users. Validate monitoring and logging capture all requests and errors.
+

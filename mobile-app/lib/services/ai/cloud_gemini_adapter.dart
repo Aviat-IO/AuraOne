@@ -6,22 +6,24 @@ import '../../utils/logger.dart';
 import '../daily_context_synthesizer.dart';
 import 'ai_journal_generator.dart';
 
-/// Tier 1 adapter using Google Gemini 2.0 Flash cloud API
+/// Tier 2 adapter using Google Gemini 2.0 Flash cloud API (BYOK - Bring Your Own Key)
 ///
-/// Premium cloud-based AI features with superior quality
-/// but requires network connectivity and user consent.
+/// Premium cloud-based AI features for users who provide their own API key.
+/// Offers superior quality but requires network connectivity and user consent.
 ///
 /// Privacy Requirements:
 /// - Explicit user consent before data leaves device
 /// - Clear privacy warnings about cloud usage
-/// - API key from .env file
+/// - User-provided API key from .env file
 /// - Network connectivity required
+///
+/// Note: This is Tier 2 (BYOK) - Tier 1 is the managed service with backend proxy.
 class CloudGeminiAdapter implements AIJournalGenerator {
   static final _logger = AppLogger('CloudGeminiAdapter');
   static const String _consentKey = 'cloud_ai_consent';
 
   static const String _adapterName = 'CloudGemini';
-  static const int _tierLevel = 1;
+  static const int _tierLevel = 2; // Tier 2 for BYOK users
 
   GenerativeModel? _model;
 

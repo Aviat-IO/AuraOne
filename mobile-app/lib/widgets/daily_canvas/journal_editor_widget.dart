@@ -11,9 +11,19 @@ import '../../database/journal_database.dart';
 import '../voice_permission_fallback.dart';
 
 // Provider for journal entry using the journal service
+// Using distinct() to prevent rebuilds when data hasn't changed
 final journalEntryProvider = StreamProvider.family<JournalEntry?, DateTime>((ref, date) {
   final journalService = ref.watch(journalServiceProvider);
-  return journalService.watchEntryForDate(date);
+  return journalService.watchEntryForDate(date).distinct((prev, next) {
+    // Only rebuild if the entry actually changed
+    if (prev == null && next == null) return true;
+    if (prev == null || next == null) return false;
+    return prev.id == next.id &&
+        prev.title == next.title &&
+        prev.content == next.content &&
+        prev.sentiment == next.sentiment &&
+        prev.updatedAt == next.updatedAt;
+  });
 });
 
 // Provider for edit mode

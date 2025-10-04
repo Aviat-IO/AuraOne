@@ -96,6 +96,7 @@ dependencies:
   geocoding: ^4.0.0
   native_exif: ^0.6.2
   markdown_widget: ^2.3.2+8
+  flutter_image_compress: ^2.4.0
   # flutter_gemma: ^0.1.0  # Temporarily commented due to dependency conflict
 
 dependency_overrides:

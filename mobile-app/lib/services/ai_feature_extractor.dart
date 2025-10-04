@@ -29,6 +29,9 @@ class PhotoContext {
   final String? street;                // Street address component
   final String? locality;              // City/locality component
 
+  // File path for accessing the original image
+  final String? filePath;              // Local file path to the photo
+
   PhotoContext({
     required this.photoId,
     required this.timestamp,
@@ -46,6 +49,7 @@ class PhotoContext {
     this.placeType,
     this.street,
     this.locality,
+    this.filePath,
   });
 
   /// Check if photo has GPS coordinates
@@ -281,6 +285,7 @@ class AIFeatureExtractor {
         placeType: photoLocation.placeType,
         street: photoLocation.street,
         locality: photoLocation.locality,
+        filePath: mediaItem.filePath,
       );
 
     } catch (e) {
@@ -296,6 +301,7 @@ class AIFeatureExtractor {
         textContent: [],
         socialContext: SocialContext(peopleCount: 0, isGroupPhoto: false, isSelfie: false),
         confidenceScore: 0.0,
+        filePath: mediaItem.filePath,
       );
     }
   }

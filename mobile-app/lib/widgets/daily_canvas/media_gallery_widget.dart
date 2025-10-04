@@ -12,12 +12,8 @@ import '../../providers/media_thumbnail_provider.dart' show CachedThumbnailWidge
 // Using autoDispose to clean up when not needed
 // Adding keepAlive to prevent unnecessary recomputation
 final mediaItemsProvider = FutureProvider.family.autoDispose<List<MediaItem>, ({DateTime date, bool includeDeleted})>((ref, params) async {
-  // Keep alive for 5 minutes to prevent rebuild jank
+  // Keep alive indefinitely during session - no auto-invalidation to prevent rebuilds
   ref.keepAlive();
-  final timer = Timer(const Duration(minutes: 5), () {
-    ref.invalidateSelf();
-  });
-  ref.onDispose(() => timer.cancel());
   final mediaDb = ref.watch(mediaDatabaseProvider);
 
   // Calculate date range for the selected day

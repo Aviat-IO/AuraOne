@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5566:5566"
+    environment:
+      - NODE_ENV=development
+      - PORT=5566
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+      - GCP_LOCATION=${GCP_LOCATION:-us-central1}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/gcp-key.json
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/credentials:/app/credentials:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5566/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

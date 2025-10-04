@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/backend_config.dart';
 import '../../utils/logger.dart';
+import '../../utils/image_compressor.dart';
 import '../daily_context_synthesizer.dart';
 import 'ai_journal_generator.dart';
 
@@ -127,6 +128,10 @@ class ManagedCloudGeminiAdapter implements AIJournalGenerator {
       final deviceId = await _getDeviceId();
       _logger.info('Generating managed cloud narrative summary');
 
+      // Select and compress top photos for multimodal AI analysis
+      final compressedPhotos = await _preparePhotosForAI(context.photoContexts);
+      _logger.info('Prepared ${compressedPhotos.length} photos for AI analysis');
+
       // Build request body matching backend DailyContext interface
       final requestBody = {
         'context': {
@@ -151,12 +156,7 @@ class ManagedCloudGeminiAdapter implements AIJournalGenerator {
             'total_people_detected': context.socialSummary.totalPeopleDetected,
             'social_contexts': context.socialSummary.socialContexts,
           },
-          'photo_contexts': context.photoContexts.map((photo) {
-            return {
-              'timestamp': photo.timestamp.toIso8601String(),
-              'detected_objects': photo.detectedObjects,
-            };
-          }).toList(),
+          'photo_contexts': compressedPhotos,
         },
       };
 
@@ -250,6 +250,70 @@ class ManagedCloudGeminiAdapter implements AIJournalGenerator {
       'Text rewriting not supported in managed service',
       isRetryable: false,
     );
+  }
+
+  /// Prepare top photos for AI analysis
+  ///
+  /// Selects top 3-5 photos by confidence score, compresses them to <500KB,
+  /// and converts to base64 for API transmission.
+  Future<List<Map<String, dynamic>>> _preparePhotosForAI(
+    List<PhotoContext> photos,
+  ) async {
+    try {
+      // Sort photos by confidence score (descending)
+      final sortedPhotos = List<PhotoContext>.from(photos)
+        ..sort((a, b) => b.confidenceScore.compareTo(a.confidenceScore));
+
+      // Take top 3-5 photos with valid file paths
+      final selectedPhotos = sortedPhotos
+          .where((photo) => photo.filePath != null && photo.filePath!.isNotEmpty)
+          .take(5)
+          .toList();
+
+      if (selectedPhotos.isEmpty) {
+        _logger.warning('No photos with valid file paths available');
+        return [];
+      }
+
+      _logger.info('Compressing ${selectedPhotos.length} photos for AI analysis');
+
+      // Compress and encode each photo
+      final compressedPhotos = <Map<String, dynamic>>[];
+      for (final photo in selectedPhotos) {
+        try {
+          final compressedBytes = await ImageCompressor.compressForAI(photo.filePath!);
+
+          if (compressedBytes == null) {
+            _logger.warning('Failed to compress photo ${photo.photoId}');
+            continue;
+          }
+
+          // Convert to base64
+          final base64Image = ImageCompressor.toBase64(compressedBytes);
+
+          // Build photo context with metadata + image data
+          compressedPhotos.add({
+            'photo_id': photo.photoId,
+            'timestamp': photo.timestamp.toIso8601String(),
+            'confidence_score': photo.confidenceScore,
+            'detected_objects': photo.detectedObjects,
+            'object_confidence': photo.objectConfidence,
+            if (photo.placeName != null) 'place_name': photo.placeName,
+            if (photo.placeType != null) 'place_type': photo.placeType,
+            'image_data': base64Image, // Base64-encoded compressed image
+          });
+        } catch (e) {
+          _logger.warning('Error processing photo ${photo.photoId}: $e');
+          continue;
+        }
+      }
+
+      _logger.info('Successfully prepared ${compressedPhotos.length} photos for AI');
+      return compressedPhotos;
+    } catch (e, stackTrace) {
+      _logger.error('Error preparing photos for AI', error: e, stackTrace: stackTrace);
+      return [];
+    }
   }
 
   /// Get current usage statistics for the device

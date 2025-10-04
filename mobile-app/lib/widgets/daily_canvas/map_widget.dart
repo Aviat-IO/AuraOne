@@ -1,8 +1,10 @@
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import '../../providers/location_clustering_provider.dart';
 import '../../providers/location_database_provider.dart';
 import '../../database/location_database.dart' as loc_db;
@@ -29,6 +31,20 @@ class MapWidget extends HookConsumerWidget {
 
     // Use the date parameter if provided, otherwise use selectedDate
     final targetDate = date ?? selectedDate ?? DateTime.now();
+
+    // Create MapController to preserve user's view state
+    final mapController = useMemoized(() => MapController());
+    final previousDate = useRef<DateTime?>(null);
+
+    // Track if we should reset the map view (only on date change)
+    final shouldResetView = previousDate.value == null ||
+        !_isSameDay(previousDate.value!, targetDate);
+
+    // Update previous date
+    useEffect(() {
+      previousDate.value = targetDate;
+      return null;
+    }, [targetDate]);
 
     // Get clusters for the target date
     final clustersAsync = ref.watch(clusteredLocationsProvider(targetDate));
@@ -106,14 +122,23 @@ class MapWidget extends HookConsumerWidget {
           data: (clusters) {
             // If no clusters, show a map with helpful message
             if (clusters.isEmpty) {
-              return _buildEmptyMap(context, isDark);
+              return _buildEmptyMap(context, isDark, mapController);
             }
 
-            // For very few clusters, show them with a wider view
+            // Calculate center and zoom for this date
             final center = _calculateMapCenter(clusters);
             final zoom = _calculateOptimalZoom(clusters);
 
+            // Only reset view when date changes or first load
+            if (shouldResetView) {
+              // Use post-frame callback to move map without rebuilding
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                mapController.move(center, zoom);
+              });
+            }
+
             return FlutterMap(
+              mapController: mapController,
               options: MapOptions(
                 initialCenter: center,
                 initialZoom: zoom,
@@ -188,10 +213,11 @@ class MapWidget extends HookConsumerWidget {
     );
   }
 
-  Widget _buildEmptyMap(BuildContext context, bool isDark) {
+  Widget _buildEmptyMap(BuildContext context, bool isDark, MapController mapController) {
     final theme = Theme.of(context);
 
     return FlutterMap(
+      mapController: mapController,
       options: const MapOptions(
         initialCenter: LatLng(40.7128, -74.0060), // New York City as default
         initialZoom: 10.0,
@@ -249,54 +275,127 @@ class MapWidget extends HookConsumerWidget {
     return clusters.fold(0, (sum, cluster) => sum + cluster.points.length);
   }
 
+  /// Calculate bounds from all location points to ensure everything is visible
+  LatLngBounds? _calculateBounds(List<LocationCluster> clusters) {
+    if (clusters.isEmpty) return null;
+
+    double? minLat;
+    double? maxLat;
+    double? minLng;
+    double? maxLng;
+
+    for (final cluster in clusters) {
+      for (final point in cluster.points) {
+        if (minLat == null || point.latitude < minLat) minLat = point.latitude;
+        if (maxLat == null || point.latitude > maxLat) maxLat = point.latitude;
+        if (minLng == null || point.longitude < minLng) minLng = point.longitude;
+        if (maxLng == null || point.longitude > maxLng) maxLng = point.longitude;
+      }
+    }
+
+    if (minLat == null || maxLat == null || minLng == null || maxLng == null) {
+      return null;
+    }
+
+    return LatLngBounds(
+      LatLng(minLat, minLng),
+      LatLng(maxLat, maxLng),
+    );
+  }
+
   LatLng _calculateMapCenter(List<LocationCluster> clusters) {
     if (clusters.isEmpty) {
       return const LatLng(40.7128, -74.0060); // Default to NYC
     }
 
-    double totalLat = 0;
-    double totalLng = 0;
-    int totalPoints = 0;
+    // Calculate center from ALL location points (not cluster centers)
+    // to get the true geographic center of the path
+    double? minLat;
+    double? maxLat;
+    double? minLng;
+    double? maxLng;
 
     for (final cluster in clusters) {
-      totalLat += cluster.centerLatitude;
-      totalLng += cluster.centerLongitude;
-      totalPoints++;
+      for (final point in cluster.points) {
+        if (minLat == null || point.latitude < minLat) minLat = point.latitude;
+        if (maxLat == null || point.latitude > maxLat) maxLat = point.latitude;
+        if (minLng == null || point.longitude < minLng) minLng = point.longitude;
+        if (maxLng == null || point.longitude > maxLng) maxLng = point.longitude;
+      }
     }
 
-    return LatLng(totalLat / totalPoints, totalLng / totalPoints);
+    if (minLat == null || maxLat == null || minLng == null || maxLng == null) {
+      return const LatLng(40.7128, -74.0060); // Fallback
+    }
+
+    // Center is the midpoint of the bounding box
+    final centerLat = (minLat + maxLat) / 2;
+    final centerLng = (minLng + maxLng) / 2;
+
+    if (kDebugMode) {
+      print('Map center - Lat: $centerLat, Lng: $centerLng (from bounds: $minLat-$maxLat, $minLng-$maxLng)');
+    }
+
+    return LatLng(centerLat, centerLng);
   }
 
   double _calculateOptimalZoom(List<LocationCluster> clusters) {
     if (clusters.isEmpty) return 10.0;
-    if (clusters.length == 1) return 15.0;  // Zoom in more for single location
-    if (clusters.length == 2) return 14.0;  // Zoom in more for two locations
+    if (clusters.length == 1) return 13.0;  // Single location gets comfortable zoom
 
-    // Calculate bounding box
-    double minLat = clusters.first.centerLatitude;
-    double maxLat = clusters.first.centerLatitude;
-    double minLng = clusters.first.centerLongitude;
-    double maxLng = clusters.first.centerLongitude;
+    // Calculate bounding box from ALL location points (not just cluster centers)
+    // to ensure the entire path is visible
+    double? minLat;
+    double? maxLat;
+    double? minLng;
+    double? maxLng;
 
     for (final cluster in clusters) {
-      minLat = minLat < cluster.centerLatitude ? minLat : cluster.centerLatitude;
-      maxLat = maxLat > cluster.centerLatitude ? maxLat : cluster.centerLatitude;
-      minLng = minLng < cluster.centerLongitude ? minLng : cluster.centerLongitude;
-      maxLng = maxLng > cluster.centerLongitude ? maxLng : cluster.centerLongitude;
+      for (final point in cluster.points) {
+        if (minLat == null || point.latitude < minLat) minLat = point.latitude;
+        if (maxLat == null || point.latitude > maxLat) maxLat = point.latitude;
+        if (minLng == null || point.longitude < minLng) minLng = point.longitude;
+        if (maxLng == null || point.longitude > maxLng) maxLng = point.longitude;
+      }
     }
 
-    // Calculate appropriate zoom based on span - tighter zoom for less padding
-    final latSpan = maxLat - minLat;
-    final lngSpan = maxLng - minLng;
+    // Fallback if no points found
+    if (minLat == null || maxLat == null || minLng == null || maxLng == null) {
+      return 13.0;
+    }
+
+    // Calculate raw span
+    final rawLatSpan = maxLat - minLat;
+    final rawLngSpan = maxLng - minLng;
+
+    if (kDebugMode) {
+      print('Map bounds - Lat: $minLat to $maxLat (span: $rawLatSpan), Lng: $minLng to $maxLng (span: $rawLngSpan)');
+    }
+
+    // Add VERY generous padding (100% on each side = 300% total span)
+    // This ensures all points are well within the visible area
+    final latSpan = rawLatSpan * 3.0;
+    final lngSpan = rawLngSpan * 3.0;
     final maxSpan = latSpan > lngSpan ? latSpan : lngSpan;
 
-    // Tighter zoom levels with less padding around edges
-    if (maxSpan > 10) return 4.0;   // Very large area
-    if (maxSpan > 5) return 6.0;    // Large area
-    if (maxSpan > 1) return 9.0;    // Medium area
-    if (maxSpan > 0.1) return 11.0; // Small area
-    if (maxSpan > 0.01) return 13.0; // Very small area
-    return 15.0;  // Minimal area - zoom in close
+    // Calculate zoom level based on padded span
+    // At zoom level Z, the world spans approximately 360 / (2^Z) degrees
+    // So: maxSpan = 360 / (2^Z)
+    // Therefore: Z = log2(360 / maxSpan)
+
+    if (maxSpan <= 0) return 13.0; // Fallback for edge case
+
+    // Calculate ideal zoom using logarithm
+    final idealZoom = math.log(360 / maxSpan) / math.ln2;
+
+    // Apply additional zoom-out for extra comfort
+    final zoom = (idealZoom - 1.5).clamp(1.0, 15.0);
+
+    if (kDebugMode) {
+      print('Zoom calculation - maxSpan: $maxSpan, idealZoom: $idealZoom, finalZoom: $zoom');
+    }
+
+    return zoom;
   }
 
   List<Marker> _buildMarkers(List<LocationCluster> clusters, ThemeData theme) {
@@ -366,5 +465,11 @@ class MapWidget extends HookConsumerWidget {
             (loc.timestamp.isAtSameMomentAs(dayStart) || loc.timestamp.isAfter(dayStart)) &&
             loc.timestamp.isBefore(dayEnd))
         .toList();
+  }
+
+  bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
   }
 }
