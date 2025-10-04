@@ -5,6 +5,7 @@ import '../../config/backend_config.dart';
 import '../../utils/logger.dart';
 import '../../utils/image_compressor.dart';
 import '../daily_context_synthesizer.dart';
+import '../ai_feature_extractor.dart';
 import 'ai_journal_generator.dart';
 
 /// Tier 1 adapter using managed Cloud Gemini endpoint via backend proxy
