@@ -30,6 +30,7 @@ import 'package:aura_one/services/calendar_initialization_service.dart';
 import 'package:aura_one/services/ai/adapter_registry.dart';
 import 'package:aura_one/services/ai/template_adapter.dart';
 import 'package:aura_one/services/ai/cloud_gemini_adapter.dart';
+import 'package:aura_one/services/ai/managed_cloud_gemini_adapter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Provider to store restoration status
@@ -98,13 +99,17 @@ void main() {
     await BrightnessNotifier.loadInitialBrightness();
 
     // Register AI adapters in privacy-first priority order
-    // Cloud AI (Tier 1) provides best quality but requires user consent and API key
-    // Template (Tier 3) is privacy-first fallback - always available, no cloud dependency
+    // Tier 1: Managed Cloud - Backend proxy with rate limiting (no API key needed)
+    // Tier 2: BYOK Cloud - Direct Gemini API for users with their own API key
+    // Tier 3: Template - Privacy-first fallback, always available
     appLogger.info('Registering AI adapters...');
     final adapterRegistry = AdapterRegistry();
-    adapterRegistry.registerAdapter(CloudGeminiAdapter(), 1); // Tier 1: Best quality (cloud, requires consent + API key)
+    adapterRegistry.registerAdapter(
+      ManagedCloudGeminiAdapter(),
+      1,
+    ); // Tier 1: Managed service (backend proxy, rate-limited)
+    adapterRegistry.registerAdapter(CloudGeminiAdapter(), 2); // Tier 2: BYOK (user-provided API key)
     adapterRegistry.registerAdapter(TemplateAdapter(), 3); // Tier 3: Privacy-first fallback (always available)
-    // Note: MLKit GenAI removed - Summarization API expects article text, not structured data
     appLogger.info('AI adapters registered successfully');
 
     // Initialize error handling after Sentry
