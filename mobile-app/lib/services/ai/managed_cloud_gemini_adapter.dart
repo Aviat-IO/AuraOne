@@ -149,6 +149,9 @@ class ManagedCloudGeminiAdapter implements AIJournalGenerator {
           'location_summary': {
             'significant_places': context.locationSummary.significantPlaces,
             'total_distance_meters': context.locationSummary.totalDistance,
+            'movement_modes': context.locationSummary.movementModes,
+            'time_moving_seconds': context.locationSummary.timeMoving.inSeconds,
+            'time_stationary_seconds': context.locationSummary.timeStationary.inSeconds,
           },
           'activity_summary': {
             'primary_activities': context.activitySummary.primaryActivities,

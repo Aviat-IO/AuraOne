@@ -137,15 +137,9 @@ class BackgroundLocationService {
       }
 
       if (shouldSave) {
-        // Determine activity type based on motion state
-        String activityType = 'unknown';
-        if (location.activity.type == 'still' || location.activity.type == 'stationary') {
-          activityType = 'stationary';
-        } else if (location.activity.type == 'on_foot' || location.activity.type == 'walking' || location.activity.type == 'running') {
-          activityType = 'moving';
-        } else if (location.activity.type == 'in_vehicle' || location.activity.type == 'on_bicycle') {
-          activityType = 'moving';
-        }
+        // Use the activity type directly from flutter_background_geolocation
+        // Plugin provides: still, stationary, on_foot, walking, running, in_vehicle, on_bicycle
+        String activityType = location.activity.type;
 
         // Save the new position to the database
         final locationData = LocationPointsCompanion(

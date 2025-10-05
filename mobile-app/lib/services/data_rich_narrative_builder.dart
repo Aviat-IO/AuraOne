@@ -141,7 +141,7 @@ class DataRichNarrativeBuilder {
 
       // Add transition if not first event
       if (previousEvent != null) {
-        final transition = _generateTransition(previousEvent, event, emotionalProfile);
+        final transition = _generateTransition(previousEvent, event, context, emotionalProfile);
         if (transition.isNotEmpty) {
           sentences.add(transition);
         }
@@ -163,6 +163,7 @@ class DataRichNarrativeBuilder {
   String _generateTransition(
     NarrativeEvent from,
     NarrativeEvent to,
+    DailyContext context,
     EmotionalProfile emotionalProfile,
   ) {
     final timeDiff = to.timestamp.difference(from.timestamp);
@@ -189,7 +190,10 @@ class DataRichNarrativeBuilder {
 
     // Add movement description if significant distance
     if (distance != null && distance > 100) {
-      final movement = _phraseGen.generateMovementPhrase(distance);
+      final movement = _phraseGen.generateMovementPhrase(
+        distance,
+        movementModes: context.locationSummary.movementModes,
+      );
       return '$transitionPhrase, I $movement';
     }
 

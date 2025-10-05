@@ -22,6 +22,9 @@ export interface DailyContext {
   location_summary: {
     significant_places: string[];
     total_distance_meters: number;
+    movement_modes?: string[];
+    time_moving_seconds?: number;
+    time_stationary_seconds?: number;
   };
   activity_summary: {
     primary_activities: string[];
@@ -114,6 +117,21 @@ function buildNarrativePrompt(context: DailyContext): string {
     lines.push('Places visited:');
     for (const place of context.location_summary.significant_places) {
       lines.push(`- ${place}`);
+    }
+    lines.push('');
+  }
+
+  // Movement and transportation modes
+  if (context.location_summary.movement_modes && context.location_summary.movement_modes.length > 0) {
+    lines.push('Transportation:');
+    lines.push(`- Activity types detected: ${context.location_summary.movement_modes.join(', ')}`);
+    lines.push('- Types: in_vehicle=driving, walking/on_foot=walking, running=running, on_bicycle=cycling, still/stationary=not moving');
+
+    if (context.location_summary.time_moving_seconds) {
+      const movingMinutes = Math.round(context.location_summary.time_moving_seconds / 60);
+      if (movingMinutes > 0) {
+        lines.push(`- Moving for ${movingMinutes} minutes`);
+      }
     }
     lines.push('');
   }

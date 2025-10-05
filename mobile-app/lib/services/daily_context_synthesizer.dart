@@ -758,15 +758,17 @@ class DailyContextSynthesizer {
       }
     }
 
-    // Analyze movement data
-    for (final movement in movementData) {
-      final movementState = movement.state;
-      movementModes.add(movementState);
+    // Analyze movement data from location points (uses flutter_background_geolocation activity types)
+    for (final location in locationPoints) {
+      if (location.activityType != null) {
+        movementModes.add(location.activityType!);
 
-      if (movementState == 'still') {
-        timeStationary += Duration(minutes: 1); // Approximate
-      } else {
-        timeMoving += Duration(minutes: 1);
+        // Determine if moving or stationary based on activity type
+        if (location.activityType == 'still' || location.activityType == 'stationary') {
+          timeStationary += Duration(minutes: 1); // Approximate
+        } else {
+          timeMoving += Duration(minutes: 1);
+        }
       }
     }
 

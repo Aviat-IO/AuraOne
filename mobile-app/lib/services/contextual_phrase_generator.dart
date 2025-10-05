@@ -83,19 +83,55 @@ class ContextualPhraseGenerator {
   }
 
   /// Generate movement phrase based on distance traveled
-  String generateMovementPhrase(double meters) {
+  String generateMovementPhrase(double meters, {List<String>? movementModes}) {
     final km = meters / 1000;
+
+    // Determine primary transportation mode from flutter_background_geolocation activity types
+    // Activity types: still, stationary, on_foot, walking, running, in_vehicle, on_bicycle
+    String? mode;
+    if (movementModes != null && movementModes.isNotEmpty) {
+      // Prioritize: in_vehicle > running > walking/on_foot > on_bicycle > stationary/still
+      if (movementModes.contains('in_vehicle')) {
+        mode = 'driving';
+      } else if (movementModes.contains('running')) {
+        mode = 'running';
+      } else if (movementModes.contains('walking') || movementModes.contains('on_foot')) {
+        mode = 'walking';
+      } else if (movementModes.contains('on_bicycle')) {
+        mode = 'cycling';
+      }
+    }
 
     if (km < 0.1) {
       return 'stayed nearby';
     } else if (km < 0.5) {
-      return 'walked a short distance';
+      return mode == 'running' ? 'ran a short distance' : 'walked a short distance';
     } else if (km < 2) {
-      return 'traveled ${km.toStringAsFixed(1)}km';
+      if (mode == 'driving') {
+        return 'drove ${km.toStringAsFixed(1)}km';
+      } else if (mode == 'running') {
+        return 'ran ${km.toStringAsFixed(1)}km';
+      } else if (mode == 'cycling') {
+        return 'cycled ${km.toStringAsFixed(1)}km';
+      } else {
+        return 'walked ${km.toStringAsFixed(1)}km';
+      }
     } else if (km < 10) {
-      return 'journeyed ${km.toStringAsFixed(1)}km';
+      if (mode == 'driving') {
+        return 'drove ${km.toStringAsFixed(1)}km';
+      } else if (mode == 'running') {
+        return 'ran ${km.toStringAsFixed(0)}km';
+      } else if (mode == 'cycling') {
+        return 'cycled ${km.toStringAsFixed(1)}km';
+      } else {
+        return 'journeyed ${km.toStringAsFixed(1)}km';
+      }
     } else {
-      return 'covered ${km.toStringAsFixed(0)}km';
+      if (mode == 'driving') {
+        return 'drove ${km.toStringAsFixed(0)}km';
+      } else {
+        return 'covered ${km.toStringAsFixed(0)}km';
+      }
     }
   }
 
