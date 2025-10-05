@@ -120,23 +120,38 @@ class RuntimeSelector {
         }
       }
 
-      // Special logic: If cloud is enabled, prefer Cloud Gemini (Tier 4) for narrative generation
+      // Check for ManagedCloudGemini (Tier 1) - doesn't require cloudEnabled preference
+      // This is the managed service with built-in rate limiting and no API key needed
+      _logger.info('Checking for ManagedCloudGemini adapter (Tier 1)');
+      final managedCloud = _registry.getAdapterByName('ManagedCloudGemini');
+      if (managedCloud != null) {
+        final isAvailable = await managedCloud.checkAvailability();
+        if (isAvailable) {
+          _logger.info('Using ManagedCloudGemini adapter (managed service, no API key needed)');
+          _selectedAdapter = managedCloud;
+          return _selectedAdapter;
+        } else {
+          _logger.info('ManagedCloudGemini not available (backend unreachable or offline), falling back');
+        }
+      }
+
+      // Special logic: If cloud is enabled, prefer Cloud Gemini (Tier 2) for BYOK
       if (preferences.cloudEnabled) {
-        _logger.info('Cloud enabled - checking for Cloud Gemini adapter');
+        _logger.info('Cloud enabled - checking for CloudGemini adapter (BYOK)');
         final cloudGemini = _registry.getAdapterByName('CloudGemini');
         if (cloudGemini != null) {
           final isAvailable = await cloudGemini.checkAvailability();
           if (isAvailable) {
-            _logger.info('Using Cloud Gemini adapter (user consented to cloud processing)');
+            _logger.info('Using CloudGemini adapter (BYOK - user consented to cloud processing)');
             _selectedAdapter = cloudGemini;
             return _selectedAdapter;
           } else {
-            _logger.warning('Cloud Gemini not available (likely missing API key or network), falling back');
+            _logger.warning('CloudGemini not available (likely missing API key or network), falling back');
           }
         }
       }
 
-      // Find best available on-device adapter (Tier 1 or Tier 3)
+      // Find best available on-device adapter (Template - Tier 3)
       _logger.info('Selecting best on-device adapter');
       final adapters = _registry.getAllAdapters();
       AIJournalGenerator? bestOnDevice;
@@ -144,11 +159,15 @@ class RuntimeSelector {
 
       for (final adapter in adapters) {
         final caps = adapter.getCapabilities();
-        // Skip cloud adapters when cloudEnabled is false
-        if (caps.requiresNetwork && !preferences.cloudEnabled) {
+        // Skip ManagedCloudGemini (already tried above)
+        if (caps.adapterName == 'ManagedCloudGemini') {
           continue;
         }
-        // Skip cloud adapters in general for on-device preference
+        // Skip CloudGemini (BYOK) unless cloudEnabled
+        if (caps.adapterName == 'CloudGemini' && !preferences.cloudEnabled) {
+          continue;
+        }
+        // Skip other network-requiring adapters
         if (caps.requiresNetwork) {
           continue;
         }
