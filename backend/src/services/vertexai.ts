@@ -72,13 +72,18 @@ export async function generateNarrativeSummary(context: DailyContext): Promise<s
 function buildNarrativePrompt(context: DailyContext): string {
   const lines: string[] = [];
 
-  lines.push('You are writing a factual personal journal entry in first person.');
-  lines.push('Write a grounded narrative based ONLY on the actual data and images provided.');
-  lines.push('Do NOT embellish, invent details, or add information not present in the context.');
-  lines.push('Stick to the facts: describe what you actually did, where you went, and what you saw.');
-  lines.push('Do NOT include the date in your output - just write the narrative.');
+  lines.push('Write a brief, natural journal entry in first person describing this day.');
+  lines.push('Write like a real person would - casual, conversational, and human.');
+  lines.push('Use ONLY the facts from the data and images provided below.');
   lines.push('');
-  lines.push('Daily Context:');
+  lines.push('IMPORTANT RULES:');
+  lines.push('- Write in natural paragraphs, NOT bullet points or lists');
+  lines.push('- NEVER include coordinates, latitude/longitude, or technical data');
+  lines.push('- Use place names naturally (e.g., "went to the park" not "visited 37.7749° N")');
+  lines.push('- Write like you\'re texting a friend - brief but personal');
+  lines.push('- Do NOT include the date in your output');
+  lines.push('');
+  lines.push('Data about today:');
   lines.push('');
 
   // Timeline events
@@ -147,8 +152,11 @@ function buildNarrativePrompt(context: DailyContext): string {
     lines.push('');
   }
 
-  lines.push('Write a factual, first-person narrative describing what actually happened based on this data.');
-  lines.push('Only include details that are directly supported by the timeline, locations, activities, and images.');
+  lines.push('Now write your journal entry:');
+  lines.push('- Use natural paragraphs (2-4 sentences each)');
+  lines.push('- Be conversational and human');
+  lines.push('- NEVER use coordinates or technical data');
+  lines.push('- Only mention what actually happened based on the data above');
 
   return lines.join('\n');
 }
