@@ -35,18 +35,11 @@ final mediaItemsProvider = FutureProvider.family.autoDispose<List<MediaItem>, ({
     }
 
     // Convert database media items to UI MediaItem objects
-    // Process items in parallel for better performance
-    final List<MediaItem> result = [];
-
-    // Process items more efficiently and check file existence
-    // Use Future.wait to check all files in parallel
-    final fileChecks = await Future.wait(
-      mediaItems.map((item) async {
-        if (item.filePath == null) return null;
-
-        final file = File(item.filePath!);
-        // Check if file exists
-        if (await file.exists()) {
+    // Skip file existence checks - assume files exist if in database
+    // This dramatically improves loading performance
+    final List<MediaItem> result = mediaItems
+        .where((item) => item.filePath != null)
+        .map((item) {
           // Determine media type based on MIME type
           MediaType type = MediaType.photo;
           if (item.mimeType.startsWith('video/')) {
@@ -65,17 +58,8 @@ final mediaItemsProvider = FutureProvider.family.autoDispose<List<MediaItem>, ({
             duration: item.duration != null ? Duration(seconds: item.duration!) : null,
             isDeleted: item.isDeleted,
           );
-        }
-        return null; // File doesn't exist, skip it
-      }),
-    );
-
-    // Add only existing files to result
-    for (final item in fileChecks) {
-      if (item != null) {
-        result.add(item);
-      }
-    }
+        })
+        .toList();
 
     // Sort by timestamp, newest first
     result.sort((a, b) => b.timestamp.compareTo(a.timestamp));
@@ -873,24 +857,22 @@ class _MediaSelectionViewerState extends State<_MediaSelectionViewer> {
                             ),
                           ),
                         )
-                      : FutureBuilder<bool>(
-                          future: File(item.url).exists(),
-                          builder: (context, snapshot) {
-                            // If file doesn't exist, skip showing it
-                            if (snapshot.hasData && !snapshot.data!) {
-                              return const SizedBox.shrink();
-                            }
-
-                            // Show opacity based on deletion status
-                            return Opacity(
-                              opacity: item.isDeleted ? 0.5 : 1.0,
-                              child: Image.file(
-                                File(item.url),
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                      : Opacity(
+                          opacity: item.isDeleted ? 0.5 : 1.0,
+                          child: Image.file(
+                            File(item.url),
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.broken_image, size: 48, color: Colors.white.withValues(alpha: 0.5)),
+                                  SizedBox(height: 8),
+                                  Text('File not found', style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+                                ],
                               ),
-                            );
-                          },
+                            ),
+                          ),
                         ),
                 ),
               );
