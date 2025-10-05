@@ -48,7 +48,7 @@ export async function generateNarrativeSummary(context: DailyContext): Promise<s
       temperature: 0.7,
       topK: 40,
       topP: 0.95,
-      maxOutputTokens: 1024,
+      maxOutputTokens: 8192, // Removed length limit - allow longer, richer narratives
     },
   });
 
@@ -73,9 +73,11 @@ function buildNarrativePrompt(context: DailyContext): string {
   const lines: string[] = [];
 
   lines.push('You are writing a personal journal entry in first person.');
-  lines.push('Generate a natural, conversational 150-200 word narrative that captures the essence of this day.');
+  lines.push('Generate a natural, conversational narrative that captures the essence of this day.');
+  lines.push('Write as much as needed to tell the full story - be detailed and reflective.');
+  lines.push('Do NOT include the date in your output - just write the narrative.');
   lines.push('');
-  lines.push(`Daily Context for ${context.date}:`);
+  lines.push('Daily Context:');
   lines.push('');
 
   // Timeline events
