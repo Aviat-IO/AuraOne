@@ -45,10 +45,10 @@ export async function generateNarrativeSummary(context: DailyContext): Promise<s
   const generativeModel = vertexAI.getGenerativeModel({
     model: model,
     generationConfig: {
-      temperature: 0.7,
+      temperature: 0.3, // Lower temperature for factual, grounded narratives
       topK: 40,
       topP: 0.95,
-      maxOutputTokens: 8192, // Removed length limit - allow longer, richer narratives
+      maxOutputTokens: 8192,
     },
   });
 
@@ -72,9 +72,10 @@ export async function generateNarrativeSummary(context: DailyContext): Promise<s
 function buildNarrativePrompt(context: DailyContext): string {
   const lines: string[] = [];
 
-  lines.push('You are writing a personal journal entry in first person.');
-  lines.push('Generate a natural, conversational narrative that captures the essence of this day.');
-  lines.push('Write as much as needed to tell the full story - be detailed and reflective.');
+  lines.push('You are writing a factual personal journal entry in first person.');
+  lines.push('Write a grounded narrative based ONLY on the actual data and images provided.');
+  lines.push('Do NOT embellish, invent details, or add information not present in the context.');
+  lines.push('Stick to the facts: describe what you actually did, where you went, and what you saw.');
   lines.push('Do NOT include the date in your output - just write the narrative.');
   lines.push('');
   lines.push('Daily Context:');
@@ -146,7 +147,8 @@ function buildNarrativePrompt(context: DailyContext): string {
     lines.push('');
   }
 
-  lines.push('Write a reflective, engaging narrative in first person that weaves these elements together.');
+  lines.push('Write a factual, first-person narrative describing what actually happened based on this data.');
+  lines.push('Only include details that are directly supported by the timeline, locations, activities, and images.');
 
   return lines.join('\n');
 }
