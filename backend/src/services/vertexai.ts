@@ -36,6 +36,7 @@ export interface DailyContext {
   photo_contexts: Array<{
     timestamp: string;
     detected_objects: string[];
+    image_data?: string; // Base64-encoded image
   }>;
 }
 
@@ -55,8 +56,23 @@ export async function generateNarrativeSummary(context: DailyContext): Promise<s
     },
   });
 
+  // Build multimodal content parts (text + images)
+  const parts: any[] = [{ text: prompt }];
+
+  // Add images if present
+  for (const photo of context.photo_contexts) {
+    if (photo.image_data) {
+      parts.push({
+        inlineData: {
+          mimeType: 'image/jpeg',
+          data: photo.image_data,
+        },
+      });
+    }
+  }
+
   const result = await generativeModel.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    contents: [{ role: 'user', parts }],
   });
 
   const response = result.response;
@@ -154,18 +170,12 @@ function buildNarrativePrompt(context: DailyContext): string {
   }
 
   // Photo contexts
+  const hasImages = context.photo_contexts.some(p => p.image_data);
   if (context.photo_contexts.length > 0) {
     lines.push('Photos:');
-    lines.push(`- ${context.photo_contexts.length} photos taken`);
-    const allObjects = new Set<string>();
-    for (const photo of context.photo_contexts) {
-      for (const obj of photo.detected_objects) {
-        allObjects.add(obj);
-      }
-    }
-    const objectsList = Array.from(allObjects).slice(0, 5);
-    if (objectsList.length > 0) {
-      lines.push(`- Common subjects: ${objectsList.join(', ')}`);
+    lines.push(`- ${context.photo_contexts.length} photos taken today`);
+    if (hasImages) {
+      lines.push('- The actual photos are attached below for you to analyze');
     }
     lines.push('');
   }
@@ -174,7 +184,12 @@ function buildNarrativePrompt(context: DailyContext): string {
   lines.push('- Use natural paragraphs (2-4 sentences each)');
   lines.push('- Be conversational and human');
   lines.push('- NEVER use coordinates or technical data');
-  lines.push('- Only mention what actually happened based on the data above');
+  if (hasImages) {
+    lines.push('- Look at the actual photos provided and describe what you SEE in them');
+    lines.push('- Do NOT make assumptions - only describe what is clearly visible in the photos');
+    lines.push('- If you cannot clearly see something in a photo, do not mention it');
+  }
+  lines.push('- Only mention what actually happened based on the data and images provided');
 
   return lines.join('\n');
 }
