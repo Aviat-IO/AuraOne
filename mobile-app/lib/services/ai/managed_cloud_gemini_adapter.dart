@@ -171,7 +171,7 @@ class ManagedCloudGeminiAdapter implements AIJournalGenerator {
         },
         body: jsonEncode(requestBody),
       ).timeout(
-        const Duration(seconds: 30),
+        const Duration(seconds: 60),
         onTimeout: () => http.Response('Timeout', 408),
       );
 
