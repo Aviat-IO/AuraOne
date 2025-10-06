@@ -3,8 +3,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:intl/intl.dart';
 import '../widgets/daily_canvas/timeline_widget.dart';
+import '../widgets/daily_canvas/media_gallery_widget.dart';
 import '../services/journal_service.dart';
-import '../providers/media_thumbnail_provider.dart' show CachedThumbnailWidget;
 
 /// Event Detail Screen with journal-like editing capabilities
 class EventDetailScreen extends HookConsumerWidget {
@@ -399,91 +399,73 @@ class EventDetailScreen extends HookConsumerWidget {
     ThemeData theme,
     ColorScheme colorScheme,
   ) {
-    // Get the same photos that would be shown in the timeline
-    final photosAsync = ref.watch(timelinePhotosProvider((
-      date: DateTime(event.time.year, event.time.month, event.time.day),
-      eventTime: event.time
-    )));
+    // Use MediaGalleryWidget with enableSelection based on editing state
+    final isEditing = useState(false);
 
-    return photosAsync.when(
-      data: (photos) {
-        if (photos.isEmpty) return const SizedBox.shrink();
+    // Get event date
+    final eventDate = DateTime(event.time.year, event.time.month, event.time.day);
 
-        return Column(
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.photo_library,
-                          color: colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Photo Memories',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colorScheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${photos.length} photo${photos.length != 1 ? 's' : ''}',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
+                    Icon(
+                      Icons.photo_library,
+                      color: colorScheme.primary,
                     ),
-                    const SizedBox(height: 12),
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                        childAspectRatio: 1,
+                    const SizedBox(width: 8),
+                    Text(
+                      'Photo Memories',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                      itemCount: photos.length,
-                      itemBuilder: (context, index) {
-                        final photo = photos[index];
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: CachedThumbnailWidget(
-                            filePath: photo.filePath ?? '',
-                            width: 100,
-                            height: 100,
-                            fit: BoxFit.cover,
-                          ),
-                        );
+                    ),
+                    const Spacer(),
+                    // Edit/Done button
+                    TextButton.icon(
+                      onPressed: () {
+                        isEditing.value = !isEditing.value;
                       },
+                      icon: Icon(
+                        isEditing.value ? Icons.check : Icons.edit,
+                        size: 18,
+                      ),
+                      label: Text(isEditing.value ? 'Done' : 'Edit'),
                     ),
                   ],
                 ),
-              ),
+                if (isEditing.value)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 8),
+                    child: Text(
+                      'Tap photos to include or exclude them from this event',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.6),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                // Use MediaGalleryWidget with selection enabled when editing
+                SizedBox(
+                  height: 400,
+                  child: MediaGalleryWidget(
+                    date: eventDate,
+                    enableSelection: isEditing.value,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-          ],
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 

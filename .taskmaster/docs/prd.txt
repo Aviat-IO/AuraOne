@@ -51,6 +51,15 @@ Each day's entry is conceptualized as a "Daily Canvas," a rich, multimedia docum
 * **Core Components of the Canvas:**
   * **Text Summary:** An AI-generated narrative that synthesizes the day's activities into a coherent, prose-style draft. This serves as the primary suggested entry, which the user can then edit, expand, or replace.
   * **Image Gallery:** A curated collection of photos and videos captured by the user on that day, automatically sourced from the device's local media library.
+    * **Photo Selection & Curation:** Users can curate which photos appear in each event or daily canvas through an intuitive selection interface:
+      * **Edit Mode:** Tap "Edit" on the Photo Memories section to enter selection mode
+      * **Visual Selection:** All photos taken on that day are displayed in a grid with clear include/exclude indicators
+      * **Tap to Toggle:** Simply tap any photo to include or exclude it from the event
+      * **Fullscreen Preview:** Tap photos in edit mode to view fullscreen with swipe navigation between photos
+      * **Selection Indicators:** Green checkmarks for included photos, red X for excluded photos
+      * **Dual View Modes:** Grid view for quick selection, carousel view for detailed review
+      * **Real-time Updates:** Changes are immediately reflected in the Daily Canvas and event details
+    * This mirrors the Daily Canvas > Media tab workflow, ensuring consistent photo management across the app
   * **Location Map:** An interactive map visualization that displays the user's movements, routes, and significant locations visited throughout the day. This provides a geographic context to the day's events, similar to the map views offered by Day One.17
   * **Data Timeline:** A chronological, itemized list of discrete, automatically captured events. This can include calendar appointments, fitness activities, music listened to, and other integrated data points, providing a factual backbone to the narrative summary.
     * **Location Display:** Rather than showing individual location points, the timeline displays location clusters representing meaningful stays. Each cluster entry shows:
@@ -86,6 +95,12 @@ While automation is the primary focus, the user always retains ultimate control 
 
 * **Fully Editable Entries:** The AI-generated summary is always presented as a suggestion. The user has complete freedom to edit, add to, delete, or entirely replace the generated text before saving the entry.
 * **Media Curation:** Users can manually add or remove photos, videos, audio recordings, and other media from the Daily Canvas, ensuring the visual record of their day is accurate and meaningful.
+* **Event Details Editing:** Timeline events can be tapped to view detailed information and perform comprehensive editing:
+  * **Title & Description:** Edit event titles and add detailed descriptions with full text editing capabilities
+  * **Photo Management:** Access the same photo selection interface used in Daily Canvas Media tab to include/exclude photos from specific events
+  * **Visual Consistency:** Edit mode provides the same grid/carousel views with include/exclude indicators for intuitive photo curation
+  * **Fullscreen Viewing:** All photos maintain aspect ratios in thumbnails and support fullscreen viewing with swipe navigation
+  * **Real-time Sync:** Changes to event photos immediately reflect in both the Event Details view and the Daily Canvas
 * **Transparent and Granular Permissions:** The application will not request permissions on first launch. Instead, it will ask for each permission in-context, at the moment the user tries to use a feature that requires it.32 Each request will be preceded by a clear, plain-language explanation of why the permission is needed and what benefit it provides.33 A dedicated settings screen will allow users to easily review and toggle all granted permissions at any time.
 * **Traditional Manual Entry:** The ability to create a classic, blank-slate journal entry will always be a primary and easily accessible feature, ensuring the app can also serve as a conventional diary when desired.
 
