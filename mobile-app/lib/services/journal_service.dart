@@ -11,6 +11,7 @@ import '../database/dev_seed_data.dart';
 import '../services/ai/hybrid_ai_service.dart';
 import '../services/reverse_geocoding_service.dart';
 import '../services/data_rich_narrative_builder.dart';
+import '../services/daily_context_synthesizer.dart';
 import '../services/ai/runtime_selector.dart';
 import '../providers/database_provider.dart';
 import '../providers/service_providers.dart';
@@ -120,6 +121,35 @@ class JournalService {
     return _journalDb.watchRecentJournalEntries(limit: limit);
   }
 
+  /// Check if there's sufficient data to generate a journal entry
+  bool _hasSufficientDataForGeneration(DailyContext context) {
+    // Count data points across all sources
+    final hasPhotos = context.photoContexts.isNotEmpty;
+    final hasLocations = context.locationPoints.isNotEmpty;
+    final hasCalendar = context.calendarEvents.isNotEmpty;
+    final hasMovement = context.movementData.isNotEmpty;
+    final hasActivities = context.activities.isNotEmpty;
+    final hasTimelineEvents = context.timelineEvents.isNotEmpty;
+
+    // Require at least ONE data point from ANY source
+    final hasAnyData = hasPhotos || hasLocations || hasCalendar ||
+                       hasMovement || hasActivities || hasTimelineEvents;
+
+    if (!hasAnyData) {
+      _logger.info('Insufficient data for auto-generation: no photos, locations, calendar, movement, activities, or timeline events');
+    } else {
+      _logger.info('Sufficient data found for auto-generation: ' +
+        '${context.photoContexts.length} photos, ' +
+        '${context.locationPoints.length} locations, ' +
+        '${context.calendarEvents.length} calendar events, ' +
+        '${context.movementData.length} movement data, ' +
+        '${context.activities.length} activities, ' +
+        '${context.timelineEvents.length} timeline events');
+    }
+
+    return hasAnyData;
+  }
+
   /// Create a journal entry for specific date
   Future<JournalEntry> createEntryForDate(DateTime date) async {
     _logger.info('Creating journal entry for ${date.toIso8601String()}');
@@ -127,6 +157,14 @@ class JournalService {
     try {
       // Get DailyContext from dailyContextProvider
       final dailyContext = await _ref.read(dailyContextProvider(date).future);
+
+      // Validate that we have sufficient data to generate an entry
+      if (!_hasSufficientDataForGeneration(dailyContext)) {
+        _logger.warning('Skipping auto-generation for ${date.toIso8601String()}: insufficient data');
+        throw InsufficientDataException(
+          'Cannot auto-generate journal entry: no photos, locations, calendar events, movement data, activities, or timeline events found for this date'
+        );
+      }
 
       // Select best available AI adapter
       final selector = RuntimeSelector();
@@ -868,4 +906,13 @@ class JournalService {
     }
   }
 
+}
+
+/// Exception thrown when there's insufficient data to auto-generate a journal entry
+class InsufficientDataException implements Exception {
+  final String message;
+  InsufficientDataException(this.message);
+
+  @override
+  String toString() => 'InsufficientDataException: $message';
 }

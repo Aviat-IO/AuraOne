@@ -325,8 +325,28 @@ class _JournalTab extends HookConsumerWidget {
           journalEntry.value = newEntry.content;
           controller.text = newEntry.content;
         }
+      } on InsufficientDataException catch (e) {
+        // Show user-friendly message when there's no data to generate from
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Cannot auto-generate: No data found for this date. Add photos, visit locations, or create calendar events to enable AI generation.'),
+              duration: const Duration(seconds: 4),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } catch (e) {
-        // Handle errors silently
+        // Handle other errors
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to generate entry: ${e.toString()}'),
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } finally {
         if (context.mounted) {
           isGenerating.value = false;

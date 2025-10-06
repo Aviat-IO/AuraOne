@@ -130,6 +130,31 @@ The following table provides a comparative analysis of the proposed features aga
 | **Data Export** | **Yes (Well-documented JSON/MD)** | Yes (PDF, JSON, TXT) 18 | Unspecified | Yes (DOCX, PDF) 3 | **Yes (DOCX, HTML, RTF, TXT)** 13 |
 | **Decentralized Integration** | **Yes (Nostr, Blossom, Lightning)** | No | No | No | No |
 
+#### **3.3. Journal Entry Auto-Generation Requirements**
+
+**Data Prerequisites** (CRITICAL - Production Enforcement):
+- **Minimum Requirement**: At least ONE data point must exist from ANY source
+- **Valid Data Sources**:
+  - Photos (device media library with EXIF data)
+  - Location points (GPS tracking data)
+  - Calendar events (system calendar integration)
+  - Movement data (step counts, activities)
+  - Activity data (tracked activities, workouts)
+  - Timeline events (synthesized events from all sources)
+- **Production Behavior**: Auto-generation is DISABLED for dates without any data
+- **Development Mode**: Test data seeding ONLY occurs in debug builds (`kDebugMode`), never in production
+- **User Experience**:
+  - Clear error message when attempting auto-generation without data
+  - Informative guidance on how to enable auto-generation (add photos, visit locations, create calendar events)
+  - Manual entry always available regardless of data availability
+- **Data Validation**: System validates data availability before allowing auto-generation attempt
+
+**Rationale**:
+- Prevents empty or meaningless journal entries in production
+- Ensures AI has sufficient context to generate meaningful narratives
+- Maintains data integrity and user trust
+- Avoids confusion about why entries exist for dates without actual activities
+
 ### **4\. Monetization Strategy**
 
 Monetizing an open-source, privacy-first application presents a unique challenge. The strategy must generate sustainable revenue without compromising the core principles of user data control and transparency. Models that rely on advertising or the sale of user data are explicitly rejected as they are fundamentally incompatible with the project's ethos.88 Instead, a hybrid model based on direct value exchange is proposed.
