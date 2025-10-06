@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../theme/colors.dart';
 import '../widgets/page_header.dart';
 import '../widgets/daily_entry_view.dart';
+import '../providers/preload_provider.dart';
 
 // Provider for sub-tab index (now using the unified component's provider)
 final homeSubTabIndexProvider = StateProvider<int>((ref) => 0);
@@ -33,6 +34,10 @@ class HomeScreen extends HookConsumerWidget {
     // Watch the current time provider to get updates
     final currentTimeAsync = ref.watch(currentTimeProvider);
     final currentTime = currentTimeAsync.valueOrNull ?? DateTime.now();
+
+    // Trigger background data warming for today and adjacent dates
+    // This preloads media and map data in the background
+    ref.watch(dataWarmingProvider);
 
     return Scaffold(
       body: Container(

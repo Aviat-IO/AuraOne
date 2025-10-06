@@ -7,6 +7,7 @@ import '../theme/colors.dart';
 import '../database/journal_database.dart';
 import '../services/journal_service.dart';
 import '../widgets/daily_entry_view.dart';
+import '../providers/preload_provider.dart';
 import 'home_screen.dart'; // Import for historySelectedDateProvider
 import 'main_layout_screen.dart'; // Import for selectedTabIndexProvider
 
@@ -35,6 +36,9 @@ class HistoryScreen extends HookConsumerWidget {
     final selectedDay = useState<DateTime>(persistentSelectedDate);
     final focusedDay = useState<DateTime>(persistentSelectedDate);
     final hasShownCalendar = useState<bool>(false);
+
+    // Preload data for the selected date in the background
+    ref.watch(preloadProvider(selectedDay.value));
 
     // Update local state when persistent state changes
     useEffect(() {
