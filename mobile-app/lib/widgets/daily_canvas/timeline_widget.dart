@@ -217,23 +217,41 @@ final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTi
       } catch (_) {}
     }
 
-    // Determine the display name
-    String title = firstActivity.description;
+    // Determine the display name - prioritize reverse geocoded address
+    String title = 'Location';
     final address = metadata?['address'] as String?;
+    final placeName = metadata?['placeName'] as String?;
+    final region = metadata?['region'] as String?;
 
-    // Clean up the title - prefer address over raw coordinates
+    // Priority order for location name:
+    // 1. Reverse geocoded address from metadata
+    // 2. Place name from metadata
+    // 3. Region from metadata
+    // 4. Description if it doesn't contain coordinates
+    // 5. Fall back to generic "Location"
     if (address != null && address.isNotEmpty && !address.startsWith('Location:')) {
       title = address;
-    } else if (title.startsWith('Location:') && title.contains(',')) {
-      // Try to extract region from coordinate-based description
-      // For now, just use generic "Location"
-      title = 'Location';
+    } else if (placeName != null && placeName.isNotEmpty) {
+      title = placeName;
+    } else if (region != null && region.isNotEmpty) {
+      title = region;
+    } else if (firstActivity.description.isNotEmpty &&
+               !firstActivity.description.startsWith('Location:') &&
+               !firstActivity.description.contains('(') &&
+               !firstActivity.description.contains(',')) {
+      // Use description if it looks like a place name (not coordinates)
+      title = firstActivity.description;
     }
 
     // Format duration
     String durationText;
     if (duration.inMinutes < 1) {
-      durationText = 'Less than a minute';
+      // For very short visits, show seconds or "< 1 min"
+      if (duration.inSeconds < 30) {
+        durationText = 'You spent ${duration.inSeconds} sec here';
+      } else {
+        durationText = 'You spent < 1 min here';
+      }
     } else if (duration.inMinutes < 60) {
       durationText = 'You spent ${duration.inMinutes} min here';
     } else {

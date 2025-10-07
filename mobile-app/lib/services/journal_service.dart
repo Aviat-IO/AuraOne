@@ -704,11 +704,18 @@ class JournalService {
       // Get location data
       final locationPoints = await _databaseService.locationDb.getLocationPointsBetween(startOfDay, endOfDay);
       if (locationPoints.isNotEmpty) {
+        // Cluster locations to get meaningful place count
+        final clusters = _clusterLocations(locationPoints);
+        final clusterCount = clusters.length;
+
         activities.add({
           'type': 'location',
-          'description': 'Visited ${locationPoints.length} locations throughout the day',
+          'description': clusterCount == 1
+            ? 'Visited 1 location'
+            : 'Visited $clusterCount locations',
           'metadata': {
             'point_count': locationPoints.length,
+            'cluster_count': clusterCount,
             'first_location': {
               'lat': locationPoints.first.latitude,
               'lon': locationPoints.first.longitude,
