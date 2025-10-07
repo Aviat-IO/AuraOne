@@ -241,6 +241,70 @@ class DailyCanvasScreen extends HookConsumerWidget {
             },
             tooltip: 'Toggle view mode',
           ),
+
+          // More options menu
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) async {
+              if (value == 'regenerate') {
+                // Show confirmation dialog
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Regenerate Journal Entry'),
+                    content: const Text(
+                      'This will regenerate the journal entry for the selected date with the latest clustering logic. Continue?'
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Regenerate'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmed == true && context.mounted) {
+                  try {
+                    final journalService = ref.read(journalServiceProvider);
+                    await journalService.regenerateEntryForDate(selectedDate);
+                    if (context.mounted) {
+                      Fluttertoast.showToast(
+                        msg: 'Journal entry regenerated successfully',
+                        toastLength: Toast.LENGTH_SHORT,
+                        gravity: ToastGravity.BOTTOM,
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      Fluttertoast.showToast(
+                        msg: 'Failed to regenerate entry: $e',
+                        toastLength: Toast.LENGTH_LONG,
+                        gravity: ToastGravity.BOTTOM,
+                        backgroundColor: Colors.red,
+                      );
+                    }
+                  }
+                }
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'regenerate',
+                child: Row(
+                  children: [
+                    Icon(Icons.refresh),
+                    SizedBox(width: 12),
+                    Text('Regenerate Entry'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

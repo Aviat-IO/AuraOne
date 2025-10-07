@@ -279,6 +279,21 @@ class JournalService {
     }
   }
 
+  /// Regenerate journal entry for a specific date
+  /// Deletes the existing entry and creates a new one with fresh data
+  /// This is useful when the logic for generating activities has changed
+  Future<JournalEntry> regenerateEntryForDate(DateTime date) async {
+    _logger.info('Regenerating journal entry for ${date.toIso8601String()}');
+
+    final existingEntry = await _journalDb.getJournalEntryForDate(date);
+    if (existingEntry != null) {
+      await _journalDb.deleteJournalEntry(existingEntry.id);
+      _logger.info('Deleted existing entry for ${date.toIso8601String()}');
+    }
+
+    return await createEntryForDate(date);
+  }
+
   /// Get journal statistics
   Future<Map<String, int>> getStatistics() async {
     return await _journalDb.getJournalStatistics();
