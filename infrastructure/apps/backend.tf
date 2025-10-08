@@ -14,6 +14,7 @@ locals {
     "bun.lockb",
     "tsconfig.json",
     "Dockerfile",
+    "cloudbuild.yaml",
     ".dockerignore"
   ]
 
@@ -75,7 +76,8 @@ resource "null_resource" "build_and_push_backend" {
       # Use Cloud Build to build and push the image
       gcloud builds submit ${local.backend_app_dir} \
         --project=${module.project.project_id} \
-        --tag=$BUILD_TAG
+        --config=${local.backend_app_dir}/cloudbuild.yaml \
+        --substitutions=_IMAGE_TAG=$BUILD_TAG
 
       echo "Cloud Build completed successfully!"
 

@@ -1,0 +1,22 @@
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_IMAGE_TAG}'
+      - '.'
+
+  # Push the Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_IMAGE_TAG}'
+
+# Substitutions for the image tag
+substitutions:
+  _IMAGE_TAG: 'us-central1-docker.pkg.dev/aura-one-dev/aura-one-images/aura-one-backend:latest'
+
+# Image will be stored in Artifact Registry
+images:
+  - '${_IMAGE_TAG}'

@@ -25,7 +25,7 @@ export interface AccountRecord {
 }
 
 const QUOTA_LIMITS = {
-  free: 3,
+  free: 10,
   pro: 25,
 };
 
