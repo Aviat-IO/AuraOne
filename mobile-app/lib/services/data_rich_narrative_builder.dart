@@ -6,14 +6,14 @@ import 'contextual_phrase_generator.dart';
 import 'emotional_tone_analyzer.dart';
 import 'personality_engine.dart';
 
-/// Builds rich contextual narratives from timeline events and daily context
+/// Builds factual, objective narratives from timeline events and daily context
 ///
 /// Weaves together timeline events (calendar, photos, locations) with
 /// contextual data (place names, objects, distances) into a coherent
 /// chronological narrative with natural transitions.
 ///
-/// Uses EmotionalToneAnalyzer to detect the day's emotional character and
-/// PersonalityEngine to adjust language accordingly.
+/// Maintains objective tone focusing on observable facts without assumptions
+/// about emotions or subjective experiences.
 class DataRichNarrativeBuilder {
   static final _logger = AppLogger('DataRichNarrativeBuilder');
   static final DataRichNarrativeBuilder _instance = DataRichNarrativeBuilder._internal();
@@ -296,28 +296,28 @@ class DataRichNarrativeBuilder {
       }
     }
 
-    // Add object context with more engaging language
+    // Add object context
     if (event.objectsSeen != null && event.objectsSeen!.isNotEmpty) {
       final objects = event.objectsSeen!.take(3).toList();
       if (!phrase.contains(objects.join(', '))) {
         if (objects.length == 1) {
-          buffer.write(', with ${objects[0]} catching my attention');
+          buffer.write(', with ${objects[0]} visible');
         } else if (objects.length == 2) {
-          buffer.write(', drawn to ${objects[0]} and ${objects[1]}');
+          buffer.write(', with ${objects[0]} and ${objects[1]} in view');
         } else {
-          buffer.write(', noticing ${objects[0]}, ${objects[1]}, and ${objects[2]} in the composition');
+          buffer.write(', showing ${objects[0]}, ${objects[1]}, and ${objects[2]}');
         }
       }
     }
 
-    // Add people context with warmth
+    // Add people context
     if (event.peopleCount != null && event.peopleCount! > 0) {
       if (event.peopleCount == 1) {
-        buffer.write('. A companion shared the moment');
+        buffer.write('. One person was present');
       } else if (event.peopleCount! <= 3) {
-        buffer.write('. ${event.peopleCount} others joined in the experience');
+        buffer.write('. ${event.peopleCount} people were present');
       } else {
-        buffer.write('. A gathering of ${event.peopleCount} people brought energy to the scene');
+        buffer.write('. ${event.peopleCount} people were in the area');
       }
     }
 
@@ -340,7 +340,7 @@ class DataRichNarrativeBuilder {
     }
   }
 
-  /// Build closing summary with reflective context
+  /// Build closing summary
   String _buildClosing(List<NarrativeEvent> events, DailyContext context) {
     // Count event types
     final photoCount = events.where((e) => e.type == NarrativeEventType.photo).length;
@@ -350,11 +350,11 @@ class DataRichNarrativeBuilder {
     // Get distance from context
     final totalKm = context.locationSummary.totalKilometers;
 
-    // Build richer, more reflective closing
+    // Build factual closing summary
     final buffer = StringBuffer();
 
-    // Add reflective transition
-    buffer.write('Looking back, ');
+    // Add summary transition
+    buffer.write('Throughout the day, ');
 
     // Start with base closing
     final baseClosing = _phraseGen.generateClosing(
@@ -363,47 +363,47 @@ class DataRichNarrativeBuilder {
       photoCount: photoCount,
       calendarEventCount: calendarCount,
     );
-    buffer.write(baseClosing.toLowerCase()); // lowercase since we added "Looking back, "
+    buffer.write(baseClosing.toLowerCase()); // lowercase since we added "Throughout the day, "
 
-    // Add location diversity context with more vivid language
+    // Add location context
     if (locationCount > 3) {
-      buffer.write(' The day wove through $locationCount distinct places, each leaving its mark on the hours.');
+      buffer.write(' The route covered $locationCount distinct locations.');
     } else if (locationCount == 3) {
       final places = context.locationSummary.significantPlaces.take(3).toList();
-      buffer.write(' My path traced through ${places[0]}, ${places[1]}, and ${places[2]}.');
+      buffer.write(' The route included ${places[0]}, ${places[1]}, and ${places[2]}.');
     } else if (locationCount == 2) {
       final places = context.locationSummary.significantPlaces.toList();
-      buffer.write(' ${places[0]} and ${places[1]} bookended the day\'s journey.');
+      buffer.write(' Time was split between ${places[0]} and ${places[1]}.');
     } else if (locationCount == 1) {
-      buffer.write(' ${context.locationSummary.significantPlaces.first} held the entire day within its boundaries.');
+      buffer.write(' All activities occurred at ${context.locationSummary.significantPlaces.first}.');
     }
 
-    // Add activity summary with more engaging phrasing
+    // Add activity summary
     if (context.activitySummary.primaryActivities.isNotEmpty) {
       final activities = context.activitySummary.primaryActivities.take(2).toList();
       if (activities.length == 1) {
-        buffer.write(' ${activities[0]} gave the day its pulse.');
+        buffer.write(' The main activity was ${activities[0]}.');
       } else {
-        buffer.write(' The rhythm flowed between ${activities.join(' and ')}.');
+        buffer.write(' Activities included ${activities.join(' and ')}.');
       }
     }
 
-    // Add social context with warmth and reflection
+    // Add social context
     if (context.socialSummary.totalPeopleDetected > 0) {
       if (context.socialSummary.totalPeopleDetected == 1) {
-        buffer.write(' A meaningful connection illuminated the hours.');
+        buffer.write(' One other person was detected.');
       } else if (context.socialSummary.totalPeopleDetected <= 5) {
-        buffer.write(' ${context.socialSummary.totalPeopleDetected} people wove their presence into the day\'s story.');
+        buffer.write(' ${context.socialSummary.totalPeopleDetected} people were detected.');
       } else {
-        buffer.write(' ${context.socialSummary.totalPeopleDetected} lives intersected with mine, creating a rich tapestry of moments.');
+        buffer.write(' ${context.socialSummary.totalPeopleDetected} people were present at various times.');
       }
     }
 
-    // Add distance reflection if notable
+    // Add distance summary if notable
     if (totalKm > 20) {
-      buffer.write(' The ${ totalKm.toStringAsFixed(1)} kilometers traveled tell their own story of movement and discovery.');
+      buffer.write(' Total distance traveled was ${ totalKm.toStringAsFixed(1)} kilometers.');
     } else if (totalKm > 5) {
-      buffer.write(' ${ totalKm.toStringAsFixed(1)} kilometers of ground covered, each meter part of the day\'s narrative.');
+      buffer.write(' Distance covered: ${ totalKm.toStringAsFixed(1)} kilometers.');
     }
 
     return buffer.toString();
@@ -414,8 +414,8 @@ class DataRichNarrativeBuilder {
     final date = context.date;
     final dayName = _phraseGen.getDayOfWeek(date);
 
-    return '$dayName was a quiet day of rest and reflection. '
-           'Sometimes the most meaningful moments are found in stillness.';
+    return '$dayName had minimal recorded activity. '
+           'No significant events or locations were captured.';
   }
 
   /// Build narrative for quiet day (events but not significant)
@@ -425,11 +425,11 @@ class DataRichNarrativeBuilder {
 
     if (context.locationSummary.totalKilometers > 0) {
       final km = context.locationSummary.totalKilometers.toStringAsFixed(1);
-      return '$dayName unfolded peacefully. I traveled $km km, moving through the day with quiet purpose. '
-             'A day of simple presence.';
+      return '$dayName had limited recorded activity. I traveled $km km, '
+             'staying mostly in familiar areas.';
     } else {
-      return '$dayName passed in gentle quietude. I remained close to home, finding contentment in the familiar. '
-             'A day of peaceful stillness.';
+      return '$dayName was spent primarily in one location. '
+             'No significant travel or movement was recorded.';
     }
   }
 
@@ -438,8 +438,8 @@ class DataRichNarrativeBuilder {
     final date = context.date;
     final dayName = _phraseGen.getDayOfWeek(date);
 
-    return '$dayName brought its own unique rhythm. Though the details blur, '
-           'the day held its own quiet significance.';
+    return '$dayName occurred but detailed data could not be processed. '
+           'Limited information is available for this date.';
   }
 
   /// Calculate distance between two points using Haversine formula

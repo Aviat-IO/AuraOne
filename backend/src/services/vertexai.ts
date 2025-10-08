@@ -96,6 +96,10 @@ function buildNarrativePrompt(context: DailyContext): string {
   lines.push('Use ONLY the facts from the data and images provided below.');
   lines.push('');
   lines.push('IMPORTANT RULES:');
+  lines.push('- Maintain an OBJECTIVE, FACTUAL tone based solely on observable data');
+  lines.push('- DO NOT make assumptions about feelings, emotions, or subjective experiences');
+  lines.push('- DO NOT use words like "felt", "enjoyed", "loved", "amazing", "wonderful"');
+  lines.push('- Present events as they occurred WITHOUT subjective interpretation');
   lines.push('- Write in natural paragraphs, NOT bullet points or lists');
   lines.push('- NEVER include coordinates, latitude/longitude, or technical data');
   lines.push('- Use place names naturally (e.g., "went to the park" not "visited 37.7749° N")');

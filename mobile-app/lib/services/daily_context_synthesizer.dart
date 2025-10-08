@@ -6,6 +6,7 @@ import '../database/location_database.dart';
 import '../services/calendar_service.dart';
 import '../providers/data_activity_tracker.dart';
 import 'ai_feature_extractor.dart';
+import 'activity_validator.dart';
 import 'distance_calculator.dart';
 import 'location_cluster_namer.dart';
 import 'timeline_event_aggregator.dart';
@@ -283,6 +284,7 @@ class DailyContextSynthesizer {
   final LocationClusterNamer _locationClusterNamer = LocationClusterNamer();
   final TimelineEventAggregator _timelineAggregator = TimelineEventAggregator();
   final DataRichNarrativeBuilder _narrativeBuilder = DataRichNarrativeBuilder();
+  final ActivityValidator _activityValidator = ActivityValidator();
 
   /// Synthesize comprehensive daily context from all data sources
   Future<DailyContext> synthesizeDailyContext({
@@ -758,8 +760,11 @@ class DailyContextSynthesizer {
       }
     }
 
-    // Analyze movement data from location points (uses flutter_background_geolocation activity types)
-    for (final location in locationPoints) {
+    // Validate and correct activity types using speed-based analysis
+    final validatedLocationPoints = _activityValidator.validateSequence(locationPoints);
+
+    // Analyze movement data from validated location points
+    for (final location in validatedLocationPoints) {
       if (location.activityType != null) {
         movementModes.add(location.activityType!);
 

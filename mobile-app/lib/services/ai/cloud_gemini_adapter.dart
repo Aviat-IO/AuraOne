@@ -222,14 +222,17 @@ class CloudGeminiAdapter implements AIJournalGenerator {
 
       // Create multimodal prompt
       final prompt = '''
-Describe this image in natural, engaging language as if you're recalling a memory.
+Describe this image objectively and factually, focusing only on what is clearly visible.
 Focus on:
-- What you see in the scene
-- The mood and atmosphere
-- Notable objects, people, or activities
+- What you see in the scene (objects, people, activities)
 - The setting and environment
+- Notable details that are clearly visible
 
-Keep the description conversational and under 100 words.
+IMPORTANT:
+- DO NOT make assumptions about emotions, feelings, or mood
+- DO NOT interpret intent or subjective experiences
+- Only describe what is clearly visible in the image
+- Keep the description conversational and under 100 words
 ''';
 
       final response = await _model!.generateContent([
@@ -313,7 +316,14 @@ Keep the description conversational and under 100 words.
     final buffer = StringBuffer();
 
     buffer.writeln('You are writing a personal journal entry in first person.');
-    buffer.writeln('Generate a natural, conversational 150-200 word narrative that captures the essence of this day.');
+    buffer.writeln('Generate a natural, conversational 150-200 word narrative describing what happened this day.');
+    buffer.writeln('');
+    buffer.writeln('CRITICAL REQUIREMENTS:');
+    buffer.writeln('- Maintain an OBJECTIVE, FACTUAL tone based solely on observable data');
+    buffer.writeln('- DO NOT make assumptions about feelings, emotions, or subjective experiences');
+    buffer.writeln('- DO NOT use words like "felt", "enjoyed", "loved", "amazing", "wonderful"');
+    buffer.writeln('- Present events as they occurred WITHOUT subjective interpretation');
+    buffer.writeln('- Write in natural paragraphs, NOT bullet points or lists');
     buffer.writeln('');
     buffer.writeln('Daily Context for ${context.date.toLocal().toString().split(' ')[0]}:');
     buffer.writeln('');
@@ -383,7 +393,8 @@ Keep the description conversational and under 100 words.
       buffer.writeln();
     }
 
-    buffer.writeln('Write a reflective, engaging narrative in first person that weaves these elements together.');
+    buffer.writeln('Write a factual, objective narrative in first person that weaves these events together.');
+    buffer.writeln('Focus on WHAT happened, WHERE it happened, and WHEN it happened - not HOW you felt about it.');
 
     return buffer.toString();
   }
