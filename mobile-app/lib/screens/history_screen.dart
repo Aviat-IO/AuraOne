@@ -257,7 +257,7 @@ class HistoryScreen extends HookConsumerWidget {
         entry.date.day,
       )).toSet(),
       loading: () => <DateTime>{},
-      error: (_, __) => <DateTime>{},
+      error: (_, _) => <DateTime>{},
     );
 
     await showModalBottomSheet(

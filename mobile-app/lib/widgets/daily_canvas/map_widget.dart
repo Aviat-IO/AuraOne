@@ -174,7 +174,7 @@ class MapWidget extends HookConsumerWidget {
                     arrowSpacing: 150.0, // Show arrows every 150 meters
                   ),
                   loading: () => [],
-                  error: (_, __) => [],
+                  error: (_, _) => [],
                 ),
                 // Cluster markers removed - clustering logic still runs for AI summary generation
                 // but we don't display the cluster markers on the map

@@ -103,7 +103,7 @@ final clusteredLocationsProvider = FutureProvider.family<List<LocationCluster>, 
       final locationHistory = await locationStream.when(
         data: (locations) => Future.value(locations),
         loading: () => Future.value(<loc_db.LocationPoint>[]),
-        error: (_, __) => Future.value(<loc_db.LocationPoint>[]),
+        error: (_, _) => Future.value(<loc_db.LocationPoint>[]),
       );
 
       // Filter locations for the specific date
@@ -223,7 +223,7 @@ final journeySegmentsProvider = FutureProvider.family<List<JourneySegment>, Date
       final locationHistory = await locationStream.when(
         data: (locations) => Future.value(locations),
         loading: () => Future.value(<loc_db.LocationPoint>[]),
-        error: (_, __) => Future.value(<loc_db.LocationPoint>[]),
+        error: (_, _) => Future.value(<loc_db.LocationPoint>[]),
       );
 
       // Filter locations for the specific date

@@ -2,9 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:aura_one/services/ai/model_download_manager.dart';
 import 'package:aura_one/services/ai/tflite_manager.dart';
 import 'package:aura_one/services/ai/har_test_service.dart';
+import 'package:logger/logger.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  final logger = Logger(printer: PrettyPrinter(methodCount: 0));
+  
   group('HAR Model Tests', () {
     late ModelDownloadManager downloadManager;
     late TFLiteManager tfliteManager;
@@ -35,7 +38,7 @@ void main() {
       // Check hardware acceleration status
       final accelerationStatus = tfliteManager.getAccelerationStatus();
       expect(accelerationStatus, isNotNull);
-      print('Hardware acceleration status: $accelerationStatus');
+      logger.i('Hardware acceleration status: $accelerationStatus');
     });
 
     test('HAR Service Initialization', () async {
@@ -64,7 +67,7 @@ void main() {
         final nonZeroCount = data.where((v) => v != 0).length;
         expect(nonZeroCount > 0, true);
 
-        print('Generated synthetic data for $activity: ${data.length} values');
+        logger.i('Generated synthetic data for $activity: ${data.length} values');
       }
     });
 
@@ -76,20 +79,20 @@ void main() {
       final isDownloaded = await downloadManager.isModelDownloaded('har_cnn_lstm');
 
       if (!isDownloaded) {
-        print('Downloading HAR model...');
+        logger.i('Downloading HAR model...');
 
         // Subscribe to progress
         final progressStream = downloadManager.getDownloadProgress('har_cnn_lstm');
         progressStream?.listen((progress) {
-          print('Download progress: ${(progress.progress * 100).toStringAsFixed(1)}%');
+          logger.i('Download progress: ${(progress.progress * 100).toStringAsFixed(1)}%');
         });
 
         // Download model
         final modelPath = await downloadManager.downloadModel('har_cnn_lstm');
         expect(modelPath, isNotNull);
-        print('Model downloaded to: $modelPath');
+        logger.i('Model downloaded to: $modelPath');
       } else {
-        print('HAR model already downloaded');
+        logger.i('HAR model already downloaded');
       }
     });
 
@@ -105,11 +108,11 @@ void main() {
       expect(result['confidence'], isNotNull);
       expect(result['inferenceTimeMs'], isNotNull);
 
-      print('Inference result:');
-      print('  Input: ${result['inputActivity']}');
-      print('  Predicted: ${result['predictedActivity']}');
-      print('  Confidence: ${(result['confidence'] * 100).toStringAsFixed(1)}%');
-      print('  Inference time: ${result['inferenceTimeMs']}ms');
+      logger.i('Inference result:');
+      logger.i('  Input: ${result['inputActivity']}');
+      logger.i('  Predicted: ${result['predictedActivity']}');
+      logger.i('  Confidence: ${(result['confidence'] * 100).toStringAsFixed(1)}%');
+      logger.i('  Inference time: ${result['inferenceTimeMs']}ms');
     });
   });
 }

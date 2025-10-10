@@ -65,7 +65,7 @@ final clusterCountProvider = Provider<int>((ref) {
   return clustersAsync.when(
     data: (clusters) => clusters.length,
     loading: () => 0,
-    error: (_, __) => 0,
+    error: (_, _) => 0,
   );
 });
 
@@ -101,7 +101,7 @@ final clusterStatsProvider = Provider<ClusterStatistics>((ref) {
       );
     },
     loading: () => ClusterStatistics.empty(),
-    error: (_, __) => ClusterStatistics.empty(),
+    error: (_, _) => ClusterStatistics.empty(),
   );
 });
 

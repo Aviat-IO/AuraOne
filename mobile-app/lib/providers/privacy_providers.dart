@@ -290,7 +290,7 @@ final hasEnabledPermissionsProvider = Provider<bool>((ref) {
                         settings.healthPermission ||
                         settings.notificationPermission,
     loading: () => false,
-    error: (_, __) => false,
+    error: (_, _) => false,
   );
 });
 
@@ -301,7 +301,7 @@ final isLocationTrackingEnabledProvider = Provider<bool>((ref) {
   return settingsAsync.when(
     data: (settings) => settings.locationTrackingEnabled,
     loading: () => false,
-    error: (_, __) => false,
+    error: (_, _) => false,
   );
 });
 
