@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura One - Journal Book Logo Final Selection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #E8A87C 0%, #F4C2A1 50%, #D4A574 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+            font-size: 3em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.95);
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        .section-title {
+            color: white;
+            font-size: 1.8em;
+            margin: 40px 0 20px 0;
+            text-align: center;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .logo-card {
+            background: #FFFBF7;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(74, 60, 40, 0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .logo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(74, 60, 40, 0.25);
+        }
+        .logo-wrapper {
+            width: 180px;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        .logo-name {
+            font-weight: 600;
+            color: #4A3C28;
+            text-align: center;
+            font-size: 0.9em;
+        }
+        svg {
+            max-width: 100%;
+            max-height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Aura One</h1>
+        <p class="subtitle">Enhanced Aura Effects - Classic & Tilted Variations</p>
+        
+        <h2 class="section-title">Classic Straight Orientation</h2>
+        <div class="grid">
+            <!-- Classic 1: Soft pulse aura -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="pulse1">
+                                <stop offset="0%" stop-color="#F4C2A1" stop-opacity="0"/>
+                                <stop offset="60%" stop-color="#E8A87C" stop-opacity="0.15"/>
+                                <stop offset="100%" stop-color="#D4A574" stop-opacity="0.05"/>
+                            </radialGradient>
+                        </defs>
+                        <circle cx="100" cy="100" r="95" fill="url(#pulse1)"/>
+                        <circle cx="100" cy="100" r="78" fill="url(#pulse1)"/>
+                        <circle cx="100" cy="100" r="62" fill="url(#pulse1)"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574"/>
+                        <line x1="80" y1="75" x2="120" y2="75" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="90" x2="120" y2="90" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="105" x2="110" y2="105" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Soft Pulse Aura</div>
+            </div>
+
+            <!-- Classic 2: Layered glow -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="100" cy="100" rx="90" ry="88" fill="#FFF0E5" opacity="0.25"/>
+                        <ellipse cx="100" cy="100" rx="78" ry="76" fill="#F4C2A1" opacity="0.2"/>
+                        <ellipse cx="100" cy="100" rx="66" ry="64" fill="#E8A87C" opacity="0.15"/>
+                        <ellipse cx="100" cy="100" rx="54" ry="52" fill="#FFF8F3" opacity="0.25"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574"/>
+                        <line x1="80" y1="75" x2="120" y2="75" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="90" x2="120" y2="90" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="105" x2="110" y2="105" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Layered Glow</div>
+            </div>
+
+            <!-- Classic 3: Radiant burst -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="burst3">
+                                <stop offset="0%" stop-color="#FFFBF7" stop-opacity="0.4"/>
+                                <stop offset="40%" stop-color="#F4C2A1" stop-opacity="0.25"/>
+                                <stop offset="70%" stop-color="#E8A87C" stop-opacity="0.15"/>
+                                <stop offset="100%" stop-color="#D4A574" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                        <circle cx="100" cy="100" r="92" fill="url(#burst3)"/>
+                        <path d="M100 20 L100 35 M100 165 L100 180 M20 100 L35 100 M165 100 L180 100 M40 40 L50 50 M150 150 L160 160 M40 160 L50 150 M150 50 L160 40" stroke="#F4C2A1" stroke-width="2" opacity="0.3"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574"/>
+                        <line x1="80" y1="75" x2="120" y2="75" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="90" x2="120" y2="90" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="105" x2="110" y2="105" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Radiant Burst</div>
+            </div>
+
+            <!-- Classic 4: Wave ripples -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="100" cy="100" r="90" fill="none" stroke="#E8A87C" stroke-width="1.5" opacity="0.2"/>
+                        <circle cx="100" cy="100" r="78" fill="none" stroke="#F4C2A1" stroke-width="2" opacity="0.25"/>
+                        <circle cx="100" cy="100" r="66" fill="none" stroke="#E8A87C" stroke-width="2.5" opacity="0.3"/>
+                        <circle cx="100" cy="100" r="54" fill="none" stroke="#D4A574" stroke-width="2" opacity="0.35"/>
+                        <ellipse cx="100" cy="100" rx="48" ry="46" fill="#FFF8F3" opacity="0.3"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574"/>
+                        <line x1="80" y1="75" x2="120" y2="75" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="90" x2="120" y2="90" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="105" x2="110" y2="105" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Wave Ripples</div>
+            </div>
+
+            <!-- Classic 5: Gradient halo -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="halo5" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#E8A87C" stop-opacity="0.25"/>
+                                <stop offset="50%" stop-color="#F4C2A1" stop-opacity="0.15"/>
+                                <stop offset="100%" stop-color="#D4A574" stop-opacity="0.25"/>
+                            </linearGradient>
+                        </defs>
+                        <ellipse cx="100" cy="100" rx="92" ry="90" fill="url(#halo5)"/>
+                        <ellipse cx="100" cy="100" rx="75" ry="73" fill="url(#halo5)"/>
+                        <ellipse cx="100" cy="100" rx="58" ry="56" fill="#FFF5ED" opacity="0.3"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574"/>
+                        <line x1="80" y1="75" x2="120" y2="75" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="90" x2="120" y2="90" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="105" x2="110" y2="105" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Gradient Halo</div>
+            </div>
+
+            <!-- Classic 6: Shimmer effect -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="shimmer6">
+                                <stop offset="0%" stop-color="#FFFBF7" stop-opacity="0.5"/>
+                                <stop offset="50%" stop-color="#F4C2A1" stop-opacity="0.2"/>
+                                <stop offset="100%" stop-color="#E8A87C" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                        <circle cx="100" cy="100" r="88" fill="url(#shimmer6)"/>
+                        <ellipse cx="85" cy="85" rx="35" ry="30" fill="#FFF8F3" opacity="0.4" transform="rotate(-20 85 85)"/>
+                        <circle cx="100" cy="100" r="70" fill="#FFF0E5" opacity="0.2"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574"/>
+                        <line x1="80" y1="75" x2="120" y2="75" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="90" x2="120" y2="90" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="105" x2="110" y2="105" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Shimmer Effect</div>
+            </div>
+
+            <!-- Classic 7: Concentric fade -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="100" cy="100" r="94" fill="#D4A574" opacity="0.08"/>
+                        <circle cx="100" cy="100" r="84" fill="#E8A87C" opacity="0.1"/>
+                        <circle cx="100" cy="100" r="74" fill="#F4C2A1" opacity="0.12"/>
+                        <circle cx="100" cy="100" r="64" fill="#E8A87C" opacity="0.15"/>
+                        <circle cx="100" cy="100" r="54" fill="#FFF0E5" opacity="0.25"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574"/>
+                        <line x1="80" y1="75" x2="120" y2="75" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="90" x2="120" y2="90" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="105" x2="110" y2="105" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Concentric Fade</div>
+            </div>
+
+            <!-- Classic 8: Soft bloom -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="bloom8">
+                                <stop offset="0%" stop-color="#FFF8F3" stop-opacity="0.6"/>
+                                <stop offset="30%" stop-color="#F4C2A1" stop-opacity="0.3"/>
+                                <stop offset="60%" stop-color="#E8A87C" stop-opacity="0.15"/>
+                                <stop offset="100%" stop-color="#D4A574" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                        <circle cx="100" cy="100" r="95" fill="url(#bloom8)"/>
+                        <circle cx="100" cy="100" r="72" fill="url(#bloom8)"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574"/>
+                        <line x1="80" y1="75" x2="120" y2="75" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="90" x2="120" y2="90" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="105" x2="110" y2="105" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Soft Bloom</div>
+            </div>
+
+            <!-- Classic 9: Energy rings -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="100" cy="100" r="92" fill="none" stroke="#D4A574" stroke-width="3" opacity="0.15"/>
+                        <circle cx="100" cy="100" r="80" fill="none" stroke="#E8A87C" stroke-width="4" opacity="0.2"/>
+                        <circle cx="100" cy="100" r="68" fill="none" stroke="#F4C2A1" stroke-width="3" opacity="0.25"/>
+                        <circle cx="100" cy="100" r="58" fill="#FFF5ED" opacity="0.3"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574"/>
+                        <line x1="80" y1="75" x2="120" y2="75" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="90" x2="120" y2="90" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="105" x2="110" y2="105" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Energy Rings</div>
+            </div>
+
+            <!-- Classic 10: Dual tone aura -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="dual10">
+                                <stop offset="0%" stop-color="#F4C2A1" stop-opacity="0.35"/>
+                                <stop offset="100%" stop-color="#E8A87C" stop-opacity="0"/>
+                            </radialGradient>
+                            <radialGradient id="dual10b">
+                                <stop offset="0%" stop-color="#E8A87C" stop-opacity="0.3"/>
+                                <stop offset="100%" stop-color="#D4A574" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                        <circle cx="90" cy="90" r="70" fill="url(#dual10)"/>
+                        <circle cx="110" cy="110" r="70" fill="url(#dual10b)"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574"/>
+                        <line x1="80" y1="75" x2="120" y2="75" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="90" x2="120" y2="90" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="80" y1="105" x2="110" y2="105" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Dual Tone Aura</div>
+            </div>
+
+        </div>
+
+        <h2 class="section-title">Tilted Orientation</h2>
+        <div class="grid">
+            <!-- Tilted 1: Soft pulse aura -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="tpulse1">
+                                <stop offset="0%" stop-color="#F4C2A1" stop-opacity="0"/>
+                                <stop offset="60%" stop-color="#E8A87C" stop-opacity="0.15"/>
+                                <stop offset="100%" stop-color="#D4A574" stop-opacity="0.05"/>
+                            </radialGradient>
+                        </defs>
+                        <ellipse cx="105" cy="100" rx="95" ry="92" fill="url(#tpulse1)" transform="rotate(-8 105 100)"/>
+                        <ellipse cx="105" cy="100" rx="78" ry="76" fill="url(#tpulse1)" transform="rotate(-8 105 100)"/>
+                        <ellipse cx="105" cy="100" rx="62" ry="60" fill="url(#tpulse1)" transform="rotate(-8 105 100)"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C" transform="rotate(-8 100 100)"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574" transform="rotate(-8 100 100)"/>
+                        <line x1="77" y1="73" x2="117" y2="70" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="78" y1="88" x2="118" y2="85" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="79" y1="103" x2="109" y2="100" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Tilted Soft Pulse</div>
+            </div>
+
+            <!-- Tilted 2: Layered glow -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="105" cy="100" rx="90" ry="88" fill="#FFF0E5" opacity="0.25" transform="rotate(-8 105 100)"/>
+                        <ellipse cx="105" cy="100" rx="78" ry="76" fill="#F4C2A1" opacity="0.2" transform="rotate(-8 105 100)"/>
+                        <ellipse cx="105" cy="100" rx="66" ry="64" fill="#E8A87C" opacity="0.15" transform="rotate(-8 105 100)"/>
+                        <ellipse cx="105" cy="100" rx="54" ry="52" fill="#FFF8F3" opacity="0.25" transform="rotate(-8 105 100)"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C" transform="rotate(-8 100 100)"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574" transform="rotate(-8 100 100)"/>
+                        <line x1="77" y1="73" x2="117" y2="70" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="78" y1="88" x2="118" y2="85" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="79" y1="103" x2="109" y2="100" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Tilted Layered Glow</div>
+            </div>
+
+            <!-- Tilted 3: Radiant burst -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="tburst3">
+                                <stop offset="0%" stop-color="#FFFBF7" stop-opacity="0.4"/>
+                                <stop offset="40%" stop-color="#F4C2A1" stop-opacity="0.25"/>
+                                <stop offset="70%" stop-color="#E8A87C" stop-opacity="0.15"/>
+                                <stop offset="100%" stop-color="#D4A574" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                        <ellipse cx="105" cy="100" rx="92" ry="90" fill="url(#tburst3)" transform="rotate(-8 105 100)"/>
+                        <g transform="rotate(-8 100 100)">
+                            <path d="M100 20 L100 35 M100 165 L100 180 M20 100 L35 100 M165 100 L180 100 M40 40 L50 50 M150 150 L160 160 M40 160 L50 150 M150 50 L160 40" stroke="#F4C2A1" stroke-width="2" opacity="0.3"/>
+                        </g>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C" transform="rotate(-8 100 100)"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574" transform="rotate(-8 100 100)"/>
+                        <line x1="77" y1="73" x2="117" y2="70" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="78" y1="88" x2="118" y2="85" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="79" y1="103" x2="109" y2="100" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Tilted Radiant Burst</div>
+            </div>
+
+            <!-- Tilted 4: Wave ripples -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <g transform="rotate(-8 105 100)">
+                            <ellipse cx="105" cy="100" rx="90" ry="88" fill="none" stroke="#E8A87C" stroke-width="1.5" opacity="0.2"/>
+                            <ellipse cx="105" cy="100" rx="78" ry="76" fill="none" stroke="#F4C2A1" stroke-width="2" opacity="0.25"/>
+                            <ellipse cx="105" cy="100" rx="66" ry="64" fill="none" stroke="#E8A87C" stroke-width="2.5" opacity="0.3"/>
+                            <ellipse cx="105" cy="100" rx="54" ry="52" fill="none" stroke="#D4A574" stroke-width="2" opacity="0.35"/>
+                            <ellipse cx="105" cy="100" rx="48" ry="46" fill="#FFF8F3" opacity="0.3"/>
+                        </g>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C" transform="rotate(-8 100 100)"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574" transform="rotate(-8 100 100)"/>
+                        <line x1="77" y1="73" x2="117" y2="70" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="78" y1="88" x2="118" y2="85" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="79" y1="103" x2="109" y2="100" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Tilted Wave Ripples</div>
+            </div>
+
+            <!-- Tilted 5: Gradient halo -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="thalo5" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#E8A87C" stop-opacity="0.25"/>
+                                <stop offset="50%" stop-color="#F4C2A1" stop-opacity="0.15"/>
+                                <stop offset="100%" stop-color="#D4A574" stop-opacity="0.25"/>
+                            </linearGradient>
+                        </defs>
+                        <ellipse cx="105" cy="100" rx="92" ry="90" fill="url(#thalo5)" transform="rotate(-8 105 100)"/>
+                        <ellipse cx="105" cy="100" rx="75" ry="73" fill="url(#thalo5)" transform="rotate(-8 105 100)"/>
+                        <ellipse cx="105" cy="100" rx="58" ry="56" fill="#FFF5ED" opacity="0.3" transform="rotate(-8 105 100)"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C" transform="rotate(-8 100 100)"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574" transform="rotate(-8 100 100)"/>
+                        <line x1="77" y1="73" x2="117" y2="70" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="78" y1="88" x2="118" y2="85" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="79" y1="103" x2="109" y2="100" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Tilted Gradient Halo</div>
+            </div>
+
+            <!-- Tilted 6: Shimmer effect -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="tshimmer6">
+                                <stop offset="0%" stop-color="#FFFBF7" stop-opacity="0.5"/>
+                                <stop offset="50%" stop-color="#F4C2A1" stop-opacity="0.2"/>
+                                <stop offset="100%" stop-color="#E8A87C" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                        <ellipse cx="105" cy="100" rx="88" ry="86" fill="url(#tshimmer6)" transform="rotate(-8 105 100)"/>
+                        <ellipse cx="90" cy="85" rx="35" ry="30" fill="#FFF8F3" opacity="0.4" transform="rotate(-25 90 85)"/>
+                        <ellipse cx="105" cy="100" rx="70" ry="68" fill="#FFF0E5" opacity="0.2" transform="rotate(-8 105 100)"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C" transform="rotate(-8 100 100)"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574" transform="rotate(-8 100 100)"/>
+                        <line x1="77" y1="73" x2="117" y2="70" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="78" y1="88" x2="118" y2="85" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="79" y1="103" x2="109" y2="100" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Tilted Shimmer</div>
+            </div>
+
+            <!-- Tilted 7: Concentric fade -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <g transform="rotate(-8 105 100)">
+                            <ellipse cx="105" cy="100" rx="94" ry="92" fill="#D4A574" opacity="0.08"/>
+                            <ellipse cx="105" cy="100" rx="84" ry="82" fill="#E8A87C" opacity="0.1"/>
+                            <ellipse cx="105" cy="100" rx="74" ry="72" fill="#F4C2A1" opacity="0.12"/>
+                            <ellipse cx="105" cy="100" rx="64" ry="62" fill="#E8A87C" opacity="0.15"/>
+                            <ellipse cx="105" cy="100" rx="54" ry="52" fill="#FFF0E5" opacity="0.25"/>
+                        </g>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C" transform="rotate(-8 100 100)"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574" transform="rotate(-8 100 100)"/>
+                        <line x1="77" y1="73" x2="117" y2="70" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="78" y1="88" x2="118" y2="85" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="79" y1="103" x2="109" y2="100" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Tilted Concentric</div>
+            </div>
+
+            <!-- Tilted 8: Soft bloom -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="tbloom8">
+                                <stop offset="0%" stop-color="#FFF8F3" stop-opacity="0.6"/>
+                                <stop offset="30%" stop-color="#F4C2A1" stop-opacity="0.3"/>
+                                <stop offset="60%" stop-color="#E8A87C" stop-opacity="0.15"/>
+                                <stop offset="100%" stop-color="#D4A574" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                        <ellipse cx="105" cy="100" rx="95" ry="93" fill="url(#tbloom8)" transform="rotate(-8 105 100)"/>
+                        <ellipse cx="105" cy="100" rx="72" ry="70" fill="url(#tbloom8)" transform="rotate(-8 105 100)"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C" transform="rotate(-8 100 100)"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574" transform="rotate(-8 100 100)"/>
+                        <line x1="77" y1="73" x2="117" y2="70" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="78" y1="88" x2="118" y2="85" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="79" y1="103" x2="109" y2="100" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Tilted Soft Bloom</div>
+            </div>
+
+            <!-- Tilted 9: Energy rings -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <g transform="rotate(-8 105 100)">
+                            <ellipse cx="105" cy="100" rx="92" ry="90" fill="none" stroke="#D4A574" stroke-width="3" opacity="0.15"/>
+                            <ellipse cx="105" cy="100" rx="80" ry="78" fill="none" stroke="#E8A87C" stroke-width="4" opacity="0.2"/>
+                            <ellipse cx="105" cy="100" rx="68" ry="66" fill="none" stroke="#F4C2A1" stroke-width="3" opacity="0.25"/>
+                            <ellipse cx="105" cy="100" rx="58" ry="56" fill="#FFF5ED" opacity="0.3"/>
+                        </g>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C" transform="rotate(-8 100 100)"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574" transform="rotate(-8 100 100)"/>
+                        <line x1="77" y1="73" x2="117" y2="70" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="78" y1="88" x2="118" y2="85" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="79" y1="103" x2="109" y2="100" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Tilted Energy Rings</div>
+            </div>
+
+            <!-- Tilted 10: Dual tone aura -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="tdual10">
+                                <stop offset="0%" stop-color="#F4C2A1" stop-opacity="0.35"/>
+                                <stop offset="100%" stop-color="#E8A87C" stop-opacity="0"/>
+                            </radialGradient>
+                            <radialGradient id="tdual10b">
+                                <stop offset="0%" stop-color="#E8A87C" stop-opacity="0.3"/>
+                                <stop offset="100%" stop-color="#D4A574" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                        <ellipse cx="90" cy="90" rx="70" ry="68" fill="url(#tdual10)" transform="rotate(-8 90 90)"/>
+                        <ellipse cx="115" cy="110" rx="70" ry="68" fill="url(#tdual10b)" transform="rotate(-8 115 110)"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C" transform="rotate(-8 100 100)"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574" transform="rotate(-8 100 100)"/>
+                        <line x1="77" y1="73" x2="117" y2="70" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="78" y1="88" x2="118" y2="85" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="79" y1="103" x2="109" y2="100" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Tilted Dual Tone</div>
+            </div>
+
+            <!-- Tilted 11: Asymmetric glow -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="tasym11">
+                                <stop offset="0%" stop-color="#FFF8F3" stop-opacity="0.5"/>
+                                <stop offset="60%" stop-color="#F4C2A1" stop-opacity="0.2"/>
+                                <stop offset="100%" stop-color="#E8A87C" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                        <ellipse cx="95" cy="95" rx="88" ry="82" fill="url(#tasym11)" transform="rotate(-8 95 95)"/>
+                        <ellipse cx="110" cy="105" rx="75" ry="70" fill="#FFF0E5" opacity="0.2" transform="rotate(-8 110 105)"/>
+                        <ellipse cx="100" cy="100" rx="62" ry="58" fill="#F4C2A1" opacity="0.15" transform="rotate(-8 100 100)"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C" transform="rotate(-8 100 100)"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574" transform="rotate(-8 100 100)"/>
+                        <line x1="77" y1="73" x2="117" y2="70" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="78" y1="88" x2="118" y2="85" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="79" y1="103" x2="109" y2="100" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Asymmetric Glow</div>
+            </div>
+
+            <!-- Tilted 12: Flowing aura -->
+            <div class="logo-card">
+                <div class="logo-wrapper">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="tflow12" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#F4C2A1" stop-opacity="0.3"/>
+                                <stop offset="50%" stop-color="#E8A87C" stop-opacity="0.2"/>
+                                <stop offset="100%" stop-color="#D4A574" stop-opacity="0.1"/>
+                            </linearGradient>
+                        </defs>
+                        <ellipse cx="105" cy="100" rx="95" ry="90" fill="url(#tflow12)" transform="rotate(-8 105 100)"/>
+                        <path d="M20 100 Q60 80, 100 95 T180 100" fill="none" stroke="#F4C2A1" stroke-width="2" opacity="0.3" transform="rotate(-8 100 100)"/>
+                        <path d="M30 85 Q65 70, 100 80 T170 85" fill="none" stroke="#E8A87C" stroke-width="2" opacity="0.25" transform="rotate(-8 100 100)"/>
+                        <ellipse cx="105" cy="100" rx="70" ry="66" fill="#FFF5ED" opacity="0.25" transform="rotate(-8 105 100)"/>
+                        <rect x="60" y="50" width="80" height="100" rx="5" fill="#E8A87C" transform="rotate(-8 100 100)"/>
+                        <rect x="65" y="50" width="8" height="100" fill="#D4A574" transform="rotate(-8 100 100)"/>
+                        <line x1="77" y1="73" x2="117" y2="70" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="78" y1="88" x2="118" y2="85" stroke="white" stroke-width="3" opacity="0.85"/>
+                        <line x1="79" y1="103" x2="109" y2="100" stroke="white" stroke-width="3" opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="logo-name">Flowing Aura</div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

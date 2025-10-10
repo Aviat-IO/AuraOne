@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Aura One launch splash screen -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Purple gradient background -->
+    <!-- Warm peach gradient background -->
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#9370DB"
-                android:centerColor="#B19CD9"
-                android:endColor="#E6E6FA"
+                android:startColor="#E8A87C"
+                android:centerColor="#F4C2A1"
+                android:endColor="#FFFBF7"
                 android:angle="270" />
         </shape>
     </item>

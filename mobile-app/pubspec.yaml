@@ -185,7 +185,7 @@ icons_launcher:
     android:
       enable: true
       image_path: "assets/icons/app_icon_large.png"
-      adaptive_background_color: "#9370DB"
+      adaptive_background_color: "#E8A87C"
       adaptive_foreground_image: "assets/icons/app_icon_medium.png"
     ios:
       enable: true
