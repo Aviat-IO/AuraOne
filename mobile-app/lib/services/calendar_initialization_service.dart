@@ -49,9 +49,13 @@ class CalendarInitializationService {
             appLogger.info('Enabled ${calendars.length} calendars by default');
           } else {
             appLogger.warning('No calendars found on device');
+            // Mark as initialized even if no calendars found to prevent infinite loop
+            await prefs.setBool('hasSetInitialCalendars', true);
           }
         } catch (e) {
           appLogger.error('Failed to initialize calendars', error: e);
+          // Mark as initialized even on error to prevent infinite loop
+          await prefs.setBool('hasSetInitialCalendars', true);
         }
       } else {
         appLogger.info('Calendar settings already initialized');
