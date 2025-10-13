@@ -1,91 +1,93 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
-	<key>CFBundleDisplayName</key>
-	<string>Aura One</string>
-	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>aura_one</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$(FLUTTER_BUILD_NAME)</string>
-	<key>CFBundleSignature</key>
-	<string>????</string>
-	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
-	<key>UIMainStoryboardFile</key>
-	<string>Main</string>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>https</string>
-		<string>http</string>
-	</array>
-	<key>LSApplicationCategoryType</key>
-	<string>public.app-category.lifestyle</string>
-	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2025 Aura One. All rights reserved.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Aura One needs your location to add context to your journal entries and track the places you visit.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Aura One can track your daily journey in the background to automatically map your day and add location context to your memories.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>location</string>
-		<string>fetch</string>
-	</array>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Aura One needs access to your photo library to discover photos and videos from your day to enrich your journal entries.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Aura One needs permission to save photos to your photo library.</string>
-	<key>PHPhotoLibraryPreventAutomaticLimitedAccessAlert</key>
-	<true/>
-	<key>NSCalendarsUsageDescription</key>
-	<string>Aura One needs access to your calendar to import events and add context to your journal entries.</string>
-	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>Aura One needs full calendar access to read and create events, helping you track your schedule and activities.</string>
-	<key>NSHealthShareUsageDescription</key>
-	<string>Aura One can read your health data to provide insights about your physical activity and well-being in your journal.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>Aura One can save mindfulness and mental health data to Health app to track your well-being journey.</string>
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Aura One uses Bluetooth to detect nearby devices and locations to add context to your journal entries.</string>
-	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Aura One uses Bluetooth to connect with wearable devices for health tracking.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Aura One needs camera access to capture photos for your journal entries and memories.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Aura One needs microphone access for voice notes and voice-to-text features in your journal.</string>
-	<key>NSMotionUsageDescription</key>
-	<string>Aura One uses motion data to track your physical activities and add context to your daily summaries.</string>
-</dict>
+	<dict>
+		<key>CFBundleDevelopmentRegion</key>
+		<string>$(DEVELOPMENT_LANGUAGE)</string>
+		<key>CFBundleDisplayName</key>
+		<string>Aura One</string>
+		<key>CFBundleExecutable</key>
+		<string>$(EXECUTABLE_NAME)</string>
+		<key>CFBundleIdentifier</key>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+		<key>CFBundleInfoDictionaryVersion</key>
+		<string>6.0</string>
+		<key>CFBundleName</key>
+		<string>aura_one</string>
+		<key>CFBundlePackageType</key>
+		<string>APPL</string>
+		<key>CFBundleShortVersionString</key>
+		<string>$(FLUTTER_BUILD_NAME)</string>
+		<key>CFBundleSignature</key>
+		<string>????</string>
+		<key>CFBundleVersion</key>
+		<string>$(FLUTTER_BUILD_NUMBER)</string>
+		<key>LSRequiresIPhoneOS</key>
+		<true/>
+		<key>UILaunchStoryboardName</key>
+		<string>LaunchScreen</string>
+		<key>UIMainStoryboardFile</key>
+		<string>Main</string>
+		<key>UISupportedInterfaceOrientations</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+			<string>UIInterfaceOrientationLandscapeLeft</string>
+			<string>UIInterfaceOrientationLandscapeRight</string>
+		</array>
+		<key>UISupportedInterfaceOrientations~ipad</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+			<string>UIInterfaceOrientationPortraitUpsideDown</string>
+			<string>UIInterfaceOrientationLandscapeLeft</string>
+			<string>UIInterfaceOrientationLandscapeRight</string>
+		</array>
+		<key>CADisableMinimumFrameDurationOnPhone</key>
+		<true/>
+		<key>UIApplicationSupportsIndirectInputEvents</key>
+		<true/>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>https</string>
+			<string>http</string>
+		</array>
+		<key>LSApplicationCategoryType</key>
+		<string>public.app-category.lifestyle</string>
+		<key>NSHumanReadableCopyright</key>
+		<string>Copyright © 2025 Aura One. All rights reserved.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>Aura One needs your location to add context to your journal entries and track the places you visit.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>Aura One can track your daily journey in the background to automatically map your day and add location context to your memories.</string>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>location</string>
+			<string>fetch</string>
+		</array>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Aura One needs access to your photo library to discover photos and videos from your day to enrich your journal entries.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>Aura One needs permission to save photos to your photo library.</string>
+		<key>PHPhotoLibraryPreventAutomaticLimitedAccessAlert</key>
+		<true/>
+		<key>NSCalendarsUsageDescription</key>
+		<string>Aura One needs access to your calendar to import events and add context to your journal entries.</string>
+		<key>NSCalendarsFullAccessUsageDescription</key>
+		<string>Aura One needs full calendar access to read and create events, helping you track your schedule and activities.</string>
+		<key>NSHealthShareUsageDescription</key>
+		<string>Aura One can read your health data to provide insights about your physical activity and well-being in your journal.</string>
+		<key>NSHealthUpdateUsageDescription</key>
+		<string>Aura One can save mindfulness and mental health data to Health app to track your well-being journey.</string>
+		<key>NSBluetoothAlwaysUsageDescription</key>
+		<string>Aura One uses Bluetooth to detect nearby devices and locations to add context to your journal entries.</string>
+		<key>NSBluetoothPeripheralUsageDescription</key>
+		<string>Aura One uses Bluetooth to connect with wearable devices for health tracking.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>Aura One needs camera access to capture photos for your journal entries and memories.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>Aura One needs microphone access for voice notes and voice-to-text features in your journal.</string>
+		<key>NSMotionUsageDescription</key>
+		<string>Aura One uses motion data to track your physical activities and add context to your daily summaries.</string>
+		<key>UIStatusBarHidden</key>
+		<false/>
+	</dict>
 </plist>

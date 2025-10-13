@@ -52,13 +52,70 @@ class PhotoAccessNotifier extends StateNotifier<bool> {
     state = status.isGranted || status.isLimited;
   }
 
-  Future<void> toggle(bool value) async {
+  Future<void> toggle(bool value, BuildContext? context) async {
     if (value) {
       final status = await Permission.photos.request();
       state = status.isGranted || status.isLimited;
+      
+      // If status is limited and context is available, prompt to open settings
+      if (status.isLimited && context != null && context.mounted) {
+        final shouldOpenSettings = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Upgrade to Full Access'),
+            content: const Text(
+              'You currently have limited photo access. To allow Aura One to discover all your photos, please open Settings and select "Full Access".',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Keep Limited'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Open Settings'),
+              ),
+            ],
+          ),
+        );
+        
+        if (shouldOpenSettings == true) {
+          await openAppSettings();
+          // Refresh state after returning from settings
+          await Future.delayed(const Duration(milliseconds: 500));
+          await refresh();
+        }
+      }
     } else {
-      // Can't programmatically revoke permission, just update state
-      state = false;
+      // Can't programmatically revoke permission, open settings instead
+      if (context != null && context.mounted) {
+        final shouldOpenSettings = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Revoke Photo Access'),
+            content: const Text(
+              'To revoke photo library access, please open Settings and change the permission.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Open Settings'),
+              ),
+            ],
+          ),
+        );
+        
+        if (shouldOpenSettings == true) {
+          await openAppSettings();
+          // Refresh state after returning from settings
+          await Future.delayed(const Duration(milliseconds: 500));
+          await refresh();
+        }
+      }
     }
   }
 
@@ -425,7 +482,7 @@ class PrivacyScreen extends ConsumerWidget {
                       trailing: Switch(
                         value: photoAccessEnabled,
                         onChanged: (value) async {
-                          await ref.read(photoAccessEnabledProvider.notifier).toggle(value);
+                          await ref.read(photoAccessEnabledProvider.notifier).toggle(value, context);
                           // Refresh to check actual permission state
                           await ref.read(photoAccessEnabledProvider.notifier).refresh();
                         },

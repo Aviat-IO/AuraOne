@@ -209,10 +209,10 @@ class OptimizedSplashScreen extends HookConsumerWidget {
               height: 70,
               color: Colors.white.withValues(alpha: 0.15),
               child: Image.asset(
-                'assets/icons/app_icon_medium.png',
+                'assets/icons/aura_one_logo.png',
                 width: 70,
                 height: 70,
-                fit: BoxFit.cover,
+                fit: BoxFit.contain,
               ),
             ),
           ),

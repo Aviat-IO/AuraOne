@@ -636,7 +636,112 @@ class OnboardingScreen extends HookConsumerWidget {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: InkWell(
-        onTap: null,
+        onTap: isGranted ? () async {
+          // Allow re-requesting permission even if granted
+          // This is useful if user wants to change from limited to full access
+          onPressed?.call();
+          
+          if (permission == Permission.locationAlways) {
+            final whenInUseStatus = await Permission.locationWhenInUse.request();
+            if (whenInUseStatus.isGranted) {
+              await Permission.locationAlways.request();
+            }
+            
+            final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+            if (!serviceEnabled) {
+              await Geolocator.openLocationSettings();
+            }
+          } else if (permission == Permission.photos) {
+            // For photos, open system settings to allow changing from limited to full
+            await permission.request();
+            // If still limited, show option to open settings
+            final status = await permission.status;
+            if (status.isLimited && context.mounted) {
+              final shouldOpenSettings = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Upgrade to Full Access'),
+                  content: const Text(
+                    'You currently have limited photo access. To upgrade to full access, please open Settings and select "Full Access".',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Open Settings'),
+                    ),
+                  ],
+                ),
+              );
+              
+              if (shouldOpenSettings == true) {
+                await openAppSettings();
+              }
+            }
+          } else {
+            await permission.request();
+          }
+          
+          // Refresh permission status
+          final newStatus = await permission.status;
+          final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
+          newPermissions[permission] = newStatus.isGranted || newStatus.isLimited;
+          permissionsGranted.value = newPermissions;
+        } : () async {
+          onPressed?.call();
+
+          print('Enable button pressed for permission: $permission');
+
+          if (permission == Permission.locationAlways) {
+            final whenInUseStatus = await Permission.locationWhenInUse.request();
+            print('Location when in use status: ${whenInUseStatus.toString()}');
+
+            if (whenInUseStatus.isGranted) {
+              final alwaysStatus = await Permission.locationAlways.request();
+              print('Location always status: ${alwaysStatus.toString()}');
+
+              final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
+              newPermissions[permission] = alwaysStatus.isGranted || alwaysStatus.isLimited || whenInUseStatus.isGranted;
+              permissionsGranted.value = newPermissions;
+
+              final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+              if (!serviceEnabled) {
+                print('Location services not enabled, opening settings');
+                await Geolocator.openLocationSettings();
+              }
+            } else {
+              final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
+              newPermissions[permission] = false;
+              permissionsGranted.value = newPermissions;
+            }
+          } else {
+            final currentStatus = await permission.status;
+            print('Current permission status: ${currentStatus.toString()}');
+
+            if (currentStatus.isGranted || currentStatus.isLimited) {
+              print('Permission already granted, updating UI');
+              final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
+              newPermissions[permission] = true;
+              permissionsGranted.value = newPermissions;
+              return;
+            }
+
+            final status = await permission.request();
+            print('Permission request result: ${status.toString()}');
+
+            final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
+            newPermissions[permission] = status.isGranted || status.isLimited;
+            permissionsGranted.value = newPermissions;
+            print('Updated permissions: $newPermissions');
+
+            if (permission == Permission.notification && (status.isGranted || status.isLimited)) {
+              await ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(true);
+            }
+          }
+        },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -704,73 +809,24 @@ class OnboardingScreen extends HookConsumerWidget {
               ),
               const SizedBox(width: 16),
               isGranted
-                  ? Icon(
-                      Icons.check_circle,
-                      color: theme.colorScheme.primary,
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.settings,
+                          size: 16,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        ),
+                      ],
                     )
-                  : OutlinedButton(
-                      onPressed: () async {
-                        // Call the custom onPressed callback if provided
-                        onPressed?.call();
-
-                        print('Enable button pressed for permission: $permission');
-
-                        // For location permission, handle special Android case
-                        if (permission == Permission.locationAlways) {
-                          // First request location when in use permission
-                          final whenInUseStatus = await Permission.locationWhenInUse.request();
-                          print('Location when in use status: ${whenInUseStatus.toString()}');
-
-                          if (whenInUseStatus.isGranted) {
-                            // Then request always permission
-                            final alwaysStatus = await Permission.locationAlways.request();
-                            print('Location always status: ${alwaysStatus.toString()}');
-
-                            final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
-                            newPermissions[permission] = alwaysStatus.isGranted || alwaysStatus.isLimited || whenInUseStatus.isGranted;
-                            permissionsGranted.value = newPermissions;
-
-                            // Handle location services
-                            final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-                            if (!serviceEnabled) {
-                              print('Location services not enabled, opening settings');
-                              await Geolocator.openLocationSettings();
-                            }
-                          } else {
-                            final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
-                            newPermissions[permission] = false;
-                            permissionsGranted.value = newPermissions;
-                          }
-                        } else {
-                          // For other permissions, use normal flow
-                          final currentStatus = await permission.status;
-                          print('Current permission status: ${currentStatus.toString()}');
-
-                          // If already granted, just update the UI
-                          if (currentStatus.isGranted || currentStatus.isLimited) {
-                            print('Permission already granted, updating UI');
-                            final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
-                            newPermissions[permission] = true;
-                            permissionsGranted.value = newPermissions;
-                            return;
-                          }
-
-                          // Otherwise, request the permission
-                          final status = await permission.request();
-                          print('Permission request result: ${status.toString()}');
-
-                          final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
-                          newPermissions[permission] = status.isGranted || status.isLimited;
-                          permissionsGranted.value = newPermissions;
-                          print('Updated permissions: $newPermissions');
-
-                          // If notification permission was granted, sync with settings
-                          if (permission == Permission.notification && (status.isGranted || status.isLimited)) {
-                            await ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(true);
-                          }
-                        }
-                      },
-                      child: const Text('Enable'),
+                  : const OutlinedButton(
+                      onPressed: null,
+                      child: Text('Enable'),
                     ),
             ],
           ),
