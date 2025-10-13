@@ -696,11 +696,34 @@ class MediaGalleryWidget extends ConsumerWidget {
       );
     } else {
       // Normal viewer without selection controls
-      final imageProviders = photoItems
+      // Filter out deleted photos when NOT in selection mode
+      final activePhotoItems = photoItems.where((item) => !item.isDeleted).toList();
+      
+      if (activePhotoItems.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All photos have been excluded from this event'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+
+      // Adjust the photo index to account for deleted photos
+      int activePhotoIndex = 0;
+      final clickedItem = photoItems[photoIndex];
+      for (int i = 0; i < activePhotoItems.length; i++) {
+        if (activePhotoItems[i].id == clickedItem.id) {
+          activePhotoIndex = i;
+          break;
+        }
+      }
+
+      final imageProviders = activePhotoItems
           .map((item) => _getImageProvider(item.url))
           .toList();
 
-      final imageProvider = MultiImageProvider(imageProviders, initialIndex: photoIndex);
+      final imageProvider = MultiImageProvider(imageProviders, initialIndex: activePhotoIndex);
       showImageViewerPager(
         context,
         imageProvider,

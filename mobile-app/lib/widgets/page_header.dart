@@ -2,19 +2,21 @@ import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 
 class PageHeader extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
   final String title;
   final String subtitle;
   final List<Color>? gradientColors;
   final Widget? trailing;
+  final Widget? customIcon;
 
   const PageHeader({
     super.key,
-    required this.icon,
+    this.icon,
     required this.title,
     required this.subtitle,
     this.gradientColors,
     this.trailing,
+    this.customIcon,
   });
 
   @override
@@ -29,7 +31,7 @@ class PageHeader extends StatelessWidget {
 
     return Row(
       children: [
-        Container(
+        customIcon ?? Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             shape: BoxShape.circle,

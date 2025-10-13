@@ -104,13 +104,16 @@ class BackgroundLocationService {
       final prefs = await SharedPreferences.getInstance();
       final trackingEnabled = prefs.getBool('backgroundLocationTracking') ?? false;
 
+      appLogger.info("backgroundLocationTracking preference: $trackingEnabled");
+
       if (!trackingEnabled) {
-        appLogger.info("Background location tracking is disabled, skipping save");
+        appLogger.warning("Background location tracking is disabled in preferences, skipping save. Location data will not appear on map!");
         return;
       }
 
       // Use the database from the provider to ensure proper stream notifications
       final database = ref.read(locationDatabaseProvider);
+      appLogger.info("Database provider retrieved successfully");
 
       // Query for the last saved position to apply intelligent filtering
       final lastLocationQuery = database.select(database.locationPoints)
@@ -154,8 +157,8 @@ class BackgroundLocationService {
           isSignificant: drift.Value(location.isMoving),
         );
 
-        await database.insertLocationPoint(locationData);
-        appLogger.info("Location saved to database");
+        final insertedId = await database.insertLocationPoint(locationData);
+        appLogger.info("✓ Location saved to database with ID: $insertedId (lat: ${location.coords.latitude}, lng: ${location.coords.longitude})");
 
         // Store last update time
         await prefs.setInt('lastLocationUpdate', DateTime.now().millisecondsSinceEpoch);
@@ -191,17 +194,26 @@ class BackgroundLocationService {
       if (!_isInitialized) {
         final initialized = await initialize();
         if (!initialized) {
+          appLogger.error('Cannot start tracking - initialization failed');
           return false;
         }
       }
 
-      // Enable tracking preference
+      // Enable tracking preference BEFORE starting the plugin
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('backgroundLocationTracking', true);
+      appLogger.info('✓ Set backgroundLocationTracking preference to true');
+
+      // Verify the preference was set
+      final verified = prefs.getBool('backgroundLocationTracking') ?? false;
+      if (!verified) {
+        appLogger.error('Failed to set backgroundLocationTracking preference!');
+        return false;
+      }
 
       // Start tracking
       final state = await bg.BackgroundGeolocation.start();
-      appLogger.info('Background location tracking started successfully');
+      appLogger.info('✓ Background location tracking started successfully');
       appLogger.info('State after start - enabled: ${state.enabled}, tracking: ${state.enabled}');
 
       return true;

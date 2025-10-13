@@ -282,4 +282,48 @@ class NotificationService {
       _logger.error('Failed to send test notification', error: e);
     }
   }
+
+  /// Show location services warning notification
+  Future<void> showLocationServicesWarning() async {
+    if (!_isInitialized) {
+      await initialize();
+    }
+
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'location_warning',
+        'Location Services',
+        channelDescription: 'Notifications about location tracking issues',
+        importance: Importance.high,
+        priority: Priority.high,
+        showWhen: true,
+        enableVibration: true,
+        playSound: true,
+        icon: '@mipmap/ic_launcher',
+      );
+
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      const notificationDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      await _notifications.show(
+        100,
+        'Location Tracking Inactive',
+        'Enable location services in Settings to track your daily journey',
+        notificationDetails,
+        payload: 'location_warning',
+      );
+
+      _logger.info('Location services warning notification sent');
+    } catch (e) {
+      _logger.error('Failed to send location services warning', error: e);
+    }
+  }
 }

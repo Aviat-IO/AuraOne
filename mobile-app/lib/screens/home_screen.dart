@@ -64,9 +64,17 @@ class HomeScreen extends HookConsumerWidget {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: PageHeader(
-                  icon: Icons.home,
+                  icon: null,
                   title: _getGreeting(currentTime),
                   subtitle: _getFormattedDate(currentTime),
+                  customIcon: ClipOval(
+                    child: Image.asset(
+                      'assets/icons/app_icon_medium.png',
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
               ),
               // Daily Entry View for today

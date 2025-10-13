@@ -391,6 +391,8 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
   // These run after the UI is ready
   Future.delayed(const Duration(milliseconds: 2000), () async {
     try {
+      bool locationTrackingActive = false;
+
       // Initialize free background location service only if enabled
       if (onboardingCompleted) {
         // Check if user has opted in to background location tracking
@@ -403,13 +405,19 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
           final initialized = await backgroundLocationService.initialize();
 
           if (initialized) {
-            // Start background location tracking
-            final trackingStarted = await backgroundLocationService.startTracking();
+            final hasPermission = await backgroundLocationService.checkLocationPermission();
+            
+            if (hasPermission) {
+              final trackingStarted = await backgroundLocationService.startTracking();
 
-            if (trackingStarted) {
-              appLogger.info('Background location tracking started successfully');
+              if (trackingStarted) {
+                appLogger.info('Background location tracking started successfully');
+                locationTrackingActive = true;
+              } else {
+                appLogger.warning('Failed to start background location tracking');
+              }
             } else {
-              appLogger.warning('Failed to start background location tracking');
+              appLogger.warning('Background location permission not granted');
             }
           } else {
             appLogger.warning('Failed to initialize background location service');
@@ -428,7 +436,15 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
         if (hasPermission) {
           await simpleLocationService.startTracking();
           appLogger.info('Real-time location tracking started (post-init)');
+          locationTrackingActive = true;
         }
+      }
+
+      // Show notification if onboarding is complete but location tracking is not active
+      if (onboardingCompleted && !locationTrackingActive) {
+        appLogger.info('Location tracking inactive for returning user, showing notification');
+        final notificationService = ref.read(notificationServiceProvider);
+        await notificationService.showLocationServicesWarning();
       }
 
       // Background data collection now handled by efficient location service

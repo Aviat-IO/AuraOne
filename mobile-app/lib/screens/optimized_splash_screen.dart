@@ -203,18 +203,17 @@ class OptimizedSplashScreen extends HookConsumerWidget {
               );
             },
           ),
-          // Inner circle with icon
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
+          ClipOval(
+            child: Container(
+              width: 70,
+              height: 70,
               color: Colors.white.withValues(alpha: 0.15),
-            ),
-            child: const Icon(
-              Icons.self_improvement,
-              size: 36,
-              color: Colors.white,
+              child: Image.asset(
+                'assets/icons/app_icon_medium.png',
+                width: 70,
+                height: 70,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
         ],
