@@ -809,22 +809,11 @@ class OnboardingScreen extends HookConsumerWidget {
               ),
               const SizedBox(width: 16),
               isGranted
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.check_circle,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          Icons.settings,
-                          size: 16,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                        ),
-                      ],
+                  ? Icon(
+                      Icons.check_circle,
+                      color: theme.colorScheme.primary,
                     )
-                  : const OutlinedButton(
+                  : const FilledButton(
                       onPressed: null,
                       child: Text('Enable'),
                     ),
