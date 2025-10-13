@@ -5,6 +5,7 @@ import '../theme/colors.dart';
 import '../widgets/page_header.dart';
 import '../widgets/daily_entry_view.dart';
 import '../providers/preload_provider.dart';
+import '../widgets/notebook_icon.dart';
 
 // Provider for sub-tab index (now using the unified component's provider)
 final homeSubTabIndexProvider = StateProvider<int>((ref) => 0);
@@ -67,14 +68,7 @@ class HomeScreen extends HookConsumerWidget {
                   icon: null,
                   title: _getGreeting(currentTime),
                   subtitle: _getFormattedDate(currentTime),
-                  customIcon: ClipOval(
-                    child: Image.asset(
-                      'assets/icons/app_icon_medium.png',
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                  customIcon: NotebookIcon(isLight: isLight),
                 ),
               ),
               // Daily Entry View for today
