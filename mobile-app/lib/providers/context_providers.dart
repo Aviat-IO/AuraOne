@@ -10,8 +10,7 @@ final personalContextEngineProvider = Provider<PersonalContextEngine>((ref) {
   final databaseService = ref.watch(databaseServiceProvider);
 
   return PersonalContextEngine(
-    databaseService: databaseService,
-    fusionEngine: null, // Disabled for APK size optimization
+    databaseService: ref.watch(databaseServiceProvider),
   );
 });
 

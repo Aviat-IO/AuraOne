@@ -26,8 +26,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   bool _isAnalyzing = false;
   final ImportSettings _settings = ImportSettings();
   Directory? _mediaDirectory;
-  int _totalEntries = 0;
-  int _processedEntries = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -399,8 +397,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       }
 
       final entries = journalData['entries'] as List<dynamic>? ?? [];
-      _totalEntries = entries.length;
-      _processedEntries = 0;
 
       // Get app's media directory for copying files
       Directory? appMediaDir;
@@ -420,7 +416,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       // Process each journal entry
       for (final entryData in entries) {
         try {
-          _processedEntries++;
 
           // Parse entry data
           final entry = entryData as Map<String, dynamic>;

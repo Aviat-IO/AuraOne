@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 import '../services/photo_service.dart';
+import '../providers/photo_service_provider.dart';
 
 class PhotoPermissionCard extends ConsumerWidget {
   const PhotoPermissionCard({super.key});

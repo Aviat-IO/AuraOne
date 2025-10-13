@@ -45,10 +45,6 @@ class PersonalDailyNarrative {
 /// 100% ON-DEVICE PROCESSING - NO API CALLS
 class PersonalContextEngine {
   final DatabaseService _databaseService;
-  final MultiModalFusionEngine? _fusionEngine;
-
-  // User patterns and preferences learned over time
-  final Map<String, dynamic> _userPatterns = {};
   final Map<String, int> _activityFrequency = {};
   final Map<String, List<String>> _locationActivities = {};
   final List<DailyPattern> _dailyPatterns = [];
@@ -59,9 +55,7 @@ class PersonalContextEngine {
 
   PersonalContextEngine({
     required DatabaseService databaseService,
-    MultiModalFusionEngine? fusionEngine,
-  })  : _databaseService = databaseService,
-        _fusionEngine = fusionEngine;
+  })  : _databaseService = databaseService;
 
   /// Learn from historical user data
   Future<void> learnUserPatterns() async {

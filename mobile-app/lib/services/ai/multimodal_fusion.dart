@@ -68,10 +68,7 @@ class MultiModalFusionService {
 
   // Service dependencies
   final DBSCANClustering _clustering = DBSCANClustering();
-  final ActivityRecognitionService _activityService = ActivityRecognitionService();
   final ImageCaptioningService _captionService = ImageCaptioningService();
-  final CalendarService _calendarService = CalendarService();
-  final HealthService _healthService = HealthService();
   // TODO: PhotoService requires Riverpod Ref - needs refactoring
   // final PhotoService _photoService = PhotoService();
   // final DataAttributionService _attributionService = DataAttributionService();

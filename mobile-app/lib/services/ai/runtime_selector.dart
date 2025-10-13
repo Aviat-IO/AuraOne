@@ -48,7 +48,6 @@ class RuntimeSelector {
   static final RuntimeSelector _instance = RuntimeSelector._internal();
 
   final AdapterRegistry _registry = AdapterRegistry();
-  final CapabilityMatrix _capabilityMatrix = CapabilityMatrix();
 
   AIJournalGenerator? _selectedAdapter;
   AdapterPreferences? _preferences;

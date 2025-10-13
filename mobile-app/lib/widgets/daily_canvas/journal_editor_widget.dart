@@ -21,7 +21,6 @@ final journalEntryProvider = StreamProvider.family<JournalEntry?, DateTime>((ref
     return prev.id == next.id &&
         prev.title == next.title &&
         prev.content == next.content &&
-        prev.sentiment == next.sentiment &&
         prev.updatedAt == next.updatedAt;
   });
 });
@@ -426,25 +425,7 @@ class JournalEditorWidget extends HookConsumerWidget {
                                     height: 1.5,
                                   ) ?? const TextStyle(fontWeight: FontWeight.bold, height: 1.5),
                                 ),
-                                BlockquoteConfig(
-                                  textStyle: theme.textTheme.bodyLarge?.copyWith(
-                                    fontStyle: FontStyle.italic,
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                                  ) ?? TextStyle(
-                                    fontStyle: FontStyle.italic,
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                                  ),
-                                  decoration: BoxDecoration(
-                                    border: Border(
-                                      left: BorderSide(
-                                        color: theme.colorScheme.primary.withValues(alpha: 0.5),
-                                        width: 4,
-                                      ),
-                                    ),
-                                    color: theme.colorScheme.surface.withValues(alpha: 0.5),
-                                  ),
-                                  padding: const EdgeInsets.all(12),
-                                ),
+                                const BlockquoteConfig(),
                               ],
                             ),
                           ),

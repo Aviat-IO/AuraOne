@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:isolate';
 import 'package:flutter/foundation.dart';
-import '../database/location_database.dart';
+import '../database/location_database.dart' hide LocationPoint;
 import '../services/ai/dbscan_clustering.dart';
 import '../services/ai/ultra_fast_clustering.dart';
 import '../utils/logger.dart';
@@ -100,7 +100,7 @@ class ClusteringPrecomputeService {
 
       // Use smart clustering
       final result = await HybridClustering.smartCluster(
-        points,
+        points.cast<LocationPoint>(),
         eps: 50.0,
         minPts: 8,
       );

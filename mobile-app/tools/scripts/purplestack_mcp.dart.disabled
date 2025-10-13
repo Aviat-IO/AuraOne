@@ -132,7 +132,7 @@ class PurpleStackMcpServer {
     _server.tool(
       'read_recipe',
       description: 'Read a specific recipe by name',
-      inputSchemaProperties: {
+      toolInputSchema: {
         'name': {'type': 'string', 'description': 'Name of the recipe to read'},
       },
       callback: ({args, extra}) async {
@@ -145,7 +145,7 @@ class PurpleStackMcpServer {
     _server.tool(
       'search_recipes',
       description: 'Search recipes by query',
-      inputSchemaProperties: {
+      toolInputSchema: {
         'query': {'type': 'string', 'description': 'Search query for recipes'},
       },
       callback: ({args, extra}) async {
@@ -168,7 +168,7 @@ class PurpleStackMcpServer {
     _server.tool(
       'read_doc',
       description: 'Read a specific document by name',
-      inputSchemaProperties: {
+      toolInputSchema: {
         'name': {
           'type': 'string',
           'description': 'Name of the document to read',
@@ -184,7 +184,7 @@ class PurpleStackMcpServer {
     _server.tool(
       'search_docs',
       description: 'Search documentation by query',
-      inputSchemaProperties: {
+      toolInputSchema: {
         'query': {
           'type': 'string',
           'description': 'Search query for documentation',

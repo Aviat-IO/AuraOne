@@ -4,7 +4,6 @@ import 'dbscan_clustering.dart';
 
 /// Ultra-fast clustering engine with aggressive optimizations
 class UltraFastClustering {
-  static final _logger = AppLogger('UltraFastClustering');
 
   /// Time-based clustering - group by time windows instead of spatial distance
   /// This is MUCH faster and often more meaningful for daily activity
