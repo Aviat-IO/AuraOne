@@ -131,10 +131,10 @@ class OnboardingScreen extends HookConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.auto_awesome,
-            size: 100,
-            color: theme.colorScheme.primary,
+          Image.asset(
+            'assets/icons/aura_one_logo.png',
+            width: 100,
+            height: 100,
           ),
           const SizedBox(height: 32),
           Text(
