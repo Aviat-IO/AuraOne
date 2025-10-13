@@ -27,38 +27,37 @@ class CalendarInitializationService {
         return;
       }
 
-      // Check if initial calendars have been set
-      final prefs = await SharedPreferences.getInstance();
-      final hasSetInitialCalendars = prefs.getBool('hasSetInitialCalendars') ?? false;
+      // Check if calendars are already enabled
+      final currentSettings = ref.read(calendarSettingsProvider);
+      if (currentSettings.enabledCalendarIds.isNotEmpty) {
+        appLogger.info('Calendar settings already configured with ${currentSettings.enabledCalendarIds.length} enabled calendars');
+        return;
+      }
 
-      if (!hasSetInitialCalendars) {
-        appLogger.info('First time calendar setup - enabling all calendars by default');
+      appLogger.info('Setting up calendars - enabling all by default');
 
-        try {
-          // Get all available calendars
-          final calendars = await calendarService.getCalendars(forceRefresh: true);
+      try {
+        // Get all available calendars
+        final calendars = await calendarService.getCalendars(forceRefresh: true);
 
-          if (calendars.isNotEmpty) {
-            // Extract calendar IDs
-            final calendarIds = calendars.map((c) => c.id).toList();
+        if (calendars.isNotEmpty) {
+          // Extract calendar IDs
+          final calendarIds = calendars.map((c) => c.id).toList();
 
-            // Enable all calendars by default
-            await ref.read(calendarSettingsProvider.notifier)
-                .enableAllCalendarsIfFirstTime(calendarIds);
+          // Enable all calendars by default using the notifier's method
+          await ref.read(calendarSettingsProvider.notifier)
+              .setAllCalendarsEnabled(calendarIds, true);
 
-            appLogger.info('Enabled ${calendars.length} calendars by default');
-          } else {
-            appLogger.warning('No calendars found on device');
-            // Mark as initialized even if no calendars found to prevent infinite loop
-            await prefs.setBool('hasSetInitialCalendars', true);
-          }
-        } catch (e) {
-          appLogger.error('Failed to initialize calendars', error: e);
-          // Mark as initialized even on error to prevent infinite loop
+          // Mark as initialized
+          final prefs = await SharedPreferences.getInstance();
           await prefs.setBool('hasSetInitialCalendars', true);
+
+          appLogger.info('Enabled ${calendars.length} calendars by default');
+        } else {
+          appLogger.warning('No calendars found on device');
         }
-      } else {
-        appLogger.info('Calendar settings already initialized');
+      } catch (e) {
+        appLogger.error('Failed to initialize calendars', error: e);
       }
     } catch (e) {
       appLogger.error('Calendar initialization failed', error: e);

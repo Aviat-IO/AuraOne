@@ -110,7 +110,20 @@ Future<List<CalendarEventData>> _getCalendarEventsForDate(
 // Provider for calendar events from device calendar
 final calendarEventsProvider = FutureProvider.family<List<CalendarEventData>, DateTime>((ref, date) async {
   final calendarService = ref.watch(calendarServiceProvider);
-  final calendarSettings = ref.watch(calendarSettingsProvider);
+  var calendarSettings = ref.watch(calendarSettingsProvider);
+
+  // Check if calendar initialization is needed
+  if (calendarSettings.enabledCalendarIds.isEmpty) {
+    final hasPermission = await calendarService.hasPermissions();
+    if (hasPermission) {
+      // Trigger initialization if we have permissions but no enabled calendars
+      final calendarInitService = ref.read(calendarInitializationServiceProvider);
+      await calendarInitService.initialize();
+      
+      // Re-read settings after initialization to get updated enabled calendars
+      calendarSettings = ref.read(calendarSettingsProvider);
+    }
+  }
 
   // Get events for the selected date
   // For calendar queries, use local day boundaries (device calendar expects local times)
@@ -152,7 +165,20 @@ final calendarMetadataProvider = FutureProvider.autoDispose<Map<String, String>>
 final timelineEventsProvider = FutureProvider.family<List<TimelineEvent>, DateTime>((ref, date) async {
   final journalDb = ref.watch(journalDatabaseProvider);
   final calendarService = ref.watch(calendarServiceProvider);
-  final calendarSettings = ref.watch(calendarSettingsProvider);
+  var calendarSettings = ref.watch(calendarSettingsProvider);
+
+  // Check if calendar initialization is needed
+  if (calendarSettings.enabledCalendarIds.isEmpty) {
+    final hasPermission = await calendarService.hasPermissions();
+    if (hasPermission) {
+      // Trigger initialization if we have permissions but no enabled calendars
+      final calendarInitService = ref.read(calendarInitializationServiceProvider);
+      await calendarInitService.initialize();
+      
+      // Re-read settings after initialization to get updated enabled calendars
+      calendarSettings = ref.read(calendarSettingsProvider);
+    }
+  }
 
   // Load journal activities and calendar events in parallel
   final results = await Future.wait([
