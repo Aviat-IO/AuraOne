@@ -108,12 +108,13 @@ final clusteredLocationsProvider = FutureProvider.family<List<LocationCluster>, 
 
       // Filter locations for the specific date
       // Show all locations regardless of isSignificant flag to visualize complete location history
-      // Filter out low-accuracy points (>50m accuracy) to improve map visualization quality
+      // Filter out low-accuracy points (>30m accuracy) to improve map visualization quality
+      // More aggressive threshold to handle measurement uncertainty
       final dayLocations = locationHistory
           .where((loc) =>
               loc.timestamp.isAfter(dayStart) &&
               loc.timestamp.isBefore(dayEnd) &&
-              (loc.accuracy == null || loc.accuracy! <= 50.0)  // Only include points with good accuracy
+              (loc.accuracy == null || loc.accuracy! <= 30.0)  // Only include points with good accuracy (reduced from 50m)
           )
           .toList();
 
@@ -228,12 +229,13 @@ final journeySegmentsProvider = FutureProvider.family<List<JourneySegment>, Date
 
       // Filter locations for the specific date
       // Show all locations regardless of isSignificant flag to visualize complete location history
-      // Filter out low-accuracy points (>50m accuracy) to improve map visualization quality
+      // Filter out low-accuracy points (>30m accuracy) to improve map visualization quality
+      // More aggressive threshold to handle measurement uncertainty
       final dayLocations = locationHistory
           .where((loc) =>
               loc.timestamp.isAfter(dayStart) &&
               loc.timestamp.isBefore(dayEnd) &&
-              (loc.accuracy == null || loc.accuracy! <= 50.0)  // Only include points with good accuracy
+              (loc.accuracy == null || loc.accuracy! <= 30.0)  // Only include points with good accuracy (reduced from 50m)
           )
           .toList();
 
@@ -345,6 +347,8 @@ List<loc_db.LocationPoint> _removeGeographicOutliers(List<loc_db.LocationPoint> 
 
 /// Filter 2: Removes points that require impossible speeds to reach from the previous point
 /// This catches GPS glitches that create sudden "jumps" in location
+/// Maximum reasonable driving speed: 140 km/h (~87 mph) to account for highway driving
+/// This is more realistic than 200 km/h and filters more aggressive outliers
 List<loc_db.LocationPoint> _removeSpeedOutliers(List<loc_db.LocationPoint> locations) {
   if (locations.length < 2) {
     return locations;
@@ -355,11 +359,12 @@ List<loc_db.LocationPoint> _removeSpeedOutliers(List<loc_db.LocationPoint> locat
 
   final filtered = <loc_db.LocationPoint>[sorted.first]; // Always keep first point
 
-  // Maximum reasonable speed: 200 km/h (~125 mph) to account for highway driving
-  const maxSpeedMetersPerSecond = 200 / 3.6; // Convert km/h to m/s (~55.5 m/s)
+  // Maximum reasonable speed: 140 km/h (~87 mph) for highway driving
+  // Reduced from 200 km/h to be more realistic
+  const maxSpeedMetersPerSecond = 140 / 3.6; // Convert km/h to m/s (~38.9 m/s)
 
   for (int i = 1; i < sorted.length; i++) {
-    final prev = sorted[i - 1];
+    final prev = filtered.last; // Compare against last filtered point, not previous raw point
     final curr = sorted[i];
 
     // Calculate distance between points (Haversine formula for accuracy)
