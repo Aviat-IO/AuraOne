@@ -19,7 +19,6 @@ class EnhancedEncryptionService {
   static const int _saltLength = 32; // 256 bits salt
   static const int _ivLength = 12; // 96 bits for GCM
   static const int _tagLength = 16; // 128 bits for GCM
-  static const int _iterationCount = 100000; // PBKDF2 iterations
   static const int _deviceKeyIterations = 50000; // Device-specific iterations
   
   /// Enhanced secure storage with backup-specific options

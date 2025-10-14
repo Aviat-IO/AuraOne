@@ -2,19 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/pattern_analyzer.dart';
 import '../services/journal_service.dart';
 import '../models/pattern_analysis_models.dart';
-import 'location_database_provider.dart';
-import 'media_database_provider.dart';
 
 /// Provider for the PatternAnalyzer service
 final patternAnalyzerProvider = Provider<PatternAnalyzer>((ref) {
   final journalDatabase = ref.watch(journalDatabaseProvider);
-  final mediaDatabase = ref.watch(mediaDatabaseProvider);
-  final locationDatabase = ref.watch(locationDatabaseProvider);
 
   return PatternAnalyzer(
     journalDatabase: journalDatabase,
-    mediaDatabase: mediaDatabase,
-    locationDatabase: locationDatabase,
   );
 });
 

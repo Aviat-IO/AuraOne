@@ -12,7 +12,6 @@ import '../providers/media_database_provider.dart';
 import '../providers/photo_service_provider.dart';
 import '../providers/location_clustering_provider.dart';
 import '../services/journal_service.dart';
-import '../services/ai/hybrid_ai_service.dart';
 
 // Provider for sub-tab index in DailyEntryView - default to Journal (index 0)
 final dailyEntrySubTabIndexProvider = StateProvider<int>((ref) => 0);
@@ -178,7 +177,6 @@ class _JournalTab extends HookConsumerWidget {
     final isEditing = useState(false);
     final controller = useTextEditingController();
     final isGenerating = useState(false);
-    final aiService = useMemoized(() => HybridAIService(), []);
     final textFieldFocusNode = useFocusNode();
 
     // Add a flag to prevent any focus for the first 500ms after mount
@@ -283,9 +281,8 @@ class _JournalTab extends HookConsumerWidget {
       // Get existing entry first to check if it has edits
       final existingEntry = await journalService.getEntryForDate(date);
 
-      // Check if entry exists and has been edited
       if (existingEntry != null && existingEntry.isEdited) {
-        // Show confirmation dialog
+        if (!context.mounted) return;
         final shouldRegenerate = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
@@ -325,7 +322,7 @@ class _JournalTab extends HookConsumerWidget {
           journalEntry.value = newEntry.content;
           controller.text = newEntry.content;
         }
-      } on InsufficientDataException catch (e) {
+      } on InsufficientDataException {
         // Show user-friendly message when there's no data to generate from
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

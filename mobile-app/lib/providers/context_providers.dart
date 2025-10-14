@@ -7,8 +7,6 @@ import 'database_provider.dart';
 /// Provider for the Personal Context Engine
 /// 100% ON-DEVICE - NO API CALLS
 final personalContextEngineProvider = Provider<PersonalContextEngine>((ref) {
-  final databaseService = ref.watch(databaseServiceProvider);
-
   return PersonalContextEngine(
     databaseService: ref.watch(databaseServiceProvider),
   );

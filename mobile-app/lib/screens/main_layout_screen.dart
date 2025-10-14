@@ -17,8 +17,6 @@ class MainLayoutScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = ref.watch(selectedTabIndexProvider);
-    final theme = Theme.of(context);
-    final isLight = theme.brightness == Brightness.light;
 
     final screens = [
       const SearchScreen(),

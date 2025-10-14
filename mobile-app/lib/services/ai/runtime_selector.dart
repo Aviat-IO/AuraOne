@@ -2,7 +2,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/logger.dart';
 import 'ai_journal_generator.dart';
 import 'adapter_registry.dart';
-import 'capability_matrix.dart';
 
 /// User preferences for AI adapter selection
 class AdapterPreferences {

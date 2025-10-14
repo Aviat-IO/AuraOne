@@ -681,12 +681,13 @@ class BackupRestorationService {
   }
   
   
-  Future<int> _restoreMediaFiles(
+  // Unused: Kept for compatibility with old backup formats
+  /* Future<int> _restoreMediaFiles(
     List<dynamic> mediaReferences) async {
     // This method is now handled in executeRestore
     // Keeping for compatibility with old backup formats
     return 0;
-  }
+  } */
   
   void _updateProgress({
     required String phase,

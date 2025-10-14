@@ -471,26 +471,6 @@ class DataDeletionScreen extends HookConsumerWidget {
                                           ),
                                         ],
                                       ),
-                                      // Storage size calculation removed as photos/videos not deleted
-                                      if (false) ...[
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              'Storage:',
-                                              style:
-                                                  theme.textTheme.bodyMedium,
-                                            ),
-                                            Text(
-                                              'N/A',
-                                              style:
-                                                  theme.textTheme.bodyMedium,
-                                            ),
-                                          ],
-                                        ),
-                                      ],
                                       if (deletionPreview.value!.oldestDate !=
                                               null &&
                                           deletionPreview.value!.newestDate !=

@@ -293,7 +293,6 @@ class EnhancedDailySummary {
     // Basic summary without AI enhancements
     final eventCounts = <EventType, int>{};
     final activityTypeCounts = <String, int>{};
-    final locations = <String>[];
     var photoCount = 0;
     var calendarEventCount = 0;
     var movementMinutes = 0;
@@ -1305,7 +1304,8 @@ class EnhancedSummaryWidget extends ConsumerWidget {
     }
   }
 
-  Widget _buildConfidenceAnalysisCard(ThemeData theme, EnhancedDailySummary summary) {
+  // Unused: Future feature for confidence analysis display
+  /* Widget _buildConfidenceAnalysisCard(ThemeData theme, EnhancedDailySummary summary) {
     final confidenceAnalysis = summary.confidenceAnalysis!;
 
     return Card(
@@ -1484,7 +1484,7 @@ class EnhancedSummaryWidget extends ConsumerWidget {
         ),
       ),
     );
-  }
+  } */
 
   Widget _buildPatternInsightsCard(BuildContext context, ThemeData theme) {
     return Card(

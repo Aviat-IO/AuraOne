@@ -16,7 +16,6 @@ class ReverseGeocodingService {
   static const Duration _cacheDuration = Duration(days: 7);
 
   // Rate limiting
-  static final _requestQueue = <Future<PlaceInfo?>>[];
   static DateTime? _lastRequestTime;
   static const Duration _minRequestInterval = Duration(seconds: 1); // Respect Nominatim's rate limit
 
@@ -298,7 +297,6 @@ class PlaceInfo {
   /// Infer category from OSM data
   static PlaceCategory _inferCategory(Map<String, dynamic> data) {
     final type = data['type']?.toLowerCase() ?? '';
-    final osmType = data['osm_type']?.toLowerCase() ?? '';
     final addressType = data['addresstype']?.toLowerCase() ?? '';
     final address = data['address'] ?? {};
     final extraTags = data['extratags'] ?? {};

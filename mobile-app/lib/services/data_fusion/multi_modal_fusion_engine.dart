@@ -16,7 +16,6 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:photo_manager/photo_manager.dart';
-import '../simple_location_service.dart';
 import '../photo_service.dart';
 import '../ai/advanced_photo_analyzer.dart';
 import '../../providers/database_provider.dart';
@@ -152,7 +151,6 @@ enum ActivityType {
 /// Multi-Modal Data Fusion Engine
 /// Combines photo analysis, location data, and movement patterns
 class MultiModalFusionEngine {
-  final SimpleLocationService _locationService;
   final PhotoService _photoService;
   final DatabaseService _databaseService;
   final AdvancedPhotoAnalyzer _photoAnalyzer;
@@ -177,12 +175,10 @@ class MultiModalFusionEngine {
   bool _isRunning = false;
 
   MultiModalFusionEngine({
-    required SimpleLocationService locationService,
     required PhotoService photoService,
     required DatabaseService databaseService,
     required AdvancedPhotoAnalyzer photoAnalyzer,
-  })  : _locationService = locationService,
-        _photoService = photoService,
+  })  : _photoService = photoService,
         _databaseService = databaseService,
         _photoAnalyzer = photoAnalyzer;
 
@@ -435,11 +431,11 @@ class MultiModalFusionEngine {
         final analysis = await _photoAnalyzer.analyzePhoto(photo.filePath!);
         contexts.add(PhotoContext(
           photoPath: photo.filePath!,
-          timestamp: photo.createdDate ?? DateTime.now(),
-          objects: (analysis['objects'] as List<dynamic>? ?? [])
+          timestamp: photo.createdDate,
+          objects: ((analysis['objects'] as List<dynamic>?) ?? [])
             .map((o) => o.toString())
             .toList(),
-          labels: (analysis['labels'] as List<dynamic>? ?? [])
+          labels: ((analysis['labels'] as List<dynamic>?) ?? [])
             .map((l) => l.toString())
             .toList(),
           faceCount: analysis['faceCount'] as int? ?? 0,

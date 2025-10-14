@@ -183,13 +183,16 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                     Expanded(
                       child: AsyncButtonBuilder(
                         onPressed: _performImport,
-                        builder: (context, child, callback, isDisabled) {
-                          return FilledButton.icon(
-                            onPressed: isDisabled == true ? null : callback,
-                            icon: const Icon(Icons.import_export),
-                            label: child,
-                          );
-                        },
+                      builder: (context, child, callback, buttonState) {
+                        return FilledButton.icon(
+                          onPressed: buttonState.maybeWhen(
+                            loading: () => null,
+                            orElse: () => callback,
+                          ),
+                          icon: const Icon(Icons.import_export),
+                          label: child,
+                        );
+                      },
                         child: const Text('Import'),
                       ),
                     ),

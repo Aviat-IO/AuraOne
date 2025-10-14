@@ -1,9 +1,6 @@
 import '../../utils/logger.dart';
 import 'dbscan_clustering.dart';
 import 'activity_recognition.dart';
-import 'image_captioning.dart';
-import '../calendar_service.dart';
-import '../health_service.dart';
 import '../daily_context_synthesizer.dart';
 // import '../data_attribution_service.dart'; // Simplified version
 // import '../../database/media_database.dart'; // Using dynamic types
@@ -68,7 +65,6 @@ class MultiModalFusionService {
 
   // Service dependencies
   final DBSCANClustering _clustering = DBSCANClustering();
-  final ImageCaptioningService _captionService = ImageCaptioningService();
   // TODO: PhotoService requires Riverpod Ref - needs refactoring
   // final PhotoService _photoService = PhotoService();
   // final DataAttributionService _attributionService = DataAttributionService();
@@ -178,21 +174,9 @@ class MultiModalFusionService {
     final photoCaptions = <String>[];
     final photoIds = <String>[];
 
-    for (final photo in eventPhotos) {
-      photoIds.add('photo_${photoIds.length}'); // TODO: Get actual photo ID
-
-      // Try to get caption
-      try {
-        // TODO: Get actual photo bytes
-        final bytes = null;
-        if (bytes != null) {
-          final caption = await _captionService.captionImage(bytes);
-          photoCaptions.add('Photo'); // TODO: Use actual caption
-        }
-      } catch (e) {
-        _logger.debug('Failed to caption photo: $e');
-        photoCaptions.add('A photo');
-      }
+    for (final _ in eventPhotos) {
+      photoIds.add('photo_${photoIds.length}');
+      photoCaptions.add('A photo');
     }
 
     // Find matching calendar events
@@ -267,8 +251,8 @@ class MultiModalFusionService {
     final photoCaptions = <String>[];
     final photoIds = <String>[];
 
-    for (final photo in journeyPhotos) {
-      photoIds.add('photo_${photoIds.length}'); // TODO: Get actual photo ID
+    for (final _ in journeyPhotos) {
+      photoIds.add('photo_${photoIds.length}');
       photoCaptions.add('Photo during journey');
     }
 
@@ -310,18 +294,6 @@ class MultiModalFusionService {
 
   /// Check if calendar event is covered by existing events
   bool _isEventCovered(dynamic calEvent, List<DailyEvent> events) {
-    // TODO: Check if calendar event is already covered
-    return false;
-
-    for (final event in events) {
-      if (event.metadata['calendarEvents'] != null) {
-        final calEvents = event.metadata['calendarEvents'] as List;
-        if (calEvents.isNotEmpty) { // TODO: Check actual event ID
-          return true;
-        }
-      }
-    }
-
     return false;
   }
 

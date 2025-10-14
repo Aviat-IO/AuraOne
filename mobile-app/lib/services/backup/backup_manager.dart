@@ -972,17 +972,6 @@ class BackupManager {
     // Use the BackupRestorationService for proper restoration
     final restorationService = BackupRestorationService();
     
-    // Create a temporary metadata for the restoration
-    final tempMetadata = BackupMetadata(
-      backupId: 'direct_restore_${DateTime.now().millisecondsSinceEpoch}',
-      timestamp: DateTime.now(),
-      checksum: '',
-      entryCount: (data['journalEntries'] as List?)?.length ?? 0,
-      mediaCount: (data['mediaReferences'] as List?)?.length ?? 0,
-      sizeMB: 0.0,
-      provider: BackupProvider.local,
-    );
-    
     // Execute restoration with merge strategy
     final result = await restorationService.executeRestore(
       backupData: {

@@ -42,7 +42,6 @@ class JournalEditorWidget extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final isLight = theme.brightness == Brightness.light;
     final journalEntryAsync = ref.watch(journalEntryProvider(date));
     final isEditMode = ref.watch(journalEditModeProvider);
     final isLoading = ref.watch(journalLoadingProvider);
@@ -107,7 +106,6 @@ class JournalEditorWidget extends HookConsumerWidget {
     final voiceService = ref.read(voiceEditingServiceProvider);
     final isListening = useState(false);
     final voiceTranscription = useState('');
-    final voiceCommand = useState('');
     final isSpeaking = useState(false);
 
     // Initialize voice service
@@ -176,8 +174,7 @@ class JournalEditorWidget extends HookConsumerWidget {
                     onListeningStateChanged: () async {
                       if (isListening.value) {
                         await voiceService.stopListening();
-                        // Apply the voice command
-                        if (voiceTranscription.value.isNotEmpty) {
+                        if (voiceTranscription.value.isNotEmpty && context.mounted) {
                           _handleVoiceCommand(
                             context,
                             contentController,
@@ -265,15 +262,10 @@ class JournalEditorWidget extends HookConsumerWidget {
 
                         if (journalEntry == null) {
                           // Create new entry (shouldn't happen since we auto-create, but just in case)
-                          print('Creating new journal entry for date: $date');
                           await journalService.createEntryForDate(date);
                         } else {
                           // Update existing entry
-                          print('Updating journal entry ID: ${journalEntry.id}');
-                          print('Title: ${titleController.text.trim()}');
-                          print('Content length: ${contentController.text.trim().length}');
-
-                          final success = await journalService.updateJournalEntry(
+                          await journalService.updateJournalEntry(
                             id: journalEntry.id,
                             title: titleController.text.trim().isNotEmpty
                                 ? titleController.text.trim()
@@ -282,8 +274,6 @@ class JournalEditorWidget extends HookConsumerWidget {
                                 ? contentController.text.trim()
                                 : null,
                           );
-
-                          print('Update result: $success');
                         }
 
                         if (context.mounted) {
@@ -292,12 +282,14 @@ class JournalEditorWidget extends HookConsumerWidget {
                           );
                         }
                       } catch (error) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to save: $error'),
-                            backgroundColor: theme.colorScheme.error,
-                          ),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to save: $error'),
+                              backgroundColor: theme.colorScheme.error,
+                            ),
+                          );
+                        }
                       } finally {
                         ref.read(journalLoadingProvider.notifier).state = false;
                       }
@@ -483,12 +475,14 @@ class JournalEditorWidget extends HookConsumerWidget {
                 await journalService.createEntryForDate(date);
                 ref.read(journalEditModeProvider.notifier).state = true;
               } catch (error) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Failed to create entry: $error'),
-                    backgroundColor: theme.colorScheme.error,
-                  ),
-                );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to create entry: $error'),
+                      backgroundColor: theme.colorScheme.error,
+                    ),
+                  );
+                }
               } finally {
                 ref.read(journalLoadingProvider.notifier).state = false;
               }

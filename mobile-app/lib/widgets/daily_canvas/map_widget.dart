@@ -276,7 +276,8 @@ class MapWidget extends HookConsumerWidget {
   }
 
   /// Calculate bounds from all location points to ensure everything is visible
-  LatLngBounds? _calculateBounds(List<LocationCluster> clusters) {
+  // Unused: Future feature for auto-zoom
+  /* LatLngBounds? _calculateBounds(List<LocationCluster> clusters) {
     if (clusters.isEmpty) return null;
 
     double? minLat;
@@ -301,7 +302,7 @@ class MapWidget extends HookConsumerWidget {
       LatLng(minLat, minLng),
       LatLng(maxLat, maxLng),
     );
-  }
+  } */
 
   LatLng _calculateMapCenter(List<LocationCluster> clusters) {
     if (clusters.isEmpty) {
@@ -398,7 +399,8 @@ class MapWidget extends HookConsumerWidget {
     return zoom;
   }
 
-  List<Marker> _buildMarkers(List<LocationCluster> clusters, ThemeData theme) {
+  // Unused: Future feature for custom markers
+  /* List<Marker> _buildMarkers(List<LocationCluster> clusters, ThemeData theme) {
     return clusters.map((cluster) {
       final size = _getMarkerSize(cluster.points.length);
       final color = _getMarkerColor(cluster.points.length, theme);
@@ -436,22 +438,9 @@ class MapWidget extends HookConsumerWidget {
         ),
       );
     }).toList();
-  }
+  } */
 
-  double _getMarkerSize(int pointCount) {
-    if (pointCount == 1) return 20.0;
-    if (pointCount < 5) return 30.0;
-    if (pointCount < 10) return 40.0;
-    if (pointCount < 20) return 50.0;
-    return 60.0;
-  }
 
-  Color _getMarkerColor(int pointCount, ThemeData theme) {
-    if (pointCount == 1) return theme.colorScheme.secondary;
-    if (pointCount < 5) return theme.colorScheme.primary;
-    if (pointCount < 10) return theme.colorScheme.tertiary;
-    return theme.colorScheme.error;
-  }
 
   List<loc_db.LocationPoint> _filterLocationsByDate(
     List<loc_db.LocationPoint> locations,

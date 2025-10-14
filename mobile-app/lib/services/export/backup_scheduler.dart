@@ -27,7 +27,6 @@ void callbackDispatcher() {
           return false;
       }
     } catch (e) {
-      print('Background task error: $e');
       return false;
     }
   });
@@ -195,10 +194,8 @@ class BackupScheduler {
   
   /// Initialize the backup scheduler
   static Future<void> initialize() async {
-    // Initialize workmanager
     await Workmanager().initialize(
       callbackDispatcher,
-      isInDebugMode: false,
     );
     
     // Initialize notifications
@@ -498,7 +495,7 @@ class BackupScheduler {
       await _addToHistory(BackupHistoryEntry(
         timestamp: DateTime.now(),
         success: true,
-        location: backupLocation ?? 'Unknown',
+        location: backupLocation,
         sizeMB: backupSizeMB,
         entriesCount: journalEntries.length,
         encrypted: config.enableEncryption,
@@ -711,7 +708,6 @@ class BackupScheduler {
     void Function(double)? onProgress,
   }) async {
     final config = await getConfig();
-    final status = await getStatus();
     
     // Create a temporary config for manual backup
     final manualConfig = config.toJson();

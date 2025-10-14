@@ -39,7 +39,7 @@ class BackgroundInitService {
       ));
 
       // Heavy database initialization in background
-      final dbInitResult = await compute(_initializeDatabase, dbPath);
+      await compute(_initializeDatabase, dbPath);
 
       _progressController.add(InitializationProgress(
         step: 'Initializing database provider',
@@ -56,7 +56,7 @@ class BackgroundInitService {
       ));
 
       // Initialize services in parallel using Future.wait
-      final results = await Future.wait([
+      await Future.wait([
         _initializeLocationServiceLazy(onboardingCompleted),
         _initializeMovementServiceLazy(),
         _initializeBackgroundDataServiceLazy(),
@@ -77,7 +77,7 @@ class BackgroundInitService {
       ));
 
       // Journal service initialization (lightweight)
-      final journalInitResult = await _initializeJournalServiceLazy();
+      await _initializeJournalServiceLazy();
 
       _progressController.add(InitializationProgress(
         step: 'Ready',

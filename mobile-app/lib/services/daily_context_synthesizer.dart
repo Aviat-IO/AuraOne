@@ -283,7 +283,6 @@ class DailyContextSynthesizer {
   final DistanceCalculator _distanceCalculator = DistanceCalculator();
   final LocationClusterNamer _locationClusterNamer = LocationClusterNamer();
   final TimelineEventAggregator _timelineAggregator = TimelineEventAggregator();
-  final DataRichNarrativeBuilder _narrativeBuilder = DataRichNarrativeBuilder();
   final ActivityValidator _activityValidator = ActivityValidator();
 
   /// Synthesize comprehensive daily context from all data sources
@@ -799,7 +798,8 @@ class DailyContextSynthesizer {
   }
 
   /// Calculate center point of a location cluster
-  LocationPoint _calculateClusterCenter(List<LocationPoint> cluster) {
+  // Unused: Future feature for cluster analysis
+  /* LocationPoint _calculateClusterCenter(List<LocationPoint> cluster) {
     if (cluster.length == 1) {
       return cluster.first;
     }
@@ -828,7 +828,7 @@ class DailyContextSynthesizer {
       isSignificant: cluster.first.isSignificant,
       createdAt: cluster.first.createdAt,
     );
-  }
+  } */
 
   /// Analyze time of day patterns
   TimeOfDayAnalysis _analyzeTimeOfDay(

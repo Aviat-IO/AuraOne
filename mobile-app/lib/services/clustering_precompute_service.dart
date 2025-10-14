@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'dart:isolate';
-import 'package:flutter/foundation.dart';
-import '../database/location_database.dart' hide LocationPoint;
 import '../services/ai/dbscan_clustering.dart';
 import '../services/ai/ultra_fast_clustering.dart';
 import '../utils/logger.dart';
@@ -80,7 +78,6 @@ class ClusteringPrecomputeService {
 
     // Skip if already cached and fresh
     if (_cache.containsKey(key)) {
-      final cached = _cache[key]!;
       // Re-compute if data is older than 1 hour
       if (DateTime.now().difference(date).inHours < 1) {
         return;

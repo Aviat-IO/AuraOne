@@ -22,13 +22,14 @@ class PermissionService {
     }
 
     if (status.isDenied) {
-      // Show rationale dialog before requesting
+      if (!context.mounted) {
+        return false;
+      }
       final shouldRequest = await _showRationaleDialog(context);
       if (!shouldRequest || !context.mounted) {
         return false;
       }
 
-      // Request permission
       final result = await Permission.microphone.request();
       return result.isGranted;
     }

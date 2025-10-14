@@ -554,18 +554,21 @@ class LocationPermissionFlow extends HookConsumerWidget {
 
       if (permission == LocationPermission.deniedForever) {
         isRequestingPermission.value = false;
-        _showPermissionDeniedDialog(context);
+        if (context.mounted) {
+          _showPermissionDeniedDialog(context);
+        }
         return;
       }
 
       if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
         currentStep?.value = 1;
 
-        // Check if location service is enabled
         final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
         if (!serviceEnabled) {
           isRequestingPermission.value = false;
-          _showLocationServiceDisabledDialog(context);
+          if (context.mounted) {
+            _showLocationServiceDisabledDialog(context);
+          }
           return;
         }
 

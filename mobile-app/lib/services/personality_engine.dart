@@ -1,4 +1,3 @@
-import '../utils/logger.dart';
 import 'emotional_tone_analyzer.dart';
 
 /// Adjusts narrative phrasing based on emotional tone
@@ -7,7 +6,6 @@ import 'emotional_tone_analyzer.dart';
 /// aspects of the narrative (verbs, adjectives, transitions) to match the
 /// emotional character of the day.
 class PersonalityEngine {
-  static final _logger = AppLogger('PersonalityEngine');
   static final PersonalityEngine _instance = PersonalityEngine._internal();
 
   factory PersonalityEngine() => _instance;
@@ -31,8 +29,6 @@ class PersonalityEngine {
 
   /// Adjust transition phrase based on emotional tone
   String adjustTransition(String baseTransition, EmotionalProfile profile) {
-    final tone = profile.primaryTone;
-
     // High-energy days get more dynamic transitions
     if (profile.energy > 70) {
       return _energizeTransition(baseTransition);

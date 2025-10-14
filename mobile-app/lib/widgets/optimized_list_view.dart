@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 /// Optimized list view that uses lazy loading and efficient rendering
 /// to prevent frame drops and improve performance
@@ -215,8 +216,7 @@ extension PerformanceHelpers on BuildContext {
     if (scrollable == null) return false;
 
     final position = scrollable.position;
-    // Defer if scrolling fast
-    return position.activity?.velocity != null &&
-           position.activity!.velocity.abs() > 1000;
+    // Defer if scrolling fast - use userScrollDirection as a proxy
+    return position.userScrollDirection != ScrollDirection.idle;
   }
 }

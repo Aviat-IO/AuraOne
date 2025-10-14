@@ -52,7 +52,8 @@ class AIJournalGenerator {
   }
 
   /// Generate the main narrative text
-  String _generateNarrative(DailyContext context) {
+  // Unused: Future feature for narrative generation
+  /* String _generateNarrative(DailyContext context) {
     final buffer = StringBuffer();
 
     // Opening based on overall day sentiment
@@ -88,145 +89,7 @@ class AIJournalGenerator {
     buffer.write(closing);
 
     return buffer.toString().trim();
-  }
-
-  /// Generate contextual opening sentences
-  String _getContextualOpenings(DailyContext context) {
-    final photoCount = context.photoContexts.length;
-    final hasCalendarEvents = context.calendarEvents.isNotEmpty;
-    final hasMovement = context.movementData.isNotEmpty;
-
-    // Activity-based openings
-    if (photoCount > 10) {
-      return 'Today was filled with moments worth capturing. ';
-    } else if (photoCount > 5) {
-      return 'A day of interesting experiences and memorable moments. ';
-    } else if (hasCalendarEvents && context.calendarEvents.length > 3) {
-      return 'It was a busy day with several planned activities. ';
-    } else if (hasMovement) {
-      return 'A day of movement and gentle activity. ';
-    } else {
-      return 'Today offered a peaceful rhythm and quiet reflection. ';
-    }
-  }
-
-  /// Generate social context narrative
-  String _generateSocialNarrative(DailyContext context) {
-    final totalPeople = context.photoContexts.fold(0, (sum, photo) => sum + photo.faceCount);
-    final groupPhotos = context.photoContexts.where((photo) => photo.socialContext.isGroupPhoto).length;
-    final selfies = context.photoContexts.where((photo) => photo.socialContext.isSelfie).length;
-
-    if (totalPeople == 0) {
-      return 'I spent time in solitude, enjoying my own company and thoughts.';
-    } else if (groupPhotos > selfies) {
-      return 'Time with others brought warmth and connection to the day.';
-    } else if (selfies > 2) {
-      return 'I documented personal moments and reflections throughout the day.';
-    } else if (totalPeople > 10) {
-      return 'The day was rich with social interactions and shared experiences.';
-    } else {
-      return 'I shared meaningful moments with the people around me.';
-    }
-  }
-
-  /// Generate activity-based narrative
-  String _generateActivityNarrative(DailyContext context) {
-    final activities = <String>[];
-    final environments = <String>[];
-
-    // Analyze photo contexts for activities
-    for (final photo in context.photoContexts) {
-      // Food and dining
-      if (photo.sceneLabels.any((label) => ['restaurant', 'cafe', 'food'].contains(label.toLowerCase())) ||
-          photo.objectLabels.any((label) => ['food', 'drink', 'coffee'].contains(label.toLowerCase()))) {
-        activities.add('dining');
-      }
-
-      // Outdoor activities
-      if (photo.sceneLabels.any((label) => ['outdoor', 'nature', 'park'].contains(label.toLowerCase()))) {
-        activities.add('outdoor exploration');
-      }
-
-      // Work
-      if (photo.sceneLabels.any((label) => ['office', 'workplace', 'meeting'].contains(label.toLowerCase()))) {
-        activities.add('work');
-      }
-
-      // Transportation
-      if (photo.sceneLabels.any((label) => ['vehicle', 'car', 'transport'].contains(label.toLowerCase()))) {
-        activities.add('travel');
-      }
-    }
-
-    // Generate narrative from activities
-    if (activities.isEmpty) {
-      return 'The day unfolded with quiet, undocumented activities.';
-    }
-
-    final uniqueActivities = activities.toSet().toList();
-    if (uniqueActivities.length == 1) {
-      return 'The day centered around ${uniqueActivities.first}, creating a focused experience.';
-    } else if (uniqueActivities.length <= 3) {
-      return 'The day included ${uniqueActivities.join(', ')}, creating a well-rounded experience.';
-    } else {
-      return 'A varied day with multiple activities including ${uniqueActivities.take(3).join(', ')} and more.';
-    }
-  }
-
-  /// Generate location-based narrative
-  String _generateLocationNarrative(DailyContext context) {
-    if (context.locationPoints.isEmpty) {
-      return 'I stayed close to familiar spaces.';
-    }
-
-    final locationCount = context.locationPoints.length;
-    final hasMovement = context.movementData.isNotEmpty;
-
-    if (locationCount > 20 && hasMovement) {
-      return 'The day took me through various locations, each offering its own character and energy.';
-    } else if (locationCount > 10) {
-      return 'I moved through several different places, experiencing the unique atmosphere of each.';
-    } else if (locationCount > 5) {
-      return 'A few different locations provided the backdrop for today\'s experiences.';
-    } else {
-      return 'Most of the day was spent in familiar, comfortable surroundings.';
-    }
-  }
-
-  /// Generate environment-based narrative
-  String _generateEnvironmentNarrative(DailyContext context) {
-    final environments = context.photoContexts
-        .expand((photo) => photo.sceneLabels)
-        .map((label) => label.toLowerCase())
-        .toSet();
-
-    if (environments.contains('outdoor') || environments.contains('nature')) {
-      return 'The natural world provided a beautiful backdrop, offering fresh air and open spaces.';
-    } else if (environments.contains('restaurant') || environments.contains('cafe')) {
-      return 'Comfortable dining spaces created opportunities for nourishment and conversation.';
-    } else if (environments.contains('home') || environments.contains('house')) {
-      return 'Home provided a sanctuary of comfort and personal space.';
-    } else if (environments.contains('office') || environments.contains('workplace')) {
-      return 'Professional environments shaped the day\'s focus and productivity.';
-    } else {
-      return 'Each space visited today contributed its own unique energy and atmosphere.';
-    }
-  }
-
-  /// Generate closing reflection
-  String _generateClosingReflection(DailyContext context) {
-    final confidence = context.overallConfidence;
-
-    if (confidence > 0.8) {
-      return 'Looking back, it was a day filled with clear moments and meaningful experiences.';
-    } else if (confidence > 0.6) {
-      return 'The day held its own quiet significance, with moments that mattered.';
-    } else if (confidence > 0.4) {
-      return 'While some details may fade, the essence of today remains.';
-    } else {
-      return 'Sometimes the most important parts of a day are the feelings and impressions that linger.';
-    }
-  }
+  } */
 
   /// Generate insights based on patterns and context
   List<String> _generateInsights(DailyContext context) {

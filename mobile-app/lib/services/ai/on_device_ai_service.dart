@@ -24,9 +24,6 @@ class OnDeviceAIService {
       // Legacy fallback for backward compatibility
       final photosCount = context['photosCount'] as int? ?? photos.length;
       final locationsCount = context['locationsCount'] as int? ?? locations.length;
-      final simpleCalendarEvents = context['calendarEvents'] is List<String>
-          ? context['calendarEvents'] as List<String>
-          : calendarEvents.map((e) => e['title'] as String? ?? 'Event').toList();
 
       // Generate rich, compelling narrative with all context
       final content = _generateCompellingNarrative(
@@ -573,7 +570,8 @@ class OnDeviceAIService {
     return [];
   }
 
-  String _generateFactualSummary(int photosCount, int locationsCount, List<String> calendarEvents) {
+  // Unused: Future feature for factual summaries
+  /* String _generateFactualSummary(int photosCount, int locationsCount, List<String> calendarEvents) {
     final List<String> summaryParts = [];
 
     if (calendarEvents.isNotEmpty) {
@@ -593,7 +591,7 @@ class OnDeviceAIService {
     }
 
     return 'Day with ${summaryParts.join(', ')}';
-  }
+  } */
 
   String _formatDate(DateTime date) {
     final months = [

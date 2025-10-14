@@ -1,11 +1,8 @@
-import '../utils/logger.dart';
-
 /// Generates contextual transition phrases based on time, distance, and activity
 ///
 /// Creates natural narrative flow by selecting appropriate phrases for transitions
 /// between timeline events considering temporal and spatial relationships.
 class ContextualPhraseGenerator {
-  static final _logger = AppLogger('ContextualPhraseGenerator');
   static final ContextualPhraseGenerator _instance = ContextualPhraseGenerator._internal();
 
   factory ContextualPhraseGenerator() => _instance;

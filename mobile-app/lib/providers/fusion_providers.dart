@@ -2,7 +2,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/data_fusion/multi_modal_fusion_engine.dart';
 import '../services/ai/advanced_photo_analyzer.dart';
-import 'location_providers.dart';
 import 'photo_providers.dart';
 import 'database_provider.dart';
 
@@ -13,13 +12,11 @@ final photoAnalyzerProvider = Provider<AdvancedPhotoAnalyzer>((ref) {
 
 /// Provider for the multi-modal fusion engine
 final fusionEngineProvider = Provider<MultiModalFusionEngine>((ref) {
-  final locationService = ref.watch(locationServiceProvider);
   final photoService = ref.watch(photoServiceProvider);
   final databaseService = ref.watch(databaseServiceProvider);
   final photoAnalyzer = ref.watch(photoAnalyzerProvider);
 
   return MultiModalFusionEngine(
-    locationService: locationService,
     photoService: photoService,
     databaseService: databaseService,
     photoAnalyzer: photoAnalyzer,

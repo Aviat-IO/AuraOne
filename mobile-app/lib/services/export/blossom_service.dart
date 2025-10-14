@@ -134,7 +134,7 @@ class BlossomService {
       try {
         return await _downloadFromUrl(url, onProgress: onProgress);
       } catch (e) {
-        print('Failed to download from provided URL: $e');
+        // Continue to try other servers
       }
     }
     
@@ -153,8 +153,6 @@ class BlossomService {
             final downloadedHash = sha256.convert(data).toString();
             if (downloadedHash == hash) {
               return data;
-            } else {
-              print('Hash mismatch: expected $hash, got $downloadedHash');
             }
           } catch (e) {
             // Try next extension
@@ -162,7 +160,7 @@ class BlossomService {
           }
         }
       } catch (e) {
-        print('Failed to download from $server: $e');
+        // Continue to try next server
       }
     }
     

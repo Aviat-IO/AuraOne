@@ -12,7 +12,6 @@ class PatternInsightsScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final tabController = useTabController(initialLength: 2);
 
     return Scaffold(

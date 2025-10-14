@@ -272,9 +272,12 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                 width: double.infinity,
                 child: AsyncButtonBuilder(
                   onPressed: _performExport,
-                  builder: (context, child, callback, isDisabled) {
+                  builder: (context, child, callback, buttonState) {
                     return FilledButton.icon(
-                      onPressed: isDisabled == true ? null : callback,
+                      onPressed: buttonState.maybeWhen(
+                        loading: () => null,
+                        orElse: () => callback,
+                      ),
                       icon: const Icon(Icons.download),
                       label: child,
                     );
@@ -502,12 +505,15 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                   ),
                   if (result.filePath != null && (Platform.isAndroid || Platform.isIOS))
                     TextButton(
-                      onPressed: () {
-                        Share.shareUri(
-                          Uri.file(result.filePath!),
-                          sharePositionOrigin: Rect.zero,
+                      onPressed: () async {
+                        await SharePlus.instance.share(
+                          ShareParams(
+                            uri: Uri.file(result.filePath!),
+                          ),
                         );
-                        Navigator.of(context).pop();
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
                       },
                       child: const Text('Share'),
                     ),
@@ -593,13 +599,17 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                 ),
                 if (result.urls.isNotEmpty)
                   TextButton(
-                    onPressed: () {
+                    onPressed: () async {
                       // Share backup details
-                      Share.share(
-                        'Aura One Backup\nHash: ${result.hash}\nURL: ${result.urls.first}',
-                        subject: 'Aura One Journal Backup',
+                      await SharePlus.instance.share(
+                        ShareParams(
+                          text: 'Aura One Backup\nHash: ${result.hash}\nURL: ${result.urls.first}',
+                          subject: 'Aura One Journal Backup',
+                        ),
                       );
-                      Navigator.of(context).pop();
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
                     },
                     child: const Text('Share'),
                   ),
@@ -663,9 +673,10 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
 
         // Share the file
         if (Platform.isAndroid || Platform.isIOS) {
-          await Share.shareUri(
-            Uri.file(filePath),
-            sharePositionOrigin: Rect.zero,
+          await SharePlus.instance.share(
+            ShareParams(
+              uri: Uri.file(filePath),
+            ),
           );
         }
       }

@@ -66,7 +66,7 @@ class ExportService {
           processedFiles++;
           onProgress?.call((processedFiles / mediaFiles.length) * 0.8 + 0.1);
         } catch (e) {
-          print('Failed to add media file ${file.path}: $e');
+          // Skip failed media files
         }
       }
     }
@@ -172,7 +172,7 @@ class ExportService {
           processedFiles++;
           onProgress?.call(0.2 + (processedFiles / mediaFiles.length) * 0.5);
         } catch (e) {
-          print('Failed to add media file ${file.path}: $e');
+          // Skip failed media files
         }
       }
     }
@@ -284,7 +284,7 @@ class ExportService {
           processedFiles++;
           onProgress?.call(0.2 + (processedFiles / mediaFiles.length) * 0.8);
         } catch (e) {
-          print('Failed to copy media file ${file.path}: $e');
+          // Skip failed media files
         }
       }
     }
@@ -447,7 +447,7 @@ class ExportService {
           processedFiles++;
           onProgress?.call(0.2 + (processedFiles / mediaFiles.length) * 0.3);
         } catch (e) {
-          print('Failed to add media file ${file.path}: $e');
+          // Skip failed media files
         }
       }
     }

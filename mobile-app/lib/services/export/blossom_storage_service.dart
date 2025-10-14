@@ -84,7 +84,6 @@ class BlossomStorageService {
         throw Exception('Upload failed: $responseBody');
       }
     } catch (e) {
-      print('Blossom upload error: $e');
       return null;
     }
   }

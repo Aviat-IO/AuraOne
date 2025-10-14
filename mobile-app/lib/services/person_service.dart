@@ -68,7 +68,6 @@ class Person {
 /// Stub implementation of PersonService
 class PersonService {
   static const String _storageKey = 'person_service_data';
-  static const String _embeddingsKey = 'face_embeddings';
   static const String _personsKey = 'persons';
 
   final List<Person> _persons = [];

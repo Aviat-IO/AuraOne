@@ -93,7 +93,6 @@ class OptimizedSearchService {
       }).toList();
     } catch (e) {
       // Fallback to basic search if FTS5 fails
-      print('FTS5 search failed, falling back to basic search: $e');
       return _fallbackSearch(database, query);
     }
   }
@@ -171,7 +170,7 @@ class OptimizedSearchService {
         "INSERT INTO journal_search(journal_search) VALUES('rebuild')"
       );
     } catch (e) {
-      print('Failed to rebuild search index: $e');
+      // Error rebuilding search index
     }
   }
 
@@ -190,7 +189,7 @@ class OptimizedSearchService {
         FROM journal_entries
       ''');
     } catch (e) {
-      print('Failed to initialize search index: $e');
+      // Error initializing search index
     }
   }
 }

@@ -219,6 +219,7 @@ class CalendarService {
   /// Cache for calendars and events
   final Map<String, CalendarMetadata> _calendarsCache = {};
   final Map<String, List<CalendarEventData>> _eventsCache = {};
+  // ignore: unused_field
   DateTime? _lastSyncTime;
 
   /// Get current privacy settings
@@ -320,7 +321,7 @@ class CalendarService {
         }
       } else if (Platform.isAndroid) {
         // Android uses Calendar Provider permissions
-        final readStatus = await Permission.calendar.request();
+        final readStatus = await Permission.calendarFullAccess.request();
 
         if (readStatus.isGranted) {
           _logger.info('Android calendar permissions granted');
@@ -348,7 +349,7 @@ class CalendarService {
         final status = await Permission.calendarFullAccess.status;
         return status.isGranted;
       } else if (Platform.isAndroid) {
-        final status = await Permission.calendar.status;
+        final status = await Permission.calendarFullAccess.status;
         return status.isGranted;
       }
       return false;

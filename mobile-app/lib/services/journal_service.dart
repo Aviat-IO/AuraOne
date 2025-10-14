@@ -4,18 +4,14 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../database/journal_database.dart';
 import '../database/dev_seed_data.dart';
-import '../services/ai/hybrid_ai_service.dart';
 import '../services/reverse_geocoding_service.dart';
 import '../services/data_rich_narrative_builder.dart';
 import '../services/daily_context_synthesizer.dart';
 import '../services/ai/runtime_selector.dart';
 import '../providers/database_provider.dart';
-import '../providers/service_providers.dart';
-import '../providers/settings_providers.dart';
 import '../providers/ai_pipeline_provider.dart';
 import '../utils/logger.dart';
 import '../utils/date_utils.dart';
@@ -43,7 +39,6 @@ final journalServiceProvider = Provider<JournalService>((ref) {
   return JournalService(
     ref.watch(journalDatabaseProvider),
     ref.watch(databaseServiceProvider),
-    ref.watch(aiServiceProvider),
     ref,
   );
 });
@@ -51,12 +46,11 @@ final journalServiceProvider = Provider<JournalService>((ref) {
 class JournalService {
   final JournalDatabase _journalDb;
   final DatabaseService _databaseService;
-  final HybridAIService _aiService;
   final Ref _ref;
 
   Timer? _dailyTimer;
 
-  JournalService(this._journalDb, this._databaseService, this._aiService, this._ref);
+  JournalService(this._journalDb, this._databaseService, this._ref);
 
   /// Initialize the service and start daily entry generation
   Future<void> initialize() async {
@@ -138,12 +132,12 @@ class JournalService {
     if (!hasAnyData) {
       _logger.info('Insufficient data for auto-generation: no photos, locations, calendar, movement, activities, or timeline events');
     } else {
-      _logger.info('Sufficient data found for auto-generation: ' +
-        '${context.photoContexts.length} photos, ' +
-        '${context.locationPoints.length} locations, ' +
-        '${context.calendarEvents.length} calendar events, ' +
-        '${context.movementData.length} movement data, ' +
-        '${context.activities.length} activities, ' +
+      _logger.info('Sufficient data found for auto-generation: '
+        '${context.photoContexts.length} photos, '
+        '${context.locationPoints.length} locations, '
+        '${context.calendarEvents.length} calendar events, '
+        '${context.movementData.length} movement data, '
+        '${context.activities.length} activities, '
         '${context.timelineEvents.length} timeline events');
     }
 
@@ -370,7 +364,8 @@ class JournalService {
   }
 
   /// Gather rich context for AI generation
-  Future<Map<String, dynamic>> _gatherRichContext(DateTime date) async {
+  // Unused: Legacy method for AI generation
+  /* Future<Map<String, dynamic>> _gatherRichContext(DateTime date) async {
     final context = <String, dynamic>{
       'date': date.toIso8601String(),
     };
@@ -618,7 +613,7 @@ class JournalService {
     }
 
     return context;
-  }
+  } */
 
   /// Simple location clustering algorithm
   List<Map<String, dynamic>> _clusterLocations(List<dynamic> locationPoints) {
@@ -699,14 +694,6 @@ class JournalService {
   }
 
   /// Get time of day description
-  String _getTimeOfDay(DateTime time) {
-    final hour = time.hour;
-    if (hour < 6) return 'early morning';
-    if (hour < 12) return 'morning';
-    if (hour < 17) return 'afternoon';
-    if (hour < 21) return 'evening';
-    return 'night';
-  }
 
 
   /// Extract activities for a specific date
@@ -909,7 +896,7 @@ class JournalService {
       final activity = JournalActivitiesCompanion(
         journalEntryId: Value(journalEntry.id),
         activityType: Value('location'),
-        description: Value(address ?? description),
+        description: Value(address),
         metadata: Value(jsonEncode({
           'latitude': latitude,
           'longitude': longitude,

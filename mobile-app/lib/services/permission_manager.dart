@@ -26,7 +26,7 @@ class PermissionStatesNotifier extends StateNotifier<Map<Permission, PermissionS
       Permission.photos,
       Permission.camera,
       Permission.contacts,
-      Permission.calendar,
+      Permission.calendarFullAccess,
       Permission.microphone,
       Permission.notification,
     ];
@@ -115,8 +115,8 @@ class PermissionManager {
       alternativeAction: 'You can manually search for friends by username.',
     ),
 
-    Permission.calendar: PermissionConfig(
-      permission: Permission.calendar,
+    Permission.calendarFullAccess: PermissionConfig(
+      permission: Permission.calendarFullAccess,
       title: 'Calendar Access',
       explanation: 'Sync your aura patterns with calendar events to understand how activities affect your energy.',
       icon: Icons.calendar_today,
@@ -256,9 +256,9 @@ class PermissionManager {
         await incrementDeniedCount(permission);
 
         // Show denied dialog if educational UI was shown
-        if (showEducationalUI && context.mounted) {
+        if (showEducationalUI) {
           final deniedCount = await getDeniedCount(permission);
-          if (deniedCount >= 2) {
+          if (deniedCount >= 2 && context.mounted) {
             await showDialog(
               context: context,
               builder: (context) => PermissionDeniedDialog(

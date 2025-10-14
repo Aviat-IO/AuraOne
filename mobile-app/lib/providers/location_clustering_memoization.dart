@@ -1,9 +1,5 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../services/ai/dbscan_clustering.dart';
-import '../utils/logger.dart';
-
-/// Memoized providers to prevent unnecessary rebuilds
-final _logger = AppLogger('ClusteringMemoization');
 
 /// Cache for expensive computations
 class MemoizedClusteringCache {

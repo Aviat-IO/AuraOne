@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../database/journal_database.dart';
-import '../database/media_database.dart';
-import '../database/location_database.dart';
 import '../widgets/daily_canvas/enhanced_summary_widget.dart';
 import '../models/pattern_analysis_models.dart';
 
@@ -9,16 +7,10 @@ import '../models/pattern_analysis_models.dart';
 /// for insights into behavioral trends, mood patterns, and seasonal changes
 class PatternAnalyzer {
   final JournalDatabase _journalDatabase;
-  final MediaDatabase _mediaDatabase;
-  final LocationDatabase _locationDatabase;
 
   PatternAnalyzer({
     required JournalDatabase journalDatabase,
-    required MediaDatabase mediaDatabase,
-    required LocationDatabase locationDatabase,
-  })  : _journalDatabase = journalDatabase,
-        _mediaDatabase = mediaDatabase,
-        _locationDatabase = locationDatabase;
+  })  : _journalDatabase = journalDatabase;
 
   /// Analyzes activity patterns over a specified time period
   Future<ActivityPatternAnalysis> analyzeActivityPatterns({

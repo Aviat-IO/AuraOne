@@ -27,7 +27,7 @@ class OnboardingScreen extends HookConsumerWidget {
       Permission.location: false,
       Permission.locationAlways: false,
       Permission.photos: false,
-      Permission.calendar: false,
+      Permission.calendarFullAccess: false,
       Permission.activityRecognition: false,
       Permission.notification: false,
     });
@@ -276,7 +276,7 @@ class OnboardingScreen extends HookConsumerWidget {
       (Icons.notifications, 'Notifications', 'Daily reminders to write in your journal', Permission.notification, true),
       (Icons.location_on, 'Location', 'Track your journeys and places visited. Tap "Allow While Using App" then change to "Allow All the Time" in Settings for background tracking.', Permission.locationAlways, true),
       (Icons.photo_library, 'Photo Library', 'Include photos in your daily entries. Please choose "Allow All".', Permission.photos, false),
-      (Icons.calendar_today, 'Calendar', 'Import events and appointments for your daily summaries', Permission.calendar, false),
+      (Icons.calendar_today, 'Calendar', 'Import events and appointments for your daily summaries', Permission.calendarFullAccess, false),
       (Icons.directions_walk, 'Motion & Fitness', 'Track activities and movement patterns', Permission.activityRecognition, false),
     ];
 
@@ -460,63 +460,7 @@ class OnboardingScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _buildGetStartedPage(BuildContext context, ThemeData theme, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.rocket_launch,
-            size: 100,
-            color: theme.colorScheme.primary,
-          ),
-          const SizedBox(height: 32),
-          Text(
-            'Ready to Begin',
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Your journey with Aura One starts now',
-            style: theme.textTheme.bodyLarge,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 48),
 
-          FilledButton.icon(
-            onPressed: () async {
-              // Mark onboarding as complete
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setBool('onboarding_completed', true);
-
-              // Enable background location tracking
-              await prefs.setBool('backgroundLocationTracking', true);
-
-              // Initialize and start background location tracking
-              final bgLocationService = ref.read(backgroundLocationServiceProvider);
-              await bgLocationService.initialize();
-              await bgLocationService.startTracking();
-
-              // Navigate to main app
-              if (context.mounted) {
-                context.go('/');
-              }
-            },
-            icon: const Icon(Icons.arrow_forward),
-            label: const Text('Start Using Aura One'),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(200, 56),
-              textStyle: theme.textTheme.titleMedium,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildFeatureItem(
     ThemeData theme,
@@ -693,15 +637,11 @@ class OnboardingScreen extends HookConsumerWidget {
         } : () async {
           onPressed?.call();
 
-          print('Enable button pressed for permission: $permission');
-
           if (permission == Permission.locationAlways) {
             final whenInUseStatus = await Permission.locationWhenInUse.request();
-            print('Location when in use status: ${whenInUseStatus.toString()}');
 
             if (whenInUseStatus.isGranted) {
               final alwaysStatus = await Permission.locationAlways.request();
-              print('Location always status: ${alwaysStatus.toString()}');
 
               final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
               newPermissions[permission] = alwaysStatus.isGranted || alwaysStatus.isLimited || whenInUseStatus.isGranted;
@@ -709,7 +649,6 @@ class OnboardingScreen extends HookConsumerWidget {
 
               final serviceEnabled = await Geolocator.isLocationServiceEnabled();
               if (!serviceEnabled) {
-                print('Location services not enabled, opening settings');
                 await Geolocator.openLocationSettings();
               }
             } else {
@@ -719,10 +658,8 @@ class OnboardingScreen extends HookConsumerWidget {
             }
           } else {
             final currentStatus = await permission.status;
-            print('Current permission status: ${currentStatus.toString()}');
 
             if (currentStatus.isGranted || currentStatus.isLimited) {
-              print('Permission already granted, updating UI');
               final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
               newPermissions[permission] = true;
               permissionsGranted.value = newPermissions;
@@ -730,12 +667,10 @@ class OnboardingScreen extends HookConsumerWidget {
             }
 
             final status = await permission.request();
-            print('Permission request result: ${status.toString()}');
 
             final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
             newPermissions[permission] = status.isGranted || status.isLimited;
             permissionsGranted.value = newPermissions;
-            print('Updated permissions: $newPermissions');
 
             if (permission == Permission.notification && (status.isGranted || status.isLimited)) {
               await ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(true);

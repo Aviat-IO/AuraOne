@@ -383,7 +383,7 @@ class _ResultCard extends StatelessWidget {
 
     if (error != null) {
       return Card(
-        color: Colors.red.withOpacity(0.1),
+        color: Colors.red.withValues(alpha: 0.1),
         child: ListTile(
           leading: const Icon(Icons.error, color: Colors.red),
           title: Text('Test failed for $input'),

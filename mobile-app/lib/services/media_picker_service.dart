@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:media_picker_plus/media_picker_plus.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'photo_service.dart';
 import '../providers/media_database_provider.dart';
 import '../utils/logger.dart';
 
@@ -221,7 +220,6 @@ class MediaPickerService {
       final mediaId = DateTime.now().millisecondsSinceEpoch.toString();
 
       // Get MediaDatabase and PhotoService
-      final mediaDb = _ref.read(mediaDatabaseProvider);
       final mediaManagement = _ref.read(mediaManagementProvider);
 
       // Insert media item into database
@@ -240,10 +238,6 @@ class MediaPickerService {
       // Process with PhotoService for metadata extraction if it's an image
       if (mimeType.startsWith('image/')) {
         try {
-          final photoService = PhotoService(_ref);
-          // Note: PhotoService works with AssetEntity, so we may need to
-          // implement a different approach for newly captured photos
-          // For now, we'll mark it as processed since we have the basic info
           await mediaManagement.markMediaProcessed(mediaId);
 
           _logger.debug('Image processed and marked as complete: $mediaId');

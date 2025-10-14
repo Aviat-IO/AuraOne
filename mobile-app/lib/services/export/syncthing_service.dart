@@ -270,7 +270,6 @@ Last updated: ${DateTime.now().toIso8601String()}
       
       return backups;
     } catch (e) {
-      print('Error getting Syncthing backups: $e');
       return [];
     }
   }
@@ -323,7 +322,7 @@ Last updated: ${DateTime.now().toIso8601String()}
         }
       }
     } catch (e) {
-      print('Error cleaning old Syncthing backups: $e');
+      // Error cleaning up old backups
     }
   }
   
@@ -361,7 +360,7 @@ Last updated: ${DateTime.now().toIso8601String()}
         json.encode(config),
       );
     } catch (e) {
-      print('Error updating sync config: $e');
+      // Error updating sync config
     }
   }
 }

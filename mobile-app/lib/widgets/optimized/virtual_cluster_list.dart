@@ -16,8 +16,6 @@ class VirtualClusterList extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-
     // Use ListView.builder with item extent for optimal performance
     return ListView.builder(
       // Critical performance optimizations

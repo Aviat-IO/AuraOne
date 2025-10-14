@@ -351,7 +351,6 @@ class NarrativeTemplateEngine {
       double totalWalking = 0;
       double totalRunning = 0;
       double totalDriving = 0;
-      double totalStill = 0;
       double totalActivity = 0;
 
       for (final movement in context.movementData) {
@@ -369,7 +368,6 @@ class NarrativeTemplateEngine {
             totalActivity++;
             break;
           case 'still':
-            totalStill++;
             break;
         }
       }
@@ -459,15 +457,12 @@ class NarrativeTemplateEngine {
   }
 
   /// Select a random option from a list
-  String _selectRandomOption(List<String> options) {
-    if (options.isEmpty) return '';
-    return options[_random.nextInt(options.length)];
-  }
 
   /// Select a random opening from a list
-  String _selectRandomOpening(List<String> openings) {
+  // Unused: Duplicate of _selectRandomOption
+  /* String _selectRandomOpening(List<String> openings) {
     return _selectRandomOption(openings);
-  }
+  } */
 
   /// Get all available narrative templates
   List<NarrativeTemplate> _getAllTemplates() {
