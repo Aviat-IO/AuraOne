@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,6 +27,22 @@ class CloudGeminiAdapter implements AIJournalGenerator {
   static const int _tierLevel = 2; // Tier 2 for BYOK users
 
   GenerativeModel? _model;
+
+  /// Determine if user should use imperial measurements based on locale
+  bool _shouldUseImperialMeasurements() {
+    // Get user's locale
+    final locale = ui.PlatformDispatcher.instance.locale;
+    final countryCode = locale.countryCode?.toUpperCase();
+    
+    // Countries that primarily use imperial measurements
+    const imperialCountries = {
+      'US', // United States
+      'LR', // Liberia
+      'MM', // Myanmar (Burma)
+    };
+    
+    return countryCode != null && imperialCountries.contains(countryCode);
+  }
 
   /// Check if user has granted consent for cloud usage
   Future<bool> hasUserConsent() async {
@@ -315,16 +332,40 @@ IMPORTANT:
   String _buildNarrativePrompt(DailyContext context) {
     final buffer = StringBuffer();
 
-    buffer.writeln('You are writing a personal journal entry in first person.');
-    buffer.writeln('Generate a natural, conversational 150-200 word narrative describing what happened this day.');
+    buffer.writeln('You are a skilled personal journal writer creating an entry in first person perspective.');
+    buffer.writeln('Generate a natural, fluent narrative (150-200 words) describing what happened this day.');
     buffer.writeln('');
-    buffer.writeln('CRITICAL REQUIREMENTS:');
-    buffer.writeln('- Maintain an OBJECTIVE, FACTUAL tone based solely on observable data');
-    buffer.writeln('- DO NOT make assumptions about feelings, emotions, or subjective experiences');
-    buffer.writeln('- DO NOT use words like "felt", "enjoyed", "loved", "amazing", "wonderful"');
-    buffer.writeln('- Present events as they occurred WITHOUT subjective interpretation');
-    buffer.writeln('- Write in natural paragraphs, NOT bullet points or lists');
+    buffer.writeln('WRITING STYLE:');
+    buffer.writeln('- Write in complete, grammatically correct sentences with proper punctuation');
+    buffer.writeln('- Use natural paragraph structure with smooth transitions between events');
+    buffer.writeln('- Vary sentence structure - avoid repetitive patterns');
+    buffer.writeln('- Present information in chronological order');
+    buffer.writeln('- Focus on observable facts: activities, locations, and events');
     buffer.writeln('');
+    buffer.writeln('TONE GUIDELINES:');
+    buffer.writeln('- Maintain an objective, factual tone based on observable data');
+    buffer.writeln('- Describe WHAT happened, WHERE it happened, and WHEN it happened');
+    buffer.writeln('- Avoid assumptions about feelings or subjective experiences');
+    buffer.writeln('- Do not use emotional adjectives like "amazing", "wonderful", "enjoyed"');
+    buffer.writeln('');
+    
+    // Add measurement units guidance based on user locale
+    final useImperial = _shouldUseImperialMeasurements();
+    if (useImperial) {
+      buffer.writeln('MEASUREMENT UNITS:');
+      buffer.writeln('- Convert all metric measurements to imperial units');
+      buffer.writeln('- Distance: Use miles instead of kilometers (1 km ≈ 0.62 miles)');
+      buffer.writeln('- Temperature: Use Fahrenheit instead of Celsius if mentioned');
+      buffer.writeln('- Height/Length: Use feet/inches instead of meters/centimeters');
+      buffer.writeln('- Example: "traveled 2.9 miles" instead of "covered 4.7km"');
+      buffer.writeln('');
+    } else {
+      buffer.writeln('MEASUREMENT UNITS:');
+      buffer.writeln('- Use metric measurements (kilometers, meters, Celsius)');
+      buffer.writeln('- Format distances clearly: "4.7 km" or "4.7 kilometers"');
+      buffer.writeln('');
+    }
+    
     buffer.writeln('Daily Context for ${context.date.toLocal().toString().split(' ')[0]}:');
     buffer.writeln('');
 
@@ -393,8 +434,11 @@ IMPORTANT:
       buffer.writeln();
     }
 
-    buffer.writeln('Write a factual, objective narrative in first person that weaves these events together.');
-    buffer.writeln('Focus on WHAT happened, WHERE it happened, and WHEN it happened - not HOW you felt about it.');
+    buffer.writeln('');
+    buffer.writeln('TASK:');
+    buffer.writeln('Write a cohesive first-person narrative that naturally weaves these events into a flowing story.');
+    buffer.writeln('Use proper grammar, complete sentences, and smooth transitions between events.');
+    buffer.writeln('Ensure the narrative reads like a well-written journal entry with appropriate measurements.');
 
     return buffer.toString();
   }
