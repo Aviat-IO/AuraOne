@@ -276,7 +276,7 @@ class ContextManagerService {
         return null;
       }
       
-      nearbyPlaces.sort((a, b) => b.significanceLevel.compareTo(a.significanceLevel));
+      nearbyPlaces.sort((a, b) => (b.significanceLevel).compareTo(a.significanceLevel));
       
       return nearbyPlaces.first;
     } catch (e, stackTrace) {
@@ -514,7 +514,6 @@ class ContextManagerService {
   }
 
   Future<void> dispose() async {
-    await _db.close();
   }
 }
 

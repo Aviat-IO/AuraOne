@@ -1,10 +1,10 @@
+import 'dart:ui' as ui;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../../utils/logger.dart';
 import '../daily_context_synthesizer.dart';
 import '../context_enrichment_service.dart';
-import '../privacy_sanitizer.dart';
 import 'ai_journal_generator.dart';
-import 'cloud_gemini_adapter.dart';
 
 class EnrichedJournalGenerator {
   static final _logger = AppLogger('EnrichedJournalGenerator');
@@ -298,10 +298,17 @@ class EnrichedJournalGenerator {
   }
 
   bool _shouldUseImperialMeasurements() {
-    return _cloudAdapter._shouldUseImperialMeasurements();
+    final locale = ui.PlatformDispatcher.instance.locale;
+    final countryCode = locale.countryCode?.toUpperCase();
+    const imperialCountries = {'US', 'LR', 'MM'};
+    return countryCode != null && imperialCountries.contains(countryCode);
   }
 
   String _getApiKey() {
-    return _cloudAdapter._getApiKey() ?? '';
+    final envApiKey = dotenv.env['GEMINI_API_KEY'];
+    if (envApiKey != null && envApiKey.isNotEmpty && envApiKey != 'your_gemini_api_key_here') {
+      return envApiKey;
+    }
+    return '';
   }
 }

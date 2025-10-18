@@ -116,10 +116,8 @@ class ContextDatabase extends _$ContextDatabase {
   ContextDatabase.withConnection({required QueryExecutor openConnection})
       : super(openConnection);
 
-  @override
   int get schemaVersion => 1;
 
-  @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (Migrator m) async {
           await m.createAll();

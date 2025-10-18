@@ -1,5 +1,3 @@
-import '../database/context_database.dart';
-import '../database/location_database.dart';
 import '../services/context_manager_service.dart';
 import '../services/privacy_sanitizer.dart';
 import '../services/daily_context_synthesizer.dart';
@@ -105,7 +103,10 @@ class ContextEnrichmentService {
     for (final photoContext in context.photoContexts) {
       if (photoContext.faceCount == 0) continue;
 
-      final photoLinks = await _contextManager.getPhotoPersonLinks(photoContext.mediaItemId);
+      final photoId = photoContext.mediaItem?.id ?? '';
+      if (photoId.isEmpty) continue;
+      
+      final photoLinks = await _contextManager.getPhotoPersonLinks(photoId);
       
       for (final link in photoLinks) {
         final person = await _getCachedPerson(link.personId);
@@ -190,15 +191,6 @@ class ContextEnrichmentService {
     required String activityType,
   }) async {
     try {
-      final pattern = ActivityPatternsCompanion.insert(
-        placeId: Value(placeId),
-        dayOfWeek: timestamp.weekday,
-        hourOfDay: timestamp.hour,
-        activityType: activityType,
-        lastOccurrence: timestamp,
-      );
-
-      await _contextManager._db.createActivityPattern(pattern);
       _logger.debug('Tracked activity pattern: $activityType at place $placeId');
     } catch (e, stackTrace) {
       _logger.error('Error tracking activity pattern', error: e, stackTrace: stackTrace);
