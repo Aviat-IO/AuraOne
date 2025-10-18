@@ -17,10 +17,19 @@ import '../widgets/common/pill_tab_bar.dart';
 import '../services/media_picker_service.dart';
 import '../services/journal_service.dart';
 import '../providers/location_database_provider.dart';
+import '../providers/location_clustering_provider.dart';
 import '../database/location_database.dart';
 
 // Provider for selected date
 final selectedDateProvider = StateProvider<DateTime>((ref) => DateTime.now());
+
+final dailyCanvasPrefetchProvider = FutureProvider.family<void, DateTime>((ref, date) async {
+  await Future.wait([
+    ref.watch(clusteredLocationsProvider(date).future),
+    ref.watch(recentLocationPointsProvider(const Duration(days: 7)).future),
+    ref.watch(mediaItemsProvider((date: date, includeDeleted: false)).future),
+  ]);
+});
 
 // Provider for view mode (compact vs expanded)
 final viewModeProvider = StateProvider<ViewMode>((ref) => ViewMode.expanded);
@@ -57,6 +66,9 @@ class DailyCanvasScreen extends HookConsumerWidget {
     final viewMode = ref.watch(viewModeProvider);
     final activeSection = ref.watch(activeSectionProvider);
 
+    final prefetchState = ref.watch(dailyCanvasPrefetchProvider(selectedDate));
+    final isPrefetching = prefetchState.isLoading;
+
     // Animation controllers for smooth transitions
     final scrollController = useScrollController();
     final tabController = useTabController(initialLength: 4);
@@ -84,7 +96,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
           child: Column(
             children: [
               // Header with date navigation
-              _buildHeader(context, theme, isLight, selectedDate, ref),
+              _buildHeader(context, theme, isLight, selectedDate, ref, isPrefetching),
 
               // Main content area with responsive layout
               Expanded(
@@ -145,6 +157,7 @@ class DailyCanvasScreen extends HookConsumerWidget {
     bool isLight,
     DateTime selectedDate,
     WidgetRef ref,
+    bool isPrefetching,
   ) {
     final dateFormat = DateFormat('EEEE, MMMM d, yyyy');
 
@@ -195,11 +208,21 @@ class DailyCanvasScreen extends HookConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.calendar_today,
-                      size: 18,
-                      color: theme.colorScheme.primary,
-                    ),
+                    if (isPrefetching)
+                      SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: theme.colorScheme.primary,
+                        ),
+                      )
+                    else
+                      Icon(
+                        Icons.calendar_today,
+                        size: 18,
+                        color: theme.colorScheme.primary,
+                      ),
                     const SizedBox(width: 8),
                     Text(
                       dateFormat.format(selectedDate),
