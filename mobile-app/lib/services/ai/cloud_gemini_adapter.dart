@@ -348,6 +348,13 @@ IMPORTANT:
     buffer.writeln('- Avoid assumptions about feelings or subjective experiences');
     buffer.writeln('- Do not use emotional adjectives like "amazing", "wonderful", "enjoyed"');
     buffer.writeln('');
+    buffer.writeln('WHAT TO EXCLUDE (uninteresting details nobody would write):');
+    buffer.writeln('- Technical photo details (shadows, angles, camera positions, lighting)');
+    buffer.writeln('- Meta-observations about the photo itself ("you can see", "visible in the photo")');
+    buffer.writeln('- Trivial visual artifacts (reflections, shadows on pavement, background clutter)');
+    buffer.writeln('- Self-referential photo commentary ("from where I was standing", "captured in this image")');
+    buffer.writeln('- Focus on the meaningful content and activities, not photographic technicalities');
+    buffer.writeln('');
     
     // Add measurement units guidance based on user locale
     final useImperial = _shouldUseImperialMeasurements();
