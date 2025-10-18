@@ -63,7 +63,7 @@ void main() {
       test('Privacy level 0 excludes person from journal', () {
         final person = {'name': 'Alice', 'privacyLevel': 0};
         
-        final shouldInclude = person['privacyLevel']! > 0;
+        final shouldInclude = (person['privacyLevel']! as int) > 0;
         
         expect(shouldInclude, isFalse);
       });
@@ -125,7 +125,7 @@ void main() {
       test('Significance level 0 excludes place', () {
         final place = {'name': 'Random Store', 'significanceLevel': 0};
         
-        final shouldInclude = place['significanceLevel']! > 0;
+        final shouldInclude = (place['significanceLevel']! as int) > 0;
         
         expect(shouldInclude, isFalse);
       });
@@ -137,8 +137,8 @@ void main() {
           'excludeFromJournal': true,
         };
 
-        final shouldInclude = !place['excludeFromJournal']! &&
-            place['significanceLevel']! > 0;
+        final shouldInclude = !(place['excludeFromJournal']! as bool) &&
+            (place['significanceLevel']! as int) > 0;
 
         expect(shouldInclude, isFalse);
       });
@@ -229,7 +229,7 @@ void main() {
         final descriptions = {
           'paranoid': 'Maximum privacy - generic descriptions only',
           'high': 'High privacy - first names only',
-          'balanced': 'Balanced - first names with relationships',
+          'balanced': 'Balanced privacy - first names with relationships',
           'minimal': 'Minimal privacy - full details',
         };
 
@@ -270,7 +270,7 @@ void main() {
         ];
 
         final sanitized = people
-            .where((p) => p['privacyLevel']! > 0)
+            .where((p) => (p['privacyLevel']! as int) > 0)
             .toList();
 
         expect(sanitized, isEmpty);
@@ -286,12 +286,13 @@ void main() {
         final sanitized = <String>[];
         
         for (final person in people) {
-          if (person['privacyLevel'] == 0) continue;
+          final privacyLevel = person['privacyLevel']! as int;
+          if (privacyLevel == 0) continue;
           
-          if (person['privacyLevel'] == 1) {
-            sanitized.add(person['firstName']!);
+          if (privacyLevel == 1) {
+            sanitized.add(person['firstName']! as String);
           } else {
-            sanitized.add(person['firstName']!);
+            sanitized.add(person['firstName']! as String);
           }
         }
 

@@ -1,3 +1,4 @@
+import '../database/context_database.dart';
 import '../services/context_manager_service.dart';
 import '../services/privacy_sanitizer.dart';
 import '../services/daily_context_synthesizer.dart';
@@ -103,7 +104,7 @@ class ContextEnrichmentService {
     for (final photoContext in context.photoContexts) {
       if (photoContext.faceCount == 0) continue;
 
-      final photoId = photoContext.mediaItem?.id ?? '';
+      final photoId = photoContext.photoId;
       if (photoId.isEmpty) continue;
       
       final photoLinks = await _contextManager.getPhotoPersonLinks(photoId);

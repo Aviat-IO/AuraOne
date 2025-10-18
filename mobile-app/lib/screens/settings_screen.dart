@@ -105,6 +105,48 @@ class SettingsScreen extends ConsumerWidget {
                           isLight: isLight,
                           children: [
                             _buildSettingsTile(
+                              icon: Icons.people,
+                              title: 'People',
+                              subtitle: 'Label people in your photos',
+                              trailing: Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                              ),
+                              theme: theme,
+                              onTap: () {
+                                context.push('/settings/people');
+                              },
+                            ),
+                            _buildSettingsTile(
+                              icon: Icons.place,
+                              title: 'Places',
+                              subtitle: 'Name your frequent locations',
+                              trailing: Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                              ),
+                              theme: theme,
+                              onTap: () {
+                                context.push('/settings/places');
+                              },
+                            ),
+                            _buildSettingsTile(
+                              icon: Icons.tune,
+                              title: 'Journal Preferences',
+                              subtitle: 'Customize tone, detail, and privacy',
+                              trailing: Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                              ),
+                              theme: theme,
+                              onTap: () {
+                                context.push('/settings/journal-preferences');
+                              },
+                            ),
+                            _buildSettingsTile(
                               icon: Icons.calendar_month,
                               title: 'Calendars',
                               subtitle: 'Choose which calendars to sync',

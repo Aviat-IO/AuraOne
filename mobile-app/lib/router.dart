@@ -20,6 +20,12 @@ import 'package:aura_one/screens/privacy_policy_screen.dart';
 import 'package:aura_one/screens/event_detail_screen.dart';
 import 'package:aura_one/screens/daily_canvas_screen.dart';
 import 'package:aura_one/screens/pattern_insights_screen.dart';
+import 'package:aura_one/screens/context/people_list_screen.dart';
+import 'package:aura_one/screens/context/person_detail_screen.dart';
+import 'package:aura_one/screens/context/face_clustering_screen.dart';
+import 'package:aura_one/screens/context/places_list_screen.dart';
+import 'package:aura_one/screens/context/place_detail_screen.dart';
+import 'package:aura_one/screens/context/journal_preferences_screen.dart';
 import 'package:aura_one/widgets/daily_canvas/timeline_widget.dart';
 
 // Debug-only imports - excluded from production builds via kDebugMode guards
@@ -145,6 +151,48 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/calendar',
         builder: (context, state) => const CalendarSettingsScreen(),
+      ),
+
+      // People management screen
+      GoRoute(
+        path: '/settings/people',
+        builder: (context, state) => const PeopleListScreen(),
+      ),
+
+      // Person detail screen
+      GoRoute(
+        path: '/settings/people/:id',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          return PersonDetailScreen(personId: id);
+        },
+      ),
+
+      // Face clustering screen
+      GoRoute(
+        path: '/settings/people/face-clustering',
+        builder: (context, state) => const FaceClusteringScreen(),
+      ),
+
+      // Places management screen
+      GoRoute(
+        path: '/settings/places',
+        builder: (context, state) => const PlacesListScreen(),
+      ),
+
+      // Place detail screen
+      GoRoute(
+        path: '/settings/places/:id',
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          return PlaceDetailScreen(placeId: id);
+        },
+      ),
+
+      // Journal preferences screen
+      GoRoute(
+        path: '/settings/journal-preferences',
+        builder: (context, state) => const JournalPreferencesScreen(),
       ),
 
       // About screen

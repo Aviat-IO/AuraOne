@@ -109,7 +109,7 @@ void main() {
         ];
 
         nearbyPlaces.sort((a, b) => 
-          b['significance']!.compareTo(a['significance']!));
+          (b['significance']! as int).compareTo(a['significance']! as int));
 
         expect(nearbyPlaces.first['name'], equals('Home'));
       });
@@ -215,11 +215,10 @@ void main() {
           {'name': 'Anniversary', 'date': DateTime(2024, 3, 15)},
         ];
 
-        final sameDay = occasions.every((o) => 
-          o['date']!.year == 2024 &&
-          o['date']!.month == 3 &&
-          o['date']!.day == 15
-        );
+        final sameDay = occasions.every((o) {
+          final date = o['date']! as DateTime;
+          return date.year == 2024 && date.month == 3 && date.day == 15;
+        });
 
         expect(sameDay, isTrue);
         expect(occasions.length, equals(2));
@@ -326,8 +325,9 @@ void main() {
           'photoCount': 3,
         };
 
-        final formatted = person['photoCount']! > 1
-            ? '${person['displayName']} (appeared in ${person['photoCount']} photos)'
+        final photoCount = person['photoCount']! as int;
+        final formatted = photoCount > 1
+            ? '${person['displayName']} (appeared in $photoCount photos)'
             : person['displayName'];
 
         expect(formatted, contains('3 photos'));
@@ -367,7 +367,7 @@ void main() {
           'timeSpent': Duration(hours: 2, minutes: 15),
         };
 
-        final shouldIncludeTime = place['timeSpent']!.inMinutes > 15;
+        final shouldIncludeTime = (place['timeSpent']! as Duration).inMinutes > 15;
 
         expect(shouldIncludeTime, isTrue);
       });
@@ -439,8 +439,8 @@ void main() {
         ];
 
         final sanitized = people
-            .where((p) => p['privacyLevel']! > 0)
-            .map((p) => p['privacyLevel'] == 1 ? p['firstName'] : p['name'])
+            .where((p) => (p['privacyLevel']! as int) > 0)
+            .map((p) => (p['privacyLevel']! as int) == 1 ? p['firstName'] : p['name'])
             .toList();
 
         expect(sanitized.length, equals(2));

@@ -5,6 +5,7 @@ import '../../utils/logger.dart';
 import '../daily_context_synthesizer.dart';
 import '../context_enrichment_service.dart';
 import 'ai_journal_generator.dart';
+import 'cloud_gemini_adapter.dart';
 
 class EnrichedJournalGenerator {
   static final _logger = AppLogger('EnrichedJournalGenerator');

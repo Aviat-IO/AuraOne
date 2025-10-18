@@ -114,11 +114,11 @@ void main() {
           {'name': 'Charlie', 'privacyLevel': 2},
         ];
 
-        final minLevel1 = people.where((p) => p['privacyLevel']! >= 1).toList();
+        final minLevel1 = people.where((p) => (p['privacyLevel']! as int) >= 1).toList();
         expect(minLevel1.length, equals(2));
         expect(minLevel1.any((p) => p['name'] == 'Alice'), isFalse);
 
-        final minLevel2 = people.where((p) => p['privacyLevel']! >= 2).toList();
+        final minLevel2 = people.where((p) => (p['privacyLevel']! as int) >= 2).toList();
         expect(minLevel2.length, equals(1));
         expect(minLevel2.first['name'], equals('Charlie'));
       });
@@ -131,7 +131,7 @@ void main() {
         ];
 
         final searchRadiusKm = 0.5;
-        final nearby = places.where((p) => p['distanceKm']! <= searchRadiusKm).toList();
+        final nearby = places.where((p) => (p['distanceKm']! as double) <= searchRadiusKm).toList();
         
         expect(nearby.length, equals(2));
         expect(nearby.any((p) => p['name'] == 'Gym'), isFalse);
@@ -147,7 +147,7 @@ void main() {
         ];
 
         final validMatches = matches
-            .where((m) => m['similarity']! >= confidenceThreshold)
+            .where((m) => (m['similarity']! as double) >= confidenceThreshold)
             .toList();
 
         expect(validMatches.length, equals(2));
@@ -262,7 +262,7 @@ void main() {
           {'name': 'Store', 'significance': 0},
         ];
 
-        places.sort((a, b) => b['significance']!.compareTo(a['significance']!));
+        places.sort((a, b) => (b['significance']! as int).compareTo(a['significance']! as int));
         
         expect(places.first['name'], equals('Home'));
         expect(places.last['name'], equals('Store'));
@@ -491,10 +491,11 @@ void main() {
         final journalMentions = <String>[];
         
         for (final person in people) {
-          if (person['privacyLevel'] == 0) {
+          final privacyLevel = person['privacyLevel']! as int;
+          if (privacyLevel == 0) {
             continue;
-          } else if (person['privacyLevel'] == 1) {
-            journalMentions.add(person['firstName']!);
+          } else if (privacyLevel == 1) {
+            journalMentions.add(person['firstName']! as String);
           } else {
             journalMentions.add('${person['firstName']} (${person['relationship']})');
           }
