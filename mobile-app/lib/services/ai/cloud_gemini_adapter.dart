@@ -355,6 +355,13 @@ IMPORTANT:
     buffer.writeln('- Self-referential photo commentary ("from where I was standing", "captured in this image")');
     buffer.writeln('- Focus on the meaningful content and activities, not photographic technicalities');
     buffer.writeln('');
+    buffer.writeln('WHAT TO EMPHASIZE (meaningful content people care about):');
+    buffer.writeln('- Activities and experiences over static locations');
+    buffer.writeln('- People and interactions over demographics and counts');
+    buffer.writeln('- Memorable moments and significant events over routine transitions');
+    buffer.writeln('- Context and meaning over technical details');
+    buffer.writeln('- Natural flow connecting events rather than listing them');
+    buffer.writeln('');
     
     // Add measurement units guidance based on user locale
     final useImperial = _shouldUseImperialMeasurements();
@@ -376,71 +383,58 @@ IMPORTANT:
     buffer.writeln('Daily Context for ${context.date.toLocal().toString().split(' ')[0]}:');
     buffer.writeln('');
 
-    // Timeline events
-    if (context.timelineEvents.isNotEmpty) {
-      buffer.writeln('Timeline Events:');
-      for (final event in context.timelineEvents) {
-        buffer.write('- ${event.timestamp.hour}:${event.timestamp.minute.toString().padLeft(2, '0')}');
-        if (event.placeName != null) {
-          buffer.write(' at ${event.placeName}');
-        }
-        if (event.description != null) {
-          buffer.write(': ${event.description}');
-        }
-        if (event.objectsSeen != null && event.objectsSeen!.isNotEmpty) {
-          buffer.write(' (${event.objectsSeen!.take(3).join(', ')})');
-        }
-        buffer.writeln();
-      }
+    final timeline = _formatTimelineContext(context);
+    if (timeline.isNotEmpty) {
+      buffer.write(timeline);
       buffer.writeln();
     }
 
-    // Location summary
-    if (context.locationSummary.significantPlaces.isNotEmpty) {
-      buffer.writeln('Places visited:');
-      for (final place in context.locationSummary.significantPlaces) {
-        final timeSpent = context.locationSummary.placeTimeSpent[place];
-        if (timeSpent != null) {
-          buffer.writeln('- $place (${timeSpent.inMinutes} minutes)');
-        } else {
-          buffer.writeln('- $place');
-        }
-      }
+    final places = _formatPlacesContext(context);
+    if (places.isNotEmpty) {
+      buffer.write(places);
       buffer.writeln();
     }
 
-    // Activity summary
-    if (context.activitySummary.primaryActivities.isNotEmpty) {
-      buffer.writeln('Activities:');
-      buffer.writeln('- ${context.activitySummary.primaryActivities.join(', ')}');
+    final activities = _formatActivitiesContext(context);
+    if (activities.isNotEmpty) {
+      buffer.write(activities);
       buffer.writeln();
     }
 
-    // Social summary
-    if (context.socialSummary.totalPeopleDetected > 0) {
-      buffer.writeln('Social:');
-      buffer.writeln('- ${context.socialSummary.totalPeopleDetected} people detected');
-      if (context.socialSummary.socialContexts.isNotEmpty) {
-        buffer.writeln('- Context: ${context.socialSummary.socialContexts.join(', ')}');
-      }
+    final people = _formatPeopleContext(context);
+    if (people.isNotEmpty) {
+      buffer.write(people);
       buffer.writeln();
     }
 
-    // Photo contexts
     if (context.photoContexts.isNotEmpty) {
-      buffer.writeln('Photos:');
-      buffer.writeln('- ${context.photoContexts.length} photos taken');
+      buffer.writeln('PHOTOS:');
+      buffer.writeln('- ${context.photoContexts.length} photos captured');
       final objects = context.photoContexts
           .expand((p) => p.detectedObjects)
           .toSet()
           .take(5)
           .join(', ');
       if (objects.isNotEmpty) {
-        buffer.writeln('- Common subjects: $objects');
+        buffer.writeln('- Subjects: $objects');
       }
       buffer.writeln();
     }
 
+    buffer.writeln('');
+    buffer.writeln('EXAMPLES:');
+    buffer.writeln('');
+    buffer.writeln('GOOD EXAMPLE (natural, human-like):');
+    buffer.writeln('"Started the morning with a long walk through the park. The fall colors were');
+    buffer.writeln('particularly vibrant today. Met up with a friend for coffee downtown - we caught');
+    buffer.writeln('up on recent projects and made plans for the weekend. Spent the afternoon working');
+    buffer.writeln('from home on the quarterly report. Ended the day with a quiet dinner and some reading."');
+    buffer.writeln('');
+    buffer.writeln('BAD EXAMPLE (robotic, surveillance-like - DO NOT WRITE LIKE THIS):');
+    buffer.writeln('"Visited 3 locations today. Photographed a person at a park. The image shows trees');
+    buffer.writeln('and you can see my shadow on the pavement. Later visited a coffee shop and took a');
+    buffer.writeln('photo of a beverage. Returned to residential location at 14:30. Took 2 photos of');
+    buffer.writeln('food items. Total photos: 5."');
     buffer.writeln('');
     buffer.writeln('TASK:');
     buffer.writeln('Write a cohesive first-person narrative that naturally weaves these events into a flowing story.');
@@ -473,5 +467,122 @@ IMPORTANT:
     buffer.writeln('Rewritten version:');
 
     return buffer.toString();
+  }
+
+  String _formatPeopleContext(DailyContext context) {
+    if (context.socialSummary.totalPeopleDetected == 0) {
+      return '';
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln('PEOPLE:');
+    
+    if (context.socialSummary.totalPeopleDetected > 0) {
+      buffer.writeln('- ${context.socialSummary.totalPeopleDetected} people detected in photos');
+      
+      if (context.socialSummary.socialContexts.isNotEmpty) {
+        final contexts = context.socialSummary.socialContexts.join(', ');
+        buffer.writeln('- Social context: $contexts');
+      }
+    }
+    
+    return buffer.toString();
+  }
+
+  String _formatPlacesContext(DailyContext context) {
+    if (context.locationSummary.significantPlaces.isEmpty) {
+      return '';
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln('PLACES & LOCATIONS:');
+    
+    for (final place in context.locationSummary.significantPlaces.take(5)) {
+      final timeSpent = context.locationSummary.placeTimeSpent[place];
+      if (timeSpent != null && timeSpent.inMinutes > 15) {
+        buffer.writeln('- $place (${_formatDuration(timeSpent)})');
+      } else {
+        buffer.writeln('- $place');
+      }
+    }
+    
+    if (context.locationSummary.totalKilometers > 0.5) {
+      final useImperial = _shouldUseImperialMeasurements();
+      if (useImperial) {
+        final miles = context.locationSummary.totalKilometers * 0.621371;
+        buffer.writeln('- Total distance: ${miles.toStringAsFixed(1)} miles');
+      } else {
+        buffer.writeln('- Total distance: ${context.locationSummary.totalKilometers.toStringAsFixed(1)} km');
+      }
+    }
+    
+    return buffer.toString();
+  }
+
+  String _formatActivitiesContext(DailyContext context) {
+    if (context.activitySummary.primaryActivities.isEmpty &&
+        context.calendarEvents.isEmpty) {
+      return '';
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln('ACTIVITIES & EVENTS:');
+    
+    if (context.calendarEvents.isNotEmpty) {
+      for (final event in context.calendarEvents.take(3)) {
+        final time = '${event.startDate.hour}:${event.startDate.minute.toString().padLeft(2, '0')}';
+        buffer.write('- $time: ${event.title}');
+        if (event.location != null && event.location!.isNotEmpty) {
+          buffer.write(' at ${event.location}');
+        }
+        buffer.writeln();
+      }
+    }
+    
+    if (context.activitySummary.primaryActivities.isNotEmpty) {
+      final activities = context.activitySummary.primaryActivities.take(3).join(', ');
+      buffer.writeln('- Activities: $activities');
+    }
+    
+    return buffer.toString();
+  }
+
+  String _formatTimelineContext(DailyContext context) {
+    if (context.timelineEvents.isEmpty) {
+      return '';
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln('TIMELINE:');
+    
+    for (final event in context.timelineEvents.take(8)) {
+      final time = '${event.timestamp.hour}:${event.timestamp.minute.toString().padLeft(2, '0')}';
+      buffer.write('- $time');
+      
+      if (event.placeName != null && event.placeName!.isNotEmpty) {
+        buffer.write(' at ${event.placeName}');
+      }
+      
+      if (event.description != null && event.description!.isNotEmpty) {
+        buffer.write(': ${event.description}');
+      }
+      
+      if (event.objectsSeen != null && event.objectsSeen!.isNotEmpty) {
+        final objects = event.objectsSeen!.take(3).join(', ');
+        buffer.write(' ($objects)');
+      }
+      
+      buffer.writeln();
+    }
+    
+    return buffer.toString();
+  }
+
+  String _formatDuration(Duration duration) {
+    if (duration.inHours > 0) {
+      return '${duration.inHours}h ${duration.inMinutes % 60}m';
+    } else {
+      return '${duration.inMinutes} minutes';
+    }
   }
 }

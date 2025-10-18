@@ -6,15 +6,15 @@
 - [x] 1.2 Add TONE GUIDELINES section for objective, factual writing
 - [x] 1.3 Add WHAT TO EXCLUDE section for uninteresting details
 - [x] 1.4 Add MEASUREMENT UNITS section with locale-aware conversion
-- [ ] 1.5 Add WHAT TO EMPHASIZE section for meaningful content
-- [ ] 1.6 Add few-shot examples (2-3 good vs bad entries)
+- [x] 1.5 Add WHAT TO EMPHASIZE section for meaningful content
+- [x] 1.6 Add few-shot examples (2-3 good vs bad entries)
 
 ## 2. Context Formatting Improvements
 
-- [ ] 2.1 Create structured people context formatting method
-- [ ] 2.2 Create structured places context formatting method
-- [ ] 2.3 Create structured activities context formatting method
-- [ ] 2.4 Create timeline events formatting method
+- [x] 2.1 Create structured people context formatting method
+- [x] 2.2 Create structured places context formatting method
+- [x] 2.3 Create structured activities context formatting method
+- [x] 2.4 Create timeline events formatting method
 - [ ] 2.5 Add health data natural language formatting
 
 ## 3. Data Preprocessing Layer
