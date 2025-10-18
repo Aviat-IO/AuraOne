@@ -295,7 +295,12 @@ class TimelineEventAggregator {
 
     _logger.info('Aggregated ${events.length} total narrative events for $date');
 
-    return events;
+    // Filter to only significant events and group related activities
+    final filteredEvents = _filterAndGroupEvents(events);
+    
+    _logger.info('Filtered to ${filteredEvents.length} significant events after grouping');
+
+    return filteredEvents;
   }
 
   /// Filter calendar events by enabled calendar IDs
@@ -425,5 +430,79 @@ class TimelineEventAggregator {
     }
 
     return groups;
+  }
+
+  List<NarrativeEvent> _filterAndGroupEvents(List<NarrativeEvent> events) {
+    final filtered = <NarrativeEvent>[];
+    
+    for (int i = 0; i < events.length; i++) {
+      final event = events[i];
+      
+      if (!event.isSignificant) {
+        continue;
+      }
+      
+      if (event.type == NarrativeEventType.location) {
+        final isDuplicate = _isNearDuplicate(event, filtered);
+        if (isDuplicate) continue;
+      }
+      
+      if (event.type == NarrativeEventType.photo) {
+        final shouldMerge = _shouldMergeWithPreviousPhoto(event, filtered);
+        if (shouldMerge) {
+          _mergePhotoEvents(filtered.last, event);
+          continue;
+        }
+      }
+      
+      filtered.add(event);
+    }
+    
+    return filtered;
+  }
+
+  bool _isNearDuplicate(NarrativeEvent newEvent, List<NarrativeEvent> existing) {
+    if (newEvent.latitude == null || newEvent.longitude == null) {
+      return false;
+    }
+    
+    for (final event in existing.reversed.take(3)) {
+      if (event.type != NarrativeEventType.location) continue;
+      if (event.latitude == null || event.longitude == null) continue;
+      
+      final timeDiff = newEvent.timestamp.difference(event.timestamp).abs();
+      if (timeDiff.inMinutes < 30 && event.placeName == newEvent.placeName) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  bool _shouldMergeWithPreviousPhoto(NarrativeEvent newPhoto, List<NarrativeEvent> existing) {
+    if (existing.isEmpty) return false;
+    
+    final lastEvent = existing.last;
+    if (lastEvent.type != NarrativeEventType.photo) return false;
+    
+    final timeDiff = newPhoto.timestamp.difference(lastEvent.timestamp);
+    if (timeDiff.inMinutes > 10) return false;
+    
+    final sameLocation = lastEvent.latitude == newPhoto.latitude && 
+                        lastEvent.longitude == newPhoto.longitude;
+    
+    return sameLocation || timeDiff.inMinutes < 2;
+  }
+
+  void _mergePhotoEvents(NarrativeEvent existing, NarrativeEvent newPhoto) {
+    if (existing.metadata != null && newPhoto.metadata != null) {
+      existing.metadata!['merged_count'] = 
+          (existing.metadata!['merged_count'] as int? ?? 1) + 1;
+      
+      if (newPhoto.objectsSeen != null && existing.objectsSeen != null) {
+        final combined = {...existing.objectsSeen!, ...newPhoto.objectsSeen!};
+        existing.metadata!['all_objects'] = combined.toList();
+      }
+    }
   }
 }
