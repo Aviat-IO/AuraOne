@@ -347,14 +347,25 @@ class PeopleListScreen extends HookConsumerWidget {
                 rel.contains('daughter') ||
                 rel.contains('spouse') ||
                 rel.contains('partner') ||
-                rel.contains('grandparent');
+                rel.contains('grandparent') ||
+                rel.contains('grandmother') ||
+                rel.contains('grandfather') ||
+                rel.contains('aunt') ||
+                rel.contains('uncle') ||
+                rel.contains('cousin') ||
+                rel.contains('niece') ||
+                rel.contains('nephew') ||
+                rel.contains('grandchild') ||
+                rel.contains('grandson') ||
+                rel.contains('granddaughter');
           case 'Friends':
             return rel.contains('friend');
           case 'Work':
             return rel.contains('colleague') ||
                 rel.contains('manager') ||
                 rel.contains('boss') ||
-                rel.contains('client');
+                rel.contains('client') ||
+                rel.contains('mentor');
           default:
             return true;
         }
@@ -381,15 +392,29 @@ class PeopleListScreen extends HookConsumerWidget {
           rel.contains('brother') ||
           rel.contains('sister') ||
           rel.contains('child') ||
+          rel.contains('son') ||
+          rel.contains('daughter') ||
           rel.contains('spouse') ||
-          rel.contains('partner')) {
+          rel.contains('partner') ||
+          rel.contains('grandparent') ||
+          rel.contains('grandmother') ||
+          rel.contains('grandfather') ||
+          rel.contains('aunt') ||
+          rel.contains('uncle') ||
+          rel.contains('cousin') ||
+          rel.contains('niece') ||
+          rel.contains('nephew') ||
+          rel.contains('grandchild') ||
+          rel.contains('grandson') ||
+          rel.contains('granddaughter')) {
         groups['Family']!.add(person);
       } else if (rel.contains('friend')) {
         groups['Friends']!.add(person);
       } else if (rel.contains('colleague') ||
           rel.contains('manager') ||
           rel.contains('boss') ||
-          rel.contains('client')) {
+          rel.contains('client') ||
+          rel.contains('mentor')) {
         groups['Professional']!.add(person);
       } else {
         groups['Other']!.add(person);

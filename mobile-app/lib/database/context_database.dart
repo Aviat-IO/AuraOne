@@ -209,12 +209,13 @@ class ContextDatabase extends _$ContextDatabase {
   }
 
   Future<void> setPreference(String key, String value) async {
-    await into(journalPreferences).insertOnConflictUpdate(
+    await into(journalPreferences).insert(
       JournalPreferencesCompanion.insert(
         key: key,
         value: value,
         updatedAt: Value(DateTime.now()),
       ),
+      mode: InsertMode.insertOrReplace,
     );
   }
 
