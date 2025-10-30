@@ -5,7 +5,6 @@ import '../services/ai/ultra_fast_clustering.dart';
 import '../services/ai/cluster_merger.dart';
 import '../utils/logger.dart';
 import '../utils/performance_monitor.dart';
-import '../utils/date_utils.dart';
 import 'location_database_provider.dart';
 
 /// Simple cache for clustering results
@@ -85,8 +84,6 @@ final clusteredLocationsProvider = FutureProvider.family<List<LocationCluster>, 
     final timer = PerformanceTimer('clusteredLocationsProvider');
 
     try {
-      // Get UTC boundaries for the local day
-      final (dayStart, dayEnd) = DateTimeUtils.getUtcDayBoundaries(date);
       final cacheKey = 'clusters_${date.year}-${date.month}-${date.day}';
 
       // Check cache first
@@ -97,26 +94,22 @@ final clusteredLocationsProvider = FutureProvider.family<List<LocationCluster>, 
         return cachedEntry.clusters;
       }
 
-      // Watch the location points stream and get the data
-      final locationStream = ref.watch(recentLocationPointsProvider(const Duration(days: 7)));
+      // Load location data for this specific date only (24 hours in user's timezone)
+      final locationAsync = ref.watch(locationPointsForDateProvider(date));
 
-      final locationHistory = await locationStream.when(
+      final locationHistory = await locationAsync.when(
         data: (locations) => Future.value(locations),
         loading: () => Future.value(<loc_db.LocationPoint>[]),
         error: (_, _) => Future.value(<loc_db.LocationPoint>[]),
       );
 
-      // Filter locations for the specific date
-      // Show all locations regardless of isSignificant flag to visualize complete location history
       // Filter out low-accuracy points (>30m accuracy) to improve map visualization quality
-      // More aggressive threshold to handle measurement uncertainty
+      // Show all locations regardless of isSignificant flag to visualize complete location history
       final dayLocations = locationHistory
-          .where((loc) =>
-              loc.timestamp.isAfter(dayStart) &&
-              loc.timestamp.isBefore(dayEnd) &&
-              (loc.accuracy == null || loc.accuracy! <= 30.0)  // Only include points with good accuracy (reduced from 50m)
-          )
+          .where((loc) => (loc.accuracy == null || loc.accuracy! <= 30.0))
           .toList();
+
+      _logger.info('Loaded ${locationHistory.length} points for clustering, filtered to ${dayLocations.length} for date ${date.year}-${date.month}-${date.day}');
 
       if (dayLocations.isEmpty) {
         timer.stop();
@@ -206,8 +199,6 @@ final journeySegmentsProvider = FutureProvider.family<List<JourneySegment>, Date
     final timer = PerformanceTimer('journeySegmentsProvider');
 
     try {
-      // Get UTC boundaries for the local day
-      final (dayStart, dayEnd) = DateTimeUtils.getUtcDayBoundaries(date);
       final cacheKey = 'journeys_${date.year}-${date.month}-${date.day}';
 
       // Check cache first - use same cache as clusters since they're computed together
@@ -218,26 +209,22 @@ final journeySegmentsProvider = FutureProvider.family<List<JourneySegment>, Date
         return cachedEntry.journeys;
       }
 
-      // Watch the location points stream and get the data
-      final locationStream = ref.watch(recentLocationPointsProvider(const Duration(days: 7)));
+      // Load location data for this specific date only (24 hours in user's timezone)
+      final locationAsync = ref.watch(locationPointsForDateProvider(date));
 
-      final locationHistory = await locationStream.when(
+      final locationHistory = await locationAsync.when(
         data: (locations) => Future.value(locations),
         loading: () => Future.value(<loc_db.LocationPoint>[]),
         error: (_, _) => Future.value(<loc_db.LocationPoint>[]),
       );
 
-      // Filter locations for the specific date
-      // Show all locations regardless of isSignificant flag to visualize complete location history
       // Filter out low-accuracy points (>30m accuracy) to improve map visualization quality
-      // More aggressive threshold to handle measurement uncertainty
+      // Show all locations regardless of isSignificant flag to visualize complete location history
       final dayLocations = locationHistory
-          .where((loc) =>
-              loc.timestamp.isAfter(dayStart) &&
-              loc.timestamp.isBefore(dayEnd) &&
-              (loc.accuracy == null || loc.accuracy! <= 30.0)  // Only include points with good accuracy (reduced from 50m)
-          )
+          .where((loc) => (loc.accuracy == null || loc.accuracy! <= 30.0))
           .toList();
+
+      _logger.info('Loaded ${locationHistory.length} points for journeys, filtered to ${dayLocations.length} for date ${date.year}-${date.month}-${date.day}');
 
       if (dayLocations.isEmpty) {
         timer.stop();

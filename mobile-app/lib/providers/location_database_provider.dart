@@ -21,6 +21,19 @@ final recentLocationPointsProvider = StreamProvider.family<List<LocationPoint>, 
   },
 );
 
+// Provider for getting location points for a specific date (user's timezone)
+final locationPointsForDateProvider = FutureProvider.family<List<LocationPoint>, DateTime>(
+  (ref, date) async {
+    final db = ref.watch(locationDatabaseProvider);
+
+    // Get the start and end of the day in the user's local timezone
+    final dayStart = DateTime(date.year, date.month, date.day);
+    final dayEnd = dayStart.add(const Duration(days: 1));
+
+    return db.getLocationPointsBetween(dayStart, dayEnd);
+  },
+);
+
 // Provider for watching active geofences
 final activeGeofencesProvider = StreamProvider<List<GeofenceArea>>((ref) {
   final db = ref.watch(locationDatabaseProvider);

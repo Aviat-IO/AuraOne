@@ -7,7 +7,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import '../../providers/location_clustering_provider.dart';
 import '../../providers/location_database_provider.dart';
-import '../../database/location_database.dart' as loc_db;
 import '../../services/ai/dbscan_clustering.dart';
 import '../location/path_visualizer.dart';
 import 'map_debug_overlay.dart';
@@ -49,8 +48,8 @@ class MapWidget extends HookConsumerWidget {
     // Get clusters for the target date
     final clustersAsync = ref.watch(clusteredLocationsProvider(targetDate));
 
-    // Get recent location history for path visualization (last 7 days)
-    final locationHistoryAsync = ref.watch(recentLocationPointsProvider(const Duration(days: 7)));
+    // Get location history for this specific date only (24 hours in user's timezone)
+    final locationHistoryAsync = ref.watch(locationPointsForDateProvider(targetDate));
 
     return Container(
       height: 300,
@@ -69,25 +68,71 @@ class MapWidget extends HookConsumerWidget {
         child: Stack(
           children: [
             clustersAsync.when(
-          loading: () => Container(
-            color: theme.colorScheme.surfaceContainerHighest,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+          loading: () => Stack(
+            children: [
+              // Show a skeleton map while loading
+              FlutterMap(
+                mapController: mapController,
+                options: MapOptions(
+                  initialCenter: const LatLng(40.7128, -74.0060), // Default center
+                  initialZoom: 10.0,
+                  minZoom: 1.0,
+                  maxZoom: 18.0,
+                  interactionOptions: const InteractionOptions(
+                    flags: InteractiveFlag.none, // Disable interaction while loading
+                  ),
+                ),
                 children: [
-                  CircularProgressIndicator(
-                    color: theme.colorScheme.primary,
+                  TileLayer(
+                    urlTemplate: isDark
+                      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                    subdomains: const ['a', 'b', 'c', 'd'],
+                    maxZoom: 19,
+                    additionalOptions: const {},
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Loading map data...',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  if (isDark)
+                    Container(
+                      color: Colors.white.withValues(alpha: 0.15),
                     ),
-                  ),
                 ],
               ),
-            ),
+              // Loading overlay with blur effect
+              Container(
+                color: theme.colorScheme.surface.withValues(alpha: 0.8),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Animated loading indicator
+                      SizedBox(
+                        width: 60,
+                        height: 60,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 4,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Loading location data',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Analyzing movement patterns...',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
           error: (error, stack) => Container(
             color: theme.colorScheme.errorContainer,
@@ -167,7 +212,7 @@ class MapWidget extends HookConsumerWidget {
                 // Add path visualization layers (polylines and direction arrows)
                 ...locationHistoryAsync.when(
                   data: (locationHistory) => PathVisualizerWidget.buildPathLayers(
-                    locations: _filterLocationsByDate(locationHistory, targetDate),
+                    locations: locationHistory, // Already filtered to targetDate by provider
                     theme: theme,
                     pathColor: theme.colorScheme.primary.withValues(alpha: 0.7),
                     pathWidth: 3.0,
@@ -441,20 +486,6 @@ class MapWidget extends HookConsumerWidget {
   } */
 
 
-
-  List<loc_db.LocationPoint> _filterLocationsByDate(
-    List<loc_db.LocationPoint> locations,
-    DateTime targetDate,
-  ) {
-    final dayStart = DateTime(targetDate.year, targetDate.month, targetDate.day);
-    final dayEnd = dayStart.add(const Duration(days: 1));
-
-    return locations
-        .where((loc) =>
-            (loc.timestamp.isAtSameMomentAs(dayStart) || loc.timestamp.isAfter(dayStart)) &&
-            loc.timestamp.isBefore(dayEnd))
-        .toList();
-  }
 
   bool _isSameDay(DateTime date1, DateTime date2) {
     return date1.year == date2.year &&

@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:drift/drift.dart' show Value;
 import '../theme/colors.dart';
 import '../widgets/daily_canvas/timeline_widget.dart';
 import '../widgets/daily_canvas/map_widget.dart';
-import '../widgets/daily_canvas/media_gallery_widget.dart';
+import '../widgets/daily_canvas/media_gallery_widget.dart' hide mediaItemsProvider;
 import '../database/journal_database.dart';
 import '../providers/media_database_provider.dart';
-import '../providers/photo_service_provider.dart';
 import '../providers/location_clustering_provider.dart';
 import '../services/journal_service.dart';
 
@@ -426,24 +424,12 @@ class _JournalTab extends HookConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: Row(
-                          children: [
-                            Icon(
-                              enableAI ? Icons.auto_awesome : Icons.edit_note,
-                              color: theme.colorScheme.secondary,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            Flexible(
-                              child: Text(
-                                "Journal Entry",
-                                style: theme.textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          "Journal Entry",
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Row(
@@ -464,7 +450,7 @@ class _JournalTab extends HookConsumerWidget {
                                     ),
                                   )
                                 : Icon(
-                                    journalEntry.value != null ? Icons.refresh : Icons.add_circle_outline,
+                                    journalEntry.value != null ? Icons.auto_awesome : Icons.add_circle_outline,
                                     color: theme.colorScheme.primary,
                                   ),
                               onPressed: isGenerating.value ? null : generateSummary,
@@ -615,7 +601,7 @@ class _MapTab extends ConsumerWidget {
 }
 
 // Media Tab Widget with Selection Capabilities
-class _MediaTab extends HookConsumerWidget {
+class _MediaTab extends ConsumerWidget {
   final DateTime date;
   final bool enableSelection;
 
@@ -623,43 +609,9 @@ class _MediaTab extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final photoService = ref.watch(photoServiceProvider);
-    final isLoading = useState(false);
-    final hasScanned = useState(false);
-
-    // Get day's media
-    final dayStart = DateTime(date.year, date.month, date.day);
-
-    // Scan and index photos on first mount (if it's today)
-    useEffect(() {
-      final isToday = dayStart.year == DateTime.now().year &&
-                     dayStart.month == DateTime.now().month &&
-                     dayStart.day == DateTime.now().day;
-
-      if (isToday && !hasScanned.value) {
-        Future<void> scanPhotos() async {
-          hasScanned.value = true;
-          isLoading.value = true;
-          try {
-            final permission = await Permission.photos.request();
-            if (permission.isGranted || permission.isLimited) {
-              await photoService.scanAndIndexTodayPhotos();
-            }
-          } catch (e) {
-            // Handle error silently
-          } finally {
-            if (context.mounted) {
-              isLoading.value = false;
-            }
-          }
-        }
-        scanPhotos();
-      }
-      return null;
-    }, [date]);
-
-    // For the unified component, we can use the existing MediaGalleryWidget
-    // which already handles date-specific media display
+    // The MediaGalleryWidget efficiently loads media from the database
+    // Photo scanning happens in the background via the preload provider
+    // No need to scan on every tab switch - just read from database
     return Container(
       padding: const EdgeInsets.all(16),
       child: MediaGalleryWidget(

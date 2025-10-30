@@ -26,7 +26,7 @@ final selectedDateProvider = StateProvider<DateTime>((ref) => DateTime.now());
 final dailyCanvasPrefetchProvider = FutureProvider.family<void, DateTime>((ref, date) async {
   await Future.wait([
     ref.watch(clusteredLocationsProvider(date).future),
-    ref.watch(recentLocationPointsProvider(const Duration(days: 7)).future),
+    ref.watch(locationPointsForDateProvider(date).future),
     ref.watch(mediaItemsProvider((date: date, includeDeleted: false)).future),
   ]);
 });

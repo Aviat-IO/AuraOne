@@ -598,20 +598,23 @@ class PhotoService {
     }
   }
 
-  /// Scan and index today's photos into the database
-  Future<void> scanAndIndexTodayPhotos() async {
+  /// Scan and index photos for a specific date into the database
+  Future<void> scanAndIndexPhotosForDate(DateTime date) async {
     try {
+      _logger.info('Starting scan for date: ${date.toIso8601String()}');
+
       // Check permission first
       final permission = await PhotoManager.requestPermissionExtend();
       if (permission != PermissionState.authorized && permission != PermissionState.limited) {
-        _logger.warning('No photo library access');
+        _logger.warning('No photo library access: $permission');
         return;
       }
+      _logger.info('Photo permission granted: $permission');
 
-      // Get today's date range
-      final now = DateTime.now();
-      final todayStart = DateTime(now.year, now.month, now.day);
-      final todayEnd = todayStart.add(const Duration(days: 1));
+      // Get date range for the specified day
+      final dayStart = DateTime(date.year, date.month, date.day);
+      final dayEnd = dayStart.add(const Duration(days: 1));
+      _logger.info('Scanning for photos between $dayStart and $dayEnd');
 
       // Fetch photos from today
       final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
@@ -619,24 +622,31 @@ class PhotoService {
         hasAll: true,
       );
 
-      if (albums.isEmpty) return;
+      _logger.info('Found ${albums.length} albums');
+      if (albums.isEmpty) {
+        _logger.warning('No albums found');
+        return;
+      }
 
       // Get the "Recent" or "All" album
       final recentAlbum = albums.firstWhere(
         (album) => album.isAll,
         orElse: () => albums.first,
       );
+      _logger.info('Using album: ${recentAlbum.name}');
 
       // Get photos from today
       final photos = await recentAlbum.getAssetListRange(
         start: 0,
         end: 1000, // Get up to 1000 photos
       );
+      _logger.info('Retrieved ${photos.length} photos to check');
 
-      // Filter to today's photos and index them
+      // Filter to photos from the specified date and index them
+      int indexedCount = 0;
       for (final photo in photos) {
         final createDate = photo.createDateTime;
-        if (createDate.isAfter(todayStart) && createDate.isBefore(todayEnd)) {
+        if (createDate.isAfter(dayStart) && createDate.isBefore(dayEnd)) {
           try {
             // Index this photo using upsert to handle duplicates gracefully
             final file = await photo.file;
@@ -655,6 +665,8 @@ class PhotoService {
                   height: Value(photo.height),
                 ),
               );
+              indexedCount++;
+              _logger.info('Indexed photo ${photo.id} from ${createDate.toIso8601String()}');
             }
           } catch (e) {
             // Log individual photo indexing errors but continue with others
@@ -663,10 +675,16 @@ class PhotoService {
         }
       }
 
-      _logger.info('Indexed photos for today');
+      _logger.info('Indexed $indexedCount photos for ${date.toIso8601String()}');
     } catch (e, stack) {
-      _logger.error('Failed to scan and index today\'s photos', error: e, stackTrace: stack);
+      _logger.error('Failed to scan and index photos for ${date.toIso8601String()}', error: e, stackTrace: stack);
     }
+  }
+
+  /// Scan and index today's photos into the database
+  /// This is a convenience wrapper around scanAndIndexPhotosForDate
+  Future<void> scanAndIndexTodayPhotos() async {
+    await scanAndIndexPhotosForDate(DateTime.now());
   }
 
   /// Clear the photo cache (useful for fresh rescans)

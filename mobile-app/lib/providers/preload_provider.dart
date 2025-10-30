@@ -9,11 +9,21 @@ final _logger = AppLogger('PreloadProvider');
 /// Provider that preloads media and map data in the background
 /// This ensures data is already cached when user switches tabs
 final preloadProvider = Provider.family<void, DateTime>((ref, date) {
-  // Immediately start preloading media for this date (last 7 days worth to capture the day)
+  // Immediately start preloading media for this specific date
   Future.microtask(() {
     try {
-      // Trigger media provider to load and cache data
-      ref.read(recentMediaProvider((duration: const Duration(days: 7), limit: 500)).future);
+      // Calculate date range for the selected day
+      final startOfDay = DateTime(date.year, date.month, date.day, 0, 0, 0);
+      final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+
+      // Trigger media database to load and cache data for this specific date
+      final mediaDb = ref.read(mediaDatabaseProvider);
+      mediaDb.getMediaByDateRange(
+        startDate: startOfDay,
+        endDate: endOfDay,
+        processedOnly: false,
+        includeDeleted: false,
+      );
       _logger.info('Preloading media for ${date.toIso8601String()}');
     } catch (e) {
       _logger.warning('Error preloading media: $e');
@@ -31,11 +41,11 @@ final preloadProvider = Provider.family<void, DateTime>((ref, date) {
     }
   });
 
-  // Preload recent location points (used by map for path visualization)
+  // Preload location points for this specific date (used by map for path visualization)
   Future.microtask(() {
     try {
-      ref.read(recentLocationPointsProvider(const Duration(days: 7)).future);
-      _logger.info('Preloading recent location points');
+      ref.read(locationPointsForDateProvider(date).future);
+      _logger.info('Preloading location points for ${date.toIso8601String()}');
     } catch (e) {
       _logger.warning('Error preloading location points: $e');
     }
