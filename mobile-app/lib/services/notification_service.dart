@@ -15,6 +15,8 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   bool _isInitialized = false;
+  
+  static void Function(String)? onNotificationTap;
 
   /// Initialize the notification service
   Future<void> initialize() async {
@@ -58,7 +60,10 @@ class NotificationService {
   /// Handle notification tap
   void _onNotificationTapped(NotificationResponse response) {
     _logger.info('Notification tapped: ${response.payload}');
-    // TODO: Navigate to journal or appropriate screen
+    
+    if (response.payload != null && onNotificationTap != null) {
+      onNotificationTap!(response.payload!);
+    }
   }
 
   /// Schedule daily reminder notification
@@ -112,9 +117,9 @@ class NotificationService {
 
       // Android notification details
       const androidDetails = AndroidNotificationDetails(
-        'daily_reminder',
-        'Daily Reminders',
-        channelDescription: 'Daily reminders to check in with your wellness',
+        'journal_reminder',
+        'Journal Reminders',
+        channelDescription: 'Daily reminders to write in your journal',
         importance: Importance.high,
         priority: Priority.high,
         showWhen: true,
@@ -139,20 +144,20 @@ class NotificationService {
       // Schedule the notification to repeat daily
       await _notifications.zonedSchedule(
         0, // Notification ID for daily reminder
-        'Time for your daily check-in! 🌟',
-        'How was your day? Take a moment to reflect on your wellness journey.',
+        'Time to journal ✍️',
+        'Reflect on your day and capture your thoughts',
         scheduledDate,
         notificationDetails,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time, // Repeat daily at the same time
-        payload: 'daily_reminder',
+        payload: 'journal_reminder',
       );
 
-      _logger.info('Daily reminder scheduled for ${time.hour}:${time.minute.toString().padLeft(2, '0')}');
+      _logger.info('Journal reminder scheduled for ${time.hour}:${time.minute.toString().padLeft(2, '0')}');
     } catch (e) {
-      _logger.error('Failed to schedule daily reminder', error: e);
+      _logger.error('Failed to schedule journal reminder', error: e);
     }
   }
 

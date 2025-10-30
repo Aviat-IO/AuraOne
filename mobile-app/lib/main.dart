@@ -31,6 +31,9 @@ import 'package:aura_one/services/ai/adapter_registry.dart';
 import 'package:aura_one/services/ai/template_adapter.dart';
 import 'package:aura_one/services/ai/cloud_gemini_adapter.dart';
 import 'package:aura_one/services/ai/managed_cloud_gemini_adapter.dart';
+import 'package:aura_one/services/notification_service.dart';
+import 'package:aura_one/screens/main_layout_screen.dart';
+import 'package:aura_one/widgets/daily_entry_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Provider to store restoration status
@@ -452,6 +455,20 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
       // Initialize notification service (keep this for basic functionality)
       final notificationService = ref.read(notificationServiceProvider);
       await notificationService.initialize();
+      
+      // Set up notification tap handler for navigation
+      NotificationService.onNotificationTap = (payload) {
+        if (payload == 'journal_reminder') {
+          // Navigate to Today > Journal
+          final router = ref.read(routerProvider);
+          router.go('/');
+          // Set the selected tab to Today (index 2) and ensure Journal subtab (index 0)
+          Future.delayed(const Duration(milliseconds: 100), () {
+            ref.read(selectedTabIndexProvider.notifier).state = 2;
+            ref.read(dailyEntrySubTabIndexProvider.notifier).state = 0;
+          });
+        }
+      };
 
       // Initialize journal service (keep this for basic functionality)
       final journalService = ref.read(journalServiceProvider);

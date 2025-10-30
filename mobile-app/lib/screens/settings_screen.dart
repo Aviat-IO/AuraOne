@@ -19,7 +19,7 @@ class SettingsScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final brightness = ref.watch(brightnessProvider);
     final isLight = theme.brightness == Brightness.light;
-    final dailyReminders = ref.watch(dailyRemindersEnabledProvider);
+    final journalReminder = ref.watch(journalReminderEnabledProvider);
     final fontSize = ref.watch(fontSizeProvider);
 
     return Scaffold(
@@ -162,10 +162,10 @@ class SettingsScreen extends ConsumerWidget {
                             ),
                             _buildSettingsTile(
                               icon: Icons.notifications,
-                              title: 'Daily Reminders',
-                              subtitle: 'Get reminded to write in your journal',
+                              title: 'Journal Reminder',
+                              subtitle: 'Daily reminder at 8pm to write in your journal',
                               trailing: Switch(
-                                value: dailyReminders,
+                                value: journalReminder,
                                 onChanged: (value) async {
                                   if (value) {
                                     try {
@@ -177,7 +177,7 @@ class SettingsScreen extends ConsumerWidget {
                                         if (context.mounted) {
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             const SnackBar(
-                                              content: Text('Please enable notifications in settings to use daily reminders'),
+                                              content: Text('Please enable notifications in settings to use journal reminders'),
                                             ),
                                           );
                                         }
@@ -190,13 +190,13 @@ class SettingsScreen extends ConsumerWidget {
 
                                       if (permissionsGranted) {
                                         // All permissions granted, enable reminders
-                                        await ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(value);
+                                        await ref.read(journalReminderEnabledProvider.notifier).setEnabled(value);
                                       } else {
                                         // Show permission denied message
                                         if (context.mounted) {
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             const SnackBar(
-                                              content: Text('Please enable exact alarms permission in settings to use daily reminders'),
+                                              content: Text('Please enable exact alarms permission in settings to use journal reminders'),
                                             ),
                                           );
                                         }
@@ -213,7 +213,7 @@ class SettingsScreen extends ConsumerWidget {
                                     }
                                   } else {
                                     // Disabling reminders doesn't need permissions
-                                    await ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(value);
+                                    await ref.read(journalReminderEnabledProvider.notifier).setEnabled(value);
                                   }
                                 },
                               ),

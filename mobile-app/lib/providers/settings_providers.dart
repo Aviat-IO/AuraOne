@@ -46,7 +46,76 @@ class FontSizeNotifier extends StateNotifier<FontSize> {
   }
 }
 
-// Daily reminders provider
+// Journal reminder provider (defaulted to ON)
+final journalReminderEnabledProvider = StateNotifierProvider<JournalReminderNotifier, bool>((ref) {
+  return JournalReminderNotifier(ref);
+});
+
+class JournalReminderNotifier extends StateNotifier<bool> {
+  final Ref _ref;
+
+  JournalReminderNotifier(this._ref) : super(true) {
+    _loadState();
+  }
+
+  Future<void> _loadState() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Check if we have a saved preference
+    final savedPref = prefs.getBool('journalReminder');
+
+    if (savedPref != null) {
+      // Use saved preference
+      state = savedPref;
+    } else {
+      // First time - default to true (enabled)
+      state = true;
+      await prefs.setBool('journalReminder', true);
+    }
+
+    // If reminders are enabled, schedule them
+    if (state) {
+      final permissionStatus = await Permission.notification.status;
+      if (permissionStatus.isGranted) {
+        await _scheduleReminders();
+      } else {
+        // Don't disable the setting, just don't schedule yet
+        // User may grant permission later
+      }
+    }
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('journalReminder', enabled);
+
+    final notificationService = _ref.read(notificationServiceProvider);
+
+    if (enabled) {
+      // Schedule journal reminders when enabled
+      await _scheduleReminders();
+    } else {
+      // Cancel reminders when disabled
+      await notificationService.cancelDailyReminder();
+    }
+  }
+
+  Future<void> _scheduleReminders() async {
+    final notificationService = _ref.read(notificationServiceProvider);
+    final reminderTime = _ref.read(journalReminderTimeProvider);
+
+    // Convert DateTime to TimeOfDay
+    final timeOfDay = TimeOfDay(
+      hour: reminderTime.hour,
+      minute: reminderTime.minute,
+    );
+
+    await notificationService.scheduleDailyReminder(timeOfDay);
+  }
+}
+
+// Legacy daily reminders provider (kept for backwards compatibility)
 final dailyRemindersEnabledProvider = StateNotifierProvider<DailyRemindersNotifier, bool>((ref) {
   return DailyRemindersNotifier(ref);
 });
@@ -120,7 +189,42 @@ class DailyRemindersNotifier extends StateNotifier<bool> {
   }
 }
 
-// Reminder time provider
+// Journal reminder time provider (defaulted to 8pm)
+final journalReminderTimeProvider = StateNotifierProvider<JournalReminderTimeNotifier, DateTime>((ref) {
+  return JournalReminderTimeNotifier(ref);
+});
+
+class JournalReminderTimeNotifier extends StateNotifier<DateTime> {
+  final Ref _ref;
+
+  JournalReminderTimeNotifier(this._ref) : super(DateTime(2024, 1, 1, 20, 0)) {
+    _loadTime();
+  }
+
+  Future<void> _loadTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hour = prefs.getInt('journalReminderHour') ?? 20;
+    final minute = prefs.getInt('journalReminderMinute') ?? 0;
+    state = DateTime(2024, 1, 1, hour, minute);
+  }
+
+  Future<void> setTime(DateTime time) async {
+    state = time;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('journalReminderHour', time.hour);
+    await prefs.setInt('journalReminderMinute', time.minute);
+
+    // Reschedule reminders with new time if they're enabled
+    final remindersEnabled = _ref.read(journalReminderEnabledProvider);
+    if (remindersEnabled) {
+      final notificationService = _ref.read(notificationServiceProvider);
+      final timeOfDay = TimeOfDay(hour: time.hour, minute: time.minute);
+      await notificationService.scheduleDailyReminder(timeOfDay);
+    }
+  }
+}
+
+// Legacy reminder time provider (kept for backwards compatibility)
 final reminderTimeProvider = StateNotifierProvider<ReminderTimeNotifier, DateTime>((ref) {
   return ReminderTimeNotifier(ref);
 });
