@@ -14,6 +14,21 @@ import '../services/journal_service.dart';
 // Provider for sub-tab index in DailyEntryView - default to Journal (index 0)
 final dailyEntrySubTabIndexProvider = StateProvider<int>((ref) => 0);
 
+/// Shared widget for displaying daily content (Journal, Timeline, Map, Media) for a specific date.
+/// 
+/// **IMPORTANT**: This widget is used by BOTH the Today (Home) and History screens.
+/// Any changes made here will affect both views. This is intentional for code reuse
+/// and consistency.
+/// 
+/// Used by:
+/// - HomeScreen (lib/screens/home_screen.dart) - displays current day
+/// - HistoryScreen (lib/screens/history_screen.dart) - displays selected historical date
+/// 
+/// The widget contains 4 sub-tabs:
+/// - Journal: AI-generated or manual journal entries
+/// - Timeline: Activity timeline for the day
+/// - Map: Location visualization with clustering
+/// - Media: Photo/video gallery for the day
 class DailyEntryView extends HookConsumerWidget {
   final DateTime date;
   final bool enableAI;
@@ -571,6 +586,7 @@ class _JournalTab extends HookConsumerWidget {
 }
 
 // Timeline Tab Widget
+// SHARED by Today and History screens via DailyEntryView
 class _TimelineTab extends ConsumerWidget {
   final DateTime date;
 
@@ -586,6 +602,7 @@ class _TimelineTab extends ConsumerWidget {
 }
 
 // Map Tab Widget
+// SHARED by Today and History screens via DailyEntryView
 class _MapTab extends ConsumerWidget {
   final DateTime date;
 
@@ -601,6 +618,7 @@ class _MapTab extends ConsumerWidget {
 }
 
 // Media Tab Widget with Selection Capabilities
+// SHARED by Today and History screens via DailyEntryView
 class _MediaTab extends ConsumerWidget {
   final DateTime date;
   final bool enableSelection;
@@ -610,8 +628,8 @@ class _MediaTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // The MediaGalleryWidget efficiently loads media from the database
-    // Photo scanning happens in the background via the preload provider
-    // No need to scan on every tab switch - just read from database
+    // Photo scanning is triggered automatically when the tab is viewed
+    // This ensures fresh data is always available
     return Container(
       padding: const EdgeInsets.all(16),
       child: MediaGalleryWidget(

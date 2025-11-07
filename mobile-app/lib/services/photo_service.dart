@@ -47,7 +47,7 @@ class PhotoService {
   final Set<String> _knownPhotoIds = {};
 
   /// Scanning configuration
-  Duration _scanInterval = const Duration(minutes: 30);
+  Duration _scanInterval = const Duration(minutes: 5); // Reduced from 30 to 5 minutes for faster photo discovery
   bool _isAutomaticScanningEnabled = false;
 
   /// Pagination configuration
@@ -497,8 +497,11 @@ class PhotoService {
 
   /// Handle photo library changes
   void _onPhotoLibraryChanged(MethodCall call) {
-    _logger.info('Photo library changed: ${call.method}');
-    // Trigger a rescan or update UI as needed
+    _logger.info('Photo library changed: ${call.method} - triggering immediate scan');
+    // Trigger immediate scan when photos are added/changed
+    Future.delayed(const Duration(seconds: 2), () {
+      _performAutomaticScan();
+    });
   }
 
   /// Start automated scanning for new photos

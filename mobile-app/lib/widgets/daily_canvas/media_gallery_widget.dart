@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -7,37 +8,65 @@ import 'dart:io';
 import 'dart:async';
 import '../../providers/media_database_provider.dart';
 import '../../providers/media_thumbnail_provider.dart' show CachedThumbnailWidget;
+import '../../providers/photo_service_provider.dart';
+import '../../database/media_database.dart' as db;
 
-// Provider for media items from device storage
+// Provider for media items from device storage with performance optimizations
 // Using autoDispose to clean up when not needed
 // Adding keepAlive to prevent unnecessary recomputation
 final mediaItemsProvider = FutureProvider.family.autoDispose<List<MediaItem>, ({DateTime date, bool includeDeleted})>((ref, params) async {
-  // Keep alive indefinitely during session - no auto-invalidation to prevent rebuilds
-  ref.keepAlive();
+  // Keep alive for 5 minutes to balance memory usage and performance
+  final link = ref.keepAlive();
+  Timer? cleanupTimer;
+
+  // Auto-cleanup after 5 minutes of inactivity to prevent indefinite memory retention
+  cleanupTimer = Timer(const Duration(minutes: 5), () {
+    link.close();
+  });
+
+  // Cancel cleanup if still being used
+  ref.onDispose(() {
+    cleanupTimer?.cancel();
+  });
+
   final mediaDb = ref.watch(mediaDatabaseProvider);
 
   // Calculate date range for the selected day
   final startOfDay = DateTime(params.date.year, params.date.month, params.date.day, 0, 0, 0);
   final endOfDay = DateTime(params.date.year, params.date.month, params.date.day, 23, 59, 59);
 
+  debugPrint('MediaItemsProvider: Loading media for date ${params.date} ($startOfDay to $endOfDay)');
+
   try {
-    // Query media items for the specific date range
+    // Query media items with timeout protection
     final mediaItems = await mediaDb.getMediaByDateRange(
       startDate: startOfDay,
       endDate: endOfDay,
-      processedOnly: false,  // Show both processed and unprocessed media
+      processedOnly: false,
       includeDeleted: params.includeDeleted,
+    ).timeout(
+      const Duration(seconds: 8),
+      onTimeout: () {
+        debugPrint('Media loading timed out for date ${params.date}');
+        return <db.MediaItem>[];
+      },
     );
+
+    debugPrint('MediaItemsProvider: Loaded ${mediaItems.length} media items from database');
 
     // Early return if no items found
     if (mediaItems.isEmpty) {
+      debugPrint('MediaItemsProvider: No media items found for date ${params.date}');
       return [];
     }
 
+    // Limit media items to 200 per day to prevent performance issues
+    final limitedItems = mediaItems.length > 200 ? mediaItems.take(200).toList() : mediaItems;
+    debugPrint('MediaItemsProvider: After limiting, have ${limitedItems.length} items');
+
     // Convert database media items to UI MediaItem objects
     // Skip file existence checks - assume files exist if in database
-    // This dramatically improves loading performance
-    final List<MediaItem> result = mediaItems
+    final List<MediaItem> result = limitedItems
         .where((item) => item.filePath != null)
         .map((item) {
           // Determine media type based on MIME type
@@ -64,9 +93,11 @@ final mediaItemsProvider = FutureProvider.family.autoDispose<List<MediaItem>, ({
     // Sort by timestamp, newest first
     result.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
+    debugPrint('MediaItemsProvider: Returning ${result.length} MediaItem objects for date ${params.date}');
     return result;
   } catch (e) {
     debugPrint('Error loading media items for date ${params.date}: $e');
+    debugPrint('Stack trace: ${StackTrace.current}');
     return [];
   }
 });
@@ -102,7 +133,7 @@ class MediaItem {
   });
 }
 
-class MediaGalleryWidget extends ConsumerWidget {
+class MediaGalleryWidget extends HookConsumerWidget {
   final DateTime date;
   final bool enableSelection;
 
@@ -137,6 +168,38 @@ class MediaGalleryWidget extends ConsumerWidget {
     final isLight = theme.brightness == Brightness.light;
     final mediaItemsAsync = ref.watch(mediaItemsProvider((date: date, includeDeleted: enableSelection)));
     final viewMode = ref.watch(galleryViewModeProvider);
+
+    // Trigger photo scan when media tab is viewed to ensure fresh data
+    useEffect(() {
+      Future.microtask(() async {
+        try {
+          final photoService = ref.read(photoServiceProvider);
+          await photoService.scanAndIndexPhotosForDate(date);
+          debugPrint('Triggered photo scan for date $date in MediaGalleryWidget');
+        } catch (e) {
+          debugPrint('Failed to trigger photo scan: $e');
+        }
+      });
+      return null;
+    }, [date]);
+
+    // Add loading timeout tracking
+    final isLoadingTimedOut = useState(false);
+    final loadingStartTime = useRef<DateTime?>(null);
+
+    // Track loading timeout
+    useEffect(() {
+      if (mediaItemsAsync.isLoading && loadingStartTime.value == null) {
+        loadingStartTime.value = DateTime.now();
+      } else if (!mediaItemsAsync.isLoading) {
+        loadingStartTime.value = null;
+        isLoadingTimedOut.value = false;
+      } else if (loadingStartTime.value != null &&
+                 DateTime.now().difference(loadingStartTime.value!) > const Duration(seconds: 10)) {
+        isLoadingTimedOut.value = true;
+      }
+      return null;
+    }, [mediaItemsAsync]);
 
     return mediaItemsAsync.when(
       data: (mediaItems) => Column(
@@ -191,58 +254,95 @@ class MediaGalleryWidget extends ConsumerWidget {
           ),
         ],
       ),
-      loading: () => Skeletonizer(
-        enabled: true,
-        child: Column(
-          children: [
-            // Header skeleton
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 80,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(4),
+      loading: () => Column(
+        children: [
+          // Header with loading state
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  isLoadingTimedOut.value ? 'Loading taking longer...' : 'Loading media...',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: isLoadingTimedOut.value
+                        ? theme.colorScheme.error
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+                Row(
+                  children: [
+                    _buildViewModeButton(
+                      icon: Icons.grid_view,
+                      mode: GalleryViewMode.grid,
+                      currentMode: viewMode,
+                      onTap: () => ref.read(galleryViewModeProvider.notifier).state = GalleryViewMode.grid,
+                      theme: theme,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildViewModeButton(
+                      icon: Icons.view_carousel,
+                      mode: GalleryViewMode.carousel,
+                      currentMode: viewMode,
+                      onTap: () => ref.read(galleryViewModeProvider.notifier).state = GalleryViewMode.carousel,
+                      theme: theme,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Loading content
+          Expanded(
+            child: isLoadingTimedOut.value
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.hourglass_empty,
+                          size: 48,
+                          color: theme.colorScheme.error,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Media loading is taking longer than expected',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: theme.colorScheme.error,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Try switching tabs and back, or restart the app',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  )
+                : Skeletonizer(
+                    enabled: true,
+                    child: GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                      ),
+                      itemCount: 6,
+                      itemBuilder: (context, index) => Container(
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
                     ),
                   ),
-                  Row(
-                    children: List.generate(3, (index) => Container(
-                      margin: const EdgeInsets.only(left: 8),
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    )),
-                  ),
-                ],
-              ),
-            ),
-            // Grid skeleton
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.all(16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                ),
-                itemCount: 6,
-                itemBuilder: (context, index) => Container(
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
       error: (error, stack) => Center(
         child: Column(

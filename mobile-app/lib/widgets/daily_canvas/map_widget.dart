@@ -45,11 +45,29 @@ class MapWidget extends HookConsumerWidget {
       return null;
     }, [targetDate]);
 
-    // Get clusters for the target date
+    // Get clusters for the target date with timeout protection
     final clustersAsync = ref.watch(clusteredLocationsProvider(targetDate));
 
     // Get location history for this specific date only (24 hours in user's timezone)
     final locationHistoryAsync = ref.watch(locationPointsForDateProvider(targetDate));
+
+    // Add loading timeout state
+    final isLoadingTimedOut = useState(false);
+    final loadingStartTime = useRef<DateTime?>(null);
+
+    // Track loading timeout
+    useEffect(() {
+      if (clustersAsync.isLoading && loadingStartTime.value == null) {
+        loadingStartTime.value = DateTime.now();
+      } else if (!clustersAsync.isLoading) {
+        loadingStartTime.value = null;
+        isLoadingTimedOut.value = false;
+      } else if (loadingStartTime.value != null &&
+                 DateTime.now().difference(loadingStartTime.value!) > const Duration(seconds: 20)) {
+        isLoadingTimedOut.value = true;
+      }
+      return null;
+    }, [clustersAsync]);
 
     return Container(
       height: 300,
@@ -104,30 +122,56 @@ class MapWidget extends HookConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Animated loading indicator
-                      SizedBox(
-                        width: 60,
-                        height: 60,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 4,
-                          color: theme.colorScheme.primary,
+                      // Show different message if timed out
+                       if (isLoadingTimedOut.value) ...[
+                         Icon(
+                           Icons.warning,
+                           size: 48,
+                           color: theme.colorScheme.error,
+                         ),
+                         const SizedBox(height: 20),
+                         Text(
+                           'Map data is taking longer to load',
+                           style: theme.textTheme.titleMedium?.copyWith(
+                             fontWeight: FontWeight.w600,
+                             color: theme.colorScheme.error,
+                           ),
+                           textAlign: TextAlign.center,
+                         ),
+                         const SizedBox(height: 8),
+                         Text(
+                           'Try switching tabs and back, or restart the app if this persists',
+                           style: theme.textTheme.bodyMedium?.copyWith(
+                             color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                           ),
+                           textAlign: TextAlign.center,
+                         ),
+                       ] else ...[
+                        // Animated loading indicator
+                        SizedBox(
+                          width: 60,
+                          height: 60,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 4,
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Loading location data',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurface,
+                        const SizedBox(height: 20),
+                        Text(
+                          'Loading location data',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurface,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Analyzing movement patterns...',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Analyzing movement patterns...',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -164,29 +208,43 @@ class MapWidget extends HookConsumerWidget {
               ),
             ),
           ),
-          data: (clusters) {
-            // If no clusters, show a map with helpful message
-            if (clusters.isEmpty) {
-              return _buildEmptyMap(context, isDark, mapController);
-            }
+            data: (clusters) {
+              // If no clusters, show a map with helpful message
+              if (clusters.isEmpty) {
+                return _buildEmptyMap(context, isDark, mapController);
+              }
 
-            // Calculate center and zoom for this date
-            final center = _calculateMapCenter(clusters);
-            final zoom = _calculateOptimalZoom(clusters);
-
-            // Only reset view when date changes or first load
-            if (shouldResetView) {
-              // Use post-frame callback to move map without rebuilding
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                mapController.move(center, zoom);
+              // Calculate center and zoom asynchronously to prevent UI blocking
+              _calculateMapViewAsync(clusters).then((view) {
+                if (shouldResetView && context.mounted) {
+                  // Use post-frame callback to move map without rebuilding
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (context.mounted) {
+                      mapController.move(view.center, view.zoom);
+                    }
+                  });
+                }
+              }).catchError((e) {
+                debugPrint('Error calculating map view: $e');
+                // Fallback to default view
+                if (shouldResetView && context.mounted) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (context.mounted) {
+                      mapController.move(const LatLng(40.7128, -74.0060), 10.0);
+                    }
+                  });
+                }
               });
-            }
 
-            return FlutterMap(
-              mapController: mapController,
-              options: MapOptions(
-                initialCenter: center,
-                initialZoom: zoom,
+              // Use cached/default center and zoom initially to prevent blocking
+              final initialCenter = const LatLng(40.7128, -74.0060);
+              final initialZoom = 10.0;
+
+              return FlutterMap(
+                mapController: mapController,
+                options: MapOptions(
+                  initialCenter: initialCenter,
+                  initialZoom: initialZoom,
                 minZoom: 1.0,  // Reduced from 2.0 to allow wider view
                 maxZoom: 18.0,
                 interactionOptions: const InteractionOptions(
@@ -492,4 +550,27 @@ class MapWidget extends HookConsumerWidget {
         date1.month == date2.month &&
         date1.day == date2.day;
   }
+
+  // Async wrapper for map view calculations to prevent UI blocking
+  Future<_MapView> _calculateMapViewAsync(List<LocationCluster> clusters) async {
+    return await Future.microtask(() {
+      final center = _calculateMapCenter(clusters);
+      final zoom = _calculateOptimalZoom(clusters);
+      return _MapView(center: center, zoom: zoom);
+    }).timeout(
+      const Duration(seconds: 2),
+      onTimeout: () => const _MapView(
+        center: LatLng(40.7128, -74.0060),
+        zoom: 10.0,
+      ),
+    );
+  }
+}
+
+// Helper class for map view data
+class _MapView {
+  final LatLng center;
+  final double zoom;
+
+  const _MapView({required this.center, required this.zoom});
 }

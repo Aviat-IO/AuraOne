@@ -22,6 +22,7 @@ final recentLocationPointsProvider = StreamProvider.family<List<LocationPoint>, 
 );
 
 // Provider for getting location points for a specific date (user's timezone)
+// Limited to prevent excessive data loading and improve performance
 final locationPointsForDateProvider = FutureProvider.family<List<LocationPoint>, DateTime>(
   (ref, date) async {
     final db = ref.watch(locationDatabaseProvider);
@@ -30,7 +31,15 @@ final locationPointsForDateProvider = FutureProvider.family<List<LocationPoint>,
     final dayStart = DateTime(date.year, date.month, date.day);
     final dayEnd = dayStart.add(const Duration(days: 1));
 
-    return db.getLocationPointsBetween(dayStart, dayEnd);
+    // Limit location points to 1000 per day to prevent performance issues
+    // Sort by timestamp and take most recent points if over limit
+    final allPoints = await db.getLocationPointsBetween(dayStart, dayEnd);
+    if (allPoints.length > 1000) {
+      // Keep the most recent 1000 points for clustering
+      allPoints.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      return allPoints.take(1000).toList();
+    }
+    return allPoints;
   },
 );
 
