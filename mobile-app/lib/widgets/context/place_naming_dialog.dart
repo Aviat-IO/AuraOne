@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -28,7 +30,7 @@ class PlaceNamingDialog extends HookConsumerWidget {
 
     final nameController = useTextEditingController(text: initialName ?? '');
     final selectedCategory = useState<PlaceCategory?>(
-      suggestedCategory != null 
+      suggestedCategory != null
           ? PlaceCategory.findById(suggestedCategory!)
           : null,
     );
@@ -36,9 +38,7 @@ class PlaceNamingDialog extends HookConsumerWidget {
     final isSaving = useState(false);
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 700, maxHeight: 700),
@@ -48,14 +48,8 @@ class PlaceNamingDialog extends HookConsumerWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isLight
-                ? [
-                    AuraColors.lightSurface,
-                    AuraColors.lightSurfaceContainerLow,
-                  ]
-                : [
-                    AuraColors.darkSurface,
-                    AuraColors.darkSurfaceContainerLow,
-                  ],
+                ? [AuraColors.lightSurface, AuraColors.lightSurfaceContainerLow]
+                : [AuraColors.darkSurface, AuraColors.darkSurfaceContainerLow],
           ),
         ),
         child: Column(
@@ -78,11 +72,7 @@ class PlaceNamingDialog extends HookConsumerWidget {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.place,
-                    color: Colors.white,
-                    size: 28,
-                  ),
+                  Icon(Icons.place, color: Colors.white, size: 28),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -129,8 +119,9 @@ class PlaceNamingDialog extends HookConsumerWidget {
                               child: Text(
                                 address!,
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface
-                                      .withValues(alpha: 0.8),
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.8,
+                                  ),
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -250,7 +241,9 @@ class PlaceNamingDialog extends HookConsumerWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: isSaving.value ? null : () => Navigator.of(context).pop(),
+                      onPressed: isSaving.value
+                          ? null
+                          : () => Navigator.of(context).pop(),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -263,7 +256,8 @@ class PlaceNamingDialog extends HookConsumerWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton(
-                      onPressed: isSaving.value ||
+                      onPressed:
+                          isSaving.value ||
                               nameController.text.trim().isEmpty ||
                               selectedCategory.value == null
                           ? null
@@ -366,7 +360,7 @@ class PlaceNamingDialog extends HookConsumerWidget {
           ),
           color: isSelected
               ? (isLight ? AuraColors.lightPrimary : AuraColors.darkPrimary)
-                  .withValues(alpha: 0.1)
+                    .withValues(alpha: 0.1)
               : Colors.transparent,
         ),
         child: Row(
@@ -387,7 +381,9 @@ class PlaceNamingDialog extends HookConsumerWidget {
                   Text(
                     title,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -436,9 +432,9 @@ class PlaceNamingDialog extends HookConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving place: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving place: $e')));
       }
     } finally {
       isSaving.value = false;

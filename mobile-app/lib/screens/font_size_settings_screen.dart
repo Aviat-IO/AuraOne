@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../providers/settings_providers.dart';
@@ -35,14 +37,14 @@ class FontSizeSettingsScreen extends ConsumerWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: isLight
-                      ? AuraColors.lightCardGradient
-                      : AuraColors.darkCardGradient,
+                        ? AuraColors.lightCardGradient
+                        : AuraColors.darkCardGradient,
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: isLight
-                        ? AuraColors.lightPrimary.withValues(alpha: 0.08)
-                        : Colors.black.withValues(alpha: 0.2),
+                          ? AuraColors.lightPrimary.withValues(alpha: 0.08)
+                          : Colors.black.withValues(alpha: 0.2),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
@@ -61,15 +63,21 @@ class FontSizeSettingsScreen extends ConsumerWidget {
                     Text(
                       'This is how your journal entries will look with the current font size setting.',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: theme.textTheme.bodyMedium!.fontSize! * fontSizeNotifier.scaleFactor,
+                        fontSize:
+                            theme.textTheme.bodyMedium!.fontSize! *
+                            fontSizeNotifier.scaleFactor,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'The quick brown fox jumps over the lazy dog.',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: theme.textTheme.bodySmall!.fontSize! * fontSizeNotifier.scaleFactor,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                        fontSize:
+                            theme.textTheme.bodySmall!.fontSize! *
+                            fontSizeNotifier.scaleFactor,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                     ),
                   ],
@@ -99,13 +107,17 @@ class FontSizeSettingsScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isSelected
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.outline.withValues(alpha: 0.3),
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.outline.withValues(
+                                  alpha: 0.3,
+                                ),
                           width: isSelected ? 2 : 1,
                         ),
                         color: isSelected
-                          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.1)
-                          : null,
+                            ? theme.colorScheme.primaryContainer.withValues(
+                                alpha: 0.1,
+                              )
+                            : null,
                       ),
                       child: Row(
                         children: [
@@ -133,7 +145,8 @@ class FontSizeSettingsScreen extends ConsumerWidget {
                                 Text(
                                   _getSizeDescription(size),
                                   style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.6),
                                     fontSize: _getPreviewSize(size) * 0.8,
                                   ),
                                 ),
@@ -158,10 +171,14 @@ class FontSizeSettingsScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.1),
+                  color: theme.colorScheme.primaryContainer.withValues(
+                    alpha: 0.1,
+                  ),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                    color: theme.colorScheme.primaryContainer.withValues(
+                      alpha: 0.3,
+                    ),
                   ),
                 ),
                 child: Row(
@@ -177,7 +194,9 @@ class FontSizeSettingsScreen extends ConsumerWidget {
                       child: Text(
                         'Adjusting the font size will affect all text throughout the app, making it easier to read based on your preference.',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.7,
+                          ),
                         ),
                       ),
                     ),

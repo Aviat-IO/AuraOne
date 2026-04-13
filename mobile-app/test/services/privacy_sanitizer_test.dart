@@ -4,11 +4,10 @@ void main() {
   group('PrivacySanitizer Tests', () {
     group('Task 4.1-4.2: Privacy Level Filtering', () {
       test('Paranoid level returns generic descriptions only', () {
-        final privacyLevel = 'paranoid';
         final placeCategory = 'restaurant';
-        
+
         final genericDescription = _getGenericDescription(placeCategory);
-        
+
         expect(genericDescription, equals('restaurant'));
         expect(genericDescription, isNot(contains('specific')));
       });
@@ -19,9 +18,9 @@ void main() {
           'firstName': 'John',
           'privacyLevel': 2,
         };
-        
+
         final displayName = person['firstName'];
-        
+
         expect(displayName, equals('John'));
         expect(displayName, isNot(contains('Doe')));
       });
@@ -32,14 +31,9 @@ void main() {
           'neighborhood': 'Downtown',
           'city': 'Salt Lake City',
         };
-        
-        final includeNeighborhood = true;
-        final includeCity = false;
-        
-        final display = includeNeighborhood
-            ? '${place['name']} in ${place['neighborhood']}'
-            : place['name'];
-        
+
+        final display = '${place['name']} in ${place['neighborhood']}';
+
         expect(display, contains('Downtown'));
         expect(display, isNot(contains('Salt Lake City')));
       });
@@ -50,9 +44,10 @@ void main() {
           'neighborhood': 'Downtown',
           'city': 'Salt Lake City',
         };
-        
-        final fullDisplay = '${place['name']} in ${place['neighborhood']}, ${place['city']}';
-        
+
+        final fullDisplay =
+            '${place['name']} in ${place['neighborhood']}, ${place['city']}';
+
         expect(fullDisplay, contains('Liberty Park'));
         expect(fullDisplay, contains('Downtown'));
         expect(fullDisplay, contains('Salt Lake City'));
@@ -62,9 +57,9 @@ void main() {
     group('Task 4.3: Per-Person Privacy Settings', () {
       test('Privacy level 0 excludes person from journal', () {
         final person = {'name': 'Alice', 'privacyLevel': 0};
-        
+
         final shouldInclude = (person['privacyLevel']! as int) > 0;
-        
+
         expect(shouldInclude, isFalse);
       });
 
@@ -74,11 +69,11 @@ void main() {
           'firstName': 'Bob',
           'privacyLevel': 1,
         };
-        
+
         final displayName = person['privacyLevel'] == 1
             ? person['firstName']
             : person['name'];
-        
+
         expect(displayName, equals('Bob'));
       });
 
@@ -89,18 +84,19 @@ void main() {
           'relationship': 'friend',
           'privacyLevel': 2,
         };
-        
-        final displayName = '${person['firstName']} (${person['relationship']})';
-        
+
+        final displayName =
+            '${person['firstName']} (${person['relationship']})';
+
         expect(displayName, equals('Charlie (friend)'));
       });
 
       test('Person privacy overrides global settings', () {
         final person = {'privacyLevel': 0};
         final globalLevel = 'minimal';
-        
+
         final shouldInclude = person['privacyLevel']! > 0;
-        
+
         expect(shouldInclude, isFalse);
         expect(globalLevel, equals('minimal'));
       });
@@ -124,9 +120,9 @@ void main() {
 
       test('Significance level 0 excludes place', () {
         final place = {'name': 'Random Store', 'significanceLevel': 0};
-        
+
         final shouldInclude = (place['significanceLevel']! as int) > 0;
-        
+
         expect(shouldInclude, isFalse);
       });
 
@@ -137,7 +133,8 @@ void main() {
           'excludeFromJournal': true,
         };
 
-        final shouldInclude = !(place['excludeFromJournal']! as bool) &&
+        final shouldInclude =
+            !(place['excludeFromJournal']! as bool) &&
             (place['significanceLevel']! as int) > 0;
 
         expect(shouldInclude, isFalse);
@@ -152,9 +149,7 @@ void main() {
           'placeName': 'Central Park',
         };
 
-        final cloudData = <String, dynamic>{
-          'place': location['placeName'],
-        };
+        final cloudData = <String, dynamic>{'place': location['placeName']};
 
         expect(cloudData, isNot(containsPair('latitude', anything)));
         expect(cloudData, isNot(containsPair('longitude', anything)));
@@ -177,9 +172,9 @@ void main() {
     group('Task 4.6: Pre-Cloud Sanitization', () {
       test('Health data excluded at paranoid level', () {
         final privacyLevel = 'paranoid';
-        
+
         final includeHealth = privacyLevel != 'paranoid';
-        
+
         expect(includeHealth, isFalse);
       });
 
@@ -213,8 +208,12 @@ void main() {
 
       test('Sanitized context has no raw coordinates', () {
         final context = {
-          'people': [{'name': 'Alice'}],
-          'places': [{'name': 'Park'}],
+          'people': [
+            {'name': 'Alice'},
+          ],
+          'places': [
+            {'name': 'Park'},
+          ],
           'privacy_level': 'balanced',
         };
 
@@ -255,7 +254,7 @@ void main() {
     group('Edge Cases', () {
       test('Empty person list sanitizes to empty list', () {
         final people = <Map<String, dynamic>>[];
-        
+
         final sanitized = people
             .where((p) => (p['privacyLevel'] ?? 0) > 0)
             .toList();
@@ -284,11 +283,11 @@ void main() {
         ];
 
         final sanitized = <String>[];
-        
+
         for (final person in people) {
           final privacyLevel = person['privacyLevel']! as int;
           if (privacyLevel == 0) continue;
-          
+
           if (privacyLevel == 1) {
             sanitized.add(person['firstName']! as String);
           } else {
@@ -304,7 +303,7 @@ void main() {
       test('Unknown privacy level defaults to balanced', () {
         final unknownLevel = 'unknown_level';
         final defaultLevel = 'balanced';
-        
+
         final validLevels = ['paranoid', 'high', 'balanced', 'minimal'];
         final effectiveLevel = validLevels.contains(unknownLevel)
             ? unknownLevel
@@ -332,11 +331,9 @@ void main() {
       });
 
       test('Paranoid level strips all identifying info', () {
-        final privacyLevel = 'paranoid';
-        
         final peopleDisplay = 'person';
         final placeDisplay = 'location';
-        
+
         expect(peopleDisplay, equals('person'));
         expect(placeDisplay, equals('location'));
         expect(peopleDisplay, isNot(contains('name')));
@@ -344,8 +341,12 @@ void main() {
 
       test('Cloud payload includes privacy metadata', () {
         final cloudPayload = {
-          'people': [{'name': 'John'}],
-          'places': [{'name': 'Park'}],
+          'people': [
+            {'name': 'John'},
+          ],
+          'places': [
+            {'name': 'Park'},
+          ],
           'privacy_level': 'balanced',
           'raw_gps_included': false,
           'unknown_people_included': false,

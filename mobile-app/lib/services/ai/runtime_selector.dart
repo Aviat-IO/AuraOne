@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/logger.dart';
 import 'ai_journal_generator.dart';
@@ -39,6 +40,21 @@ class AdapterPreferences {
     }
     await prefs.setBool('ai_auto_download', autoDownloadModels);
   }
+
+  AdapterPreferences copyWith({
+    bool? cloudEnabled,
+    String? preferredAdapter,
+    bool clearPreferredAdapter = false,
+    bool? autoDownloadModels,
+  }) {
+    return AdapterPreferences(
+      cloudEnabled: cloudEnabled ?? this.cloudEnabled,
+      preferredAdapter: clearPreferredAdapter
+          ? null
+          : (preferredAdapter ?? this.preferredAdapter),
+      autoDownloadModels: autoDownloadModels ?? this.autoDownloadModels,
+    );
+  }
 }
 
 /// Selects the best available AI adapter based on device capabilities and user preferences
@@ -65,7 +81,11 @@ class RuntimeSelector {
       _preferences = AdapterPreferences.fromPrefs(prefs);
       return _preferences!;
     } catch (e, stackTrace) {
-      _logger.error('Error loading preferences', error: e, stackTrace: stackTrace);
+      _logger.error(
+        'Error loading preferences',
+        error: e,
+        stackTrace: stackTrace,
+      );
       _preferences = AdapterPreferences.defaults();
       return _preferences!;
     }
@@ -81,26 +101,38 @@ class RuntimeSelector {
       // Clear selected adapter to force re-selection with new preferences
       _selectedAdapter = null;
 
-      _logger.info('Updated adapter preferences: cloudEnabled=${newPreferences.cloudEnabled}, preferred=${newPreferences.preferredAdapter}');
+      _logger.info(
+        'Updated adapter preferences: cloudEnabled=${newPreferences.cloudEnabled}, preferred=${newPreferences.preferredAdapter}',
+      );
     } catch (e, stackTrace) {
-      _logger.error('Error saving preferences', error: e, stackTrace: stackTrace);
+      _logger.error(
+        'Error saving preferences',
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 
   /// Select the best available adapter based on capabilities and preferences
-  Future<AIJournalGenerator?> selectAdapter({bool forceReselect = false}) async {
+  Future<AIJournalGenerator?> selectAdapter({
+    bool forceReselect = false,
+  }) async {
     if (_selectedAdapter != null && !forceReselect) {
       return _selectedAdapter;
     }
 
-    _logger.info('Selecting best available adapter (forceReselect: $forceReselect)');
+    _logger.info(
+      'Selecting best available adapter (forceReselect: $forceReselect)',
+    );
 
     try {
       final preferences = await getPreferences();
 
       // If user has a preferred adapter, try that first
       if (preferences.preferredAdapter != null) {
-        final preferred = _registry.getAdapterByName(preferences.preferredAdapter!);
+        final preferred = _registry.getAdapterByName(
+          preferences.preferredAdapter!,
+        );
         if (preferred != null) {
           final isAvailable = await preferred.checkAvailability();
           if (isAvailable) {
@@ -108,9 +140,13 @@ class RuntimeSelector {
 
             // Check if cloud adapter and cloud is disabled
             if (capabilities.requiresNetwork && !preferences.cloudEnabled) {
-              _logger.warning('Preferred adapter ${preferences.preferredAdapter} requires cloud but cloud is disabled');
+              _logger.warning(
+                'Preferred adapter ${preferences.preferredAdapter} requires cloud but cloud is disabled',
+              );
             } else {
-              _logger.info('Using preferred adapter: ${preferences.preferredAdapter}');
+              _logger.info(
+                'Using preferred adapter: ${preferences.preferredAdapter}',
+              );
               _selectedAdapter = preferred;
               return _selectedAdapter;
             }
@@ -118,76 +154,52 @@ class RuntimeSelector {
         }
       }
 
-      // Check for ManagedCloudGemini (Tier 1) - doesn't require cloudEnabled preference
-      // This is the managed service with built-in rate limiting and no API key needed
-      _logger.info('Checking for ManagedCloudGemini adapter (Tier 1)');
+      _logger.info('Checking GemmaLocal adapter first');
+      final gemmaLocal = _registry.getAdapterByName('GemmaLocal');
+      if (gemmaLocal != null) {
+        final isAvailable = await gemmaLocal.checkAvailability();
+        if (isAvailable) {
+          _logger.info('Using GemmaLocal adapter');
+          _selectedAdapter = gemmaLocal;
+          return _selectedAdapter;
+        }
+      }
+
+      if (!preferences.cloudEnabled) {
+        _logger.warning('GemmaLocal unavailable and cloud fallback disabled');
+        return null;
+      }
+
+      _logger.info('Cloud fallback enabled - checking ManagedCloudGemini');
       final managedCloud = _registry.getAdapterByName('ManagedCloudGemini');
       if (managedCloud != null) {
         final isAvailable = await managedCloud.checkAvailability();
         if (isAvailable) {
-          _logger.info('Using ManagedCloudGemini adapter (managed service, no API key needed)');
+          _logger.info('Using ManagedCloudGemini adapter as fallback');
           _selectedAdapter = managedCloud;
           return _selectedAdapter;
-        } else {
-          _logger.info('ManagedCloudGemini not available (backend unreachable or offline), falling back');
         }
       }
 
-      // Special logic: If cloud is enabled, prefer Cloud Gemini (Tier 2) for BYOK
-      if (preferences.cloudEnabled) {
-        _logger.info('Cloud enabled - checking for CloudGemini adapter (BYOK)');
-        final cloudGemini = _registry.getAdapterByName('CloudGemini');
-        if (cloudGemini != null) {
-          final isAvailable = await cloudGemini.checkAvailability();
-          if (isAvailable) {
-            _logger.info('Using CloudGemini adapter (BYOK - user consented to cloud processing)');
-            _selectedAdapter = cloudGemini;
-            return _selectedAdapter;
-          } else {
-            _logger.warning('CloudGemini not available (likely missing API key or network), falling back');
-          }
+      _logger.info('Checking CloudGemini fallback');
+      final cloudGemini = _registry.getAdapterByName('CloudGemini');
+      if (cloudGemini != null) {
+        final isAvailable = await cloudGemini.checkAvailability();
+        if (isAvailable) {
+          _logger.info('Using CloudGemini adapter as fallback');
+          _selectedAdapter = cloudGemini;
+          return _selectedAdapter;
         }
       }
 
-      // Find best available on-device adapter (Template - Tier 3)
-      _logger.info('Selecting best on-device adapter');
-      final adapters = _registry.getAllAdapters();
-      AIJournalGenerator? bestOnDevice;
-      int highestTier = 0;
-
-      for (final adapter in adapters) {
-        final caps = adapter.getCapabilities();
-        // Skip ManagedCloudGemini (already tried above)
-        if (caps.adapterName == 'ManagedCloudGemini') {
-          continue;
-        }
-        // Skip CloudGemini (BYOK) unless cloudEnabled
-        if (caps.adapterName == 'CloudGemini' && !preferences.cloudEnabled) {
-          continue;
-        }
-        // Skip other network-requiring adapters
-        if (caps.requiresNetwork) {
-          continue;
-        }
-
-        final isAvailable = await adapter.checkAvailability();
-        if (isAvailable && caps.tierLevel > highestTier) {
-          bestOnDevice = adapter;
-          highestTier = caps.tierLevel;
-        }
-      }
-
-      if (bestOnDevice == null) {
-        _logger.error('No on-device adapters available!');
-        return null;
-      }
-
-      final capabilities = bestOnDevice.getCapabilities();
-      _logger.info('Selected on-device adapter: ${capabilities.adapterName} (tier ${capabilities.tierLevel})');
-      _selectedAdapter = bestOnDevice;
-      return _selectedAdapter;
+      _logger.warning('No Gemma local or cloud fallback adapter available');
+      return null;
     } catch (e, stackTrace) {
-      _logger.error('Error selecting adapter', error: e, stackTrace: stackTrace);
+      _logger.error(
+        'Error selecting adapter',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return null;
     }
   }
@@ -212,15 +224,23 @@ class RuntimeSelector {
       final capabilities = adapter.getCapabilities();
       final isAvailable = await adapter.checkAvailability();
 
-      results.add(AdapterInfo(
-        name: capabilities.adapterName,
-        tierLevel: capabilities.tierLevel,
-        isAvailable: isAvailable,
-        capabilities: capabilities,
-      ));
+      results.add(
+        AdapterInfo(
+          name: capabilities.adapterName,
+          tierLevel: capabilities.tierLevel,
+          isAvailable: isAvailable,
+          capabilities: capabilities,
+        ),
+      );
     }
 
     return results;
+  }
+
+  @visibleForTesting
+  void resetForTesting() {
+    _selectedAdapter = null;
+    _preferences = null;
   }
 }
 

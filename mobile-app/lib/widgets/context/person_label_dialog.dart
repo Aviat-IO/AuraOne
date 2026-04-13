@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -26,7 +28,7 @@ class PersonLabelDialog extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    
+
     final nameController = useTextEditingController(text: initialName ?? '');
     final selectedRelationship = useState<String?>(initialRelationship);
     final selectedPrivacyLevel = useState<PrivacyLevel>(
@@ -35,9 +37,7 @@ class PersonLabelDialog extends HookConsumerWidget {
     final isSaving = useState(false);
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 600),
@@ -47,14 +47,8 @@ class PersonLabelDialog extends HookConsumerWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isLight
-                ? [
-                    AuraColors.lightSurface,
-                    AuraColors.lightSurfaceContainerLow,
-                  ]
-                : [
-                    AuraColors.darkSurface,
-                    AuraColors.darkSurfaceContainerLow,
-                  ],
+                ? [AuraColors.lightSurface, AuraColors.lightSurfaceContainerLow]
+                : [AuraColors.darkSurface, AuraColors.darkSurfaceContainerLow],
           ),
         ),
         padding: const EdgeInsets.all(24),
@@ -69,7 +63,7 @@ class PersonLabelDialog extends HookConsumerWidget {
                 isUnknown: nameController.text.isEmpty,
               ),
               const SizedBox(height: 24),
-              
+
               TextField(
                 controller: nameController,
                 autofocus: true,
@@ -92,7 +86,7 @@ class PersonLabelDialog extends HookConsumerWidget {
                 textCapitalization: TextCapitalization.words,
               ),
               const SizedBox(height: 16),
-              
+
               InkWell(
                 onTap: () => _showRelationshipPicker(
                   context,
@@ -119,7 +113,7 @@ class PersonLabelDialog extends HookConsumerWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -130,7 +124,7 @@ class PersonLabelDialog extends HookConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               _buildPrivacyOption(
                 context,
                 theme,
@@ -159,18 +153,21 @@ class PersonLabelDialog extends HookConsumerWidget {
                 isLight,
                 PrivacyLevel.balanced,
                 '👥 Full name + relationship',
-                nameController.text.isNotEmpty && selectedRelationship.value != null
+                nameController.text.isNotEmpty &&
+                        selectedRelationship.value != null
                     ? '"${nameController.text} (${selectedRelationship.value})"'
                     : '(e.g., "Sarah (Sister)")',
                 selectedPrivacyLevel,
               ),
               const SizedBox(height: 24),
-              
+
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: isSaving.value ? null : () => Navigator.of(context).pop(),
+                      onPressed: isSaving.value
+                          ? null
+                          : () => Navigator.of(context).pop(),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -183,7 +180,8 @@ class PersonLabelDialog extends HookConsumerWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton(
-                      onPressed: isSaving.value || nameController.text.trim().isEmpty
+                      onPressed:
+                          isSaving.value || nameController.text.trim().isEmpty
                           ? null
                           : () => _savePerson(
                               context,
@@ -217,7 +215,7 @@ class PersonLabelDialog extends HookConsumerWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               if (photoId != null)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -231,7 +229,9 @@ class PersonLabelDialog extends HookConsumerWidget {
                     Text(
                       'This person will be labeled in photos',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                     ),
                   ],
@@ -253,7 +253,7 @@ class PersonLabelDialog extends HookConsumerWidget {
     ValueNotifier<PrivacyLevel> selectedLevel,
   ) {
     final isSelected = selectedLevel.value == level;
-    
+
     return InkWell(
       onTap: () => selectedLevel.value = level,
       borderRadius: BorderRadius.circular(12),
@@ -269,7 +269,7 @@ class PersonLabelDialog extends HookConsumerWidget {
           ),
           color: isSelected
               ? (isLight ? AuraColors.lightPrimary : AuraColors.darkPrimary)
-                  .withValues(alpha: 0.1)
+                    .withValues(alpha: 0.1)
               : Colors.transparent,
         ),
         child: Row(
@@ -290,7 +290,9 @@ class PersonLabelDialog extends HookConsumerWidget {
                   Text(
                     title,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -342,10 +344,10 @@ class PersonLabelDialog extends HookConsumerWidget {
 
     try {
       final contextManager = ContextManagerService();
-      
+
       final parts = name.split(' ');
       final firstName = parts.isNotEmpty ? parts.first : name;
-      
+
       final personId = await contextManager.createPerson(
         PersonData(
           name: name,
@@ -370,9 +372,9 @@ class PersonLabelDialog extends HookConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving person: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving person: $e')));
       }
     } finally {
       isSaving.value = false;
@@ -407,23 +409,9 @@ class RelationshipPicker extends StatelessWidget {
       'Uncle',
       'Cousin',
     ],
-    'Friends': [
-      'Close Friend',
-      'Friend',
-      'Acquaintance',
-    ],
-    'Professional': [
-      'Colleague',
-      'Manager',
-      'Boss',
-      'Client',
-      'Mentor',
-    ],
-    'Other': [
-      'Neighbor',
-      'Classmate',
-      'Teammate',
-    ],
+    'Friends': ['Close Friend', 'Friend', 'Acquaintance'],
+    'Professional': ['Colleague', 'Manager', 'Boss', 'Client', 'Mentor'],
+    'Other': ['Neighbor', 'Classmate', 'Teammate'],
   };
 
   @override
@@ -467,14 +455,16 @@ class RelationshipPicker extends StatelessWidget {
                         ),
                       ),
                     ),
-                    ...entry.value.map((relationship) => ListTile(
-                      title: Text(relationship),
-                      selected: initialValue == relationship,
-                      onTap: () => onSelected(relationship),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                    ...entry.value.map(
+                      (relationship) => ListTile(
+                        title: Text(relationship),
+                        selected: initialValue == relationship,
+                        onTap: () => onSelected(relationship),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                    )),
+                    ),
                     const SizedBox(height: 8),
                   ],
                 );

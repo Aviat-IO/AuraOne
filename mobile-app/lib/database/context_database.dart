@@ -41,7 +41,8 @@ class Places extends Table {
   DateTimeColumn get lastVisit => dateTime()();
   IntColumn get totalTimeMinutes => integer().withDefault(const Constant(0))();
   TextColumn get customDescription => text().nullable()();
-  BoolColumn get excludeFromJournal => boolean().withDefault(const Constant(false))();
+  BoolColumn get excludeFromJournal =>
+      boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
@@ -101,41 +102,48 @@ class PhotoPersonLinks extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-@DriftDatabase(tables: [
-  People,
-  Places,
-  ActivityPatterns,
-  JournalPreferences,
-  BleDeviceRegistries,
-  Occasions,
-  PhotoPersonLinks,
-])
+@DriftDatabase(
+  tables: [
+    People,
+    Places,
+    ActivityPatterns,
+    JournalPreferences,
+    BleDeviceRegistries,
+    Occasions,
+    PhotoPersonLinks,
+  ],
+)
 class ContextDatabase extends _$ContextDatabase {
   ContextDatabase() : super(_openConnection());
 
   ContextDatabase.withConnection({required QueryExecutor openConnection})
-      : super(openConnection);
+    : super(openConnection);
 
+  @override
   int get schemaVersion => 1;
 
+  @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (Migrator m) async {
-          await m.createAll();
-        },
-        onUpgrade: (Migrator m, int from, int to) async {
-        },
-      );
+    onCreate: (Migrator m) async {
+      await m.createAll();
+    },
+    onUpgrade: (Migrator m, int from, int to) async {},
+  );
 
   Future<List<Person>> getAllPeople() {
     return select(people).get();
   }
 
   Future<Person?> getPersonById(int id) {
-    return (select(people)..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
+    return (select(
+      people,
+    )..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
   }
 
   Future<List<Person>> getPeopleByPrivacyLevel(int minLevel) {
-    return (select(people)..where((tbl) => tbl.privacyLevel.isBiggerOrEqualValue(minLevel))).get();
+    return (select(
+      people,
+    )..where((tbl) => tbl.privacyLevel.isBiggerOrEqualValue(minLevel))).get();
   }
 
   Future<int> createPerson(PeopleCompanion person) {
@@ -155,14 +163,25 @@ class ContextDatabase extends _$ContextDatabase {
   }
 
   Future<Place?> getPlaceById(int id) {
-    return (select(places)..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
+    return (select(
+      places,
+    )..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
   }
 
-  Future<List<Place>> getPlacesNearby(double lat, double lng, double radiusKm) async {
+  Future<List<Place>> getPlacesNearby(
+    double lat,
+    double lng,
+    double radiusKm,
+  ) async {
     final allPlaces = await select(places).get();
-    
+
     return allPlaces.where((place) {
-      final distance = _calculateDistance(lat, lng, place.latitude, place.longitude);
+      final distance = _calculateDistance(
+        lat,
+        lng,
+        place.latitude,
+        place.longitude,
+      );
       return distance <= radiusKm * 1000;
     }).toList();
   }
@@ -188,12 +207,19 @@ class ContextDatabase extends _$ContextDatabase {
   }
 
   Future<List<ActivityPattern>> getActivityPatternsForPlace(int placeId) {
-    return (select(activityPatterns)..where((tbl) => tbl.placeId.equals(placeId))).get();
+    return (select(
+      activityPatterns,
+    )..where((tbl) => tbl.placeId.equals(placeId))).get();
   }
 
-  Future<List<ActivityPattern>> getActivityPatternsForTime(int dayOfWeek, int hourOfDay) {
-    return (select(activityPatterns)
-          ..where((tbl) => tbl.dayOfWeek.equals(dayOfWeek) & tbl.hourOfDay.equals(hourOfDay)))
+  Future<List<ActivityPattern>> getActivityPatternsForTime(
+    int dayOfWeek,
+    int hourOfDay,
+  ) {
+    return (select(activityPatterns)..where(
+          (tbl) =>
+              tbl.dayOfWeek.equals(dayOfWeek) & tbl.hourOfDay.equals(hourOfDay),
+        ))
         .get();
   }
 
@@ -202,9 +228,9 @@ class ContextDatabase extends _$ContextDatabase {
   }
 
   Future<String?> getPreference(String key) async {
-    final result = await (select(journalPreferences)
-          ..where((tbl) => tbl.key.equals(key)))
-        .getSingleOrNull();
+    final result = await (select(
+      journalPreferences,
+    )..where((tbl) => tbl.key.equals(key))).getSingleOrNull();
     return result?.value;
   }
 
@@ -225,12 +251,15 @@ class ContextDatabase extends _$ContextDatabase {
   }
 
   Future<BleDeviceRegistry?> getBleDeviceByDeviceId(String deviceId) {
-    return (select(bleDeviceRegistries)..where((tbl) => tbl.deviceId.equals(deviceId)))
-        .getSingleOrNull();
+    return (select(
+      bleDeviceRegistries,
+    )..where((tbl) => tbl.deviceId.equals(deviceId))).getSingleOrNull();
   }
 
   Future<List<BleDeviceRegistry>> getBleDevicesForPerson(int personId) {
-    return (select(bleDeviceRegistries)..where((tbl) => tbl.personId.equals(personId))).get();
+    return (select(
+      bleDeviceRegistries,
+    )..where((tbl) => tbl.personId.equals(personId))).get();
   }
 
   Future<int> createBleDevice(BleDeviceRegistriesCompanion device) {
@@ -244,14 +273,16 @@ class ContextDatabase extends _$ContextDatabase {
   Future<List<Occasion>> getOccasionsForDate(DateTime date) {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
-    
-    return (select(occasions)
-          ..where((tbl) => tbl.date.isBetweenValues(startOfDay, endOfDay)))
-        .get();
+
+    return (select(
+      occasions,
+    )..where((tbl) => tbl.date.isBetweenValues(startOfDay, endOfDay))).get();
   }
 
   Future<List<Occasion>> getOccasionsForPerson(int personId) {
-    return (select(occasions)..where((tbl) => tbl.personId.equals(personId))).get();
+    return (select(
+      occasions,
+    )..where((tbl) => tbl.personId.equals(personId))).get();
   }
 
   Future<int> createOccasion(OccasionsCompanion occasion) {
@@ -267,11 +298,15 @@ class ContextDatabase extends _$ContextDatabase {
   }
 
   Future<List<PhotoPersonLink>> getPhotoPersonLinks(String photoId) {
-    return (select(photoPersonLinks)..where((tbl) => tbl.photoId.equals(photoId))).get();
+    return (select(
+      photoPersonLinks,
+    )..where((tbl) => tbl.photoId.equals(photoId))).get();
   }
 
   Future<List<PhotoPersonLink>> getPersonPhotoLinks(int personId) {
-    return (select(photoPersonLinks)..where((tbl) => tbl.personId.equals(personId))).get();
+    return (select(
+      photoPersonLinks,
+    )..where((tbl) => tbl.personId.equals(personId))).get();
   }
 
   Future<int> createPhotoPersonLink(PhotoPersonLinksCompanion link) {
@@ -279,20 +314,28 @@ class ContextDatabase extends _$ContextDatabase {
   }
 
   Future<int> deletePhotoPersonLinks(String photoId) {
-    return (delete(photoPersonLinks)..where((tbl) => tbl.photoId.equals(photoId))).go();
+    return (delete(
+      photoPersonLinks,
+    )..where((tbl) => tbl.photoId.equals(photoId))).go();
   }
 
-  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+  double _calculateDistance(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
     const double earthRadius = 6371000;
     final dLat = _degreesToRadians(lat2 - lat1);
     final dLon = _degreesToRadians(lon2 - lon1);
-    
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_degreesToRadians(lat1)) *
             math.cos(_degreesToRadians(lat2)) *
             math.sin(dLon / 2) *
             math.sin(dLon / 2);
-    
+
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return earthRadius * c;
   }

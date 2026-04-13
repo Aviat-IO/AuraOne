@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../services/notification_service.dart';
+import '../services/ai/runtime_selector.dart';
 
 // Notification service provider
 final notificationServiceProvider = Provider<NotificationService>((ref) {
@@ -10,13 +11,11 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 });
 
 // Font size provider
-enum FontSize {
-  small,
-  medium,
-  large,
-}
+enum FontSize { small, medium, large }
 
-final fontSizeProvider = StateNotifierProvider<FontSizeNotifier, FontSize>((ref) {
+final fontSizeProvider = StateNotifierProvider<FontSizeNotifier, FontSize>((
+  ref,
+) {
   return FontSizeNotifier();
 });
 
@@ -39,17 +38,18 @@ class FontSizeNotifier extends StateNotifier<FontSize> {
 
   double get scaleFactor {
     return switch (state) {
-      FontSize.small => 1.0,  // Previously medium
+      FontSize.small => 1.0, // Previously medium
       FontSize.medium => 1.15, // Previously large
-      FontSize.large => 1.3,   // Previously extraLarge
+      FontSize.large => 1.3, // Previously extraLarge
     };
   }
 }
 
 // Journal reminder provider (defaulted to ON)
-final journalReminderEnabledProvider = StateNotifierProvider<JournalReminderNotifier, bool>((ref) {
-  return JournalReminderNotifier(ref);
-});
+final journalReminderEnabledProvider =
+    StateNotifierProvider<JournalReminderNotifier, bool>((ref) {
+      return JournalReminderNotifier(ref);
+    });
 
 class JournalReminderNotifier extends StateNotifier<bool> {
   final Ref _ref;
@@ -116,9 +116,10 @@ class JournalReminderNotifier extends StateNotifier<bool> {
 }
 
 // Legacy daily reminders provider (kept for backwards compatibility)
-final dailyRemindersEnabledProvider = StateNotifierProvider<DailyRemindersNotifier, bool>((ref) {
-  return DailyRemindersNotifier(ref);
-});
+final dailyRemindersEnabledProvider =
+    StateNotifierProvider<DailyRemindersNotifier, bool>((ref) {
+      return DailyRemindersNotifier(ref);
+    });
 
 class DailyRemindersNotifier extends StateNotifier<bool> {
   final Ref _ref;
@@ -190,9 +191,10 @@ class DailyRemindersNotifier extends StateNotifier<bool> {
 }
 
 // Journal reminder time provider (defaulted to 8pm)
-final journalReminderTimeProvider = StateNotifierProvider<JournalReminderTimeNotifier, DateTime>((ref) {
-  return JournalReminderTimeNotifier(ref);
-});
+final journalReminderTimeProvider =
+    StateNotifierProvider<JournalReminderTimeNotifier, DateTime>((ref) {
+      return JournalReminderTimeNotifier(ref);
+    });
 
 class JournalReminderTimeNotifier extends StateNotifier<DateTime> {
   final Ref _ref;
@@ -225,9 +227,10 @@ class JournalReminderTimeNotifier extends StateNotifier<DateTime> {
 }
 
 // Legacy reminder time provider (kept for backwards compatibility)
-final reminderTimeProvider = StateNotifierProvider<ReminderTimeNotifier, DateTime>((ref) {
-  return ReminderTimeNotifier(ref);
-});
+final reminderTimeProvider =
+    StateNotifierProvider<ReminderTimeNotifier, DateTime>((ref) {
+      return ReminderTimeNotifier(ref);
+    });
 
 class ReminderTimeNotifier extends StateNotifier<DateTime> {
   final Ref _ref;
@@ -260,9 +263,10 @@ class ReminderTimeNotifier extends StateNotifier<DateTime> {
 }
 
 // Reverse geocoding provider - OFF BY DEFAULT for privacy
-final reverseGeocodingEnabledProvider = StateNotifierProvider<ReverseGeocodingNotifier, bool>((ref) {
-  return ReverseGeocodingNotifier();
-});
+final reverseGeocodingEnabledProvider =
+    StateNotifierProvider<ReverseGeocodingNotifier, bool>((ref) {
+      return ReverseGeocodingNotifier();
+    });
 
 class ReverseGeocodingNotifier extends StateNotifier<bool> {
   ReverseGeocodingNotifier() : super(false) {
@@ -283,9 +287,10 @@ class ReverseGeocodingNotifier extends StateNotifier<bool> {
 }
 
 // Background location tracking provider
-final backgroundLocationTrackingProvider = StateNotifierProvider<BackgroundLocationTrackingNotifier, bool>((ref) {
-  return BackgroundLocationTrackingNotifier();
-});
+final backgroundLocationTrackingProvider =
+    StateNotifierProvider<BackgroundLocationTrackingNotifier, bool>((ref) {
+      return BackgroundLocationTrackingNotifier();
+    });
 
 class BackgroundLocationTrackingNotifier extends StateNotifier<bool> {
   BackgroundLocationTrackingNotifier() : super(false) {
@@ -306,20 +311,17 @@ class BackgroundLocationTrackingNotifier extends StateNotifier<bool> {
 }
 
 // Calendar settings provider
-final calendarSettingsProvider = StateNotifierProvider<CalendarSettingsNotifier, CalendarSettings>((ref) {
-  return CalendarSettingsNotifier();
-});
+final calendarSettingsProvider =
+    StateNotifierProvider<CalendarSettingsNotifier, CalendarSettings>((ref) {
+      return CalendarSettingsNotifier();
+    });
 
 class CalendarSettings {
   final Set<String> enabledCalendarIds;
 
-  const CalendarSettings({
-    this.enabledCalendarIds = const {},
-  });
+  const CalendarSettings({this.enabledCalendarIds = const {}});
 
-  CalendarSettings copyWith({
-    Set<String>? enabledCalendarIds,
-  }) {
+  CalendarSettings copyWith({Set<String>? enabledCalendarIds}) {
     return CalendarSettings(
       enabledCalendarIds: enabledCalendarIds ?? this.enabledCalendarIds,
     );
@@ -334,14 +336,15 @@ class CalendarSettingsNotifier extends StateNotifier<CalendarSettings> {
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final enabledIds = prefs.getStringList('enabledCalendarIds') ?? [];
-    state = CalendarSettings(
-      enabledCalendarIds: enabledIds.toSet(),
-    );
+    state = CalendarSettings(enabledCalendarIds: enabledIds.toSet());
   }
 
-  Future<void> enableAllCalendarsIfFirstTime(List<String> allCalendarIds) async {
+  Future<void> enableAllCalendarsIfFirstTime(
+    List<String> allCalendarIds,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
-    final hasSetInitialCalendars = prefs.getBool('hasSetInitialCalendars') ?? false;
+    final hasSetInitialCalendars =
+        prefs.getBool('hasSetInitialCalendars') ?? false;
 
     if (!hasSetInitialCalendars && allCalendarIds.isNotEmpty) {
       // First time loading calendars - enable all by default
@@ -365,11 +368,39 @@ class CalendarSettingsNotifier extends StateNotifier<CalendarSettings> {
     await prefs.setStringList('enabledCalendarIds', currentIds.toList());
   }
 
-  Future<void> setAllCalendarsEnabled(List<String> calendarIds, bool enabled) async {
+  Future<void> setAllCalendarsEnabled(
+    List<String> calendarIds,
+    bool enabled,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final newIds = enabled ? calendarIds.toSet() : <String>{};
 
     state = state.copyWith(enabledCalendarIds: newIds);
     await prefs.setStringList('enabledCalendarIds', newIds.toList());
+  }
+}
+
+final cloudAIFallbackEnabledProvider =
+    StateNotifierProvider<CloudAIFallbackNotifier, bool>((ref) {
+      return CloudAIFallbackNotifier();
+    });
+
+class CloudAIFallbackNotifier extends StateNotifier<bool> {
+  CloudAIFallbackNotifier() : super(false) {
+    _loadState();
+  }
+
+  Future<void> _loadState() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool('ai_cloud_enabled') ?? false;
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = enabled;
+    final selector = RuntimeSelector();
+    final preferences = await selector.getPreferences();
+    await selector.updatePreferences(
+      preferences.copyWith(cloudEnabled: enabled),
+    );
   }
 }

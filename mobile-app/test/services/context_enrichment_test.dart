@@ -65,7 +65,7 @@ void main() {
 
       test('Person photo count accumulates across photos', () {
         final personPhotoCounts = <int, int>{};
-        
+
         final photoLinks = [
           {'personId': 1},
           {'personId': 1},
@@ -84,18 +84,12 @@ void main() {
 
     group('Task 3.3: Place Lookup for GPS Coordinates', () {
       test('GPS coordinates match nearby place within radius', () {
-        final location = {'lat': 40.7128, 'lng': -74.0060};
-        final place = {'lat': 40.7130, 'lng': -74.0062, 'radius': 200.0};
-
         final isWithinRadius = true;
 
         expect(isWithinRadius, isTrue);
       });
 
       test('Place lookup returns null outside search radius', () {
-        final location = {'lat': 40.7128, 'lng': -74.0060};
-        final searchRadiusKm = 0.1;
-
         final nearbyPlace = null;
 
         expect(nearbyPlace, isNull);
@@ -108,8 +102,10 @@ void main() {
           {'name': 'Home', 'significance': 2},
         ];
 
-        nearbyPlaces.sort((a, b) => 
-          (b['significance']! as int).compareTo(a['significance']! as int));
+        nearbyPlaces.sort(
+          (a, b) =>
+              (b['significance']! as int).compareTo(a['significance']! as int),
+        );
 
         expect(nearbyPlaces.first['name'], equals('Home'));
       });
@@ -131,7 +127,7 @@ void main() {
 
       test('Pattern frequency increases with each occurrence', () {
         int frequency = 0;
-        
+
         for (int i = 0; i < 5; i++) {
           frequency++;
         }
@@ -166,9 +162,9 @@ void main() {
 
       test('Encounter count increments on detection', () {
         int encounterCount = 3;
-        
+
         encounterCount++;
-        
+
         expect(encounterCount, equals(4));
       });
 
@@ -249,9 +245,9 @@ void main() {
 
       test('Cache can be cleared', () {
         final cache = <int, String>{1: 'John', 2: 'Jane'};
-        
+
         cache.clear();
-        
+
         expect(cache.isEmpty, isTrue);
       });
     });
@@ -296,21 +292,16 @@ void main() {
 
     group('Task 8.2: Person Formatting with Relationships', () {
       test('Person formatted with name and relationship', () {
-        final person = {
-          'displayName': 'Charles',
-          'relationship': 'son',
-        };
+        final person = {'displayName': 'Charles', 'relationship': 'son'};
 
-        final formatted = '${person['displayName']} (${person['relationship']})';
+        final formatted =
+            '${person['displayName']} (${person['relationship']})';
 
         expect(formatted, equals('Charles (son)'));
       });
 
       test('Person without relationship shows name only', () {
-        final person = {
-          'displayName': 'Alice',
-          'relationship': null,
-        };
+        final person = {'displayName': 'Alice', 'relationship': null};
 
         final formatted = person['relationship'] != null
             ? '${person['displayName']} (${person['relationship']})'
@@ -320,10 +311,7 @@ void main() {
       });
 
       test('Photo count included when > 1', () {
-        final person = {
-          'displayName': 'Bob',
-          'photoCount': 3,
-        };
+        final person = {'displayName': 'Bob', 'photoCount': 3};
 
         final photoCount = person['photoCount']! as int;
         final formatted = photoCount > 1
@@ -342,7 +330,8 @@ void main() {
           'city': 'Salt Lake City',
         };
 
-        final formatted = '${place['name']} in ${place['neighborhood']}, ${place['city']}';
+        final formatted =
+            '${place['name']} in ${place['neighborhood']}, ${place['city']}';
 
         expect(formatted, equals('Liberty Park in Downtown, Salt Lake City'));
       });
@@ -367,7 +356,8 @@ void main() {
           'timeSpent': Duration(hours: 2, minutes: 15),
         };
 
-        final shouldIncludeTime = (place['timeSpent']! as Duration).inMinutes > 15;
+        final shouldIncludeTime =
+            (place['timeSpent']! as Duration).inMinutes > 15;
 
         expect(shouldIncludeTime, isTrue);
       });
@@ -375,28 +365,24 @@ void main() {
 
     group('Task 8.4: Preferences Applied to Prompts', () {
       test('Detail level affects content length', () {
-        final preferences = {
-          'detail_level': 'high',
-          'length': 'long',
-        };
+        final preferences = {'detail_level': 'high', 'length': 'long'};
 
         expect(preferences['detail_level'], equals('high'));
-        expect(['low', 'medium', 'high'].contains(preferences['detail_level']), isTrue);
+        expect(
+          ['low', 'medium', 'high'].contains(preferences['detail_level']),
+          isTrue,
+        );
       });
 
       test('Tone preference affects writing style', () {
-        final preferences = {
-          'tone': 'casual',
-        };
+        final preferences = {'tone': 'casual'};
 
         final validTones = ['casual', 'reflective', 'professional'];
         expect(validTones.contains(preferences['tone']), isTrue);
       });
 
       test('Privacy level affects what is included', () {
-        final preferences = {
-          'privacy_level': 'balanced',
-        };
+        final preferences = {'privacy_level': 'balanced'};
 
         expect(preferences['privacy_level'], isNotNull);
       });
@@ -412,8 +398,12 @@ void main() {
 
         final enriched = {
           'original': originalContext,
-          'people': [{'name': 'Alice'}],
-          'places': [{'name': 'Park'}],
+          'people': [
+            {'name': 'Alice'},
+          ],
+          'places': [
+            {'name': 'Park'},
+          ],
         };
 
         expect(enriched['original'], equals(originalContext));
@@ -422,7 +412,7 @@ void main() {
       });
 
       test('Enriched journal uses specific names not generic terms', () {
-        final enrichedPrompt = 
+        final enrichedPrompt =
             'Started the morning with Charles at Liberty Park in Downtown';
 
         expect(enrichedPrompt, contains('Charles'));
@@ -440,7 +430,10 @@ void main() {
 
         final sanitized = people
             .where((p) => (p['privacyLevel']! as int) > 0)
-            .map((p) => (p['privacyLevel']! as int) == 1 ? p['firstName'] : p['name'])
+            .map(
+              (p) =>
+                  (p['privacyLevel']! as int) == 1 ? p['firstName'] : p['name'],
+            )
             .toList();
 
         expect(sanitized.length, equals(2));
@@ -454,18 +447,18 @@ void main() {
 String _buildPeopleSection(List<Map<String, dynamic>> people) {
   final buffer = StringBuffer();
   buffer.writeln('PEOPLE MENTIONED TODAY:');
-  
+
   for (final person in people) {
     buffer.writeln('- ${person['displayName']}');
   }
-  
+
   return buffer.toString();
 }
 
 String _buildPlacesSection(List<Map<String, dynamic>> places) {
   final buffer = StringBuffer();
   buffer.writeln('PLACES VISITED TODAY:');
-  
+
   for (final place in places) {
     buffer.write('- ${place['name']}');
     if (place['neighborhood'] != null && place['city'] != null) {
@@ -473,17 +466,17 @@ String _buildPlacesSection(List<Map<String, dynamic>> places) {
     }
     buffer.writeln();
   }
-  
+
   return buffer.toString();
 }
 
 String _buildOccasionsSection(List<Map<String, dynamic>> occasions) {
   final buffer = StringBuffer();
   buffer.writeln('SPECIAL OCCASIONS TODAY:');
-  
+
   for (final occasion in occasions) {
     buffer.writeln('- ${occasion['name']} (${occasion['occasionType']})');
   }
-  
+
   return buffer.toString();
 }

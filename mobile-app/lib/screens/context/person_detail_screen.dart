@@ -9,29 +9,32 @@ import '../../widgets/context/components/person_avatar.dart';
 import '../../widgets/context/components/privacy_indicator.dart';
 import '../../widgets/context/person_label_dialog.dart';
 
-final personDetailProvider = FutureProvider.autoDispose.family<Person?, int>((ref, personId) async {
+final personDetailProvider = FutureProvider.autoDispose.family<Person?, int>((
+  ref,
+  personId,
+) async {
   final contextManager = ContextManagerService();
   return await contextManager.getPersonById(personId);
 });
 
-final personPhotosProvider = FutureProvider.autoDispose.family<List<PhotoPersonLink>, int>((ref, personId) async {
-  final contextManager = ContextManagerService();
-  return await contextManager.getPhotoPersonLinks(''); // TODO: Implement getPersonPhotoLinks
-});
+final personPhotosProvider = FutureProvider.autoDispose
+    .family<List<PhotoPersonLink>, int>((ref, personId) async {
+      final contextManager = ContextManagerService();
+      return await contextManager.getPhotoPersonLinks(
+        '',
+      ); // TODO: Implement getPersonPhotoLinks
+    });
 
 class PersonDetailScreen extends HookConsumerWidget {
   final int personId;
 
-  const PersonDetailScreen({
-    super.key,
-    required this.personId,
-  });
+  const PersonDetailScreen({super.key, required this.personId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    
+
     final personAsync = ref.watch(personDetailProvider(personId));
     final photosAsync = ref.watch(personPhotosProvider(personId));
 
@@ -66,7 +69,9 @@ class PersonDetailScreen extends HookConsumerWidget {
                       Icon(
                         Icons.person_off,
                         size: 80,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.3,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -128,8 +133,14 @@ class PersonDetailScreen extends HookConsumerWidget {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: isLight
-                                ? [AuraColors.lightPrimary, AuraColors.lightSecondary]
-                                : [AuraColors.darkPrimary, AuraColors.darkSecondary],
+                                ? [
+                                    AuraColors.lightPrimary,
+                                    AuraColors.lightSecondary,
+                                  ]
+                                : [
+                                    AuraColors.darkPrimary,
+                                    AuraColors.darkSecondary,
+                                  ],
                           ),
                         ),
                         child: Column(
@@ -147,7 +158,7 @@ class PersonDetailScreen extends HookConsumerWidget {
                       ),
                     ),
                   ),
-                  
+
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -159,31 +170,38 @@ class PersonDetailScreen extends HookConsumerWidget {
                               children: [
                                 Text(
                                   person.name,
-                                  style: theme.textTheme.headlineSmall?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: theme.textTheme.headlineSmall
+                                      ?.copyWith(fontWeight: FontWeight.bold),
                                   textAlign: TextAlign.center,
                                 ),
                                 if (person.relationship.isNotEmpty) ...[
                                   const SizedBox(height: 4),
                                   Text(
                                     person.relationship,
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                    ),
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          color: theme.colorScheme.onSurface
+                                              .withValues(alpha: 0.6),
+                                        ),
                                   ),
                                 ],
                               ],
                             ),
                           ),
                           const SizedBox(height: 24),
-                          
-                          _buildStatsCard(context, theme, isLight, person, photosAsync),
+
+                          _buildStatsCard(
+                            context,
+                            theme,
+                            isLight,
+                            person,
+                            photosAsync,
+                          ),
                           const SizedBox(height: 16),
-                          
+
                           _buildPrivacyCard(context, theme, isLight, person),
                           const SizedBox(height: 24),
-                          
+
                           Text(
                             'Recent Photos',
                             style: theme.textTheme.titleMedium?.copyWith(
@@ -191,7 +209,7 @@ class PersonDetailScreen extends HookConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          
+
                           photosAsync.when(
                             data: (photos) {
                               if (photos.isEmpty) {
@@ -202,7 +220,7 @@ class PersonDetailScreen extends HookConsumerWidget {
                             loading: () => const Center(
                               child: CircularProgressIndicator(),
                             ),
-                            error: (_, __) => _buildEmptyPhotos(context, theme),
+                            error: (_, _) => _buildEmptyPhotos(context, theme),
                           ),
                         ],
                       ),
@@ -211,12 +229,8 @@ class PersonDetailScreen extends HookConsumerWidget {
                 ],
               );
             },
-            loading: () => const Center(
-              child: CircularProgressIndicator(),
-            ),
-            error: (error, stack) => Center(
-              child: Text('Error: $error'),
-            ),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => Center(child: Text('Error: $error')),
           ),
         ),
       ),
@@ -265,11 +279,7 @@ class PersonDetailScreen extends HookConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.bar_chart,
-                size: 20,
-                color: theme.colorScheme.primary,
-              ),
+              Icon(Icons.bar_chart, size: 20, color: theme.colorScheme.primary),
               const SizedBox(width: 8),
               Text(
                 'Statistics',
@@ -280,12 +290,7 @@ class PersonDetailScreen extends HookConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildStatRow(
-            context,
-            Icons.photo,
-            '$photoCount photos',
-            theme,
-          ),
+          _buildStatRow(context, Icons.photo, '$photoCount photos', theme),
           const SizedBox(height: 8),
           _buildStatRow(
             context,
@@ -364,11 +369,7 @@ class PersonDetailScreen extends HookConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.lock,
-                size: 20,
-                color: theme.colorScheme.primary,
-              ),
+              Icon(Icons.lock, size: 20, color: theme.colorScheme.primary),
               const SizedBox(width: 8),
               Text(
                 'Privacy Settings',
@@ -380,12 +381,7 @@ class PersonDetailScreen extends HookConsumerWidget {
           ),
           const SizedBox(height: 12),
           Row(
-            children: [
-              PrivacyIndicator(
-                level: privacyLevel,
-                showLabel: true,
-              ),
-            ],
+            children: [PrivacyIndicator(level: privacyLevel, showLabel: true)],
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
@@ -458,12 +454,7 @@ class PersonDetailScreen extends HookConsumerWidget {
             borderRadius: BorderRadius.circular(8),
             color: Colors.grey.shade200,
           ),
-          child: Center(
-            child: Icon(
-              Icons.photo,
-              color: Colors.grey.shade400,
-            ),
-          ),
+          child: Center(child: Icon(Icons.photo, color: Colors.grey.shade400)),
         );
       },
     );
@@ -493,8 +484,8 @@ class PersonDetailScreen extends HookConsumerWidget {
       context: context,
       builder: (context) => PersonLabelDialog(
         initialName: person.name,
-        initialRelationship: person.relationship.isNotEmpty 
-            ? person.relationship 
+        initialRelationship: person.relationship.isNotEmpty
+            ? person.relationship
             : null,
         initialPrivacyLevel: PrivacyLevel.values[person.privacyLevel],
       ),
@@ -529,18 +520,18 @@ class PersonDetailScreen extends HookConsumerWidget {
       try {
         final contextManager = ContextManagerService();
         await contextManager.deletePerson(person.id);
-        
+
         if (context.mounted) {
           context.pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${person.name} deleted')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('${person.name} deleted')));
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error deleting person: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error deleting person: $e')));
         }
       }
     }

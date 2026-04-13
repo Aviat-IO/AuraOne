@@ -1,5 +1,14 @@
 # ML Kit GenAI Testing Guide (Pixel 9)
 
+## Status
+
+ML Kit GenAI is now an experimental path only. Aura One's active local
+journal-generation runtime is Gemma 4, downloaded at runtime from Hugging Face.
+
+This document is retained for reference while the old ML Kit test tooling still
+exists in the repo, but it no longer describes the supported local model path
+for journal generation.
+
 ## Prerequisites
 
 1. **Device**: Pixel 9 (you have this ✓)
@@ -8,15 +17,18 @@
 
 ## Current Implementation Status
 
-The platform channel infrastructure is **COMPLETE** but the actual ML Kit GenAI API calls are **STUBBED**. This means:
+The platform channel infrastructure is **COMPLETE** but the actual ML Kit GenAI
+API calls are **STUBBED**. This means:
 
 ✅ **Implemented:**
+
 - Flutter-to-native communication via MethodChannel
 - Device capability detection (API level, device model)
 - Error handling and logging
 - iOS stub (returns not available)
 
 ⏳ **To Be Implemented:**
+
 - Actual ML Kit GenAI API dependencies
 - Feature download management
 - Summarization API integration
@@ -312,16 +324,19 @@ if (rewritten.success) {
 ## Troubleshooting
 
 ### "ML Kit GenAI not available"
+
 - Check Android version is 14+
 - Verify device is Pixel 9 (should auto-detect)
 - Check logcat for specific error: `adb logcat | grep MLKitGenAI`
 
 ### "Models not downloaded"
+
 - Ensure device has internet connection
 - Check Google Play Services is updated
 - Try manual download via Test 2
 
 ### Import Errors After Adding Dependencies
+
 - Sync Gradle: Android Studio → File → Sync Project with Gradle Files
 - Clean build: `cd mobile-app && fvm flutter clean && fvm flutter pub get`
 - Rebuild: `cd android && ./gradlew clean`
@@ -329,11 +344,13 @@ if (rewritten.success) {
 ## Logcat Commands
 
 Monitor ML Kit GenAI operations:
+
 ```bash
 adb logcat | grep -E "MLKitGenAI|Summarization|ImageDescription|Rewriting"
 ```
 
 Clear logs and start fresh:
+
 ```bash
 adb logcat -c && adb logcat | grep MLKitGenAI
 ```
@@ -341,6 +358,7 @@ adb logcat -c && adb logcat | grep MLKitGenAI
 ## What to Report Back
 
 Please test and report:
+
 1. ✅ Device detection works (checkAvailability returns true)
 2. ✅ Feature download completes successfully
 3. ✅ Summarization generates reasonable output
@@ -350,9 +368,12 @@ Please test and report:
 
 ## Future iOS Support
 
-Once Apple provides on-device AI APIs (Apple Intelligence or similar), we'll implement:
+Once Apple provides on-device AI APIs (Apple Intelligence or similar), we'll
+implement:
+
 - Similar platform channel in Swift
 - Native iOS AI API integration
 - Unified Flutter interface (already prepared)
 
-The adapter pattern ensures seamless addition of iOS support without changing the Flutter layer.
+The adapter pattern ensures seamless addition of iOS support without changing
+the Flutter layer.

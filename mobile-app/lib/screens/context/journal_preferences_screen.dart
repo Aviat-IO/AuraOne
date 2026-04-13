@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../widgets/page_header.dart';
@@ -41,14 +43,18 @@ class _JournalPreferencesScreenState
       final tone = await _contextManager.getPreference('tone');
       final length = await _contextManager.getPreference('length');
       final privacyLevel = await _contextManager.getPreference('privacy_level');
-      final locationSpecificity =
-          await _contextManager.getPreference('location_specificity');
-      final includeHealthData =
-          await _contextManager.getPreference('include_health_data');
-      final includeWeather =
-          await _contextManager.getPreference('include_weather');
-      final includeUnknownPeople =
-          await _contextManager.getPreference('include_unknown_people');
+      final locationSpecificity = await _contextManager.getPreference(
+        'location_specificity',
+      );
+      final includeHealthData = await _contextManager.getPreference(
+        'include_health_data',
+      );
+      final includeWeather = await _contextManager.getPreference(
+        'include_weather',
+      );
+      final includeUnknownPeople = await _contextManager.getPreference(
+        'include_unknown_people',
+      );
 
       setState(() {
         _detailLevel = detailLevel ?? 'medium';
@@ -78,24 +84,32 @@ class _JournalPreferencesScreenState
       await _contextManager.setPreference('length', _length);
       await _contextManager.setPreference('privacy_level', _privacyLevel);
       await _contextManager.setPreference(
-          'location_specificity', _locationSpecificity.toString());
+        'location_specificity',
+        _locationSpecificity.toString(),
+      );
       await _contextManager.setPreference(
-          'include_health_data', _includeHealthData.toString());
+        'include_health_data',
+        _includeHealthData.toString(),
+      );
       await _contextManager.setPreference(
-          'include_weather', _includeWeather.toString());
+        'include_weather',
+        _includeWeather.toString(),
+      );
       await _contextManager.setPreference(
-          'include_unknown_people', _includeUnknownPeople.toString());
+        'include_unknown_people',
+        _includeUnknownPeople.toString(),
+      );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Preferences saved')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Preferences saved')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving preferences: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving preferences: $e')));
       }
     }
   }
@@ -116,14 +130,16 @@ class _JournalPreferencesScreenState
                   ? [
                       AuraColors.lightSurface,
                       AuraColors.lightSurface.withValues(alpha: 0.95),
-                      AuraColors.lightSurfaceContainerLow
-                          .withValues(alpha: 0.9),
+                      AuraColors.lightSurfaceContainerLow.withValues(
+                        alpha: 0.9,
+                      ),
                     ]
                   : [
                       AuraColors.darkSurface,
                       AuraColors.darkSurface.withValues(alpha: 0.98),
-                      AuraColors.darkSurfaceContainerLow
-                          .withValues(alpha: 0.95),
+                      AuraColors.darkSurfaceContainerLow.withValues(
+                        alpha: 0.95,
+                      ),
                     ],
               stops: const [0.0, 0.3, 1.0],
             ),
@@ -172,7 +188,8 @@ class _JournalPreferencesScreenState
                             child: PageHeader(
                               icon: Icons.tune,
                               title: 'Journal Preferences',
-                              subtitle: 'Customize how your journal is generated',
+                              subtitle:
+                                  'Customize how your journal is generated',
                             ),
                           ),
                         ],
@@ -190,8 +207,9 @@ class _JournalPreferencesScreenState
                       Text(
                         'How much detail should your journal include?',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.6),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -241,8 +259,9 @@ class _JournalPreferencesScreenState
                       Text(
                         'What style should your journal use?',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.6),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -291,8 +310,9 @@ class _JournalPreferencesScreenState
                       Text(
                         'How long should each journal entry be?',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.6),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -341,8 +361,9 @@ class _JournalPreferencesScreenState
                       Text(
                         'How much personal information to include by default?',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.6),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -351,8 +372,7 @@ class _JournalPreferencesScreenState
                         children: [
                           _buildRadioOption(
                             title: 'Minimal',
-                            subtitle:
-                                'First names only, general locations',
+                            subtitle: 'First names only, general locations',
                             value: 'minimal',
                             groupValue: _privacyLevel,
                             onChanged: (value) =>
@@ -394,8 +414,9 @@ class _JournalPreferencesScreenState
                       Text(
                         'How specific should location information be?',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.6),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -422,8 +443,7 @@ class _JournalPreferencesScreenState
                           ),
                           _buildRadioOption(
                             title: 'Named Places',
-                            subtitle:
-                                'Use custom place names when available',
+                            subtitle: 'Use custom place names when available',
                             value: 2,
                             groupValue: _locationSpecificity,
                             onChanged: (value) =>
@@ -445,8 +465,9 @@ class _JournalPreferencesScreenState
                       Text(
                         'Choose what types of data to include',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.6),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -456,8 +477,7 @@ class _JournalPreferencesScreenState
                           _buildSwitchOption(
                             icon: Icons.favorite,
                             title: 'Health & Activity Data',
-                            subtitle:
-                                'Steps, workouts, and wellness metrics',
+                            subtitle: 'Steps, workouts, and wellness metrics',
                             value: _includeHealthData,
                             onChanged: (value) =>
                                 setState(() => _includeHealthData = value),
@@ -475,8 +495,7 @@ class _JournalPreferencesScreenState
                           _buildSwitchOption(
                             icon: Icons.person_outline,
                             title: 'Unknown People',
-                            subtitle:
-                                'Mention detected faces not yet labeled',
+                            subtitle: 'Mention detected faces not yet labeled',
                             value: _includeUnknownPeople,
                             onChanged: (value) =>
                                 setState(() => _includeUnknownPeople = value),
@@ -564,8 +583,9 @@ class _JournalPreferencesScreenState
                   Text(
                     title,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                       color: isSelected
                           ? const Color(0xFFE8A87C)
                           : theme.colorScheme.onSurface,
@@ -575,8 +595,7 @@ class _JournalPreferencesScreenState
                   Text(
                     subtitle,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface
-                          .withValues(alpha: 0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -603,11 +622,7 @@ class _JournalPreferencesScreenState
           color: theme.colorScheme.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(
-          icon,
-          color: theme.colorScheme.primary,
-          size: 20,
-        ),
+        child: Icon(icon, color: theme.colorScheme.primary, size: 20),
       ),
       title: Text(
         title,

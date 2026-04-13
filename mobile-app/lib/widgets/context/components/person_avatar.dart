@@ -36,7 +36,8 @@ class PersonAvatar extends StatelessWidget {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
 
-    final effectiveBorderColor = borderColor ?? 
+    final effectiveBorderColor =
+        borderColor ??
         (isLight ? AuraColors.lightPrimary : AuraColors.darkPrimary);
 
     Widget avatar = Container(
@@ -45,10 +46,7 @@ class PersonAvatar extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: showBorder
-            ? Border.all(
-                color: effectiveBorderColor,
-                width: 2.0,
-              )
+            ? Border.all(color: effectiveBorderColor, width: 2.0)
             : null,
         boxShadow: [
           BoxShadow(
@@ -65,7 +63,8 @@ class PersonAvatar extends StatelessWidget {
             ? Image.network(
                 imageUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _buildPlaceholder(theme, isLight),
+                errorBuilder: (context, error, stackTrace) =>
+                    _buildPlaceholder(theme, isLight),
               )
             : _buildPlaceholder(theme, isLight),
       ),
@@ -109,16 +108,5 @@ class PersonAvatar extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _getInitials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.isEmpty) return '?';
-    
-    if (parts.length == 1) {
-      return parts[0].substring(0, 1).toUpperCase();
-    }
-    
-    return '${parts[0].substring(0, 1)}${parts[parts.length - 1].substring(0, 1)}'.toUpperCase();
   }
 }

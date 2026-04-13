@@ -10,12 +10,17 @@ import '../../widgets/context/components/person_card.dart';
 import '../../widgets/context/person_label_dialog.dart';
 import 'person_detail_screen.dart';
 
-final peopleListProvider = FutureProvider.autoDispose<List<Person>>((ref) async {
+final peopleListProvider = FutureProvider.autoDispose<List<Person>>((
+  ref,
+) async {
   final contextManager = ContextManagerService();
   return await contextManager.getAllPeople();
 });
 
-final photoCountProvider = FutureProvider.autoDispose.family<int, int>((ref, personId) async {
+final photoCountProvider = FutureProvider.autoDispose.family<int, int>((
+  ref,
+  personId,
+) async {
   // TODO: Add method to get photo count per person
   // Will query PhotoPersonLink table when implemented
   return 0; // Placeholder
@@ -86,7 +91,7 @@ class PeopleListScreen extends HookConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
+
                     TextField(
                       controller: searchController,
                       onChanged: (value) => searchQuery.value = value,
@@ -101,7 +106,7 @@ class PeopleListScreen extends HookConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    
+
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -139,7 +144,7 @@ class PeopleListScreen extends HookConsumerWidget {
                   ],
                 ),
               ),
-              
+
               Expanded(
                 child: peopleAsync.when(
                   data: (people) {
@@ -175,12 +180,9 @@ class PeopleListScreen extends HookConsumerWidget {
                       ),
                     );
                   },
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                  error: (error, stack) => Center(
-                    child: Text('Error: $error'),
-                  ),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, stack) => Center(child: Text('Error: $error')),
                 ),
               ),
             ],
@@ -204,7 +206,7 @@ class PeopleListScreen extends HookConsumerWidget {
     bool isLight,
   ) {
     final isSelected = selectedFilter.value == label;
-    
+
     return FilterChip(
       label: Text(label),
       selected: isSelected,
@@ -250,7 +252,7 @@ class PeopleListScreen extends HookConsumerWidget {
         ),
         ...people.map((person) {
           final photoCountAsync = ref.watch(photoCountProvider(person.id));
-          
+
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: photoCountAsync.when(
@@ -267,7 +269,7 @@ class PeopleListScreen extends HookConsumerWidget {
                 photoCount: 0,
                 lastSeen: person.lastSeen,
               ),
-              error: (_, __) => PersonCard(
+              error: (_, _) => PersonCard(
                 person: person,
                 photoCount: 0,
                 lastSeen: person.lastSeen,
@@ -279,7 +281,12 @@ class PeopleListScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref, ThemeData theme, bool isLight) {
+  Widget _buildEmptyState(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+    bool isLight,
+  ) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -385,7 +392,7 @@ class PeopleListScreen extends HookConsumerWidget {
 
     for (final person in people) {
       final rel = person.relationship.toLowerCase();
-      
+
       if (rel.contains('parent') ||
           rel.contains('mother') ||
           rel.contains('father') ||
@@ -431,7 +438,7 @@ class PeopleListScreen extends HookConsumerWidget {
       context: context,
       builder: (context) => const PersonLabelDialog(),
     );
-    
+
     if (person != null && context.mounted) {
       ref.invalidate(peopleListProvider);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -456,13 +463,13 @@ class PeopleListScreen extends HookConsumerWidget {
       context: context,
       builder: (context) => PersonLabelDialog(
         initialName: person.name,
-        initialRelationship: person.relationship.isNotEmpty 
-            ? person.relationship 
+        initialRelationship: person.relationship.isNotEmpty
+            ? person.relationship
             : null,
         initialPrivacyLevel: PrivacyLevel.values[person.privacyLevel],
       ),
     );
-    
+
     if (updated != null && context.mounted) {
       ref.invalidate(peopleListProvider);
     }
@@ -495,17 +502,17 @@ class PeopleListScreen extends HookConsumerWidget {
         final contextManager = ContextManagerService();
         await contextManager.deletePerson(person.id);
         ref.invalidate(peopleListProvider);
-        
+
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${person.name} deleted')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('${person.name} deleted')));
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error deleting person: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error deleting person: $e')));
         }
       }
     }

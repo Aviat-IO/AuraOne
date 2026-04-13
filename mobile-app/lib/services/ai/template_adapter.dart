@@ -4,10 +4,10 @@ import '../daily_context_synthesizer.dart';
 import '../data_rich_narrative_builder.dart';
 import 'ai_journal_generator.dart';
 
-/// Tier 3 adapter using template-based narrative generation
+/// Legacy template adapter retained for non-primary flows.
 ///
-/// Wraps the existing DataRichNarrativeBuilder to provide
-/// a guaranteed fallback that works on all devices.
+/// This adapter is no longer part of the active journal-generation runtime
+/// selection path now that Gemma 4 is the only supported local model option.
 ///
 /// Capabilities:
 /// - generateSummary: Uses DataRichNarrativeBuilder
@@ -31,17 +31,13 @@ class TemplateAdapter implements AIJournalGenerator {
   AICapabilities getCapabilities() {
     return AICapabilities(
       canGenerateSummary: true,
-      canDescribeImage: Platform.isAndroid, // Only Android has ML Kit image labeling
+      canDescribeImage:
+          Platform.isAndroid, // Only Android has ML Kit image labeling
       canRewriteText: true,
       isOnDevice: true,
       requiresNetwork: false,
       supportedLanguages: {'en'}, // Template system is English-only
-      supportedTones: {
-        'friendly',
-        'professional',
-        'elaborate',
-        'concise',
-      },
+      supportedTones: {'friendly', 'professional', 'elaborate', 'concise'},
       adapterName: _adapterName,
       tierLevel: _tierLevel,
     );
@@ -61,7 +57,9 @@ class TemplateAdapter implements AIJournalGenerator {
     try {
       _logger.info('Generating template-based narrative summary');
 
-      final narrative = await _narrativeBuilder.buildNarrative(context: context);
+      final narrative = await _narrativeBuilder.buildNarrative(
+        context: context,
+      );
 
       _logger.info('Generated narrative: ${narrative.split(' ').length} words');
 
@@ -75,7 +73,11 @@ class TemplateAdapter implements AIJournalGenerator {
         },
       );
     } catch (e, stackTrace) {
-      _logger.error('Error generating narrative', error: e, stackTrace: stackTrace);
+      _logger.error(
+        'Error generating narrative',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return AIGenerationResult.failure('Template generation failed: $e');
     }
   }
@@ -83,7 +85,9 @@ class TemplateAdapter implements AIJournalGenerator {
   @override
   Future<AIGenerationResult> describeImage(String imagePath) async {
     if (!Platform.isAndroid) {
-      return AIGenerationResult.failure('Image description not available on iOS');
+      return AIGenerationResult.failure(
+        'Image description not available on iOS',
+      );
     }
 
     try {
@@ -114,7 +118,9 @@ class TemplateAdapter implements AIJournalGenerator {
 
       // Language support check
       if (language != null && language.toLowerCase() != 'en') {
-        return AIGenerationResult.failure('Only English language supported in template mode');
+        return AIGenerationResult.failure(
+          'Only English language supported in template mode',
+        );
       }
 
       // Apply tone transformation
@@ -200,7 +206,10 @@ class TemplateAdapter implements AIJournalGenerator {
   /// Transform text to elaborate form
   String _makeElaborate(String text) {
     // Add more descriptive language and context
-    final sentences = text.split('. ').where((s) => s.trim().isNotEmpty).toList();
+    final sentences = text
+        .split('. ')
+        .where((s) => s.trim().isNotEmpty)
+        .toList();
 
     final elaborated = <String>[];
     for (final sentence in sentences) {
@@ -234,7 +243,10 @@ class TemplateAdapter implements AIJournalGenerator {
 
     // Remove filler phrases
     result = result
-        .replaceAll(RegExp(r'Throughout the day,?\s*', caseSensitive: false), '')
+        .replaceAll(
+          RegExp(r'Throughout the day,?\s*', caseSensitive: false),
+          '',
+        )
         .replaceAll(RegExp(r'During this time,?\s*', caseSensitive: false), '')
         .replaceAll(RegExp(r'In essence,?\s*', caseSensitive: false), '');
 

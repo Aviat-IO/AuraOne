@@ -31,7 +31,9 @@ class JournalEntryEditor extends HookConsumerWidget {
 
     // Text controllers
     final titleController = useTextEditingController(text: entry?.title ?? '');
-    final contentController = useTextEditingController(text: entry?.content ?? '');
+    final contentController = useTextEditingController(
+      text: entry?.content ?? '',
+    );
 
     // Focus nodes
     final titleFocusNode = useFocusNode();
@@ -74,7 +76,7 @@ class JournalEntryEditor extends HookConsumerWidget {
 
             if (entry == null) {
               // Create new entry
-              await journalService.createEntryForDate(date);
+              await journalService.createBlankEntryForDate(date);
               // Get the created entry to update it
               final newEntry = await journalService.getEntryForDate(date);
               if (newEntry != null) {
@@ -184,7 +186,9 @@ class JournalEntryEditor extends HookConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  journalEntry.title.isEmpty ? 'Untitled Entry' : journalEntry.title,
+                  journalEntry.title.isEmpty
+                      ? 'Untitled Entry'
+                      : journalEntry.title,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -199,7 +203,6 @@ class JournalEntryEditor extends HookConsumerWidget {
           ),
 
           const SizedBox(height: 8),
-
 
           // Content
           if (journalEntry.content.isNotEmpty)
@@ -316,9 +319,7 @@ class JournalEntryEditor extends HookConsumerWidget {
                   focusNode: contentFocusNode,
                   maxLines: null,
                   keyboardType: TextInputType.multiline,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    height: 1.6,
-                  ),
+                  style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
                   decoration: InputDecoration(
                     hintText: 'Write your thoughts...',
                     border: InputBorder.none,
@@ -336,12 +337,20 @@ class JournalEntryEditor extends HookConsumerWidget {
     );
   }
 
-
-
   String _formatDate(DateTime date) {
     final months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }

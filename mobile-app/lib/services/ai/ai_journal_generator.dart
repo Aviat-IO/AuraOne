@@ -16,7 +16,10 @@ class AIGenerationResult {
     this.isRetryable = false,
   });
 
-  factory AIGenerationResult.success(String content, {Map<String, dynamic>? metadata}) {
+  factory AIGenerationResult.success(
+    String content, {
+    Map<String, dynamic>? metadata,
+  }) {
     return AIGenerationResult(
       content: content,
       success: true,
@@ -62,10 +65,9 @@ class AICapabilities {
 /// Abstract interface for AI-powered journal generation
 ///
 /// Implementations can use different backends:
-/// - ML Kit GenAI APIs (Tier 1)
-/// - Hybrid ML Kit + TFLite (Tier 2)
-/// - Template-based (Tier 3)
-/// - Cloud Gemini API (Tier 4)
+/// - GemmaLocalAdapter for on-device Gemma 4 generation
+/// - ManagedCloudGeminiAdapter for managed cloud fallback
+/// - CloudGeminiAdapter for BYOK cloud fallback
 abstract class AIJournalGenerator {
   /// Generate a narrative summary from daily context
   Future<AIGenerationResult> generateSummary(DailyContext context);

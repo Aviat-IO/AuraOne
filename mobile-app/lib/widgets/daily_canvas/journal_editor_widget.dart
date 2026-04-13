@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -12,7 +11,10 @@ import '../voice_permission_fallback.dart';
 
 // Provider for journal entry using the journal service
 // Using distinct() to prevent rebuilds when data hasn't changed
-final journalEntryProvider = StreamProvider.family<JournalEntry?, DateTime>((ref, date) {
+final journalEntryProvider = StreamProvider.family<JournalEntry?, DateTime>((
+  ref,
+  date,
+) {
   final journalService = ref.watch(journalServiceProvider);
   return journalService.watchEntryForDate(date).distinct((prev, next) {
     // Only rebuild if the entry actually changed
@@ -34,10 +36,7 @@ final journalLoadingProvider = StateProvider<bool>((ref) => false);
 class JournalEditorWidget extends HookConsumerWidget {
   final DateTime date;
 
-  const JournalEditorWidget({
-    super.key,
-    required this.date,
-  });
+  const JournalEditorWidget({super.key, required this.date});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -60,11 +59,7 @@ class JournalEditorWidget extends HookConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: theme.colorScheme.error,
-            ),
+            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: 16),
             Text(
               'Error loading journal entry',
@@ -95,8 +90,12 @@ class JournalEditorWidget extends HookConsumerWidget {
     bool isLoading,
   ) {
     // Text controllers
-    final titleController = useTextEditingController(text: journalEntry?.title ?? '');
-    final contentController = useTextEditingController(text: journalEntry?.content ?? '');
+    final titleController = useTextEditingController(
+      text: journalEntry?.title ?? '',
+    );
+    final contentController = useTextEditingController(
+      text: journalEntry?.content ?? '',
+    );
 
     // Focus nodes
     final titleFocusNode = useFocusNode();
@@ -119,9 +118,9 @@ class JournalEditorWidget extends HookConsumerWidget {
       };
 
       voiceService.onError = (error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error)));
       };
 
       return () {
@@ -174,7 +173,8 @@ class JournalEditorWidget extends HookConsumerWidget {
                     onListeningStateChanged: () async {
                       if (isListening.value) {
                         await voiceService.stopListening();
-                        if (voiceTranscription.value.isNotEmpty && context.mounted) {
+                        if (voiceTranscription.value.isNotEmpty &&
+                            context.mounted) {
                           _handleVoiceCommand(
                             context,
                             contentController,
@@ -202,8 +202,8 @@ class JournalEditorWidget extends HookConsumerWidget {
                         isSpeaking.value = false;
                       } else {
                         final textToRead = contentController.text.isEmpty
-                          ? 'No content to read'
-                          : contentController.text;
+                            ? 'No content to read'
+                            : contentController.text;
                         isSpeaking.value = true;
                         await voiceService.speak(textToRead);
                         isSpeaking.value = false;
@@ -221,28 +221,32 @@ class JournalEditorWidget extends HookConsumerWidget {
                 if (isEditMode) ...[
                   _buildFormatButton(
                     icon: Icons.format_bold,
-                    onPressed: () => _insertMarkdown(contentController, '**', '**'),
+                    onPressed: () =>
+                        _insertMarkdown(contentController, '**', '**'),
                     tooltip: 'Bold',
                     theme: theme,
                   ),
                   const SizedBox(width: 4),
                   _buildFormatButton(
                     icon: Icons.format_italic,
-                    onPressed: () => _insertMarkdown(contentController, '_', '_'),
+                    onPressed: () =>
+                        _insertMarkdown(contentController, '_', '_'),
                     tooltip: 'Italic',
                     theme: theme,
                   ),
                   const SizedBox(width: 4),
                   _buildFormatButton(
                     icon: Icons.format_list_bulleted,
-                    onPressed: () => _insertMarkdown(contentController, '- ', ''),
+                    onPressed: () =>
+                        _insertMarkdown(contentController, '- ', ''),
                     tooltip: 'Bullet list',
                     theme: theme,
                   ),
                   const SizedBox(width: 4),
                   _buildFormatButton(
                     icon: Icons.format_quote,
-                    onPressed: () => _insertMarkdown(contentController, '> ', ''),
+                    onPressed: () =>
+                        _insertMarkdown(contentController, '> ', ''),
                     tooltip: 'Quote',
                     theme: theme,
                   ),
@@ -262,7 +266,7 @@ class JournalEditorWidget extends HookConsumerWidget {
 
                         if (journalEntry == null) {
                           // Create new entry (shouldn't happen since we auto-create, but just in case)
-                          await journalService.createEntryForDate(date);
+                          await journalService.createBlankEntryForDate(date);
                         } else {
                           // Update existing entry
                           await journalService.updateJournalEntry(
@@ -278,7 +282,9 @@ class JournalEditorWidget extends HookConsumerWidget {
 
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Journal entry saved!')),
+                            const SnackBar(
+                              content: Text('Journal entry saved!'),
+                            ),
                           );
                         }
                       } catch (error) {
@@ -294,7 +300,8 @@ class JournalEditorWidget extends HookConsumerWidget {
                         ref.read(journalLoadingProvider.notifier).state = false;
                       }
                     }
-                    ref.read(journalEditModeProvider.notifier).state = !isEditMode;
+                    ref.read(journalEditModeProvider.notifier).state =
+                        !isEditMode;
                   },
                   tooltip: isEditMode ? 'Save' : 'Edit',
                   color: theme.colorScheme.primary,
@@ -317,11 +324,7 @@ class JournalEditorWidget extends HookConsumerWidget {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.mic,
-                    color: theme.colorScheme.error,
-                    size: 20,
-                  ),
+                  Icon(Icons.mic, color: theme.colorScheme.error, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -355,9 +358,11 @@ class JournalEditorWidget extends HookConsumerWidget {
                             decoration: InputDecoration(
                               hintText: 'Journal Title',
                               border: InputBorder.none,
-                              hintStyle: theme.textTheme.headlineSmall?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                              ),
+                              hintStyle: theme.textTheme.headlineSmall
+                                  ?.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.4),
+                                  ),
                             ),
                           )
                         else if (journalEntry != null)
@@ -370,7 +375,6 @@ class JournalEditorWidget extends HookConsumerWidget {
 
                         const SizedBox(height: 8),
 
-
                         // Content
                         if (isEditMode)
                           TextField(
@@ -381,10 +385,13 @@ class JournalEditorWidget extends HookConsumerWidget {
                               height: 1.6,
                             ),
                             decoration: InputDecoration(
-                              hintText: 'Write your thoughts...\n\nYou can use Markdown formatting:\n- **Bold** text\n- _Italic_ text\n- # Headers\n- Lists and more',
+                              hintText:
+                                  'Write your thoughts...\n\nYou can use Markdown formatting:\n- **Bold** text\n- _Italic_ text\n- # Headers\n- Lists and more',
                               border: InputBorder.none,
                               hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.3,
+                                ),
                                 height: 1.6,
                               ),
                             ),
@@ -397,25 +404,44 @@ class JournalEditorWidget extends HookConsumerWidget {
                             config: MarkdownConfig(
                               configs: [
                                 PConfig(
-                                  textStyle: theme.textTheme.bodyLarge?.copyWith(height: 1.6) ?? const TextStyle(height: 1.6),
+                                  textStyle:
+                                      theme.textTheme.bodyLarge?.copyWith(
+                                        height: 1.6,
+                                      ) ??
+                                      const TextStyle(height: 1.6),
                                 ),
                                 H1Config(
-                                  style: theme.textTheme.headlineMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    height: 1.8,
-                                  ) ?? const TextStyle(fontWeight: FontWeight.bold, height: 1.8),
+                                  style:
+                                      theme.textTheme.headlineMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        height: 1.8,
+                                      ) ??
+                                      const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        height: 1.8,
+                                      ),
                                 ),
                                 H2Config(
-                                  style: theme.textTheme.headlineSmall?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    height: 1.6,
-                                  ) ?? const TextStyle(fontWeight: FontWeight.bold, height: 1.6),
+                                  style:
+                                      theme.textTheme.headlineSmall?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        height: 1.6,
+                                      ) ??
+                                      const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        height: 1.6,
+                                      ),
                                 ),
                                 H3Config(
-                                  style: theme.textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    height: 1.5,
-                                  ) ?? const TextStyle(fontWeight: FontWeight.bold, height: 1.5),
+                                  style:
+                                      theme.textTheme.titleLarge?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        height: 1.5,
+                                      ) ??
+                                      const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        height: 1.5,
+                                      ),
                                 ),
                                 const BlockquoteConfig(),
                               ],
@@ -428,7 +454,9 @@ class JournalEditorWidget extends HookConsumerWidget {
                           Text(
                             'Last edited ${_formatLastEdited(journalEntry.updatedAt)}',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.5,
+                              ),
                               fontStyle: FontStyle.italic,
                             ),
                           ),
@@ -442,7 +470,11 @@ class JournalEditorWidget extends HookConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(ThemeData theme, WidgetRef ref, BuildContext context) {
+  Widget _buildEmptyState(
+    ThemeData theme,
+    WidgetRef ref,
+    BuildContext context,
+  ) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -472,7 +504,7 @@ class JournalEditorWidget extends HookConsumerWidget {
               ref.read(journalLoadingProvider.notifier).state = true;
               try {
                 final journalService = ref.read(journalServiceProvider);
-                await journalService.createEntryForDate(date);
+                await journalService.createBlankEntryForDate(date);
                 ref.read(journalEditModeProvider.notifier).state = true;
               } catch (error) {
                 if (context.mounted) {
@@ -506,22 +538,24 @@ class JournalEditorWidget extends HookConsumerWidget {
       onPressed: onPressed,
       iconSize: 20,
       padding: const EdgeInsets.all(8),
-      constraints: const BoxConstraints(
-        minWidth: 32,
-        minHeight: 32,
-      ),
+      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
       tooltip: tooltip,
       color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
     );
   }
 
-  void _insertMarkdown(TextEditingController controller, String prefix, String suffix) {
+  void _insertMarkdown(
+    TextEditingController controller,
+    String prefix,
+    String suffix,
+  ) {
     final text = controller.text;
     final selection = controller.selection;
 
     if (selection.start == selection.end) {
       // No selection, just insert at cursor
-      final newText = text.substring(0, selection.start) +
+      final newText =
+          text.substring(0, selection.start) +
           prefix +
           suffix +
           text.substring(selection.start);
@@ -532,7 +566,8 @@ class JournalEditorWidget extends HookConsumerWidget {
     } else {
       // Wrap selected text
       final selectedText = text.substring(selection.start, selection.end);
-      final newText = text.substring(0, selection.start) +
+      final newText =
+          text.substring(0, selection.start) +
           prefix +
           selectedText +
           suffix +
@@ -544,7 +579,6 @@ class JournalEditorWidget extends HookConsumerWidget {
       );
     }
   }
-
 
   String _formatLastEdited(DateTime dateTime) {
     final now = DateTime.now();
@@ -613,9 +647,9 @@ class JournalEditorWidget extends HookConsumerWidget {
       }
 
       // Show feedback and optionally speak it
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(feedback)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(feedback)));
 
       // Speak the feedback
       voiceService.speak(feedback);

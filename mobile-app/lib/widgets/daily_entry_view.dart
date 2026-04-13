@@ -5,25 +5,27 @@ import 'package:drift/drift.dart' show Value;
 import '../theme/colors.dart';
 import '../widgets/daily_canvas/timeline_widget.dart';
 import '../widgets/daily_canvas/map_widget.dart';
-import '../widgets/daily_canvas/media_gallery_widget.dart' hide mediaItemsProvider;
+import '../widgets/daily_canvas/media_gallery_widget.dart'
+    hide mediaItemsProvider;
 import '../database/journal_database.dart';
 import '../providers/media_database_provider.dart';
 import '../providers/location_clustering_provider.dart';
+import '../services/ai/journal_generation_policy.dart';
 import '../services/journal_service.dart';
 
 // Provider for sub-tab index in DailyEntryView - default to Journal (index 0)
 final dailyEntrySubTabIndexProvider = StateProvider<int>((ref) => 0);
 
 /// Shared widget for displaying daily content (Journal, Timeline, Map, Media) for a specific date.
-/// 
+///
 /// **IMPORTANT**: This widget is used by BOTH the Today (Home) and History screens.
 /// Any changes made here will affect both views. This is intentional for code reuse
 /// and consistency.
-/// 
+///
 /// Used by:
 /// - HomeScreen (lib/screens/home_screen.dart) - displays current day
 /// - HistoryScreen (lib/screens/history_screen.dart) - displays selected historical date
-/// 
+///
 /// The widget contains 4 sub-tabs:
 /// - Journal: AI-generated or manual journal entries
 /// - Timeline: Activity timeline for the day
@@ -53,7 +55,8 @@ class DailyEntryView extends HookConsumerWidget {
       tabController.index = currentSubTab;
       tabController.addListener(() {
         if (tabController.index != currentSubTab) {
-          ref.read(dailyEntrySubTabIndexProvider.notifier).state = tabController.index;
+          ref.read(dailyEntrySubTabIndexProvider.notifier).state =
+              tabController.index;
         }
       });
       return null;
@@ -93,8 +96,8 @@ class DailyEntryView extends HookConsumerWidget {
             boxShadow: [
               BoxShadow(
                 color: isLight
-                  ? Colors.black.withValues(alpha: 0.05)
-                  : Colors.black.withValues(alpha: 0.3),
+                    ? Colors.black.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, -2),
               ),
@@ -115,8 +118,13 @@ class DailyEntryView extends HookConsumerWidget {
               indicatorSize: TabBarIndicatorSize.tab,
               indicatorPadding: const EdgeInsets.symmetric(vertical: 6),
               labelColor: theme.colorScheme.onPrimaryContainer,
-              unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              labelPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              unselectedLabelColor: theme.colorScheme.onSurface.withValues(
+                alpha: 0.6,
+              ),
+              labelPadding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 12,
+              ),
               tabs: [
                 Tab(
                   height: 48,
@@ -248,8 +256,18 @@ class _JournalTab extends HookConsumerWidget {
     // Format date helper function
     String formatDate(DateTime date) {
       final months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
       ];
       return '${months[date.month - 1]} ${date.day}, ${date.year}';
     }
@@ -268,16 +286,19 @@ class _JournalTab extends HookConsumerWidget {
 
     // Get photos count for this specific date
     final photosCountAsync = useMemoized(
-      () => mediaDb.getRecentMedia(duration: const Duration(days: 7), limit: 500),
+      () =>
+          mediaDb.getRecentMedia(duration: const Duration(days: 7), limit: 500),
       [date],
     );
     final photosFuture = useFuture(photosCountAsync);
-    final dayPhotos = photosFuture.data?.where((item) {
-      return item.createdDate.year == dayStart.year &&
-             item.createdDate.month == dayStart.month &&
-             item.createdDate.day == dayStart.day &&
-             !item.isDeleted; // Only count included photos
-    }).toList() ?? [];
+    final dayPhotos =
+        photosFuture.data?.where((item) {
+          return item.createdDate.year == dayStart.year &&
+              item.createdDate.month == dayStart.month &&
+              item.createdDate.day == dayStart.day &&
+              !item.isDeleted; // Only count included photos
+        }).toList() ??
+        [];
     final photosCount = dayPhotos.length;
 
     // Get unique locations count using DBSCAN clustering for this specific date
@@ -322,14 +343,7 @@ class _JournalTab extends HookConsumerWidget {
 
       isGenerating.value = true;
       try {
-        if (existingEntry != null) {
-          // Delete existing entry so createEntryForDate creates a fresh one
-          final db = ref.read(journalDatabaseProvider);
-          await db.deleteJournalEntry(existingEntry.id);
-        }
-
-        // Use JournalService to create entry with DataRichNarrativeBuilder
-        final newEntry = await journalService.createEntryForDate(date);
+        final newEntry = await journalService.regenerateEntryForDate(date);
 
         if (context.mounted && newEntry.content.isNotEmpty) {
           journalEntry.value = newEntry.content;
@@ -340,7 +354,19 @@ class _JournalTab extends HookConsumerWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Cannot auto-generate: No data found for this date. Add photos, visit locations, or create calendar events to enable AI generation.'),
+              content: Text(
+                'Cannot auto-generate: No data found for this date. Add photos, visit locations, or create calendar events to enable AI generation.',
+              ),
+              duration: const Duration(seconds: 4),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } on JournalGenerationUnavailableException catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.message),
               duration: const Duration(seconds: 4),
               behavior: SnackBarBehavior.floating,
             ),
@@ -385,9 +411,11 @@ class _JournalTab extends HookConsumerWidget {
               date: Value(DateTime(date.year, date.month, date.day)),
               title: Value('Journal Entry - ${formatDate(date)}'),
               content: Value(controller.text),
-              summary: Value(controller.text.length > 100
-                  ? '${controller.text.substring(0, 100)}...'
-                  : controller.text),
+              summary: Value(
+                controller.text.length > 100
+                    ? '${controller.text.substring(0, 100)}...'
+                    : controller.text,
+              ),
               isAutoGenerated: const Value(false),
               isEdited: const Value(true),
               createdAt: Value(DateTime.now()),
@@ -417,14 +445,14 @@ class _JournalTab extends HookConsumerWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: isLight
-                  ? AuraColors.lightCardGradient
-                  : AuraColors.darkCardGradient,
+                    ? AuraColors.lightCardGradient
+                    : AuraColors.darkCardGradient,
               ),
               boxShadow: [
                 BoxShadow(
                   color: isLight
-                    ? AuraColors.lightPrimary.withValues(alpha: 0.08)
-                    : Colors.black.withValues(alpha: 0.2),
+                      ? AuraColors.lightPrimary.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.2),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -454,22 +482,29 @@ class _JournalTab extends HookConsumerWidget {
                           if (enableAI && !isEditing.value)
                             IconButton(
                               icon: isGenerating.value
-                                ? SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        theme.colorScheme.primary,
+                                  ? SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              theme.colorScheme.primary,
+                                            ),
                                       ),
+                                    )
+                                  : Icon(
+                                      journalEntry.value != null
+                                          ? Icons.auto_awesome
+                                          : Icons.add_circle_outline,
+                                      color: theme.colorScheme.primary,
                                     ),
-                                  )
-                                : Icon(
-                                    journalEntry.value != null ? Icons.auto_awesome : Icons.add_circle_outline,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                              onPressed: isGenerating.value ? null : generateSummary,
-                              tooltip: journalEntry.value != null ? 'Regenerate Summary' : 'Generate Summary',
+                              onPressed: isGenerating.value
+                                  ? null
+                                  : generateSummary,
+                              tooltip: journalEntry.value != null
+                                  ? 'Regenerate Summary'
+                                  : 'Generate Summary',
                             ),
                           // Edit button
                           IconButton(
@@ -477,20 +512,22 @@ class _JournalTab extends HookConsumerWidget {
                               isEditing.value ? Icons.check : Icons.edit,
                               color: theme.colorScheme.primary,
                             ),
-                            onPressed: !canFocus.value ? null : () async {
-                              // Only allow editing after initial delay to prevent auto-focus
-                              if (!canFocus.value) return;
+                            onPressed: !canFocus.value
+                                ? null
+                                : () async {
+                                    // Only allow editing after initial delay to prevent auto-focus
+                                    if (!canFocus.value) return;
 
-                              if (isEditing.value) {
-                                await saveEntry();
-                                // Unfocus when exiting edit mode
-                                textFieldFocusNode.unfocus();
-                              } else {
-                                // When entering edit mode, only focus if user explicitly wants to edit
-                                // Don't auto-focus to prevent unwanted keyboard popup
-                              }
-                              isEditing.value = !isEditing.value;
-                            },
+                                    if (isEditing.value) {
+                                      await saveEntry();
+                                      // Unfocus when exiting edit mode
+                                      textFieldFocusNode.unfocus();
+                                    } else {
+                                      // When entering edit mode, only focus if user explicitly wants to edit
+                                      // Don't auto-focus to prevent unwanted keyboard popup
+                                    }
+                                    isEditing.value = !isEditing.value;
+                                  },
                           ),
                         ],
                       ),
@@ -500,44 +537,55 @@ class _JournalTab extends HookConsumerWidget {
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     child: isEditing.value
-                      ? TextField(
-                          controller: controller,
-                          focusNode: textFieldFocusNode,
-                          autofocus: false,
-                          readOnly: !canFocus.value, // Prevent any interaction until ready
-                          enableInteractiveSelection: canFocus.value,
-                          maxLines: null,
-                          decoration: InputDecoration(
-                            hintText: 'Write about this day...',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                        ? TextField(
+                            controller: controller,
+                            focusNode: textFieldFocusNode,
+                            autofocus: false,
+                            readOnly: !canFocus
+                                .value, // Prevent any interaction until ready
+                            enableInteractiveSelection: canFocus.value,
+                            maxLines: null,
+                            decoration: InputDecoration(
+                              hintText: 'Write about this day...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: theme.colorScheme.primary,
+                                  width: 2,
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: theme.colorScheme.surface.withValues(
+                                alpha: 0.5,
                               ),
                             ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: theme.colorScheme.primary,
-                                width: 2,
-                              ),
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              height: 1.5,
                             ),
-                            filled: true,
-                            fillColor: theme.colorScheme.surface.withValues(alpha: 0.5),
-                          ),
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            height: 1.5,
-                          ),
-                        )
-                      : journalEntry.value != null && journalEntry.value!.isNotEmpty
+                          )
+                        : journalEntry.value != null &&
+                              journalEntry.value!.isNotEmpty
                         ? Text(
                             journalEntry.value!,
                             style: theme.textTheme.bodyLarge?.copyWith(
                               height: 1.5,
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.9,
+                              ),
                             ),
                           )
-                        : _buildEmptyState(theme, enableAI && (photosCount > 0 || locationsCount > 0)),
+                        : _buildEmptyState(
+                            theme,
+                            enableAI && (photosCount > 0 || locationsCount > 0),
+                          ),
                   ),
                 ],
               ),
@@ -562,8 +610,8 @@ class _JournalTab extends HookConsumerWidget {
           const SizedBox(height: 16),
           Text(
             hasDataForAI
-              ? 'Tap the ✨ button to generate an AI summary'
-              : 'No journal entry for this date',
+                ? 'Tap the ✨ button to generate an AI summary'
+                : 'No journal entry for this date',
             style: theme.textTheme.titleMedium?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
@@ -632,10 +680,7 @@ class _MediaTab extends ConsumerWidget {
     // This ensures fresh data is always available
     return Container(
       padding: const EdgeInsets.all(16),
-      child: MediaGalleryWidget(
-        date: date,
-        enableSelection: enableSelection,
-      ),
+      child: MediaGalleryWidget(date: date, enableSelection: enableSelection),
     );
   }
 }

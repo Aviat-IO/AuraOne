@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,17 +11,19 @@ import '../services/export/backup_scheduler.dart';
 /// Provider for BackupManager instance
 final backupManagerProvider = Provider((ref) => BackupManager.instance);
 
-/// Provider for BackupRestorationService instance  
+/// Provider for BackupRestorationService instance
 final backupRestorationProvider = Provider((ref) => BackupRestorationService());
 
 /// Provider for backup history
-final backupHistoryProvider = FutureProvider.family<List<BackupMetadata>, BackupProvider?>(
-  (ref, provider) async {
-    final backupManager = ref.watch(backupManagerProvider);
-    // Load backup history without full initialization to avoid blocking UI
-    return backupManager.getBackupHistory(provider: provider);
-  },
-);
+final backupHistoryProvider =
+    FutureProvider.family<List<BackupMetadata>, BackupProvider?>((
+      ref,
+      provider,
+    ) async {
+      final backupManager = ref.watch(backupManagerProvider);
+      // Load backup history without full initialization to avoid blocking UI
+      return backupManager.getBackupHistory(provider: provider);
+    });
 
 /// Provider for current backup configuration
 final backupConfigProvider = FutureProvider<BackupConfig?>(
@@ -30,41 +34,42 @@ class BackupSettingsScreen extends ConsumerStatefulWidget {
   const BackupSettingsScreen({super.key});
 
   @override
-  ConsumerState<BackupSettingsScreen> createState() => _BackupSettingsScreenState();
+  ConsumerState<BackupSettingsScreen> createState() =>
+      _BackupSettingsScreenState();
 }
 
-class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen> 
+class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   BackupProvider _selectedProvider = BackupProvider.local;
   bool _isBackupInProgress = false;
   double _backupProgress = 0.0;
   String _backupStatus = '';
-  
+
   // Backup settings
   bool _enableAutoBackup = false;
   BackupFrequency _backupFrequency = BackupFrequency.daily;
   bool _enableEncryption = false;
   bool _includeMedia = true;
   bool _useIncremental = false;
-  
+
   // Restore settings
   RestoreStrategy _restoreStrategy = RestoreStrategy.merge;
   ConflictResolution _conflictResolution = ConflictResolution.useNewer;
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _loadBackupSettings();
   }
-  
+
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
-  
+
   Future<void> _loadBackupSettings() async {
     final config = await BackupScheduler.getConfig();
     if (mounted) {
@@ -75,12 +80,12 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
         _includeMedia = config.includeMedia;
       });
     }
-    }
-  
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Backup & Restore'),
@@ -103,7 +108,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
       ),
     );
   }
-  
+
   Widget _buildBackupTab(ThemeData theme) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -117,28 +122,27 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Backup Location',
-                    style: theme.textTheme.titleMedium,
-                  ),
+                  Text('Backup Location', style: theme.textTheme.titleMedium),
                   const SizedBox(height: 16),
-                  ...BackupProvider.values.map((provider) => RadioListTile<BackupProvider>(
-                    title: Text(provider.displayName),
-                    subtitle: Text(_getProviderDescription(provider)),
-                    value: provider,
-                    groupValue: _selectedProvider,
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() => _selectedProvider = value);
-                      }
-                    },
-                  )),
+                  ...BackupProvider.values.map(
+                    (provider) => RadioListTile<BackupProvider>(
+                      title: Text(provider.displayName),
+                      subtitle: Text(_getProviderDescription(provider)),
+                      value: provider,
+                      groupValue: _selectedProvider,
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _selectedProvider = value);
+                        }
+                      },
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Backup options
           Card(
             child: Padding(
@@ -146,10 +150,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Backup Options',
-                    style: theme.textTheme.titleMedium,
-                  ),
+                  Text('Backup Options', style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),
                   SwitchListTile(
                     title: const Text('Include Media'),
@@ -161,20 +162,24 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
                     title: const Text('Encrypt Backup'),
                     subtitle: const Text('Protect with password'),
                     value: _enableEncryption,
-                    onChanged: (value) => setState(() => _enableEncryption = value),
+                    onChanged: (value) =>
+                        setState(() => _enableEncryption = value),
                   ),
                   SwitchListTile(
                     title: const Text('Incremental Backup'),
-                    subtitle: const Text('Only backup changes since last backup'),
+                    subtitle: const Text(
+                      'Only backup changes since last backup',
+                    ),
                     value: _useIncremental,
-                    onChanged: (value) => setState(() => _useIncremental = value),
+                    onChanged: (value) =>
+                        setState(() => _useIncremental = value),
                   ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Backup button and progress
           if (_isBackupInProgress) ...[
             Card(
@@ -205,19 +210,16 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
             ),
           ],
           const SizedBox(height: 24),
-          
+
           // Recent backups
-          Text(
-            'Recent Backups',
-            style: theme.textTheme.titleMedium,
-          ),
+          Text('Recent Backups', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           _buildBackupHistory(),
         ],
       ),
     );
   }
-  
+
   Widget _buildRestoreTab(ThemeData theme) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -231,14 +233,13 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Restore Strategy',
-                    style: theme.textTheme.titleMedium,
-                  ),
+                  Text('Restore Strategy', style: theme.textTheme.titleMedium),
                   const SizedBox(height: 16),
                   RadioListTile<RestoreStrategy>(
                     title: const Text('Replace All'),
-                    subtitle: const Text('Replace all existing data with backup'),
+                    subtitle: const Text(
+                      'Replace all existing data with backup',
+                    ),
                     value: RestoreStrategy.replace,
                     groupValue: _restoreStrategy,
                     onChanged: (value) {
@@ -274,7 +275,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Conflict resolution (only for merge)
           if (_restoreStrategy == RestoreStrategy.merge) ...[
             Card(
@@ -290,7 +291,9 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
                     const SizedBox(height: 16),
                     RadioListTile<ConflictResolution>(
                       title: const Text('Keep Existing'),
-                      subtitle: const Text('Keep existing data when conflicts occur'),
+                      subtitle: const Text(
+                        'Keep existing data when conflicts occur',
+                      ),
                       value: ConflictResolution.keepExisting,
                       groupValue: _conflictResolution,
                       onChanged: (value) {
@@ -301,7 +304,9 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
                     ),
                     RadioListTile<ConflictResolution>(
                       title: const Text('Use Backup'),
-                      subtitle: const Text('Replace with backup data when conflicts occur'),
+                      subtitle: const Text(
+                        'Replace with backup data when conflicts occur',
+                      ),
                       value: ConflictResolution.useBackup,
                       groupValue: _conflictResolution,
                       onChanged: (value) {
@@ -312,7 +317,9 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
                     ),
                     RadioListTile<ConflictResolution>(
                       title: const Text('Use Newer'),
-                      subtitle: const Text('Use the newer version based on timestamp'),
+                      subtitle: const Text(
+                        'Use the newer version based on timestamp',
+                      ),
                       value: ConflictResolution.useNewer,
                       groupValue: _conflictResolution,
                       onChanged: (value) {
@@ -327,19 +334,16 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
             ),
             const SizedBox(height: 16),
           ],
-          
+
           // Available backups for restoration
-          Text(
-            'Available Backups',
-            style: theme.textTheme.titleMedium,
-          ),
+          Text('Available Backups', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           _buildRestorableBackups(),
         ],
       ),
     );
   }
-  
+
   Widget _buildSettingsTab(ThemeData theme) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -353,16 +357,14 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Automatic Backup',
-                    style: theme.textTheme.titleMedium,
-                  ),
+                  Text('Automatic Backup', style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),
                   SwitchListTile(
                     title: const Text('Enable Auto Backup'),
                     subtitle: const Text('Automatically backup your data'),
                     value: _enableAutoBackup,
-                    onChanged: (value) => setState(() => _enableAutoBackup = value),
+                    onChanged: (value) =>
+                        setState(() => _enableAutoBackup = value),
                   ),
                   if (_enableAutoBackup) ...[
                     const Divider(),
@@ -390,7 +392,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Storage management
           Card(
             child: Padding(
@@ -420,7 +422,9 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
                       future: _calculateBackupSize(),
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
-                          return Text('${snapshot.data!.toStringAsFixed(2)} MB used');
+                          return Text(
+                            '${snapshot.data!.toStringAsFixed(2)} MB used',
+                          );
                         }
                         return const Text('Calculating...');
                       },
@@ -430,7 +434,9 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
                   ListTile(
                     leading: const Icon(Icons.sync),
                     title: const Text('Syncthing Settings'),
-                    subtitle: const Text('Configure peer-to-peer synchronization'),
+                    subtitle: const Text(
+                      'Configure peer-to-peer synchronization',
+                    ),
                     trailing: const Icon(Icons.arrow_forward_ios),
                     onTap: () => context.push('/settings/syncthing'),
                   ),
@@ -439,7 +445,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Save settings button
           SizedBox(
             width: double.infinity,
@@ -452,10 +458,10 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
       ),
     );
   }
-  
+
   Widget _buildBackupHistory() {
     final backupHistory = ref.watch(backupHistoryProvider(_selectedProvider));
-    
+
     return backupHistory.when(
       data: (backups) {
         if (backups.isEmpty) {
@@ -466,7 +472,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
             ),
           );
         }
-        
+
         return Column(
           children: backups.take(5).map((backup) {
             return Card(
@@ -497,14 +503,8 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
                       value: 'restore',
                       child: Text('Restore'),
                     ),
-                    const PopupMenuItem(
-                      value: 'verify',
-                      child: Text('Verify'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Text('Delete'),
-                    ),
+                    const PopupMenuItem(value: 'verify', child: Text('Verify')),
+                    const PopupMenuItem(value: 'delete', child: Text('Delete')),
                   ],
                 ),
               ),
@@ -516,10 +516,10 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
       error: (error, stack) => Text('Error: $error'),
     );
   }
-  
+
   Widget _buildRestorableBackups() {
     final backupHistory = ref.watch(backupHistoryProvider(null));
-    
+
     return backupHistory.when(
       data: (backups) {
         if (backups.isEmpty) {
@@ -530,7 +530,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
             ),
           );
         }
-        
+
         return Column(
           children: backups.map((backup) {
             return Card(
@@ -542,11 +542,19 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${backup.entryCount} entries, ${backup.mediaCount} media'),
+                    Text(
+                      '${backup.entryCount} entries, ${backup.mediaCount} media',
+                    ),
                     if (backup.isFullBackup)
-                      const Text('Full backup', style: TextStyle(fontWeight: FontWeight.bold))
+                      const Text(
+                        'Full backup',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      )
                     else
-                      const Text('Incremental backup', style: TextStyle(fontStyle: FontStyle.italic)),
+                      const Text(
+                        'Incremental backup',
+                        style: TextStyle(fontStyle: FontStyle.italic),
+                      ),
                   ],
                 ),
                 isThreeLine: true,
@@ -564,31 +572,34 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
       error: (error, stack) => Text('Error: $error'),
     );
   }
-  
+
   Future<void> _performBackup() async {
     setState(() {
       _isBackupInProgress = true;
       _backupProgress = 0.0;
       _backupStatus = 'Preparing backup...';
     });
-    
+
     try {
       final backupManager = ref.read(backupManagerProvider);
-      
+
       // Initialize only when actually performing backup
       await backupManager.initialize();
-      
+
       String? encryptionPassword;
 
       if (_enableEncryption) {
         if (!mounted) return;
-        encryptionPassword = await _showPasswordDialog(context, 'Enter Backup Password');
+        encryptionPassword = await _showPasswordDialog(
+          context,
+          'Enter Backup Password',
+        );
         if (encryptionPassword == null || encryptionPassword.isEmpty) {
           setState(() => _isBackupInProgress = false);
           return;
         }
       }
-      
+
       final result = await backupManager.performBackup(
         providers: [_selectedProvider],
         incremental: _useIncremental,
@@ -600,12 +611,12 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
           });
         },
       );
-      
+
       setState(() {
         _isBackupInProgress = false;
         _backupStatus = '';
       });
-      
+
       if (mounted) {
         // Calculate totals from all providers
         int totalEntries = 0;
@@ -614,7 +625,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
           totalEntries += metadata.entryCount;
           totalMedia += metadata.mediaCount;
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -624,16 +635,15 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
           ),
         );
       }
-      
+
       // Refresh backup history
       ref.invalidate(backupHistoryProvider);
-      
     } catch (e) {
       setState(() {
         _isBackupInProgress = false;
         _backupStatus = '';
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -644,7 +654,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
       }
     }
   }
-  
+
   Future<void> _restoreBackup(BackupMetadata backup) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -675,13 +685,16 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
         ],
       ),
     );
-    
+
     if (confirm != true) return;
-    
+
     String? encryptionPassword;
     if (backup.incrementalData['encrypted'] == true) {
       if (!mounted) return;
-      encryptionPassword = await _showPasswordDialog(context, 'Enter Backup Password');
+      encryptionPassword = await _showPasswordDialog(
+        context,
+        'Enter Backup Password',
+      );
       if (encryptionPassword == null || encryptionPassword.isEmpty) return;
     }
 
@@ -702,9 +715,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
               children: [
                 Text(progress?.currentPhase ?? 'Preparing...'),
                 const SizedBox(height: 16),
-                LinearProgressIndicator(
-                  value: progress?.overallProgress,
-                ),
+                LinearProgressIndicator(value: progress?.overallProgress),
                 const SizedBox(height: 8),
                 if (progress != null)
                   Text(
@@ -717,7 +728,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
         ),
       ),
     );
-    
+
     try {
       final result = await restorationService.restoreFromMetadata(
         backup,
@@ -725,10 +736,10 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
         conflictResolution: _conflictResolution,
         encryptionPassword: encryptionPassword,
       );
-      
+
       if (mounted) {
         Navigator.pop(context); // Close progress dialog
-        
+
         if (result.success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -759,7 +770,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
       }
     }
   }
-  
+
   Future<void> _deleteBackup(BackupMetadata backup) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -775,9 +786,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
@@ -801,10 +810,10 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
     // Refresh backup history
     ref.invalidate(backupHistoryProvider);
   }
-  
+
   Future<void> _verifyBackup(BackupMetadata backup) async {
     final backupManager = ref.read(backupManagerProvider);
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -818,23 +827,25 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
         ),
       ),
     );
-    
+
     final isValid = await backupManager.verifyBackup(backup);
-    
+
     if (mounted) {
       Navigator.pop(context); // Close progress dialog
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            isValid ? 'Backup is valid and intact' : 'Backup verification failed - may be corrupted',
+            isValid
+                ? 'Backup is valid and intact'
+                : 'Backup verification failed - may be corrupted',
           ),
           backgroundColor: isValid ? Colors.green : Colors.red,
         ),
       );
     }
   }
-  
+
   Future<void> _cleanOldBackups() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -855,36 +866,36 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
         ],
       ),
     );
-    
+
     if (confirm != true) return;
-    
+
     final backupManager = ref.read(backupManagerProvider);
     await backupManager.cleanupOldBackups(
       keepLastCount: 10,
       olderThan: const Duration(days: 30),
     );
-    
+
     ref.invalidate(backupHistoryProvider);
-    
+
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Old backups cleaned')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Old backups cleaned')));
     }
   }
-  
+
   Future<double> _calculateBackupSize() async {
     final backupManager = ref.read(backupManagerProvider);
     final backups = backupManager.getBackupHistory();
-    
+
     double totalSize = 0;
     for (final backup in backups) {
       totalSize += backup.sizeMB;
     }
-    
+
     return totalSize;
   }
-  
+
   Future<void> _saveSettings() async {
     final config = BackupConfig(
       frequency: _backupFrequency,
@@ -894,22 +905,22 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
       useSyncthingFolder: _selectedProvider == BackupProvider.syncthing,
       useBlossomStorage: _selectedProvider == BackupProvider.blossom,
     );
-    
+
     await BackupScheduler.saveConfig(config);
-    
+
     if (_enableAutoBackup) {
       await BackupScheduler.scheduleBackup(config);
     } else {
       await BackupScheduler.cancelScheduledBackup();
     }
-    
+
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Settings saved')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Settings saved')));
     }
   }
-  
+
   String _getProviderDescription(BackupProvider provider) {
     switch (provider) {
       case BackupProvider.local:
@@ -920,7 +931,7 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
         return 'Decentralized cloud storage';
     }
   }
-  
+
   IconData _getProviderIcon(BackupProvider provider) {
     switch (provider) {
       case BackupProvider.local:
@@ -931,10 +942,13 @@ class _BackupSettingsScreenState extends ConsumerState<BackupSettingsScreen>
         return Icons.cloud_outlined;
     }
   }
-  
-  Future<String?> _showPasswordDialog(BuildContext context, String title) async {
+
+  Future<String?> _showPasswordDialog(
+    BuildContext context,
+    String title,
+  ) async {
     final controller = TextEditingController();
-    
+
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(

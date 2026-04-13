@@ -28,109 +28,122 @@ import 'package:aura_one/utils/performance_monitor.dart';
 import 'package:aura_one/services/data_restoration_service.dart';
 import 'package:aura_one/services/calendar_initialization_service.dart';
 import 'package:aura_one/services/ai/adapter_registry.dart';
-import 'package:aura_one/services/ai/template_adapter.dart';
 import 'package:aura_one/services/ai/cloud_gemini_adapter.dart';
 import 'package:aura_one/services/ai/managed_cloud_gemini_adapter.dart';
+import 'package:aura_one/services/ai/gemma_local_adapter.dart';
 import 'package:aura_one/services/notification_service.dart';
 import 'package:aura_one/screens/main_layout_screen.dart';
 import 'package:aura_one/widgets/daily_entry_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Provider to store restoration status
-final restorationStatusProvider = StateProvider<RestorationStatus?>((ref) => null);
+final restorationStatusProvider = StateProvider<RestorationStatus?>(
+  (ref) => null,
+);
 
 void main() {
   // Run the entire app in a single zone to avoid zone mismatch issues
-  runZonedGuarded(() async {
-    // Ensure Flutter binding is initialized
-    WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(
+    () async {
+      // Ensure Flutter binding is initialized
+      WidgetsFlutterBinding.ensureInitialized();
 
-    // Load environment variables from .env file
-    try {
-      await dotenv.load(fileName: '.env');
-    } catch (e) {
-      // .env file is optional - app will work without it
-      appLogger.info('No .env file found, using defaults');
-    }
-
-    // Initialize timezone data
-    tz.initializeTimeZones();
-
-    // Set local timezone based on device's local time
-    // We'll use a simple approach to determine timezone offset
-    try {
-      final now = DateTime.now();
-      final offset = now.timeZoneOffset;
-
-      // Find a timezone with the matching offset
-      // For Utah (Mountain Time), this should resolve to America/Denver
-      String timezoneName = 'UTC';
-
-      if (offset.inHours == -7 || offset.inHours == -6) {
-        // Mountain Time (MST/MDT)
-        timezoneName = 'America/Denver';
-      } else if (offset.inHours == -8 || offset.inHours == -7) {
-        // Pacific Time (PST/PDT)
-        timezoneName = 'America/Los_Angeles';
-      } else if (offset.inHours == -5 || offset.inHours == -4) {
-        // Eastern Time (EST/EDT)
-        timezoneName = 'America/New_York';
-      } else if (offset.inHours == -6 || offset.inHours == -5) {
-        // Central Time (CST/CDT)
-        timezoneName = 'America/Chicago';
+      // Load environment variables from .env file
+      try {
+        await dotenv.load(fileName: '.env');
+      } catch (e) {
+        // .env file is optional - app will work without it
+        appLogger.info('No .env file found, using defaults');
       }
 
-      tz.setLocalLocation(tz.getLocation(timezoneName));
-      appLogger.info('Timezone initialized: $timezoneName (offset: ${offset.inHours}h)');
-    } catch (e) {
-      appLogger.warning('Could not detect timezone, using UTC: $e');
-      tz.setLocalLocation(tz.UTC);
-    }
+      // Initialize timezone data
+      tz.initializeTimeZones();
 
-    // Note: Background location now uses flutter_background_geolocation
-    // which handles its own initialization
+      // Set local timezone based on device's local time
+      // We'll use a simple approach to determine timezone offset
+      try {
+        final now = DateTime.now();
+        final offset = now.timeZoneOffset;
 
-    // Log app startup
-    appLogger.info('Aura One starting...');
+        // Find a timezone with the matching offset
+        // For Utah (Mountain Time), this should resolve to America/Denver
+        String timezoneName = 'UTC';
 
-    // Enable performance monitoring in debug mode
-    if (kDebugMode) {
-      PerformanceMonitor().startMonitoring();
-    }
+        if (offset.inHours == -7 || offset.inHours == -6) {
+          // Mountain Time (MST/MDT)
+          timezoneName = 'America/Denver';
+        } else if (offset.inHours == -8 || offset.inHours == -7) {
+          // Pacific Time (PST/PDT)
+          timezoneName = 'America/Los_Angeles';
+        } else if (offset.inHours == -5 || offset.inHours == -4) {
+          // Eastern Time (EST/EDT)
+          timezoneName = 'America/New_York';
+        } else if (offset.inHours == -6 || offset.inHours == -5) {
+          // Central Time (CST/CDT)
+          timezoneName = 'America/Chicago';
+        }
 
-    // Load saved theme preference before app starts
-    await BrightnessNotifier.loadInitialBrightness();
+        tz.setLocalLocation(tz.getLocation(timezoneName));
+        appLogger.info(
+          'Timezone initialized: $timezoneName (offset: ${offset.inHours}h)',
+        );
+      } catch (e) {
+        appLogger.warning('Could not detect timezone, using UTC: $e');
+        tz.setLocalLocation(tz.UTC);
+      }
 
-    // Register AI adapters in privacy-first priority order
-    // Tier 1: Managed Cloud - Backend proxy with rate limiting (no API key needed)
-    // Tier 2: BYOK Cloud - Direct Gemini API for users with their own API key
-    // Tier 3: Template - Privacy-first fallback, always available
-    appLogger.info('Registering AI adapters...');
-    final adapterRegistry = AdapterRegistry();
-    adapterRegistry.registerAdapter(
-      ManagedCloudGeminiAdapter(),
-      1,
-    ); // Tier 1: Managed service (backend proxy, rate-limited)
-    adapterRegistry.registerAdapter(CloudGeminiAdapter(), 2); // Tier 2: BYOK (user-provided API key)
-    adapterRegistry.registerAdapter(TemplateAdapter(), 3); // Tier 3: Privacy-first fallback (always available)
-    appLogger.info('AI adapters registered successfully');
+      // Note: Background location now uses flutter_background_geolocation
+      // which handles its own initialization
 
-    // Initialize error handling after Sentry
-    await ErrorHandler.initialize();
+      // Log app startup
+      appLogger.info('Aura One starting...');
 
-    runApp(
-      ProviderScope(
-        overrides: [
-          storageNotifierProvider.overrideWith(
-            (ref) => PurplebaseStorageNotifier(ref),
-          ),
-        ],
-        child: const AuraOneApp(),
-      ),
-    );
-  }, (error, stack) {
-    ErrorHandler.handleError(error, stack);
-  });
+      // Enable performance monitoring in debug mode
+      if (kDebugMode) {
+        PerformanceMonitor().startMonitoring();
+      }
+
+      // Load saved theme preference before app starts
+      await BrightnessNotifier.loadInitialBrightness();
+
+      // Register AI adapters in privacy-first priority order
+      // Tier 1: Managed Cloud - Backend proxy with rate limiting (no API key needed)
+      // Tier 2: BYOK Cloud - Direct Gemini API for users with their own API key
+      // Tier 3: Gemma 4 local runtime
+      appLogger.info('Registering AI adapters...');
+      final adapterRegistry = AdapterRegistry();
+      adapterRegistry.registerAdapter(
+        ManagedCloudGeminiAdapter(),
+        1,
+      ); // Tier 1: Managed service (backend proxy, rate-limited)
+      adapterRegistry.registerAdapter(
+        CloudGeminiAdapter(),
+        2,
+      ); // Tier 2: BYOK (user-provided API key)
+      adapterRegistry.registerAdapter(
+        GemmaLocalAdapter(),
+        3,
+      ); // Tier 3: Local Gemma 4 runtime
+      appLogger.info('AI adapters registered successfully');
+
+      // Initialize error handling after Sentry
+      await ErrorHandler.initialize();
+
+      runApp(
+        ProviderScope(
+          overrides: [
+            storageNotifierProvider.overrideWith(
+              (ref) => PurplebaseStorageNotifier(ref),
+            ),
+          ],
+          child: const AuraOneApp(),
+        ),
+      );
+    },
+    (error, stack) {
+      ErrorHandler.handleError(error, stack);
+    },
+  );
 }
 
 class AuraOneApp extends ConsumerWidget {
@@ -181,12 +194,7 @@ class AuraOneApp extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         builder: (context, child) {
           return PrivacyScreenOverlay(
-            child: Stack(
-              children: [
-                child!,
-                const AppLockScreen(),
-              ],
-            ),
+            child: Stack(children: [child!, const AppLockScreen()]),
           );
         },
       ),
@@ -209,8 +217,8 @@ class AuraOneSplashScreen extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isLight
-              ? AuraColors.lightBackgroundGradient
-              : AuraColors.darkBackgroundGradient,
+                ? AuraColors.lightBackgroundGradient
+                : AuraColors.darkBackgroundGradient,
             stops: const [0.0, 0.5, 1.0],
           ),
         ),
@@ -222,108 +230,108 @@ class AuraOneSplashScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                // Aura One Logo - a mindful, circular design
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: isLight
-                        ? AuraColors.lightLogoGradient
-                        : AuraColors.darkLogoGradient,
-                      stops: const [0.0, 0.5, 1.0],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isLight
-                          ? AuraColors.lightPrimary.withValues(alpha: 0.2)
-                          : AuraColors.darkPrimary.withValues(alpha: 0.15),
-                        blurRadius: 40,
-                        spreadRadius: 8,
-                        offset: const Offset(0, 4),
+                  // Aura One Logo - a mindful, circular design
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: isLight
+                            ? AuraColors.lightLogoGradient
+                            : AuraColors.darkLogoGradient,
+                        stops: const [0.0, 0.5, 1.0],
                       ),
-                    ],
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Outer ring
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                            width: 2,
+                      boxShadow: [
+                        BoxShadow(
+                          color: isLight
+                              ? AuraColors.lightPrimary.withValues(alpha: 0.2)
+                              : AuraColors.darkPrimary.withValues(alpha: 0.15),
+                          blurRadius: 40,
+                          spreadRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Outer ring
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              width: 2,
+                            ),
                           ),
                         ),
-                      ),
-                      // Inner circle with icon
-                      Container(
-                        width: 70,
-                        height: 70,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.15),
+                        // Inner circle with icon
+                        Container(
+                          width: 70,
+                          height: 70,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withValues(alpha: 0.15),
+                          ),
+                          child: Icon(
+                            Icons.self_improvement,
+                            size: 36,
+                            color: Colors.white,
+                          ),
                         ),
-                        child: Icon(
-                          Icons.self_improvement,
-                          size: 36,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Aura One',
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Your Personal Wellness Journey',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.7),
-                    letterSpacing: 0.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Powered by Nostr • Location-Aware • Private',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.5),
-                    letterSpacing: 0.3,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 48),
-                // Loading indicator
-                SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      colorScheme.primary.withValues(alpha: 0.7),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Initializing...',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.5),
+                  const SizedBox(height: 32),
+                  Text(
+                    'Aura One',
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Your Personal Wellness Journey',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.7),
+                      letterSpacing: 0.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Powered by Nostr • Location-Aware • Private',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.5),
+                      letterSpacing: 0.3,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 48),
+                  // Loading indicator
+                  SizedBox(
+                    width: 32,
+                    height: 32,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        colorScheme.primary.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Initializing...',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -333,7 +341,6 @@ class AuraOneSplashScreen extends StatelessWidget {
     );
   }
 }
-
 
 final appInitializationProvider = FutureProvider<void>((ref) async {
   try {
@@ -382,9 +389,12 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
 
     // Post-initialization tasks (non-blocking)
     _schedulePostInitializationTasks(ref, initResult.onboardingCompleted);
-
   } catch (error, stackTrace) {
-    appLogger.error('Failed to initialize app', error: error, stackTrace: stackTrace);
+    appLogger.error(
+      'Failed to initialize app',
+      error: error,
+      stackTrace: stackTrace,
+    );
     rethrow;
   }
 });
@@ -400,33 +410,46 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
       if (onboardingCompleted) {
         // Check if user has opted in to background location tracking
         final prefs = await SharedPreferences.getInstance();
-        final backgroundTrackingEnabled = prefs.getBool('backgroundLocationTracking') ?? false;
+        final backgroundTrackingEnabled =
+            prefs.getBool('backgroundLocationTracking') ?? false;
 
         if (backgroundTrackingEnabled) {
-          appLogger.info('Initializing background location service (user opted-in)...');
+          appLogger.info(
+            'Initializing background location service (user opted-in)...',
+          );
           final backgroundLocationService = BackgroundLocationService(ref);
           final initialized = await backgroundLocationService.initialize();
 
           if (initialized) {
-            final hasPermission = await backgroundLocationService.checkLocationPermission();
-            
+            final hasPermission = await backgroundLocationService
+                .checkLocationPermission();
+
             if (hasPermission) {
-              final trackingStarted = await backgroundLocationService.startTracking();
+              final trackingStarted = await backgroundLocationService
+                  .startTracking();
 
               if (trackingStarted) {
-                appLogger.info('Background location tracking started successfully');
+                appLogger.info(
+                  'Background location tracking started successfully',
+                );
                 locationTrackingActive = true;
               } else {
-                appLogger.warning('Failed to start background location tracking');
+                appLogger.warning(
+                  'Failed to start background location tracking',
+                );
               }
             } else {
               appLogger.warning('Background location permission not granted');
             }
           } else {
-            appLogger.warning('Failed to initialize background location service');
+            appLogger.warning(
+              'Failed to initialize background location service',
+            );
           }
         } else {
-          appLogger.info('Background location tracking is disabled by user preference');
+          appLogger.info(
+            'Background location tracking is disabled by user preference',
+          );
         }
       }
 
@@ -435,7 +458,8 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
         final simpleLocationService = SimpleLocationService(ref);
         await simpleLocationService.initialize();
 
-        final hasPermission = await simpleLocationService.checkLocationPermission();
+        final hasPermission = await simpleLocationService
+            .checkLocationPermission();
         if (hasPermission) {
           await simpleLocationService.startTracking();
           appLogger.info('Real-time location tracking started (post-init)');
@@ -445,7 +469,9 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
 
       // Show notification if onboarding is complete but location tracking is not active
       if (onboardingCompleted && !locationTrackingActive) {
-        appLogger.info('Location tracking inactive for returning user, showing notification');
+        appLogger.info(
+          'Location tracking inactive for returning user, showing notification',
+        );
         final notificationService = ref.read(notificationServiceProvider);
         await notificationService.showLocationServicesWarning();
       }
@@ -455,7 +481,7 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
       // Initialize notification service (keep this for basic functionality)
       final notificationService = ref.read(notificationServiceProvider);
       await notificationService.initialize();
-      
+
       // Set up notification tap handler for navigation
       NotificationService.onNotificationTap = (payload) {
         if (payload == 'journal_reminder') {
@@ -475,10 +501,11 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
       await journalService.initialize();
 
       // Initialize calendar settings and permissions
-      final calendarInitService = ref.read(calendarInitializationServiceProvider);
+      final calendarInitService = ref.read(
+        calendarInitializationServiceProvider,
+      );
       await calendarInitService.initialize();
       appLogger.info('Calendar settings initialized (post-init)');
-
     } catch (e) {
       appLogger.error('Post-initialization task failed', error: e);
     }
@@ -513,15 +540,20 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
       // Perform initial cleanup
       final cleanupService = ref.read(locationDataCleanupProvider);
       await cleanupService.performCleanup(
-        retentionPeriod: const Duration(days: 30),  // Keep location data for 30 days
-        movementRetentionPeriod: const Duration(days: 3),  // Keep movement data for only 3 days
+        retentionPeriod: const Duration(
+          days: 30,
+        ), // Keep location data for 30 days
+        movementRetentionPeriod: const Duration(
+          days: 3,
+        ), // Keep movement data for only 3 days
       );
       appLogger.info('Initial data cleanup completed');
 
       // Schedule daily cleanup at 3 AM
       Timer.periodic(const Duration(hours: 24), (timer) async {
         final now = DateTime.now();
-        if (now.hour == 3) {  // Run at 3 AM local time
+        if (now.hour == 3) {
+          // Run at 3 AM local time
           await cleanupService.performCleanup(
             retentionPeriod: const Duration(days: 30),
             movementRetentionPeriod: const Duration(days: 3),

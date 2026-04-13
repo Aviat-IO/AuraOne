@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,8 +9,10 @@ import '../widgets/grouped_list_container.dart';
 import '../theme.dart';
 import '../theme/colors.dart';
 import '../providers/settings_providers.dart';
+import '../providers/gemma_model_provider.dart';
 import '../providers/fusion_providers.dart';
 import '../providers/context_providers.dart';
+import '../widgets/gemma_model_card.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -21,6 +25,11 @@ class SettingsScreen extends ConsumerWidget {
     final isLight = theme.brightness == Brightness.light;
     final journalReminder = ref.watch(journalReminderEnabledProvider);
     final fontSize = ref.watch(fontSizeProvider);
+    final cloudFallbackEnabled = ref.watch(cloudAIFallbackEnabledProvider);
+    final supportsGemmaLocal =
+        !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
 
     return Scaffold(
       body: Container(
@@ -28,15 +37,17 @@ class SettingsScreen extends ConsumerWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: isLight ? [
-              AuraColors.lightSurface,
-              AuraColors.lightSurface.withValues(alpha: 0.95),
-              AuraColors.lightSurfaceContainerLow.withValues(alpha: 0.9),
-            ] : [
-              AuraColors.darkSurface,
-              AuraColors.darkSurface.withValues(alpha: 0.98),
-              AuraColors.darkSurfaceContainerLow.withValues(alpha: 0.95),
-            ],
+            colors: isLight
+                ? [
+                    AuraColors.lightSurface,
+                    AuraColors.lightSurface.withValues(alpha: 0.95),
+                    AuraColors.lightSurfaceContainerLow.withValues(alpha: 0.9),
+                  ]
+                : [
+                    AuraColors.darkSurface,
+                    AuraColors.darkSurface.withValues(alpha: 0.98),
+                    AuraColors.darkSurfaceContainerLow.withValues(alpha: 0.95),
+                  ],
             stops: const [0.0, 0.3, 1.0],
           ),
         ),
@@ -55,284 +66,377 @@ class SettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 32),
 
                 // Settings sections
-                        // Appearance section
-                        Text(
-                          'Appearance',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        GroupedListContainer(
-                          isLight: isLight,
-                          children: [
-                            _buildSettingsTile(
-                              icon: Icons.palette,
-                              title: 'Theme',
-                              subtitle: brightness == Brightness.light ? 'Light mode' : 'Dark mode',
-                              trailing: const SimpleThemeSwitcher(),
-                              theme: theme,
-                            ),
-                            _buildSettingsTile(
-                              icon: Icons.text_fields,
-                              title: 'Font Size',
-                              subtitle: _getFontSizeSubtitle(fontSize),
-                              trailing: Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                              ),
-                              theme: theme,
-                              onTap: () {
-                                context.push('/settings/font-size');
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Journal section
-                        Text(
-                          'Journal',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        GroupedListContainer(
-                          isLight: isLight,
-                          children: [
-                            _buildSettingsTile(
-                              icon: Icons.people,
-                              title: 'People',
-                              subtitle: 'Label people in your photos',
-                              trailing: Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                              ),
-                              theme: theme,
-                              onTap: () {
-                                context.push('/settings/people');
-                              },
-                            ),
-                            _buildSettingsTile(
-                              icon: Icons.place,
-                              title: 'Places',
-                              subtitle: 'Name your frequent locations',
-                              trailing: Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                              ),
-                              theme: theme,
-                              onTap: () {
-                                context.push('/settings/places');
-                              },
-                            ),
-                            _buildSettingsTile(
-                              icon: Icons.tune,
-                              title: 'Journal Preferences',
-                              subtitle: 'Customize tone, detail, and privacy',
-                              trailing: Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                              ),
-                              theme: theme,
-                              onTap: () {
-                                context.push('/settings/journal-preferences');
-                              },
-                            ),
-                            _buildSettingsTile(
-                              icon: Icons.calendar_month,
-                              title: 'Calendars',
-                              subtitle: 'Choose which calendars to sync',
-                              trailing: Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                              ),
-                              theme: theme,
-                              onTap: () {
-                                context.push('/settings/calendar');
-                              },
-                            ),
-                            _buildSettingsTile(
-                              icon: Icons.notifications,
-                              title: 'Journal Reminder',
-                              subtitle: 'Daily reminder at 8pm to write in your journal',
-                              trailing: Switch(
-                                value: journalReminder,
-                                onChanged: (value) async {
-                                  if (value) {
-                                    try {
-                                      // Request notification permission first
-                                      final notificationStatus = await Permission.notification.request();
-
-                                      if (!notificationStatus.isGranted) {
-                                        // Show permission denied message
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Please enable notifications in settings to use journal reminders'),
-                                            ),
-                                          );
-                                        }
-                                        return;
-                                      }
-
-                                      // Request exact alarm permission for Android 12+
-                                      final notificationService = ref.read(notificationServiceProvider);
-                                      final permissionsGranted = await notificationService.requestPermissions();
-
-                                      if (permissionsGranted) {
-                                        // All permissions granted, enable reminders
-                                        await ref.read(journalReminderEnabledProvider.notifier).setEnabled(value);
-                                      } else {
-                                        // Show permission denied message
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Please enable exact alarms permission in settings to use journal reminders'),
-                                            ),
-                                          );
-                                        }
-                                      }
-                                    } catch (e) {
-                                      // Handle any errors
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text('Failed to enable reminders: ${e.toString()}'),
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  } else {
-                                    // Disabling reminders doesn't need permissions
-                                    await ref.read(journalReminderEnabledProvider.notifier).setEnabled(value);
-                                  }
-                                },
-                              ),
-                              theme: theme,
-                            ),
-                            _buildSettingsTile(
-                              icon: Icons.auto_awesome,
-                              title: 'AI Suggestions',
-                              subtitle: 'Enable AI-powered writing suggestions',
-                              trailing: Switch(
-                                value: true, // TODO: Connect to actual settings
-                                onChanged: (value) {
-                                  // TODO: Implement AI settings
-                                },
-                              ),
-                              theme: theme,
-                            ),
-                            _buildSettingsTile(
-                              icon: Icons.merge_type,
-                              title: 'Multi-Modal AI Fusion',
-                              subtitle: 'Combine photos, location, and movement for richer summaries',
-                              trailing: Consumer(
-                                builder: (context, ref, _) {
-                                  final isRunning = ref.watch(fusionEngineRunningProvider);
-                                  return Switch(
-                                    value: isRunning,
-                                    onChanged: (value) async {
-                                      final controller = ref.read(fusionEngineControllerProvider);
-                                      await controller.toggle();
-                                    },
-                                  );
-                                },
-                              ),
-                              theme: theme,
-                            ),
-                            _buildSettingsTile(
-                              icon: Icons.auto_awesome_motion,
-                              title: 'Personal Context Engine',
-                              subtitle: 'Learn from patterns to provide personalized insights and recommendations',
-                              trailing: Consumer(
-                                builder: (context, ref, _) {
-                                  final isEnabled = ref.watch(contextEngineEnabledProvider);
-                                  return Switch(
-                                    value: isEnabled,
-                                    onChanged: (value) async {
-                                      await ref.read(contextEngineEnabledProvider.notifier).setEnabled(value);
-                                    },
-                                  );
-                                },
-                              ),
-                              theme: theme,
-                            ),
-                            _buildSettingsTile(
-                              icon: Icons.backup,
-                              title: 'Backups',
-                              subtitle: 'Automatically backup your entries',
-                              trailing: Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                              ),
-                              theme: theme,
-                              onTap: () {
-                                context.push('/settings/backup');
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Support section
-                        Text(
-                          'Support',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        GroupedListContainer(
-                          isLight: isLight,
-                          children: [
-                            _buildSettingsTile(
-                              icon: Icons.info_outline,
-                              title: 'About Aura One',
-                              subtitle: 'App version and information',
-                              trailing: Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                              ),
-                              theme: theme,
-                              onTap: () {
-                                context.push('/settings/about');
-                              },
-                            ),
-                            _buildSettingsTile(
-                              icon: Icons.bug_report_outlined,
-                              title: 'Debug',
-                              subtitle: 'Developer tools and diagnostics',
-                              trailing: Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                              ),
-                              theme: theme,
-                              onTap: () {
-                                context.push('/settings/debug');
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-                      ],
-                    ),
+                // Appearance section
+                Text(
+                  'Appearance',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            );
+                const SizedBox(height: 16),
+
+                GroupedListContainer(
+                  isLight: isLight,
+                  children: [
+                    _buildSettingsTile(
+                      icon: Icons.palette,
+                      title: 'Theme',
+                      subtitle: brightness == Brightness.light
+                          ? 'Light mode'
+                          : 'Dark mode',
+                      trailing: const SimpleThemeSwitcher(),
+                      theme: theme,
+                    ),
+                    _buildSettingsTile(
+                      icon: Icons.text_fields,
+                      title: 'Font Size',
+                      subtitle: _getFontSizeSubtitle(fontSize),
+                      trailing: Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                      theme: theme,
+                      onTap: () {
+                        context.push('/settings/font-size');
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Journal section
+                Text(
+                  'Journal',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                GroupedListContainer(
+                  isLight: isLight,
+                  children: [
+                    _buildSettingsTile(
+                      icon: Icons.people,
+                      title: 'People',
+                      subtitle: 'Label people in your photos',
+                      trailing: Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                      theme: theme,
+                      onTap: () {
+                        context.push('/settings/people');
+                      },
+                    ),
+                    _buildSettingsTile(
+                      icon: Icons.place,
+                      title: 'Places',
+                      subtitle: 'Name your frequent locations',
+                      trailing: Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                      theme: theme,
+                      onTap: () {
+                        context.push('/settings/places');
+                      },
+                    ),
+                    _buildSettingsTile(
+                      icon: Icons.tune,
+                      title: 'Journal Preferences',
+                      subtitle: 'Customize tone, detail, and privacy',
+                      trailing: Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                      theme: theme,
+                      onTap: () {
+                        context.push('/settings/journal-preferences');
+                      },
+                    ),
+                    _buildSettingsTile(
+                      icon: Icons.calendar_month,
+                      title: 'Calendars',
+                      subtitle: 'Choose which calendars to sync',
+                      trailing: Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                      theme: theme,
+                      onTap: () {
+                        context.push('/settings/calendar');
+                      },
+                    ),
+                    _buildSettingsTile(
+                      icon: Icons.notifications,
+                      title: 'Journal Reminder',
+                      subtitle:
+                          'Daily reminder at 8pm to write in your journal',
+                      trailing: Switch(
+                        value: journalReminder,
+                        onChanged: (value) async {
+                          if (value) {
+                            try {
+                              // Request notification permission first
+                              final notificationStatus = await Permission
+                                  .notification
+                                  .request();
+
+                              if (!notificationStatus.isGranted) {
+                                // Show permission denied message
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Please enable notifications in settings to use journal reminders',
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return;
+                              }
+
+                              // Request exact alarm permission for Android 12+
+                              final notificationService = ref.read(
+                                notificationServiceProvider,
+                              );
+                              final permissionsGranted =
+                                  await notificationService
+                                      .requestPermissions();
+
+                              if (permissionsGranted) {
+                                // All permissions granted, enable reminders
+                                await ref
+                                    .read(
+                                      journalReminderEnabledProvider.notifier,
+                                    )
+                                    .setEnabled(value);
+                              } else {
+                                // Show permission denied message
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Please enable exact alarms permission in settings to use journal reminders',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              // Handle any errors
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Failed to enable reminders: ${e.toString()}',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          } else {
+                            // Disabling reminders doesn't need permissions
+                            await ref
+                                .read(journalReminderEnabledProvider.notifier)
+                                .setEnabled(value);
+                          }
+                        },
+                      ),
+                      theme: theme,
+                    ),
+                    _buildSettingsTile(
+                      icon: Icons.auto_awesome,
+                      title: 'AI Suggestions',
+                      subtitle: 'Enable AI-powered writing suggestions',
+                      trailing: Switch(
+                        value: true, // TODO: Connect to actual settings
+                        onChanged: (value) {
+                          // TODO: Implement AI settings
+                        },
+                      ),
+                      theme: theme,
+                    ),
+                    _buildSettingsTile(
+                      icon: Icons.cloud,
+                      title: 'Cloud AI Fallback',
+                      subtitle: cloudFallbackEnabled
+                          ? 'Use managed or BYOK cloud AI when Gemma local is unavailable'
+                          : 'Local-only generation; cloud adapters stay disabled',
+                      trailing: Switch(
+                        value: cloudFallbackEnabled,
+                        onChanged: (value) async {
+                          await ref
+                              .read(cloudAIFallbackEnabledProvider.notifier)
+                              .setEnabled(value);
+                        },
+                      ),
+                      theme: theme,
+                    ),
+                    if (supportsGemmaLocal)
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final gemmaState = ref.watch(gemmaModelProvider);
+                          final controller = ref.read(
+                            gemmaModelProvider.notifier,
+                          );
+                          return GemmaModelCard(
+                            state: gemmaState,
+                            onInstall: () => controller.install(),
+                            onDelete: () => controller.deleteModel(),
+                            onRefresh: () => controller.refresh(),
+                          );
+                        },
+                      )
+                    else
+                      _buildSettingsTile(
+                        icon: Icons.memory,
+                        title: 'Local AI Model',
+                        subtitle:
+                            'Gemma local model management is available on Android and iOS only',
+                        trailing: Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.4,
+                          ),
+                        ),
+                        theme: theme,
+                      ),
+                    _buildSettingsTile(
+                      icon: Icons.merge_type,
+                      title: 'Multi-Modal AI Fusion',
+                      subtitle:
+                          'Combine photos, location, and movement for richer summaries',
+                      trailing: Consumer(
+                        builder: (context, ref, _) {
+                          final isRunning = ref.watch(
+                            fusionEngineRunningProvider,
+                          );
+                          return Switch(
+                            value: isRunning,
+                            onChanged: (value) async {
+                              final controller = ref.read(
+                                fusionEngineControllerProvider,
+                              );
+                              await controller.toggle();
+                            },
+                          );
+                        },
+                      ),
+                      theme: theme,
+                    ),
+                    _buildSettingsTile(
+                      icon: Icons.auto_awesome_motion,
+                      title: 'Personal Context Engine',
+                      subtitle:
+                          'Learn from patterns to provide personalized insights and recommendations',
+                      trailing: Consumer(
+                        builder: (context, ref, _) {
+                          final isEnabled = ref.watch(
+                            contextEngineEnabledProvider,
+                          );
+                          return Switch(
+                            value: isEnabled,
+                            onChanged: (value) async {
+                              await ref
+                                  .read(contextEngineEnabledProvider.notifier)
+                                  .setEnabled(value);
+                            },
+                          );
+                        },
+                      ),
+                      theme: theme,
+                    ),
+                    _buildSettingsTile(
+                      icon: Icons.backup,
+                      title: 'Backups',
+                      subtitle: 'Automatically backup your entries',
+                      trailing: Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                      theme: theme,
+                      onTap: () {
+                        context.push('/settings/backup');
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Support section
+                Text(
+                  'Support',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                GroupedListContainer(
+                  isLight: isLight,
+                  children: [
+                    _buildSettingsTile(
+                      icon: Icons.info_outline,
+                      title: 'About Aura One',
+                      subtitle: 'App version and information',
+                      trailing: Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                      theme: theme,
+                      onTap: () {
+                        context.push('/settings/about');
+                      },
+                    ),
+                    _buildSettingsTile(
+                      icon: Icons.bug_report_outlined,
+                      title: 'Debug',
+                      subtitle: 'Developer tools and diagnostics',
+                      trailing: Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                      theme: theme,
+                      onTap: () {
+                        context.push('/settings/debug');
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildSettingsTile({
@@ -350,11 +454,7 @@ class SettingsScreen extends ConsumerWidget {
           color: theme.colorScheme.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(
-          icon,
-          color: theme.colorScheme.primary,
-          size: 20,
-        ),
+        child: Icon(icon, color: theme.colorScheme.primary, size: 20),
       ),
       title: Text(
         title,
