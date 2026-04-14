@@ -1,17 +1,36 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../services/simple_location_service.dart';
+import '../providers/settings_providers.dart';
 
-class LocationSettingsCard extends ConsumerWidget {
+class LocationSettingsCard extends HookConsumerWidget {
   const LocationSettingsCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    useEffect(() {
+      Future.microtask(() {
+        ref
+            .read(backgroundLocationTrackingProvider.notifier)
+            .refreshRuntimeState(persist: true);
+      });
+
+      final lifecycleListener = AppLifecycleListener(
+        onResume: () {
+          ref
+              .read(backgroundLocationTrackingProvider.notifier)
+              .refreshRuntimeState(persist: true);
+        },
+      );
+
+      return lifecycleListener.dispose;
+    }, const []);
+
     final theme = Theme.of(context);
-    final isTracking = ref.watch(isTrackingProvider);
-    final locationService = ref.read(simpleLocationServiceProvider);
-    final currentLocation = ref.watch(currentLocationProvider);
+    final trackingState = ref.watch(backgroundLocationTrackingProvider);
+    final isTracking = trackingState ?? false;
+    final isStateResolved = trackingState != null;
 
     return Card(
       elevation: 2,
@@ -41,10 +60,14 @@ class LocationSettingsCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: (isTracking ? Colors.green : Colors.grey).withValues(alpha: 0.1),
+                color: (isTracking ? Colors.green : Colors.grey).withValues(
+                  alpha: 0.1,
+                ),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: (isTracking ? Colors.green : Colors.grey).withValues(alpha: 0.3),
+                  color: (isTracking ? Colors.green : Colors.grey).withValues(
+                    alpha: 0.3,
+                  ),
                 ),
               ),
               child: Row(
@@ -60,20 +83,21 @@ class LocationSettingsCard extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      isTracking ? 'Tracking Active' : 'Tracking Disabled',
+                      !isStateResolved
+                          ? 'Checking tracker status...'
+                          : isTracking
+                          ? 'Tracking Active'
+                          : 'Tracking Disabled',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: isTracking ? Colors.green : Colors.grey,
+                        color: !isStateResolved
+                            ? theme.colorScheme.onSurface.withValues(alpha: 0.7)
+                            : isTracking
+                            ? Colors.green
+                            : Colors.grey,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
-                  if (currentLocation != null && isTracking) ...[
-                    Icon(
-                      Icons.my_location,
-                      size: 16,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -86,8 +110,8 @@ class LocationSettingsCard extends ConsumerWidget {
                 Icons.android,
                 'Android',
                 isTracking
-                  ? '• Location service active\n• Background location permitted\n• Battery optimization may affect tracking'
-                  : '• Requires location permission\n• May need battery optimization disabled',
+                    ? '• Location service active\n• Background location permitted\n• Battery optimization may affect tracking'
+                    : '• Requires location permission\n• May need battery optimization disabled',
               ),
             ] else if (Platform.isIOS) ...[
               _buildPlatformInfo(
@@ -95,8 +119,8 @@ class LocationSettingsCard extends ConsumerWidget {
                 Icons.apple,
                 'iOS',
                 isTracking
-                  ? '• Background location active\n• Using location updates\n• Blue status bar indicator when tracking'
-                  : '• Requires "Always Allow" permission\n• Background App Refresh must be enabled',
+                    ? '• Background location active\n• Using location updates\n• Blue status bar indicator when tracking'
+                    : '• Requires "Always Allow" permission\n• Background App Refresh must be enabled',
               ),
             ],
 
@@ -107,18 +131,24 @@ class LocationSettingsCard extends ConsumerWidget {
               children: [
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: isTracking
-                      ? null
-                      : () async {
-                          final success = await locationService.startTracking();
-                          if (!success && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Failed to start tracking. Check permissions.'),
-                              ),
-                            );
-                          }
-                        },
+                    onPressed: !isStateResolved || isTracking
+                        ? null
+                        : () async {
+                            final success = await ref
+                                .read(
+                                  backgroundLocationTrackingProvider.notifier,
+                                )
+                                .setEnabled(true);
+                            if (!success && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Failed to start tracking. Check permissions.',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
                     icon: const Icon(Icons.play_arrow),
                     label: const Text('Start Tracking'),
                   ),
@@ -126,11 +156,22 @@ class LocationSettingsCard extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: !isTracking
-                      ? null
-                      : () async {
-                          await locationService.stopTracking();
-                        },
+                    onPressed: !isStateResolved || !isTracking
+                        ? null
+                        : () async {
+                            final success = await ref
+                                .read(
+                                  backgroundLocationTrackingProvider.notifier,
+                                )
+                                .setEnabled(false);
+                            if (!success && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Failed to stop tracking.'),
+                                ),
+                              );
+                            }
+                          },
                     icon: const Icon(Icons.stop),
                     label: const Text('Stop Tracking'),
                   ),
@@ -155,7 +196,11 @@ class LocationSettingsCard extends ConsumerWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.battery_saver, color: Colors.orange, size: 20),
+                        Icon(
+                          Icons.battery_saver,
+                          color: Colors.orange,
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Improve Background Tracking',
@@ -177,7 +222,10 @@ class LocationSettingsCard extends ConsumerWidget {
                       icon: const Icon(Icons.info_outline, size: 16),
                       label: const Text('View Setup Instructions'),
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                       ),
                     ),
                   ],

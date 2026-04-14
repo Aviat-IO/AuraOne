@@ -10,7 +10,9 @@ import '../providers/location_database_provider.dart';
 
 // Provider for SimpleLocationService
 final simpleLocationServiceProvider = Provider<SimpleLocationService>((ref) {
-  return SimpleLocationService(ref);
+  final service = SimpleLocationService(ref);
+  ref.onDispose(service.dispose);
+  return service;
 });
 
 // Provider for current location
@@ -112,28 +114,86 @@ class LocationPoint {
 
 class SimpleLocationService {
   final Ref ref;
-  StreamSubscription<Position>? _positionStream;
-  Timer? _geofenceCheckTimer;
+  Timer? _dailyMaintenanceTimer;
+  Future<void>? _initializeFuture;
+  bool _isInitialized = false;
+  bool _isDisposed = false;
 
   SimpleLocationService(this.ref);
 
-  // Initialize location service
   Future<void> initialize() async {
+    if (_isDisposed) {
+      return;
+    }
+
+    if (_isInitialized) {
+      return;
+    }
+
+    final inFlight = _initializeFuture;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+
+    final initialization = _initializeInternal();
+    _initializeFuture = initialization;
+
+    try {
+      await initialization;
+      _isInitialized = true;
+    } finally {
+      if (identical(_initializeFuture, initialization)) {
+        _initializeFuture = null;
+      }
+    }
+  }
+
+  Future<void> _initializeInternal() async {
     debugPrint('SimpleLocationService initialized');
 
-    // Load existing geofences from database
     await _loadGeofencesFromDatabase();
+    if (_isDisposed) {
+      return;
+    }
+    _scheduleDailyMaintenance();
+  }
 
-    // Schedule daily cleanup and summary generation
-    Timer.periodic(Duration(hours: 24), (_) async {
+  void _scheduleDailyMaintenance() {
+    _dailyMaintenanceTimer?.cancel();
+    _dailyMaintenanceTimer = Timer.periodic(const Duration(hours: 24), (
+      _,
+    ) async {
       await _performDailyMaintenance();
     });
+  }
+
+  bool get hasActiveDailyMaintenanceTimer =>
+      _dailyMaintenanceTimer?.isActive ?? false;
+
+  void dispose() {
+    _isDisposed = true;
+    _dailyMaintenanceTimer?.cancel();
+    _dailyMaintenanceTimer = null;
+    _initializeFuture = null;
+    _isInitialized = false;
   }
 
   // Load geofences from database
   Future<void> _loadGeofencesFromDatabase() async {
     final db = ref.read(locationDatabaseProvider);
-    final dbGeofences = await db.select(db.geofenceAreas).get();
+    final dbGeofences = await (db.select(
+      db.geofenceAreas,
+    )..where((tbl) => tbl.isActive.equals(true))).get();
+    final geofenceEvents = await db.select(db.geofenceEvents).get();
+
+    final latestEventsByGeofence = <String, GeofenceEvent>{};
+    for (final event in geofenceEvents) {
+      final current = latestEventsByGeofence[event.geofenceId];
+      if (current == null || event.timestamp.isAfter(current.timestamp)) {
+        latestEventsByGeofence[event.geofenceId] = event;
+      }
+    }
 
     final geofences = dbGeofences.map((dbGeofence) {
       Map<String, dynamic>? metadata;
@@ -141,7 +201,7 @@ class SimpleLocationService {
         metadata = jsonDecode(dbGeofence.metadata!);
       }
 
-      return GeofenceArea(
+      final geofence = GeofenceArea(
         id: dbGeofence.id,
         name: dbGeofence.name,
         latitude: dbGeofence.latitude,
@@ -151,10 +211,17 @@ class SimpleLocationService {
         notifyOnExit: metadata?['notifyOnExit'],
         createdAt: dbGeofence.createdAt,
       );
+      geofence.isInside =
+          latestEventsByGeofence[dbGeofence.id]?.eventType == 'enter';
+      return geofence;
     }).toList();
 
     ref.read(geofencesProvider.notifier).state = geofences;
     debugPrint('Loaded ${geofences.length} geofences from database');
+  }
+
+  Future<void> reloadGeofencesFromDatabase() async {
+    await _loadGeofencesFromDatabase();
   }
 
   // Perform daily maintenance tasks
@@ -177,151 +244,36 @@ class SimpleLocationService {
     Duration interval = const Duration(minutes: 1),
     double distanceFilter = 10,
   }) async {
-    // Check permissions first
-    final hasPermission = await checkLocationPermission();
-    if (!hasPermission) {
-      return false;
-    }
-
-    // Configure location settings
-    late LocationSettings locationSettings;
-
-    locationSettings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: distanceFilter.toInt(),
+    debugPrint(
+      'SimpleLocationService no longer starts a continuous tracking stream. '
+      'Use BackgroundLocationService for production location capture.',
     );
-
-    // Start position stream
-    _positionStream = Geolocator.getPositionStream(
-      locationSettings: locationSettings,
-    ).listen((Position position) {
-      _handleLocationUpdate(position);
-    });
-
-    // Start geofence checking timer
-    _startGeofenceChecking();
-
-    ref.read(isTrackingProvider.notifier).state = true;
-    return true;
+    ref.read(isTrackingProvider.notifier).state = false;
+    return false;
   }
 
   // Stop tracking
   Future<void> stopTracking() async {
-    _positionStream?.cancel();
-    _geofenceCheckTimer?.cancel();
     ref.read(isTrackingProvider.notifier).state = false;
   }
 
-  void _handleLocationUpdate(Position position) async {
-    // Update current location
-    ref.read(currentLocationProvider.notifier).state = position;
-
-    // Add to history
-    final point = LocationPoint(
-      latitude: position.latitude,
-      longitude: position.longitude,
-      altitude: position.altitude,
-      speed: position.speed,
-      heading: position.heading,
-      timestamp: position.timestamp,
-      accuracy: position.accuracy,
-    );
-
-    final history = ref.read(locationHistoryProvider.notifier);
-    history.update((state) => [...state, point]);
-
-    // Store in database
-    final db = ref.read(locationDatabaseProvider);
-    await db.insertLocationPoint(LocationPointsCompanion(
-      latitude: drift.Value(position.latitude),
-      longitude: drift.Value(position.longitude),
-      altitude: drift.Value(position.altitude),
-      speed: drift.Value(position.speed),
-      heading: drift.Value(position.heading),
-      timestamp: drift.Value(position.timestamp),
-      accuracy: drift.Value(position.accuracy),
-      isSignificant: const drift.Value(false),
-    ));
-
-    // Check geofences
-    _checkGeofences(position);
-
-    // Store location data
-    _storeLocationData(point);
-  }
-
-  void _startGeofenceChecking() {
-    // Check geofences every minute
-    _geofenceCheckTimer = Timer.periodic(Duration(minutes: 1), (_) async {
-      final position = await getCurrentLocation();
-      if (position != null) {
-        _checkGeofences(position);
-      }
-    });
-  }
-
-  void _checkGeofences(Position position) async {
-    final geofences = ref.read(geofencesProvider);
-    final db = ref.read(locationDatabaseProvider);
-
-    for (final geofence in geofences) {
-      final distance = _calculateDistance(
-        position.latitude,
-        position.longitude,
-        geofence.latitude,
-        geofence.longitude,
-      );
-
-      final wasInside = geofence.isInside;
-      final isNowInside = distance <= geofence.radius;
-
-      if (!wasInside && isNowInside) {
-        // Entered geofence
-        geofence.isInside = true;
-        debugPrint('Entered geofence: ${geofence.name}');
-
-        // Store event in database
-        await db.insertGeofenceEvent(GeofenceEventsCompanion(
-          geofenceId: drift.Value(geofence.id),
-          eventType: const drift.Value('enter'),
-          timestamp: drift.Value(DateTime.now()),
-          latitude: drift.Value(position.latitude),
-          longitude: drift.Value(position.longitude),
-        ));
-
-        if (geofence.notifyOnEntry != null) {
-          _createGeofenceNote(geofence, 'entered');
-        }
-      } else if (wasInside && !isNowInside) {
-        // Exited geofence
-        geofence.isInside = false;
-        debugPrint('Exited geofence: ${geofence.name}');
-
-        // Store event in database
-        await db.insertGeofenceEvent(GeofenceEventsCompanion(
-          geofenceId: drift.Value(geofence.id),
-          eventType: const drift.Value('exit'),
-          timestamp: drift.Value(DateTime.now()),
-          latitude: drift.Value(position.latitude),
-          longitude: drift.Value(position.longitude),
-        ));
-
-        if (geofence.notifyOnExit != null) {
-          _createGeofenceNote(geofence, 'exited');
-        }
-      }
-    }
-  }
-
   // Calculate distance between two points using Haversine formula
-  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+  double _calculateDistance(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
     const double earthRadius = 6371000; // meters
     final double dLat = _toRadians(lat2 - lat1);
     final double dLon = _toRadians(lon2 - lon1);
 
-    final double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_toRadians(lat1)) * math.cos(_toRadians(lat2)) *
-        math.sin(dLon / 2) * math.sin(dLon / 2);
+    final double a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_toRadians(lat1)) *
+            math.cos(_toRadians(lat2)) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
 
     final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return earthRadius * c;
@@ -338,17 +290,21 @@ class SimpleLocationService {
 
     // Store in database
     final db = ref.read(locationDatabaseProvider);
-    await db.insertGeofence(GeofenceAreasCompanion(
-      id: drift.Value(geofence.id),
-      name: drift.Value(geofence.name),
-      latitude: drift.Value(geofence.latitude),
-      longitude: drift.Value(geofence.longitude),
-      radius: drift.Value(geofence.radius),
-      metadata: drift.Value(jsonEncode({
-        'notifyOnEntry': geofence.notifyOnEntry,
-        'notifyOnExit': geofence.notifyOnExit,
-      })),
-    ));
+    await db.insertGeofence(
+      GeofenceAreasCompanion(
+        id: drift.Value(geofence.id),
+        name: drift.Value(geofence.name),
+        latitude: drift.Value(geofence.latitude),
+        longitude: drift.Value(geofence.longitude),
+        radius: drift.Value(geofence.radius),
+        metadata: drift.Value(
+          jsonEncode({
+            'notifyOnEntry': geofence.notifyOnEntry,
+            'notifyOnExit': geofence.notifyOnExit,
+          }),
+        ),
+      ),
+    );
 
     // Check if we're currently inside this geofence
     final currentPosition = ref.read(currentLocationProvider);
@@ -368,9 +324,9 @@ class SimpleLocationService {
     final geofences = ref.read(geofencesProvider.notifier);
     geofences.update((state) => state.where((g) => g.id != id).toList());
 
-    // Remove from database
+    // Deactivate in database so historical events/notes remain valid.
     final db = ref.read(locationDatabaseProvider);
-    await db.deleteGeofence(id);
+    await db.deactivateGeofence(id);
   }
 
   // Get current location
@@ -450,32 +406,17 @@ class SimpleLocationService {
 
     // For Android, we have whileInUse or always permission
     // Both are acceptable for basic tracking
-    final hasPermission = permission == LocationPermission.whileInUse ||
-                          permission == LocationPermission.always;
+    final hasPermission =
+        permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always;
 
-    debugPrint('Location permission granted: $hasPermission (permission: $permission)');
+    debugPrint(
+      'Location permission granted: $hasPermission (permission: $permission)',
+    );
     return hasPermission;
   }
 
   // Private helper methods
-  Future<void> _storeLocationData(LocationPoint point) async {
-    try {
-      // Store location data locally
-      debugPrint('Location: ${point.latitude}, ${point.longitude}');
-    } catch (e) {
-      debugPrint('Error storing location: $e');
-    }
-  }
-
-  Future<void> _createGeofenceNote(GeofenceArea geofence, String action) async {
-    try {
-      // Create note when authenticated
-      debugPrint('Geofence $action: ${geofence.name}');
-    } catch (e) {
-      debugPrint('Error creating geofence note: $e');
-    }
-  }
-
   // Clear all location history
   Future<void> clearLocationHistory() async {
     ref.read(locationHistoryProvider.notifier).state = [];

@@ -1,22 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import '../../providers/location_clustering_provider.dart';
 import '../../providers/location_database_provider.dart';
 
-/// Debug overlay widget to help diagnose map loading issues
 class MapDebugOverlay extends HookConsumerWidget {
   final DateTime date;
 
-  const MapDebugOverlay({
-    super.key,
-    required this.date,
-  });
+  const MapDebugOverlay({super.key, required this.date});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final clustersAsync = ref.watch(clusteredLocationsProvider(date));
-    final recentLocationsAsync = ref.watch(recentLocationPointsProvider(const Duration(days: 1)));
+    final dayLocationsAsync = ref.watch(locationPointsForDateProvider(date));
 
     return Positioned(
       bottom: 8,
@@ -41,44 +35,38 @@ class MapDebugOverlay extends HookConsumerWidget {
               ),
             ),
             const SizedBox(height: 4),
-            _buildLocationStatus(theme, recentLocationsAsync),
-            const SizedBox(height: 2),
-            _buildClusterStatus(theme, clustersAsync),
+            _buildLocationStatus(theme, dayLocationsAsync),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLocationStatus(ThemeData theme, AsyncValue recentLocationsAsync) {
-    return recentLocationsAsync.when(
+  Widget _buildLocationStatus(ThemeData theme, AsyncValue dayLocationsAsync) {
+    return dayLocationsAsync.when(
       data: (locations) {
-        final dayStart = DateTime(date.year, date.month, date.day);
-        final dayEnd = dayStart.add(const Duration(days: 1));
-        final dayLocations = locations
-            .where((loc) => loc.timestamp.isAfter(dayStart) && loc.timestamp.isBefore(dayEnd))
+        final visibleLocations = locations
+            .where((loc) => loc.accuracy == null || loc.accuracy! <= 100)
             .toList();
 
-        final statusColor = dayLocations.isEmpty
+        final statusColor = visibleLocations.isEmpty
             ? theme.colorScheme.error
-            : dayLocations.length < 10
-                ? theme.colorScheme.tertiary
-                : theme.colorScheme.primary;
+            : visibleLocations.length < 10
+            ? theme.colorScheme.tertiary
+            : theme.colorScheme.primary;
 
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              dayLocations.isEmpty ? Icons.location_off : Icons.location_on,
+              visibleLocations.isEmpty ? Icons.location_off : Icons.location_on,
               size: 12,
               color: statusColor,
             ),
             const SizedBox(width: 4),
             Text(
-              'Locations: ${dayLocations.length}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: statusColor,
-              ),
+              'Visible points: ${visibleLocations.length}',
+              style: theme.textTheme.bodySmall?.copyWith(color: statusColor),
             ),
           ],
         );
@@ -95,88 +83,16 @@ class MapDebugOverlay extends HookConsumerWidget {
             ),
           ),
           const SizedBox(width: 4),
-          Text(
-            'Loading locations...',
-            style: theme.textTheme.bodySmall,
-          ),
+          Text('Loading locations...', style: theme.textTheme.bodySmall),
         ],
       ),
       error: (error, _) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 12,
-            color: theme.colorScheme.error,
-          ),
+          Icon(Icons.error_outline, size: 12, color: theme.colorScheme.error),
           const SizedBox(width: 4),
           Text(
             'Location error',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.error,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildClusterStatus(ThemeData theme, AsyncValue clustersAsync) {
-    return clustersAsync.when(
-      data: (clusters) {
-        final statusColor = clusters.isEmpty
-            ? theme.colorScheme.error
-            : clusters.length < 3
-                ? theme.colorScheme.tertiary
-                : theme.colorScheme.primary;
-
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              clusters.isEmpty ? Icons.place_outlined : Icons.place,
-              size: 12,
-              color: statusColor,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              'Clusters: ${clusters.length}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: statusColor,
-              ),
-            ),
-          ],
-        );
-      },
-      loading: () => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 12,
-            height: 12,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            'Clustering...',
-            style: theme.textTheme.bodySmall,
-          ),
-        ],
-      ),
-      error: (error, _) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 12,
-            color: theme.colorScheme.error,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            'Cluster error',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.error,
             ),

@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/background_location_service.dart';
 import '../providers/settings_providers.dart';
 
 // Provider to track if onboarding has been completed
@@ -92,7 +91,9 @@ class OnboardingScreen extends HookConsumerWidget {
             LinearProgressIndicator(
               value: (currentPage.value + 1) / 6,
               backgroundColor: theme.colorScheme.surfaceContainerHighest,
-              valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                theme.colorScheme.primary,
+              ),
             ),
 
             Expanded(
@@ -103,7 +104,14 @@ class OnboardingScreen extends HookConsumerWidget {
                   _buildWelcomePage(context, theme),
                   _buildValuePropositionPage(context, theme),
                   _buildPrivacyExplanationPage(context, theme),
-                  _buildPermissionsPage(context, theme, ref, permissionsGranted, locationButtonPressCount, showSkipButton),
+                  _buildPermissionsPage(
+                    context,
+                    theme,
+                    ref,
+                    permissionsGranted,
+                    locationButtonPressCount,
+                    showSkipButton,
+                  ),
                   _buildSetupCompletePage(context, theme),
                 ],
               ),
@@ -216,11 +224,7 @@ class OnboardingScreen extends HookConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.lock,
-            size: 80,
-            color: theme.colorScheme.primary,
-          ),
+          Icon(Icons.lock, size: 80, color: theme.colorScheme.primary),
           const SizedBox(height: 24),
           Text(
             'Your Privacy is Sacred',
@@ -273,11 +277,41 @@ class OnboardingScreen extends HookConsumerWidget {
   ) {
     // Define all permissions in order
     final permissionsList = [
-      (Icons.notifications, 'Notifications', 'Daily reminders to write in your journal', Permission.notification, true),
-      (Icons.location_on, 'Location', 'Track your journeys and places visited. Tap "Allow While Using App" then change to "Allow All the Time" in Settings for background tracking.', Permission.locationAlways, true),
-      (Icons.photo_library, 'Photo Library', 'Include photos in your daily entries. Please choose "Allow All".', Permission.photos, false),
-      (Icons.calendar_today, 'Calendar', 'Import events and appointments for your daily summaries', Permission.calendarFullAccess, false),
-      (Icons.directions_walk, 'Motion & Fitness', 'Track activities and movement patterns', Permission.activityRecognition, false),
+      (
+        Icons.notifications,
+        'Notifications',
+        'Daily reminders to write in your journal',
+        Permission.notification,
+        true,
+      ),
+      (
+        Icons.location_on,
+        'Location',
+        'Track your journeys and places visited. Tap "Allow While Using App" then change to "Allow All the Time" in Settings for background tracking.',
+        Permission.locationAlways,
+        true,
+      ),
+      (
+        Icons.photo_library,
+        'Photo Library',
+        'Include photos in your daily entries. Please choose "Allow All".',
+        Permission.photos,
+        false,
+      ),
+      (
+        Icons.calendar_today,
+        'Calendar',
+        'Import events and appointments for your daily summaries',
+        Permission.calendarFullAccess,
+        false,
+      ),
+      (
+        Icons.directions_walk,
+        'Motion & Fitness',
+        'Track activities and movement patterns',
+        Permission.activityRecognition,
+        false,
+      ),
     ];
 
     return Padding(
@@ -310,7 +344,9 @@ class OnboardingScreen extends HookConsumerWidget {
             child: ValueListenableBuilder<Map<Permission, bool>>(
               valueListenable: permissionsGranted,
               builder: (context, permissions, child) {
-                final grantedCount = permissions.values.where((granted) => granted).length;
+                final grantedCount = permissions.values
+                    .where((granted) => granted)
+                    .length;
                 final totalCount = permissionsList.length;
                 return Text(
                   '$grantedCount of $totalCount permissions granted',
@@ -329,7 +365,8 @@ class OnboardingScreen extends HookConsumerWidget {
               itemCount: permissionsList.length,
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                final (icon, title, description, permission, isRequired) = permissionsList[index];
+                final (icon, title, description, permission, isRequired) =
+                    permissionsList[index];
                 return _buildPermissionTile(
                   context,
                   theme,
@@ -340,12 +377,14 @@ class OnboardingScreen extends HookConsumerWidget {
                   permission,
                   permissionsGranted,
                   isRequired: isRequired,
-                  onPressed: permission == Permission.locationAlways ? () {
-                    locationButtonPressCount.value++;
-                    if (locationButtonPressCount.value >= 3) {
-                      showSkipButton.value = true;
-                    }
-                  } : null,
+                  onPressed: permission == Permission.locationAlways
+                      ? () {
+                          locationButtonPressCount.value++;
+                          if (locationButtonPressCount.value >= 3) {
+                            showSkipButton.value = true;
+                          }
+                        }
+                      : null,
                 );
               },
             ),
@@ -356,7 +395,9 @@ class OnboardingScreen extends HookConsumerWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.5,
+              ),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: theme.colorScheme.outline.withValues(alpha: 0.2),
@@ -427,9 +468,7 @@ class OnboardingScreen extends HookConsumerWidget {
             decoration: BoxDecoration(
               color: theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: theme.colorScheme.primaryContainer,
-              ),
+              border: Border.all(color: theme.colorScheme.primaryContainer),
             ),
             child: Column(
               children: [
@@ -460,8 +499,6 @@ class OnboardingScreen extends HookConsumerWidget {
     );
   }
 
-
-
   Widget _buildFeatureItem(
     ThemeData theme,
     IconData icon,
@@ -480,11 +517,7 @@ class OnboardingScreen extends HookConsumerWidget {
               color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              icon,
-              color: theme.colorScheme.primary,
-              size: 24,
-            ),
+            child: Icon(icon, color: theme.colorScheme.primary, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -529,11 +562,7 @@ class OnboardingScreen extends HookConsumerWidget {
               color: theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              color: theme.colorScheme.primary,
-              size: 20,
-            ),
+            child: Icon(icon, color: theme.colorScheme.primary, size: 20),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -577,186 +606,216 @@ class OnboardingScreen extends HookConsumerWidget {
       builder: (context, permissions, child) {
         final isGranted = permissions[permission] ?? false;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: InkWell(
-        onTap: isGranted ? () async {
-          // Allow re-requesting permission even if granted
-          // This is useful if user wants to change from limited to full access
-          onPressed?.call();
-          
-          if (permission == Permission.locationAlways) {
-            final whenInUseStatus = await Permission.locationWhenInUse.request();
-            if (whenInUseStatus.isGranted) {
-              await Permission.locationAlways.request();
-            }
-            
-            final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-            if (!serviceEnabled) {
-              await Geolocator.openLocationSettings();
-            }
-          } else if (permission == Permission.photos) {
-            // For photos, open system settings to allow changing from limited to full
-            await permission.request();
-            // If still limited, show option to open settings
-            final status = await permission.status;
-            if (status.isLimited && context.mounted) {
-              final shouldOpenSettings = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Upgrade to Full Access'),
-                  content: const Text(
-                    'You currently have limited photo access. To upgrade to full access, please open Settings and select "Full Access".',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Open Settings'),
-                    ),
-                  ],
-                ),
-              );
-              
-              if (shouldOpenSettings == true) {
-                await openAppSettings();
-              }
-            }
-          } else {
-            await permission.request();
-          }
-          
-          // Refresh permission status
-          final newStatus = await permission.status;
-          final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
-          newPermissions[permission] = newStatus.isGranted || newStatus.isLimited;
-          permissionsGranted.value = newPermissions;
-        } : () async {
-          onPressed?.call();
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          child: InkWell(
+            onTap: isGranted
+                ? () async {
+                    // Allow re-requesting permission even if granted
+                    // This is useful if user wants to change from limited to full access
+                    onPressed?.call();
 
-          if (permission == Permission.locationAlways) {
-            final whenInUseStatus = await Permission.locationWhenInUse.request();
+                    if (permission == Permission.locationAlways) {
+                      final whenInUseStatus = await Permission.locationWhenInUse
+                          .request();
+                      if (whenInUseStatus.isGranted) {
+                        await Permission.locationAlways.request();
+                      }
 
-            if (whenInUseStatus.isGranted) {
-              final alwaysStatus = await Permission.locationAlways.request();
-
-              final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
-              newPermissions[permission] = alwaysStatus.isGranted || alwaysStatus.isLimited || whenInUseStatus.isGranted;
-              permissionsGranted.value = newPermissions;
-
-              final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-              if (!serviceEnabled) {
-                await Geolocator.openLocationSettings();
-              }
-            } else {
-              final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
-              newPermissions[permission] = false;
-              permissionsGranted.value = newPermissions;
-            }
-          } else {
-            final currentStatus = await permission.status;
-
-            if (currentStatus.isGranted || currentStatus.isLimited) {
-              final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
-              newPermissions[permission] = true;
-              permissionsGranted.value = newPermissions;
-              return;
-            }
-
-            final status = await permission.request();
-
-            final newPermissions = Map<Permission, bool>.from(permissionsGranted.value);
-            newPermissions[permission] = status.isGranted || status.isLimited;
-            permissionsGranted.value = newPermissions;
-
-            if (permission == Permission.notification && (status.isGranted || status.isLimited)) {
-              await ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(true);
-            }
-          }
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: isGranted
-                      ? theme.colorScheme.primaryContainer
-                      : theme.colorScheme.surfaceContainerHighest,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  color: isGranted
-                      ? theme.colorScheme.onPrimaryContainer
-                      : theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            title,
-                            style: theme.textTheme.titleMedium,
-                          ),
-                        ),
-                        if (isRequired) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.errorContainer,
-                              borderRadius: BorderRadius.circular(4),
+                      final serviceEnabled =
+                          await Geolocator.isLocationServiceEnabled();
+                      if (!serviceEnabled) {
+                        await Geolocator.openLocationSettings();
+                      }
+                    } else if (permission == Permission.photos) {
+                      // For photos, open system settings to allow changing from limited to full
+                      await permission.request();
+                      // If still limited, show option to open settings
+                      final status = await permission.status;
+                      if (status.isLimited && context.mounted) {
+                        final shouldOpenSettings = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Upgrade to Full Access'),
+                            content: const Text(
+                              'You currently have limited photo access. To upgrade to full access, please open Settings and select "Full Access".',
                             ),
-                            child: Text(
-                              'Required',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onErrorContainer,
-                                fontSize: 10,
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Open Settings'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (shouldOpenSettings == true) {
+                          await openAppSettings();
+                        }
+                      }
+                    } else {
+                      await permission.request();
+                    }
+
+                    // Refresh permission status
+                    final newStatus = await permission.status;
+                    final newPermissions = Map<Permission, bool>.from(
+                      permissionsGranted.value,
+                    );
+                    newPermissions[permission] =
+                        newStatus.isGranted || newStatus.isLimited;
+                    permissionsGranted.value = newPermissions;
+                  }
+                : () async {
+                    onPressed?.call();
+
+                    if (permission == Permission.locationAlways) {
+                      final whenInUseStatus = await Permission.locationWhenInUse
+                          .request();
+
+                      if (whenInUseStatus.isGranted) {
+                        final alwaysStatus = await Permission.locationAlways
+                            .request();
+
+                        final newPermissions = Map<Permission, bool>.from(
+                          permissionsGranted.value,
+                        );
+                        newPermissions[permission] =
+                            alwaysStatus.isGranted ||
+                            alwaysStatus.isLimited ||
+                            whenInUseStatus.isGranted;
+                        permissionsGranted.value = newPermissions;
+
+                        final serviceEnabled =
+                            await Geolocator.isLocationServiceEnabled();
+                        if (!serviceEnabled) {
+                          await Geolocator.openLocationSettings();
+                        }
+                      } else {
+                        final newPermissions = Map<Permission, bool>.from(
+                          permissionsGranted.value,
+                        );
+                        newPermissions[permission] = false;
+                        permissionsGranted.value = newPermissions;
+                      }
+                    } else {
+                      final currentStatus = await permission.status;
+
+                      if (currentStatus.isGranted || currentStatus.isLimited) {
+                        final newPermissions = Map<Permission, bool>.from(
+                          permissionsGranted.value,
+                        );
+                        newPermissions[permission] = true;
+                        permissionsGranted.value = newPermissions;
+                        return;
+                      }
+
+                      final status = await permission.request();
+
+                      final newPermissions = Map<Permission, bool>.from(
+                        permissionsGranted.value,
+                      );
+                      newPermissions[permission] =
+                          status.isGranted || status.isLimited;
+                      permissionsGranted.value = newPermissions;
+
+                      if (permission == Permission.notification &&
+                          (status.isGranted || status.isLimited)) {
+                        await ref
+                            .read(dailyRemindersEnabledProvider.notifier)
+                            .setEnabled(true);
+                      }
+                    }
+                  },
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: isGranted
+                          ? theme.colorScheme.primaryContainer
+                          : theme.colorScheme.surfaceContainerHighest,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      icon,
+                      color: isGranted
+                          ? theme.colorScheme.onPrimaryContainer
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                title,
+                                style: theme.textTheme.titleMedium,
                               ),
                             ),
+                            if (isRequired) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.errorContainer,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'Required',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: theme.colorScheme.onErrorContainer,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          description,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.7,
+                            ),
                           ),
-                        ],
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 16),
+                  isGranted
+                      ? Icon(
+                          Icons.check_circle,
+                          color: theme.colorScheme.primary,
+                        )
+                      : const FilledButton(
+                          onPressed: null,
+                          child: Text('Enable'),
+                        ),
+                ],
               ),
-              const SizedBox(width: 16),
-              isGranted
-                  ? Icon(
-                      Icons.check_circle,
-                      color: theme.colorScheme.primary,
-                    )
-                  : const FilledButton(
-                      onPressed: null,
-                      child: Text('Enable'),
-                    ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        );
       },
     );
   }
@@ -779,7 +838,8 @@ class OnboardingScreen extends HookConsumerWidget {
         (permissions[Permission.locationAlways] ?? false);
 
     // Can continue if has all permissions OR 30 seconds have elapsed (showSkipButton is true)
-    final canContinueFromPermissions = hasAllRequiredPermissions || showSkipButton;
+    final canContinueFromPermissions =
+        hasAllRequiredPermissions || showSkipButton;
 
     return Container(
       decoration: BoxDecoration(
@@ -822,7 +882,9 @@ class OnboardingScreen extends HookConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Add Skip button for permissions page (only show after 30 seconds and no all permissions)
-                if (isPermissionsPage && !hasAllRequiredPermissions && showSkipButton)
+                if (isPermissionsPage &&
+                    !hasAllRequiredPermissions &&
+                    showSkipButton)
                   TextButton(
                     onPressed: () {
                       pageController.nextPage(
@@ -832,7 +894,9 @@ class OnboardingScreen extends HookConsumerWidget {
                     },
                     child: const Text('Skip for now'),
                   ),
-                if (isPermissionsPage && !hasAllRequiredPermissions && showSkipButton)
+                if (isPermissionsPage &&
+                    !hasAllRequiredPermissions &&
+                    showSkipButton)
                   const SizedBox(width: 12),
                 FilledButton(
                   onPressed: (isPermissionsPage && !canContinueFromPermissions)
@@ -843,9 +907,7 @@ class OnboardingScreen extends HookConsumerWidget {
                             curve: Curves.easeInOut,
                           );
                         },
-                  child: Text(
-                    isPermissionsPage ? 'Continue' : 'Next',
-                  ),
+                  child: Text(isPermissionsPage ? 'Continue' : 'Next'),
                 ),
               ],
             )
@@ -857,22 +919,36 @@ class OnboardingScreen extends HookConsumerWidget {
                 await prefs.setBool('onboarding_completed', true);
 
                 // Save final notification permission state to settings
-                final notificationPermission = permissions[Permission.notification] ?? false;
+                final notificationPermission =
+                    permissions[Permission.notification] ?? false;
                 if (notificationPermission) {
                   // If permission was granted during onboarding, enable daily reminders
-                  await ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(true);
+                  await ref
+                      .read(dailyRemindersEnabledProvider.notifier)
+                      .setEnabled(true);
                 } else {
                   // If permission was not granted, ensure daily reminders are disabled
-                  await ref.read(dailyRemindersEnabledProvider.notifier).setEnabled(false);
+                  await ref
+                      .read(dailyRemindersEnabledProvider.notifier)
+                      .setEnabled(false);
                 }
 
-                // Enable background location tracking
-                await prefs.setBool('backgroundLocationTracking', true);
-
-                // Initialize and start background location tracking
-                final bgLocationService = ref.read(backgroundLocationServiceProvider);
-                await bgLocationService.initialize();
-                await bgLocationService.startTracking();
+                final hasLocationPermission =
+                    permissions[Permission.locationAlways] ?? false;
+                if (hasLocationPermission) {
+                  final trackingEnabled = await ref
+                      .read(backgroundLocationTrackingProvider.notifier)
+                      .setEnabled(true);
+                  if (!trackingEnabled && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Location tracking could not be enabled. You can turn it on later in Privacy settings.',
+                        ),
+                      ),
+                    );
+                  }
+                }
 
                 // Navigate to main app
                 if (context.mounted) {

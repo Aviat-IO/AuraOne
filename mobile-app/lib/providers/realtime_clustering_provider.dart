@@ -3,17 +3,36 @@ import '../services/ai/ultra_fast_clustering.dart';
 import '../services/ai/dbscan_clustering.dart';
 import 'location_database_provider.dart';
 
-/// Progressive clustering instance that updates in real-time
-/// Optimized for flutter_background_geolocation's motion-based tracking
-final progressiveClusteringProvider = StateProvider<ProgressiveClustering>((ref) {
+/// Legacy experimental realtime clustering path.
+///
+/// This provider set is not part of the production location pipeline used by
+/// the app's current map, journaling, or preload flows. Keep it isolated from
+/// new production code unless a future change explicitly re-adopts it.
+
+/// Progressive clustering instance that updates in real-time.
+/// Deprecated: experimental path only.
+@Deprecated(
+  'Legacy experimental provider; not part of the production location pipeline',
+)
+final progressiveClusteringProvider = StateProvider<ProgressiveClustering>((
+  ref,
+) {
   return ProgressiveClustering(
-    mergeRadius: 100,  // 100 meters (increased for motion-detected points)
-    stayDuration: const Duration(minutes: 2),  // Reduced from 5 min - motion tracking ensures significance
+    mergeRadius: 100, // 100 meters (increased for motion-detected points)
+    stayDuration: const Duration(
+      minutes: 2,
+    ), // Reduced from 5 min - motion tracking ensures significance
   );
 });
 
-/// Real-time clusters that update as new points arrive
-final realtimeClusterProvider = FutureProvider<List<LocationCluster>>((ref) async {
+/// Real-time clusters that update as new points arrive.
+/// Deprecated: experimental path only.
+@Deprecated(
+  'Legacy experimental provider; not part of the production location pipeline',
+)
+final realtimeClusterProvider = FutureProvider<List<LocationCluster>>((
+  ref,
+) async {
   final progressive = ref.watch(progressiveClusteringProvider);
 
   // Watch for new location points directly
@@ -30,9 +49,10 @@ final realtimeClusterProvider = FutureProvider<List<LocationCluster>>((ref) asyn
   final now = DateTime.now();
   final todayStart = DateTime(now.year, now.month, now.day);
   final todayLocations = locations
-      .where((loc) =>
-          loc.timestamp.isAfter(todayStart) &&
-          loc.isSignificant  // Only include significant movement points from motion detection
+      .where(
+        (loc) =>
+            loc.timestamp.isAfter(todayStart) &&
+            loc.isSignificant, // Only include significant movement points from motion detection
       )
       .toList();
 
@@ -58,7 +78,11 @@ final realtimeClusterProvider = FutureProvider<List<LocationCluster>>((ref) asyn
   return progressive.getClusters();
 });
 
-/// Optimized cluster count for UI display
+/// Optimized cluster count for UI display.
+/// Deprecated: experimental path only.
+@Deprecated(
+  'Legacy experimental provider; not part of the production location pipeline',
+)
 final clusterCountProvider = Provider<int>((ref) {
   final clustersAsync = ref.watch(realtimeClusterProvider);
 
@@ -69,7 +93,11 @@ final clusterCountProvider = Provider<int>((ref) {
   );
 });
 
-/// Pre-compute cluster statistics for UI
+/// Pre-compute cluster statistics for UI.
+/// Deprecated: experimental path only.
+@Deprecated(
+  'Legacy experimental provider; not part of the production location pipeline',
+)
 final clusterStatsProvider = Provider<ClusterStatistics>((ref) {
   final clustersAsync = ref.watch(realtimeClusterProvider);
 

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter/foundation.dart';
+import '../utils/date_utils.dart';
 
 part 'location_database.g.dart';
 
@@ -16,8 +17,10 @@ class LocationPoints extends Table {
   RealColumn get speed => real().nullable()();
   RealColumn get heading => real().nullable()();
   DateTimeColumn get timestamp => dateTime()();
-  TextColumn get activityType => text().nullable()(); // walking, driving, stationary
-  BoolColumn get isSignificant => boolean().withDefault(const Constant(false))();
+  TextColumn get activityType =>
+      text().nullable()(); // walking, driving, stationary
+  BoolColumn get isSignificant =>
+      boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -45,19 +48,22 @@ class GeofenceEvents extends Table {
   DateTimeColumn get timestamp => dateTime()();
   RealColumn get latitude => real()();
   RealColumn get longitude => real()();
-  IntColumn get dwellTime => integer().nullable()(); // in seconds for dwell events
+  IntColumn get dwellTime =>
+      integer().nullable()(); // in seconds for dwell events
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
 // Table for location-based notes/memories
 class LocationNotes extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get noteId => text().nullable()(); // Reference to Nostr note if published
+  TextColumn get noteId =>
+      text().nullable()(); // Reference to Nostr note if published
   TextColumn get content => text()();
   RealColumn get latitude => real()();
   RealColumn get longitude => real()();
   TextColumn get placeName => text().nullable()();
-  TextColumn get geofenceId => text().nullable().references(GeofenceAreas, #id)();
+  TextColumn get geofenceId =>
+      text().nullable().references(GeofenceAreas, #id)();
   TextColumn get tags => text().nullable()(); // JSON array of tags
   DateTimeColumn get timestamp => dateTime()();
   BoolColumn get isPublished => boolean().withDefault(const Constant(false))();
@@ -95,34 +101,55 @@ class MovementData extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-@DriftDatabase(tables: [
-  LocationPoints,
-  GeofenceAreas,
-  GeofenceEvents,
-  LocationNotes,
-  LocationSummaries,
-  MovementData,
-])
+@DriftDatabase(
+  tables: [
+    LocationPoints,
+    GeofenceAreas,
+    GeofenceEvents,
+    LocationNotes,
+    LocationSummaries,
+    MovementData,
+  ],
+)
 class LocationDatabase extends _$LocationDatabase {
   LocationDatabase() : super(_openConnection());
 
+  void Function(Iterable<DateTime> timestamps)? onLocationDaysChanged;
+
   // Constructor that accepts a custom connection for background tasks
   LocationDatabase.withConnection({required QueryExecutor openConnection})
-      : super(openConnection);
+    : super(openConnection);
 
   // Constructor for testing with custom executor
   LocationDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'location_database');
   }
 
+  Future<void> _createHotPathIndexes() async {
+    const statements = [
+      'CREATE INDEX IF NOT EXISTS idx_location_points_timestamp ON location_points (timestamp)',
+      'CREATE INDEX IF NOT EXISTS idx_geofence_areas_is_active ON geofence_areas (is_active)',
+      'CREATE INDEX IF NOT EXISTS idx_geofence_events_timestamp ON geofence_events (timestamp)',
+      'CREATE INDEX IF NOT EXISTS idx_geofence_events_geofence_timestamp ON geofence_events (geofence_id, timestamp)',
+      'CREATE INDEX IF NOT EXISTS idx_location_notes_geofence_timestamp ON location_notes (geofence_id, timestamp)',
+      'CREATE INDEX IF NOT EXISTS idx_movement_data_timestamp ON movement_data (timestamp)',
+    ];
+
+    for (final statement in statements) {
+      await customStatement(statement);
+    }
+  }
+
   // Location Points Methods
-  Future<int> insertLocationPoint(LocationPointsCompanion point) {
-    return into(locationPoints).insert(point);
+  Future<int> insertLocationPoint(LocationPointsCompanion point) async {
+    final insertedId = await into(locationPoints).insert(point);
+    onLocationDaysChanged?.call([point.timestamp.value]);
+    return insertedId;
   }
 
   Stream<List<LocationPoint>> watchRecentLocationPoints({
@@ -140,8 +167,11 @@ class LocationDatabase extends _$LocationDatabase {
     DateTime end,
   ) {
     return (select(locationPoints)
-          ..where((tbl) =>
-              tbl.timestamp.isBetweenValues(start, end))
+          ..where(
+            (tbl) =>
+                tbl.timestamp.isBiggerOrEqualValue(start) &
+                tbl.timestamp.isSmallerThanValue(end),
+          )
           ..orderBy([(tbl) => OrderingTerm.asc(tbl.timestamp)]))
         .get();
   }
@@ -155,14 +185,19 @@ class LocationDatabase extends _$LocationDatabase {
     return update(geofenceAreas).replace(geofence);
   }
 
-  Future<int> deleteGeofence(String id) {
-    return (delete(geofenceAreas)..where((tbl) => tbl.id.equals(id))).go();
+  Future<int> deactivateGeofence(String id) {
+    return (update(geofenceAreas)..where((tbl) => tbl.id.equals(id))).write(
+      GeofenceAreasCompanion(
+        isActive: const Value(false),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 
   Stream<List<GeofenceArea>> watchActiveGeofences() {
-    return (select(geofenceAreas)
-          ..where((tbl) => tbl.isActive.equals(true)))
-        .watch();
+    return (select(
+      geofenceAreas,
+    )..where((tbl) => tbl.isActive.equals(true))).watch();
   }
 
   // Geofence Events Methods
@@ -211,29 +246,74 @@ class LocationDatabase extends _$LocationDatabase {
   }) async {
     final cutoff = DateTime.now().subtract(retentionPeriod);
 
+    final affectedPoints =
+        await (select(locationPoints)..where((tbl) {
+              Expression<bool> filter = tbl.timestamp.isSmallerThanValue(
+                cutoff,
+              );
+              if (keepSignificantPoints) {
+                filter = filter & tbl.isSignificant.equals(false);
+              }
+              return filter;
+            }))
+            .get();
+
+    final affectedTimestamps = affectedPoints
+        .map((point) => point.timestamp)
+        .toList();
+
     // Delete old location points (except significant ones if specified)
-    await (delete(locationPoints)
-          ..where((tbl) {
-            Expression<bool> filter = tbl.timestamp.isSmallerThanValue(cutoff);
-            if (keepSignificantPoints) {
-              filter = filter & tbl.isSignificant.equals(false);
-            }
-            return filter;
-          }))
+    await (delete(locationPoints)..where((tbl) {
+          Expression<bool> filter = tbl.timestamp.isSmallerThanValue(cutoff);
+          if (keepSignificantPoints) {
+            filter = filter & tbl.isSignificant.equals(false);
+          }
+          return filter;
+        }))
         .go();
 
+    if (affectedTimestamps.isNotEmpty) {
+      onLocationDaysChanged?.call(affectedTimestamps);
+    }
+
     // Delete old geofence events
-    await (delete(geofenceEvents)
-          ..where((tbl) => tbl.timestamp.isSmallerThanValue(cutoff)))
-        .go();
+    await (delete(
+      geofenceEvents,
+    )..where((tbl) => tbl.timestamp.isSmallerThanValue(cutoff))).go();
   }
 
   // Get locations between two dates
-  Future<List<LocationPoint>> getLocationsBetween(DateTime start, DateTime end) async {
+  Future<List<LocationPoint>> getLocationsBetween(
+    DateTime start,
+    DateTime end,
+  ) async {
     return await (select(locationPoints)
           ..where((tbl) => tbl.timestamp.isBetweenValues(start, end))
           ..orderBy([(tbl) => OrderingTerm.asc(tbl.timestamp)]))
         .get();
+  }
+
+  Future<Set<DateTime>> getChangedLocationDaysBetween(
+    DateTime start,
+    DateTime end, {
+    bool keepSignificantPoints = true,
+  }) async {
+    final affectedPoints =
+        await (select(locationPoints)..where((tbl) {
+              Expression<bool> filter = tbl.timestamp.isBetweenValues(
+                start,
+                end,
+              );
+              if (keepSignificantPoints) {
+                filter = filter & tbl.isSignificant.equals(false);
+              }
+              return filter;
+            }))
+            .get();
+
+    return affectedPoints
+        .map((point) => DateTimeUtils.getLocalDateOnly(point.timestamp))
+        .toSet();
   }
 
   // Summary Methods
@@ -257,15 +337,17 @@ class LocationDatabase extends _$LocationDatabase {
     }
 
     // Get unique geofence visits
-    final geofenceVisits = await (select(geofenceEvents)
-          ..where((tbl) => tbl.timestamp.isBetweenValues(startOfDay, endOfDay))
-          ..orderBy([(tbl) => OrderingTerm.asc(tbl.timestamp)]))
-        .get();
+    final geofenceVisits =
+        await (select(geofenceEvents)
+              ..where(
+                (tbl) =>
+                    tbl.timestamp.isBiggerOrEqualValue(startOfDay) &
+                    tbl.timestamp.isSmallerThanValue(endOfDay),
+              )
+              ..orderBy([(tbl) => OrderingTerm.asc(tbl.timestamp)]))
+            .get();
 
-    final uniquePlaces = geofenceVisits
-        .map((e) => e.geofenceId)
-        .toSet()
-        .length;
+    final uniquePlaces = geofenceVisits.map((e) => e.geofenceId).toSet().length;
 
     // Insert summary
     await into(locationSummaries).insertOnConflictUpdate(
@@ -280,7 +362,12 @@ class LocationDatabase extends _$LocationDatabase {
     );
   }
 
-  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+  double _calculateDistance(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
     const double earthRadius = 6371000; // meters
     final double dLat = _toRadians(lat2 - lat1);
     final double dLon = _toRadians(lon2 - lon1);
@@ -288,9 +375,9 @@ class LocationDatabase extends _$LocationDatabase {
     final double a =
         math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_toRadians(lat1)) *
-        math.cos(_toRadians(lat2)) *
-        math.sin(dLon / 2) *
-        math.sin(dLon / 2);
+            math.cos(_toRadians(lat2)) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
 
     final double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return earthRadius * c;
@@ -320,8 +407,11 @@ class LocationDatabase extends _$LocationDatabase {
     DateTime end,
   ) {
     return (select(movementData)
-          ..where((tbl) =>
-              tbl.timestamp.isBetweenValues(start, end))
+          ..where(
+            (tbl) =>
+                tbl.timestamp.isBiggerOrEqualValue(start) &
+                tbl.timestamp.isSmallerThanValue(end),
+          )
           ..orderBy([(tbl) => OrderingTerm.asc(tbl.timestamp)]))
         .get();
   }
@@ -330,53 +420,80 @@ class LocationDatabase extends _$LocationDatabase {
     Duration retentionPeriod = const Duration(days: 7),
   }) async {
     final cutoff = DateTime.now().subtract(retentionPeriod);
-    await (delete(movementData)
-          ..where((tbl) => tbl.timestamp.isSmallerThanValue(cutoff)))
-        .go();
+    await (delete(
+      movementData,
+    )..where((tbl) => tbl.timestamp.isSmallerThanValue(cutoff))).go();
   }
 
   // Migration and schema updates
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        beforeOpen: (details) async {
-          // Handle database version mismatches gracefully
-          if (details.wasCreated) {
-            // Database was just created, no issues
-            return;
-          }
+    beforeOpen: (details) async {
+      // Handle database version mismatches gracefully
+      if (details.wasCreated) {
+        // Database was just created, no issues
+        return;
+      }
 
-          // Check if we're dealing with a version mismatch
-          if (details.versionBefore != null && details.versionNow != details.versionBefore) {
-            debugPrint('Location database migration: v${details.versionBefore} -> v${details.versionNow}');
-          }
-        },
-        onCreate: (Migrator m) async {
-          try {
-            await m.createAll();
-          } catch (e) {
-            // If createAll fails, it might be because tables already exist from a previous installation
-            debugPrint('Warning: Could not create all tables (may already exist): $e');
-            // Try to continue anyway - the app should still work
-          }
-        },
-        onUpgrade: (Migrator m, int from, int to) async {
-          // Migration from version 1 to 2: Added MovementData table
-          if (from < 2) {
-            await m.createTable(movementData);
-          }
+      // Check if we're dealing with a version mismatch
+      if (details.versionBefore != null &&
+          details.versionNow != details.versionBefore) {
+        debugPrint(
+          'Location database migration: v${details.versionBefore} -> v${details.versionNow}',
+        );
+      }
+    },
+    onCreate: (Migrator m) async {
+      try {
+        await m.createAll();
+        await _createHotPathIndexes();
+      } catch (e) {
+        // If createAll fails, it might be because tables already exist from a previous installation
+        debugPrint(
+          'Warning: Could not create all tables (may already exist): $e',
+        );
+        // Try to continue anyway - the app should still work
+        await _createHotPathIndexes();
+      }
+    },
+    onUpgrade: (Migrator m, int from, int to) async {
+      // Migration from version 1 to 2: Added MovementData table
+      if (from < 2) {
+        await m.createTable(movementData);
+      }
 
-          // Migration from version 2 to 3: Ensure MovementData table exists
-          // This handles cases where the table wasn't created properly
-          if (from < 3) {
-            // Check if table exists and create if it doesn't
-            try {
-              // Try to count rows to check if table exists
-              await customSelect('SELECT COUNT(*) FROM movement_data').getSingle();
-            } catch (e) {
-              // Table doesn't exist, create it
-              await m.createTable(movementData);
-            }
-          }
-        },
-      );
+      // Migration from version 2 to 3: Ensure MovementData table exists
+      // This handles cases where the table wasn't created properly
+      if (from < 3) {
+        // Check if table exists and create if it doesn't
+        try {
+          // Try to count rows to check if table exists
+          await customSelect('SELECT COUNT(*) FROM movement_data').getSingle();
+        } catch (e) {
+          // Table doesn't exist, create it
+          await m.createTable(movementData);
+        }
+      }
+
+      if (from < 4) {
+        try {
+          await customSelect(
+            'SELECT activity_type FROM location_points LIMIT 1',
+          ).getSingle();
+        } catch (_) {
+          await m.addColumn(locationPoints, locationPoints.activityType);
+        }
+
+        try {
+          await customSelect(
+            'SELECT is_significant FROM location_points LIMIT 1',
+          ).getSingle();
+        } catch (_) {
+          await m.addColumn(locationPoints, locationPoints.isSignificant);
+        }
+
+        await _createHotPathIndexes();
+      }
+    },
+  );
 }

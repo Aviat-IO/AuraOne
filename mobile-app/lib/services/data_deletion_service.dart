@@ -1,4 +1,3 @@
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -8,6 +7,9 @@ import '../database/location_database.dart';
 import '../database/media_database.dart';
 import '../providers/location_database_provider.dart';
 import '../providers/media_database_provider.dart';
+import '../services/simple_location_service.dart'
+    show simpleLocationServiceProvider;
+import '../utils/date_utils.dart';
 import '../services/export/export_service.dart';
 
 enum DataType {
@@ -38,9 +40,7 @@ class DeletionPreview {
   });
 
   int get totalItemCount =>
-      journalEntryCount +
-      locationPointCount +
-      calendarEventCount;
+      journalEntryCount + locationPointCount + calendarEventCount;
 
   bool get isEmpty => totalItemCount == 0;
 }
@@ -48,12 +48,21 @@ class DeletionPreview {
 class DataDeletionService {
   final LocationDatabase _locationDb;
   final MediaDatabase _mediaDb;
+  final void Function(Iterable<DateTime> timestamps)? _onLocationDaysChanged;
+  final void Function()? _onLocationDataReset;
+  final Future<void> Function()? _reloadGeofences;
 
   DataDeletionService({
     required LocationDatabase locationDb,
     required MediaDatabase mediaDb,
-  })  : _locationDb = locationDb,
-        _mediaDb = mediaDb;
+    void Function(Iterable<DateTime> timestamps)? onLocationDaysChanged,
+    void Function()? onLocationDataReset,
+    Future<void> Function()? reloadGeofences,
+  }) : _locationDb = locationDb,
+       _mediaDb = mediaDb,
+       _onLocationDaysChanged = onLocationDaysChanged,
+       _onLocationDataReset = onLocationDataReset,
+       _reloadGeofences = reloadGeofences;
 
   // Preview what will be deleted (NEVER includes photos or videos)
   Future<DeletionPreview> previewDeletion({
@@ -74,7 +83,7 @@ class DataDeletionService {
 
     // Count location data
     if (effectiveDataTypes.contains(DataType.locations)) {
-      final locations = await _getLocationsBetween(
+      final List<LocationPoint> locations = await _getLocationsBetween(
         startDate,
         endDate,
         keepSignificantLocations,
@@ -140,11 +149,7 @@ class DataDeletionService {
 
     // Delete location data
     if (effectiveDataTypes.contains(DataType.locations)) {
-      await _deleteLocationData(
-        startDate,
-        endDate,
-        keepSignificantLocations,
-      );
+      await _deleteLocationData(startDate, endDate, keepSignificantLocations);
       progress += progressStep;
       onProgress?.call(progress);
     }
@@ -170,10 +175,7 @@ class DataDeletionService {
     String? exportPath,
   }) async {
     if (exportBeforeDeletion) {
-      await _exportData(
-        dataTypes: {DataType.all},
-        exportPath: exportPath,
-      );
+      await _exportData(dataTypes: {DataType.all}, exportPath: exportPath);
     }
 
     // Clear all location data
@@ -191,6 +193,9 @@ class DataDeletionService {
 
     // Optimize databases
     await _optimizeDatabases();
+
+    _onLocationDataReset?.call();
+    await _reloadGeofences?.call();
   }
 
   // Helper methods
@@ -214,7 +219,16 @@ class DataDeletionService {
     final effectiveStart = startDate ?? DateTime(1970);
     final effectiveEnd = endDate ?? DateTime.now();
 
-    return await _locationDb.getLocationPointsBetween(effectiveStart, effectiveEnd);
+    final locations = await _locationDb.getLocationPointsBetween(
+      effectiveStart,
+      effectiveEnd,
+    );
+
+    if (!keepSignificantLocations) {
+      return locations;
+    }
+
+    return locations.where((location) => !location.isSignificant).toList();
   }
 
   // NOTE: _getMediaBetween method removed - media is never deleted to preserve user data
@@ -232,10 +246,13 @@ class DataDeletionService {
 
     // Get all location notes and filter manually
     final allNotes = await _locationDb.select(_locationDb.locationNotes).get();
-    return allNotes.where((note) =>
-      note.timestamp.isAfter(effectiveStart) &&
-      note.timestamp.isBefore(effectiveEnd)
-    ).toList();
+    return allNotes
+        .where(
+          (note) =>
+              note.timestamp.isAfter(effectiveStart) &&
+              note.timestamp.isBefore(effectiveEnd),
+        )
+        .toList();
   }
 
   Future<void> _deleteLocationData(
@@ -243,43 +260,108 @@ class DataDeletionService {
     DateTime? endDate,
     bool keepSignificantLocations,
   ) async {
+    final affectedSummaryDays = <DateTime>{};
+
     if (startDate == null && endDate == null) {
-      // Use cleanup method for all data
-      await _locationDb.cleanupOldLocationData(
-        retentionPeriod: const Duration(days: 0),
-        keepSignificantPoints: keepSignificantLocations,
+      final allLocationTimestamps = (await _getLocationsBetween(
+        null,
+        null,
+        keepSignificantLocations,
+      )).map((location) => location.timestamp);
+      final allGeofenceEventTimestamps =
+          (await _locationDb.select(_locationDb.geofenceEvents).get()).map(
+            (event) => event.timestamp,
+          );
+
+      affectedSummaryDays.addAll(
+        allLocationTimestamps.map(DateTimeUtils.getLocalDateOnly),
       );
+      affectedSummaryDays.addAll(
+        allGeofenceEventTimestamps.map(DateTimeUtils.getLocalDateOnly),
+      );
+
+      await (_locationDb.delete(_locationDb.locationPoints)..where((tbl) {
+            if (keepSignificantLocations) {
+              return tbl.isSignificant.equals(false);
+            }
+            return const Constant(true);
+          }))
+          .go();
       await _locationDb.delete(_locationDb.geofenceEvents).go();
       await _locationDb.delete(_locationDb.movementData).go();
     } else {
       // Get locations in range and delete by ID
-      final locationsToDelete = await _getLocationsBetween(
+      final effectiveStart = startDate ?? DateTime(1970);
+      final effectiveEnd = endDate ?? DateTime.now();
+      final List<LocationPoint> locationsToDelete = await _getLocationsBetween(
         startDate,
         endDate,
         keepSignificantLocations,
       );
+      final geofenceEventsToDelete =
+          await (_locationDb.select(_locationDb.geofenceEvents)..where(
+                (tbl) =>
+                    tbl.timestamp.isBiggerOrEqualValue(effectiveStart) &
+                    tbl.timestamp.isSmallerThanValue(effectiveEnd),
+              ))
+              .get();
+      final List<DateTime> affectedTimestamps = locationsToDelete
+          .map((location) => location.timestamp)
+          .toList();
 
-      for (final location in locationsToDelete) {
-        await (_locationDb.delete(_locationDb.locationPoints)
-              ..where((tbl) => tbl.id.equals(location.id)))
-            .go();
+      await (_locationDb.delete(_locationDb.locationPoints)..where((tbl) {
+            Expression<bool> filter =
+                tbl.timestamp.isBiggerOrEqualValue(effectiveStart) &
+                tbl.timestamp.isSmallerThanValue(effectiveEnd);
+            if (keepSignificantLocations) {
+              filter = filter & tbl.isSignificant.equals(false);
+            }
+            return filter;
+          }))
+          .go();
+
+      if (affectedTimestamps.isNotEmpty) {
+        _onLocationDaysChanged?.call(affectedTimestamps);
       }
 
-      // Delete events in date range using custom SQL for now
-      if (startDate != null && endDate != null) {
-        await _locationDb.customStatement(
-          'DELETE FROM geofence_events WHERE timestamp BETWEEN ? AND ?',
-          [startDate.millisecondsSinceEpoch, endDate.millisecondsSinceEpoch],
-        );
-        await _locationDb.customStatement(
-          'DELETE FROM movement_data WHERE timestamp BETWEEN ? AND ?',
-          [startDate.millisecondsSinceEpoch, endDate.millisecondsSinceEpoch],
-        );
+      await (_locationDb.delete(_locationDb.geofenceEvents)..where(
+            (tbl) =>
+                tbl.timestamp.isBiggerOrEqualValue(effectiveStart) &
+                tbl.timestamp.isSmallerThanValue(effectiveEnd),
+          ))
+          .go();
+      await (_locationDb.delete(_locationDb.movementData)..where(
+            (tbl) =>
+                tbl.timestamp.isBiggerOrEqualValue(effectiveStart) &
+                tbl.timestamp.isSmallerThanValue(effectiveEnd),
+          ))
+          .go();
+
+      affectedSummaryDays.addAll(
+        affectedTimestamps.map(DateTimeUtils.getLocalDateOnly),
+      );
+      affectedSummaryDays.addAll(
+        geofenceEventsToDelete.map(
+          (event) => DateTimeUtils.getLocalDateOnly(event.timestamp),
+        ),
+      );
+    }
+
+    for (final day in affectedSummaryDays) {
+      await (_locationDb.delete(
+        _locationDb.locationSummaries,
+      )..where((tbl) => tbl.date.equals(day))).go();
+
+      final remainingPoints = await _locationDb.getLocationPointsBetween(
+        day,
+        day.add(const Duration(days: 1)),
+      );
+      if (remainingPoints.isNotEmpty) {
+        await _locationDb.generateDailySummary(day);
       }
     }
 
-    // Regenerate summaries
-    await _locationDb.delete(_locationDb.locationSummaries).go();
+    await _reloadGeofences?.call();
   }
 
   // NOTE: _deleteMediaByType method removed - media is never deleted to preserve user data
@@ -294,9 +376,9 @@ class DataDeletionService {
       final notesToDelete = await _getLocationNotesBetween(startDate, endDate);
 
       for (final note in notesToDelete) {
-        await (_locationDb.delete(_locationDb.locationNotes)
-              ..where((tbl) => tbl.id.equals(note.id)))
-            .go();
+        await (_locationDb.delete(
+          _locationDb.locationNotes,
+        )..where((tbl) => tbl.id.equals(note.id))).go();
       }
     }
   }
@@ -317,7 +399,8 @@ class DataDeletionService {
     final mediaReferences = <Map<String, dynamic>>[];
 
     // Get location data if requested
-    if (dataTypes.contains(DataType.locations) || dataTypes.contains(DataType.all)) {
+    if (dataTypes.contains(DataType.locations) ||
+        dataTypes.contains(DataType.all)) {
       final locations = await _getLocationsBetween(startDate, endDate, false);
       for (final location in locations) {
         journalEntries.add({
@@ -386,9 +469,17 @@ class DataDeletionService {
 final dataDeletionServiceProvider = Provider<DataDeletionService>((ref) {
   final locationDb = ref.watch(locationDatabaseProvider);
   final mediaDb = ref.watch(mediaDatabaseProvider);
+  final invalidationNotifier = ref.read(
+    locationDayInvalidationProvider.notifier,
+  );
 
   return DataDeletionService(
     locationDb: locationDb,
     mediaDb: mediaDb,
+    onLocationDaysChanged: invalidationNotifier.invalidateDays,
+    onLocationDataReset: invalidationNotifier.invalidateAll,
+    reloadGeofences: ref
+        .read(simpleLocationServiceProvider)
+        .reloadGeofencesFromDatabase,
   );
 });

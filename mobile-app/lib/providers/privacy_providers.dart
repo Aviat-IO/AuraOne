@@ -1,5 +1,6 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../models/privacy_settings.dart';
+import 'settings_providers.dart';
 import '../services/privacy_service.dart';
 
 /// Provider for the privacy service singleton
@@ -20,17 +21,21 @@ final privacyPresetsProvider = Provider<List<PrivacyPreset>>((ref) {
 });
 
 /// Provider for a specific privacy preset
-final privacyPresetProvider = Provider.family<PrivacyPreset?, PrivacyPresetLevel>((ref, level) {
-  final privacyService = ref.watch(privacyServiceProvider);
-  return privacyService.getPreset(level);
-});
+final privacyPresetProvider =
+    Provider.family<PrivacyPreset?, PrivacyPresetLevel>((ref, level) {
+      final privacyService = ref.watch(privacyServiceProvider);
+      return privacyService.getPreset(level);
+    });
 
 /// State notifier for managing privacy settings
-class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>> {
-  PrivacySettingsNotifier(this.privacyService) : super(const AsyncValue.loading()) {
+class PrivacySettingsNotifier
+    extends StateNotifier<AsyncValue<PrivacySettings>> {
+  PrivacySettingsNotifier(this.ref, this.privacyService)
+    : super(const AsyncValue.loading()) {
     loadSettings();
   }
 
+  final Ref ref;
   final PrivacyService privacyService;
 
   Future<void> loadSettings() async {
@@ -40,6 +45,7 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
       state = AsyncValue.data(settings);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
+      rethrow;
     }
   }
 
@@ -47,7 +53,21 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
   Future<void> applyPreset(PrivacyPresetLevel presetLevel) async {
     try {
       state = const AsyncValue.loading();
-      final newSettings = await privacyService.applyPreset(presetLevel);
+      final trackerShouldBeEnabled = presetLevel != PrivacyPresetLevel.minimal;
+      final trackingUpdated = await ref
+          .read(backgroundLocationTrackingProvider.notifier)
+          .setEnabled(trackerShouldBeEnabled);
+
+      if (!trackingUpdated) {
+        throw PrivacyServiceException(
+          'Failed to apply privacy preset because location tracking could not be updated.',
+        );
+      }
+
+      final newSettings = PrivacySettings.forPreset(
+        presetLevel,
+      ).copyWith(lastUpdated: DateTime.now(), updatedBy: 'preset_$presetLevel');
+      await privacyService.savePrivacySettings(newSettings);
       state = AsyncValue.data(newSettings);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -64,10 +84,7 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
       final newSettings = await privacyService.updateSetting<LocationPrecision>(
         currentSettings,
         (settings) => settings.locationPrecision,
-        (settings, value) => settings.copyWith(
-          locationPrecision: value,
-          locationTrackingEnabled: value != LocationPrecision.off,
-        ),
+        (settings, value) => settings.copyWith(locationPrecision: value),
         precision,
       );
       state = AsyncValue.data(newSettings);
@@ -83,12 +100,13 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
 
     try {
       state = const AsyncValue.loading();
-      final newSettings = await privacyService.updateSetting<DataRetentionPeriod>(
-        currentSettings,
-        (settings) => settings.dataRetention,
-        (settings, value) => settings.copyWith(dataRetention: value),
-        period,
-      );
+      final newSettings = await privacyService
+          .updateSetting<DataRetentionPeriod>(
+            currentSettings,
+            (settings) => settings.dataRetention,
+            (settings, value) => settings.copyWith(dataRetention: value),
+            period,
+          );
       state = AsyncValue.data(newSettings);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -255,13 +273,19 @@ class PrivacySettingsNotifier extends StateNotifier<AsyncValue<PrivacySettings>>
 }
 
 /// Provider for the privacy settings state notifier
-final privacySettingsNotifierProvider = StateNotifierProvider<PrivacySettingsNotifier, AsyncValue<PrivacySettings>>((ref) {
-  final privacyService = ref.watch(privacyServiceProvider);
-  return PrivacySettingsNotifier(privacyService);
-});
+final privacySettingsNotifierProvider =
+    StateNotifierProvider<PrivacySettingsNotifier, AsyncValue<PrivacySettings>>(
+      (ref) {
+        final privacyService = ref.watch(privacyServiceProvider);
+        return PrivacySettingsNotifier(ref, privacyService);
+      },
+    );
 
 /// Provider to check if settings match a specific preset
-final presetMatchProvider = Provider.family<bool, PrivacyPresetLevel>((ref, presetLevel) {
+final presetMatchProvider = Provider.family<bool, PrivacyPresetLevel>((
+  ref,
+  presetLevel,
+) {
   final notifier = ref.watch(privacySettingsNotifierProvider.notifier);
   return notifier.isPresetMatch(presetLevel);
 });
@@ -283,12 +307,13 @@ final hasEnabledPermissionsProvider = Provider<bool>((ref) {
   final settingsAsync = ref.watch(privacySettingsNotifierProvider);
 
   return settingsAsync.when(
-    data: (settings) => settings.photoLibraryPermission ||
-                        settings.cameraPermission ||
-                        settings.microphonePermission ||
-                        settings.calendarPermission ||
-                        settings.healthPermission ||
-                        settings.notificationPermission,
+    data: (settings) =>
+        settings.photoLibraryPermission ||
+        settings.cameraPermission ||
+        settings.microphonePermission ||
+        settings.calendarPermission ||
+        settings.healthPermission ||
+        settings.notificationPermission,
     loading: () => false,
     error: (_, _) => false,
   );
@@ -296,13 +321,7 @@ final hasEnabledPermissionsProvider = Provider<bool>((ref) {
 
 /// Provider to check if location tracking is enabled
 final isLocationTrackingEnabledProvider = Provider<bool>((ref) {
-  final settingsAsync = ref.watch(privacySettingsNotifierProvider);
-
-  return settingsAsync.when(
-    data: (settings) => settings.locationTrackingEnabled,
-    loading: () => false,
-    error: (_, _) => false,
-  );
+  return ref.watch(backgroundLocationTrackingProvider) ?? false;
 });
 
 /// Provider for smart place recognition setting (enabled by default)

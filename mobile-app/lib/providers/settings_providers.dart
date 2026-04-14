@@ -3,7 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../services/notification_service.dart';
+import 'location_tracking_runtime_provider.dart';
 import '../services/ai/runtime_selector.dart';
+import '../services/location_tracking_startup_policy.dart';
+
+const backgroundLocationTrackingDesiredPreferenceKey =
+    'backgroundLocationTrackingDesired';
 
 // Notification service provider
 final notificationServiceProvider = Provider<NotificationService>((ref) {
@@ -288,25 +293,136 @@ class ReverseGeocodingNotifier extends StateNotifier<bool> {
 
 // Background location tracking provider
 final backgroundLocationTrackingProvider =
-    StateNotifierProvider<BackgroundLocationTrackingNotifier, bool>((ref) {
-      return BackgroundLocationTrackingNotifier();
+    StateNotifierProvider<BackgroundLocationTrackingNotifier, bool?>((ref) {
+      final notifier = BackgroundLocationTrackingNotifier(
+        ref.watch(continuousLocationTrackerProvider),
+        ref.watch(secondaryLocationTrackerProvider),
+      );
+
+      ref.listen<bool?>(locationTrackingRuntimeStateProvider, (previous, next) {
+        if (next == null) {
+          return;
+        }
+        notifier.syncFromRuntimeEvent(next);
+      });
+
+      return notifier;
     });
 
-class BackgroundLocationTrackingNotifier extends StateNotifier<bool> {
-  BackgroundLocationTrackingNotifier() : super(false) {
-    _loadState();
+class BackgroundLocationTrackingNotifier extends StateNotifier<bool?> {
+  BackgroundLocationTrackingNotifier(
+    this._tracker,
+    this._secondaryTracker, {
+    Future<SharedPreferences> Function()? sharedPreferencesLoader,
+  }) : _sharedPreferencesLoader =
+           sharedPreferencesLoader ?? SharedPreferences.getInstance,
+       super(null) {
+    refreshRuntimeState();
   }
 
-  Future<void> _loadState() async {
-    final prefs = await SharedPreferences.getInstance();
-    // Default to false - users must opt-in to persistent background tracking
-    state = prefs.getBool('backgroundLocationTracking') ?? false;
+  final ContinuousLocationTracker _tracker;
+  final SecondaryLocationTracker _secondaryTracker;
+  final Future<SharedPreferences> Function() _sharedPreferencesLoader;
+
+  Future<bool> setEnabled(bool enabled) async {
+    final prefs = await _sharedPreferencesLoader();
+    await prefs.setBool(
+      backgroundLocationTrackingDesiredPreferenceKey,
+      enabled,
+    );
+
+    if (enabled) {
+      await _secondaryTracker.stopTracking();
+    }
+
+    final success = enabled
+        ? await _tracker.startTracking()
+        : await _tracker.stopTracking();
+
+    final actualState = await syncWithTrackerState();
+    return success && actualState == enabled;
   }
 
-  Future<void> setEnabled(bool enabled) async {
-    state = enabled;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('backgroundLocationTracking', enabled);
+  Future<bool> restoreTrackingState({required bool onboardingCompleted}) async {
+    final prefs = await _sharedPreferencesLoader();
+    final trackingEnabled =
+        prefs.getBool(backgroundLocationTrackingDesiredPreferenceKey) ??
+        prefs.getBool(backgroundLocationTrackingPreferenceKey) ??
+        false;
+
+    if (!trackingEnabled) {
+      await _tracker.stopTracking();
+      await syncWithTrackerState();
+      return false;
+    }
+
+    final initialized = await _tracker.initialize();
+    if (!initialized) {
+      return false;
+    }
+
+    final actualState = await _tracker.isTrackingEnabled();
+    if (actualState) {
+      await syncWithTrackerState();
+      return true;
+    }
+
+    final policy = LocationTrackingStartupPolicy(
+      authoritativeTracker: _tracker,
+      secondaryTracker: _secondaryTracker,
+    );
+
+    final started = await policy.startIfEnabled(
+      onboardingCompleted: onboardingCompleted,
+      trackingEnabled: trackingEnabled,
+    );
+
+    final reconciledState = await syncWithTrackerState();
+    if (!started) {
+      return false;
+    }
+
+    return reconciledState;
+  }
+
+  Future<bool> isDesiredEnabled() async {
+    final prefs = await _sharedPreferencesLoader();
+    return prefs.getBool(backgroundLocationTrackingDesiredPreferenceKey) ??
+        prefs.getBool(backgroundLocationTrackingPreferenceKey) ??
+        false;
+  }
+
+  Future<bool> refreshRuntimeState({bool persist = false}) async {
+    final actualState = await _tracker.isTrackingEnabled();
+    if (persist) {
+      final prefs = await _sharedPreferencesLoader();
+      await prefs.setBool(backgroundLocationTrackingPreferenceKey, actualState);
+    }
+    if (mounted) {
+      state = actualState;
+    }
+    return actualState;
+  }
+
+  Future<bool> syncWithTrackerState() async {
+    final actualState = await _tracker.isTrackingEnabled();
+    final prefs = await _sharedPreferencesLoader();
+    await prefs.setBool(backgroundLocationTrackingPreferenceKey, actualState);
+
+    if (mounted) {
+      state = actualState;
+    }
+
+    return actualState;
+  }
+
+  Future<void> syncFromRuntimeEvent(bool actualState) async {
+    final prefs = await _sharedPreferencesLoader();
+    await prefs.setBool(backgroundLocationTrackingPreferenceKey, actualState);
+
+    if (mounted) {
+      state = actualState;
+    }
   }
 }
 

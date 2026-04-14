@@ -1,6 +1,10 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../services/ai/dbscan_clustering.dart';
 
+/// Legacy memoization helpers retained only for older experimental clustering
+/// flows. The production location pipeline now uses day-scoped invalidation and
+/// provider caching instead.
+
 /// Cache for expensive computations
 class MemoizedClusteringCache {
   final Map<String, dynamic> _cache = {};
@@ -20,75 +24,104 @@ class MemoizedClusteringCache {
   }
 }
 
+@Deprecated(
+  'Legacy experimental provider; not part of the production location pipeline',
+)
 final memoizationCacheProvider = Provider<MemoizedClusteringCache>((ref) {
   return MemoizedClusteringCache();
 });
 
-/// Memoized cluster count provider
-final memoizedClusterCountProvider = Provider.family<int, List<LocationCluster>>((ref, clusters) {
-  final cache = ref.watch(memoizationCacheProvider);
-  final key = 'count_${clusters.hashCode}';
+/// Memoized cluster count provider.
+/// Deprecated: experimental path only.
+@Deprecated(
+  'Legacy experimental provider; not part of the production location pipeline',
+)
+final memoizedClusterCountProvider =
+    Provider.family<int, List<LocationCluster>>((ref, clusters) {
+      final cache = ref.watch(memoizationCacheProvider);
+      final key = 'count_${clusters.hashCode}';
 
-  final cached = cache.get<int>(key);
-  if (cached != null) {
-    return cached;
-  }
+      final cached = cache.get<int>(key);
+      if (cached != null) {
+        return cached;
+      }
 
-  final count = clusters.length;
-  cache.set(key, count);
-  return count;
-});
+      final count = clusters.length;
+      cache.set(key, count);
+      return count;
+    });
 
-/// Memoized total duration provider
-final memoizedTotalDurationProvider = Provider.family<Duration, List<LocationCluster>>((ref, clusters) {
-  final cache = ref.watch(memoizationCacheProvider);
-  final key = 'duration_${clusters.hashCode}';
+/// Memoized total duration provider.
+/// Deprecated: experimental path only.
+@Deprecated(
+  'Legacy experimental provider; not part of the production location pipeline',
+)
+final memoizedTotalDurationProvider =
+    Provider.family<Duration, List<LocationCluster>>((ref, clusters) {
+      final cache = ref.watch(memoizationCacheProvider);
+      final key = 'duration_${clusters.hashCode}';
 
-  final cached = cache.get<Duration>(key);
-  if (cached != null) {
-    return cached;
-  }
+      final cached = cache.get<Duration>(key);
+      if (cached != null) {
+        return cached;
+      }
 
-  final duration = clusters.fold(
-    Duration.zero,
-    (total, cluster) => total + cluster.duration,
-  );
+      final duration = clusters.fold(
+        Duration.zero,
+        (total, cluster) => total + cluster.duration,
+      );
 
-  cache.set(key, duration);
-  return duration;
-});
+      cache.set(key, duration);
+      return duration;
+    });
 
-/// Memoized cluster sorting provider
-final memoizedSortedClustersProvider = Provider.family<List<LocationCluster>, List<LocationCluster>>((ref, clusters) {
-  final cache = ref.watch(memoizationCacheProvider);
-  final key = 'sorted_${clusters.hashCode}';
+/// Memoized cluster sorting provider.
+/// Deprecated: experimental path only.
+@Deprecated(
+  'Legacy experimental provider; not part of the production location pipeline',
+)
+final memoizedSortedClustersProvider =
+    Provider.family<List<LocationCluster>, List<LocationCluster>>((
+      ref,
+      clusters,
+    ) {
+      final cache = ref.watch(memoizationCacheProvider);
+      final key = 'sorted_${clusters.hashCode}';
 
-  final cached = cache.get<List<LocationCluster>>(key);
-  if (cached != null) {
-    return cached;
-  }
+      final cached = cache.get<List<LocationCluster>>(key);
+      if (cached != null) {
+        return cached;
+      }
 
-  final sorted = List<LocationCluster>.from(clusters)
-    ..sort((a, b) => a.startTime.compareTo(b.startTime));
+      final sorted = List<LocationCluster>.from(clusters)
+        ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
-  cache.set(key, sorted);
-  return sorted;
-});
+      cache.set(key, sorted);
+      return sorted;
+    });
 
-/// Memoized significant clusters provider (duration > 3 minutes)
-final memoizedSignificantClustersProvider = Provider.family<List<LocationCluster>, List<LocationCluster>>((ref, clusters) {
-  final cache = ref.watch(memoizationCacheProvider);
-  final key = 'significant_${clusters.hashCode}';
+/// Memoized significant clusters provider (duration > 3 minutes).
+/// Deprecated: experimental path only.
+@Deprecated(
+  'Legacy experimental provider; not part of the production location pipeline',
+)
+final memoizedSignificantClustersProvider =
+    Provider.family<List<LocationCluster>, List<LocationCluster>>((
+      ref,
+      clusters,
+    ) {
+      final cache = ref.watch(memoizationCacheProvider);
+      final key = 'significant_${clusters.hashCode}';
 
-  final cached = cache.get<List<LocationCluster>>(key);
-  if (cached != null) {
-    return cached;
-  }
+      final cached = cache.get<List<LocationCluster>>(key);
+      if (cached != null) {
+        return cached;
+      }
 
-  final significant = clusters
-      .where((cluster) => cluster.duration.inMinutes >= 3)
-      .toList();
+      final significant = clusters
+          .where((cluster) => cluster.duration.inMinutes >= 3)
+          .toList();
 
-  cache.set(key, significant);
-  return significant;
-});
+      cache.set(key, significant);
+      return significant;
+    });

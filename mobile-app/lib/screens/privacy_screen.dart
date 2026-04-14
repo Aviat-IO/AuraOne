@@ -1,22 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/simple_location_service.dart';
 import '../theme/colors.dart';
 import '../widgets/privacy/privacy_help_guide.dart';
 import '../widgets/privacy/privacy_quick_start.dart';
 import '../providers/settings_providers.dart';
 import '../widgets/grouped_list_container.dart';
 
-// Providers for privacy settings
-final locationTrackingEnabledProvider = StateProvider<bool>((ref) => true);
-
 // Cloud AI consent provider
-final cloudAIConsentProvider = StateNotifierProvider<CloudAIConsentNotifier, bool>((ref) {
-  return CloudAIConsentNotifier();
-});
+final cloudAIConsentProvider =
+    StateNotifierProvider<CloudAIConsentNotifier, bool>((ref) {
+      return CloudAIConsentNotifier();
+    });
 
 class CloudAIConsentNotifier extends StateNotifier<bool> {
   static const String _key = 'cloud_ai_consent';
@@ -38,9 +36,10 @@ class CloudAIConsentNotifier extends StateNotifier<bool> {
 }
 
 // Photo access provider that checks actual permission state
-final photoAccessEnabledProvider = StateNotifierProvider<PhotoAccessNotifier, bool>((ref) {
-  return PhotoAccessNotifier();
-});
+final photoAccessEnabledProvider =
+    StateNotifierProvider<PhotoAccessNotifier, bool>((ref) {
+      return PhotoAccessNotifier();
+    });
 
 class PhotoAccessNotifier extends StateNotifier<bool> {
   PhotoAccessNotifier() : super(false) {
@@ -56,7 +55,7 @@ class PhotoAccessNotifier extends StateNotifier<bool> {
     if (value) {
       final status = await Permission.photos.request();
       state = status.isGranted || status.isLimited;
-      
+
       // If status is limited and context is available, prompt to open settings
       if (status.isLimited && context != null && context.mounted) {
         final shouldOpenSettings = await showDialog<bool>(
@@ -78,7 +77,7 @@ class PhotoAccessNotifier extends StateNotifier<bool> {
             ],
           ),
         );
-        
+
         if (shouldOpenSettings == true) {
           await openAppSettings();
           // Refresh state after returning from settings
@@ -108,7 +107,7 @@ class PhotoAccessNotifier extends StateNotifier<bool> {
             ],
           ),
         );
-        
+
         if (shouldOpenSettings == true) {
           await openAppSettings();
           // Refresh state after returning from settings
@@ -124,16 +123,35 @@ class PhotoAccessNotifier extends StateNotifier<bool> {
   }
 }
 
-class PrivacyScreen extends ConsumerWidget {
+class PrivacyScreen extends HookConsumerWidget {
   const PrivacyScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    useEffect(() {
+      Future.microtask(() {
+        ref
+            .read(backgroundLocationTrackingProvider.notifier)
+            .refreshRuntimeState(persist: true);
+      });
+
+      final lifecycleListener = AppLifecycleListener(
+        onResume: () {
+          ref
+              .read(backgroundLocationTrackingProvider.notifier)
+              .refreshRuntimeState(persist: true);
+        },
+      );
+
+      return lifecycleListener.dispose;
+    }, const []);
+
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final locationEnabled = ref.watch(locationTrackingEnabledProvider);
+    final locationTrackingState = ref.watch(backgroundLocationTrackingProvider);
+    final locationEnabled = locationTrackingState ?? false;
+    final locationStateResolved = locationTrackingState != null;
     final photoAccessEnabled = ref.watch(photoAccessEnabledProvider);
-    final locationService = ref.watch(simpleLocationServiceProvider);
 
     return Scaffold(
       body: Container(
@@ -141,15 +159,17 @@ class PrivacyScreen extends ConsumerWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: isLight ? [
-              AuraColors.lightSurface,
-              AuraColors.lightSurface.withValues(alpha: 0.95),
-              AuraColors.lightSurfaceContainerLow.withValues(alpha: 0.9),
-            ] : [
-              AuraColors.darkSurface,
-              AuraColors.darkSurface.withValues(alpha: 0.98),
-              AuraColors.darkSurfaceContainerLow.withValues(alpha: 0.95),
-            ],
+            colors: isLight
+                ? [
+                    AuraColors.lightSurface,
+                    AuraColors.lightSurface.withValues(alpha: 0.95),
+                    AuraColors.lightSurfaceContainerLow.withValues(alpha: 0.9),
+                  ]
+                : [
+                    AuraColors.darkSurface,
+                    AuraColors.darkSurface.withValues(alpha: 0.98),
+                    AuraColors.darkSurfaceContainerLow.withValues(alpha: 0.95),
+                  ],
             stops: const [0.0, 0.3, 1.0],
           ),
         ),
@@ -168,14 +188,16 @@ class PrivacyScreen extends ConsumerWidget {
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
                           colors: isLight
-                            ? AuraColors.lightLogoGradient
-                            : AuraColors.darkLogoGradient,
+                              ? AuraColors.lightLogoGradient
+                              : AuraColors.darkLogoGradient,
                         ),
                         boxShadow: [
                           BoxShadow(
                             color: isLight
-                              ? AuraColors.lightPrimary.withValues(alpha: 0.2)
-                              : AuraColors.darkPrimary.withValues(alpha: 0.15),
+                                ? AuraColors.lightPrimary.withValues(alpha: 0.2)
+                                : AuraColors.darkPrimary.withValues(
+                                    alpha: 0.15,
+                                  ),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -205,7 +227,9 @@ class PrivacyScreen extends ConsumerWidget {
                           Text(
                             'Manage your privacy settings',
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.7,
+                              ),
                             ),
                           ),
                         ],
@@ -223,14 +247,14 @@ class PrivacyScreen extends ConsumerWidget {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: isLight
-                        ? AuraColors.lightCardGradient
-                        : AuraColors.darkCardGradient,
+                          ? AuraColors.lightCardGradient
+                          : AuraColors.darkCardGradient,
                     ),
                     boxShadow: [
                       BoxShadow(
                         color: isLight
-                          ? AuraColors.lightPrimary.withValues(alpha: 0.08)
-                          : Colors.black.withValues(alpha: 0.2),
+                            ? AuraColors.lightPrimary.withValues(alpha: 0.08)
+                            : Colors.black.withValues(alpha: 0.2),
                         blurRadius: 16,
                         offset: const Offset(0, 4),
                       ),
@@ -277,7 +301,9 @@ class PrivacyScreen extends ConsumerWidget {
                               child: Text(
                                 'Local-first data storage',
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.8,
+                                  ),
                                 ),
                               ),
                             ),
@@ -296,7 +322,9 @@ class PrivacyScreen extends ConsumerWidget {
                               child: Text(
                                 'End-to-end encryption for sensitive data',
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.8,
+                                  ),
                                 ),
                               ),
                             ),
@@ -315,7 +343,9 @@ class PrivacyScreen extends ConsumerWidget {
                               child: Text(
                                 'No tracking or analytics without consent',
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.8,
+                                  ),
                                 ),
                               ),
                             ),
@@ -333,8 +363,14 @@ class PrivacyScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(12),
                     gradient: LinearGradient(
                       colors: isLight
-                        ? [theme.colorScheme.primary, theme.colorScheme.secondary]
-                        : [theme.colorScheme.primary, theme.colorScheme.secondary],
+                          ? [
+                              theme.colorScheme.primary,
+                              theme.colorScheme.secondary,
+                            ]
+                          : [
+                              theme.colorScheme.primary,
+                              theme.colorScheme.secondary,
+                            ],
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -372,16 +408,19 @@ class PrivacyScreen extends ConsumerWidget {
                                 children: [
                                   Text(
                                     'Privacy Dashboard',
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     'View data collection insights and statistics',
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: Colors.white.withValues(alpha: 0.9),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.9,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -415,11 +454,16 @@ class PrivacyScreen extends ConsumerWidget {
                   children: [
                     // Location tracking toggle
                     ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.1,
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(
@@ -437,28 +481,48 @@ class PrivacyScreen extends ConsumerWidget {
                       subtitle: Text(
                         'Track places you visit for journal context',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                       trailing: Switch(
                         value: locationEnabled,
-                        onChanged: (value) async {
-                          ref.read(locationTrackingEnabledProvider.notifier).state = value;
-                          if (value) {
-                            await locationService.startTracking();
-                          } else {
-                            await locationService.stopTracking();
-                          }
-                        },
+                        onChanged: !locationStateResolved
+                            ? null
+                            : (value) async {
+                                final success = await ref
+                                    .read(
+                                      backgroundLocationTrackingProvider
+                                          .notifier,
+                                    )
+                                    .setEnabled(value);
+                                if (!success && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        value
+                                            ? 'Failed to start location tracking. Check permissions.'
+                                            : 'Failed to stop location tracking.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
                       ),
                     ),
                     // Photo library access toggle
                     ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.1,
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(
@@ -476,28 +540,41 @@ class PrivacyScreen extends ConsumerWidget {
                       subtitle: Text(
                         'Access photos to enrich your journal entries',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                       trailing: Switch(
                         value: photoAccessEnabled,
                         onChanged: (value) async {
-                          await ref.read(photoAccessEnabledProvider.notifier).toggle(value, context);
+                          await ref
+                              .read(photoAccessEnabledProvider.notifier)
+                              .toggle(value, context);
                           // Refresh to check actual permission state
-                          await ref.read(photoAccessEnabledProvider.notifier).refresh();
+                          await ref
+                              .read(photoAccessEnabledProvider.notifier)
+                              .refresh();
                         },
                       ),
                     ),
                     // Reverse geocoding toggle
                     Consumer(
                       builder: (context, ref, _) {
-                        final reverseGeocodingEnabled = ref.watch(reverseGeocodingEnabledProvider);
+                        final reverseGeocodingEnabled = ref.watch(
+                          reverseGeocodingEnabledProvider,
+                        );
                         return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 6,
+                          ),
                           leading: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
@@ -515,7 +592,9 @@ class PrivacyScreen extends ConsumerWidget {
                           subtitle: Text(
                             'Convert coordinates to readable place names',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
                             ),
                           ),
                           trailing: Switch(
@@ -523,13 +602,23 @@ class PrivacyScreen extends ConsumerWidget {
                             onChanged: (value) async {
                               if (value) {
                                 // Show privacy warning dialog
-                                final result = await _showReverseGeocodingWarning(context);
+                                final result =
+                                    await _showReverseGeocodingWarning(context);
                                 if (result == true) {
-                                  await ref.read(reverseGeocodingEnabledProvider.notifier).setEnabled(true);
+                                  await ref
+                                      .read(
+                                        reverseGeocodingEnabledProvider
+                                            .notifier,
+                                      )
+                                      .setEnabled(true);
                                 }
                               } else {
                                 // No warning needed to turn off
-                                await ref.read(reverseGeocodingEnabledProvider.notifier).setEnabled(false);
+                                await ref
+                                    .read(
+                                      reverseGeocodingEnabledProvider.notifier,
+                                    )
+                                    .setEnabled(false);
                               }
                             },
                           ),
@@ -539,13 +628,20 @@ class PrivacyScreen extends ConsumerWidget {
                     // Cloud AI toggle
                     Consumer(
                       builder: (context, ref, _) {
-                        final cloudAIEnabled = ref.watch(cloudAIConsentProvider);
+                        final cloudAIEnabled = ref.watch(
+                          cloudAIConsentProvider,
+                        );
                         return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 6,
+                          ),
                           leading: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
@@ -563,7 +659,9 @@ class PrivacyScreen extends ConsumerWidget {
                           subtitle: Text(
                             'Use cloud AI for higher quality summaries',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
                             ),
                           ),
                           trailing: Switch(
@@ -571,13 +669,19 @@ class PrivacyScreen extends ConsumerWidget {
                             onChanged: (value) async {
                               if (value) {
                                 // Show privacy warning dialog
-                                final result = await _showCloudAIWarning(context);
+                                final result = await _showCloudAIWarning(
+                                  context,
+                                );
                                 if (result == true) {
-                                  await ref.read(cloudAIConsentProvider.notifier).setConsent(true);
+                                  await ref
+                                      .read(cloudAIConsentProvider.notifier)
+                                      .setConsent(true);
                                 }
                               } else {
                                 // No warning needed to turn off
-                                await ref.read(cloudAIConsentProvider.notifier).setConsent(false);
+                                await ref
+                                    .read(cloudAIConsentProvider.notifier)
+                                    .setConsent(false);
                               }
                             },
                           ),
@@ -607,7 +711,8 @@ class PrivacyScreen extends ConsumerWidget {
                       theme: theme,
                       icon: Icons.school,
                       title: 'Privacy Guide',
-                      subtitle: 'Complete guide to privacy controls and settings',
+                      subtitle:
+                          'Complete guide to privacy controls and settings',
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (context) => const PrivacyHelpGuide(),
@@ -632,11 +737,14 @@ class PrivacyScreen extends ConsumerWidget {
                       theme: theme,
                       icon: Icons.folder_shared,
                       title: 'Export Your Data',
-                      subtitle: 'Download a copy of your journal entries and settings',
+                      subtitle:
+                          'Download a copy of your journal entries and settings',
                       onTap: () {
                         // TODO: Implement data export
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Data export feature coming soon')),
+                          const SnackBar(
+                            content: Text('Data export feature coming soon'),
+                          ),
                         );
                       },
                     ),
@@ -655,7 +763,8 @@ class PrivacyScreen extends ConsumerWidget {
                       theme: theme,
                       icon: Icons.delete_forever,
                       title: 'Delete All Data',
-                      subtitle: 'Permanently remove all your data from this device',
+                      subtitle:
+                          'Permanently remove all your data from this device',
                       isDestructive: true,
                       onTap: () {
                         _showDeleteDataDialog(context);
@@ -726,41 +835,39 @@ class PrivacyScreen extends ConsumerWidget {
   }) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: isDestructive
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isDestructive
               ? Colors.red.withValues(alpha: 0.1)
               : theme.colorScheme.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            color: isDestructive
-              ? Colors.red
-              : theme.colorScheme.primary,
-            size: 20,
-          ),
+          borderRadius: BorderRadius.circular(8),
         ),
-        title: Text(
-          title,
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: isDestructive ? Colors.red : null,
-          ),
+        child: Icon(
+          icon,
+          color: isDestructive ? Colors.red : theme.colorScheme.primary,
+          size: 20,
         ),
-        subtitle: Text(
-          subtitle,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-          ),
+      ),
+      title: Text(
+        title,
+        style: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: isDestructive ? Colors.red : null,
         ),
-        trailing: Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
         ),
-        onTap: onTap,
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+      ),
+      onTap: onTap,
     );
   }
 
@@ -782,12 +889,12 @@ class PrivacyScreen extends ConsumerWidget {
               Navigator.of(context).pop();
               // TODO: Implement data deletion
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Data deletion feature coming soon')),
+                const SnackBar(
+                  content: Text('Data deletion feature coming soon'),
+                ),
               );
             },
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
@@ -913,9 +1020,9 @@ class PrivacyScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             Text(
               'Important:',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -1001,7 +1108,9 @@ class PrivacyScreen extends ConsumerWidget {
                       child: Text(
                         'The app works fully without Cloud AI using privacy-first local generation.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
                         ),
                       ),
                     ),

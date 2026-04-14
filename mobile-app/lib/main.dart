@@ -15,14 +15,13 @@ import 'package:aura_one/widgets/privacy_screen_overlay.dart';
 import 'package:aura_one/screens/app_lock_screen.dart';
 import 'package:aura_one/utils/error_handler.dart';
 import 'package:aura_one/utils/logger.dart';
-import 'package:aura_one/services/background_location_service.dart';
-import 'package:aura_one/services/simple_location_service.dart';
 import 'package:aura_one/providers/fusion_providers.dart';
 import 'package:aura_one/providers/context_providers.dart';
 import 'package:aura_one/providers/settings_providers.dart';
 import 'package:aura_one/providers/location_database_provider.dart';
 import 'package:aura_one/services/journal_service.dart';
 import 'package:aura_one/services/background_init_service.dart';
+import 'package:aura_one/services/simple_location_service.dart';
 import 'package:aura_one/screens/optimized_splash_screen.dart';
 import 'package:aura_one/utils/performance_monitor.dart';
 import 'package:aura_one/services/data_restoration_service.dart';
@@ -34,7 +33,6 @@ import 'package:aura_one/services/ai/gemma_local_adapter.dart';
 import 'package:aura_one/services/notification_service.dart';
 import 'package:aura_one/screens/main_layout_screen.dart';
 import 'package:aura_one/widgets/daily_entry_view.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 // Provider to store restoration status
 final restorationStatusProvider = StateProvider<RestorationStatus?>(
@@ -401,81 +399,38 @@ final appInitializationProvider = FutureProvider<void>((ref) async {
 
 /// Schedule post-initialization tasks that don't block the UI
 void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
-  // These run after the UI is ready
-  Future.delayed(const Duration(milliseconds: 2000), () async {
+  Future(() async {
     try {
-      bool locationTrackingActive = false;
-
-      // Initialize free background location service only if enabled
-      if (onboardingCompleted) {
-        // Check if user has opted in to background location tracking
-        final prefs = await SharedPreferences.getInstance();
-        final backgroundTrackingEnabled =
-            prefs.getBool('backgroundLocationTracking') ?? false;
-
-        if (backgroundTrackingEnabled) {
-          appLogger.info(
-            'Initializing background location service (user opted-in)...',
-          );
-          final backgroundLocationService = BackgroundLocationService(ref);
-          final initialized = await backgroundLocationService.initialize();
-
-          if (initialized) {
-            final hasPermission = await backgroundLocationService
-                .checkLocationPermission();
-
-            if (hasPermission) {
-              final trackingStarted = await backgroundLocationService
-                  .startTracking();
-
-              if (trackingStarted) {
-                appLogger.info(
-                  'Background location tracking started successfully',
-                );
-                locationTrackingActive = true;
-              } else {
-                appLogger.warning(
-                  'Failed to start background location tracking',
-                );
-              }
-            } else {
-              appLogger.warning('Background location permission not granted');
-            }
-          } else {
-            appLogger.warning(
-              'Failed to initialize background location service',
-            );
-          }
-        } else {
-          appLogger.info(
-            'Background location tracking is disabled by user preference',
-          );
-        }
+      if (!onboardingCompleted) {
+        return;
       }
 
-      // Initialize simple location service for real-time tracking
-      if (onboardingCompleted) {
-        final simpleLocationService = SimpleLocationService(ref);
-        await simpleLocationService.initialize();
+      final simpleLocationService = ref.read(simpleLocationServiceProvider);
+      await simpleLocationService.initialize();
 
-        final hasPermission = await simpleLocationService
-            .checkLocationPermission();
-        if (hasPermission) {
-          await simpleLocationService.startTracking();
-          appLogger.info('Real-time location tracking started (post-init)');
-          locationTrackingActive = true;
-        }
-      }
+      final trackingDesired = await ref
+          .read(backgroundLocationTrackingProvider.notifier)
+          .isDesiredEnabled();
 
-      // Show notification if onboarding is complete but location tracking is not active
-      if (onboardingCompleted && !locationTrackingActive) {
+      final locationTrackingActive = await ref
+          .read(backgroundLocationTrackingProvider.notifier)
+          .restoreTrackingState(onboardingCompleted: onboardingCompleted);
+
+      if (trackingDesired && !locationTrackingActive) {
         appLogger.info(
           'Location tracking inactive for returning user, showing notification',
         );
         final notificationService = ref.read(notificationServiceProvider);
         await notificationService.showLocationServicesWarning();
       }
+    } catch (e) {
+      appLogger.error('Location tracking restoration failed', error: e);
+    }
+  });
 
+  // These run after the UI is ready
+  Future.delayed(const Duration(milliseconds: 2000), () async {
+    try {
       // Background data collection now handled by efficient location service
 
       // Initialize notification service (keep this for basic functionality)
@@ -548,19 +503,6 @@ void _schedulePostInitializationTasks(Ref ref, bool onboardingCompleted) {
         ), // Keep movement data for only 3 days
       );
       appLogger.info('Initial data cleanup completed');
-
-      // Schedule daily cleanup at 3 AM
-      Timer.periodic(const Duration(hours: 24), (timer) async {
-        final now = DateTime.now();
-        if (now.hour == 3) {
-          // Run at 3 AM local time
-          await cleanupService.performCleanup(
-            retentionPeriod: const Duration(days: 30),
-            movementRetentionPeriod: const Duration(days: 3),
-          );
-          appLogger.info('Daily data cleanup completed');
-        }
-      });
     } catch (e) {
       appLogger.error('Data cleanup failed', error: e);
     }

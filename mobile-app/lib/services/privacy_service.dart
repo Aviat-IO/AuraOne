@@ -1,17 +1,16 @@
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/privacy_settings.dart';
+import '../providers/settings_providers.dart';
+import 'location_tracking_startup_policy.dart';
 
 /// Service for managing privacy settings and presets
 class PrivacyService {
   static const String _storageKey = 'privacy_settings';
   static const FlutterSecureStorage _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(
-      encryptedSharedPreferences: true,
-    ),
-    iOptions: IOSOptions(
-      accessibility: KeychainAccessibility.first_unlock,
-    ),
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
   );
 
   /// Get current privacy settings
@@ -24,6 +23,17 @@ class PrivacyService {
       }
 
       final settingsMap = jsonDecode(settingsJson) as Map<String, dynamic>;
+
+      if (settingsMap['locationPrecision'] == 'off') {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool(
+          backgroundLocationTrackingDesiredPreferenceKey,
+          false,
+        );
+        await prefs.setBool(backgroundLocationTrackingPreferenceKey, false);
+        settingsMap['locationPrecision'] = LocationPrecision.approximate.value;
+      }
+
       return PrivacySettings.fromJson(settingsMap);
     } catch (e) {
       // If there's an error reading settings, return default
@@ -49,10 +59,9 @@ class PrivacyService {
   /// Apply a privacy preset
   Future<PrivacySettings> applyPreset(PrivacyPresetLevel presetLevel) async {
     try {
-      final newSettings = PrivacySettings.forPreset(presetLevel).copyWith(
-        lastUpdated: DateTime.now(),
-        updatedBy: 'preset_$presetLevel',
-      );
+      final newSettings = PrivacySettings.forPreset(
+        presetLevel,
+      ).copyWith(lastUpdated: DateTime.now(), updatedBy: 'preset_$presetLevel');
 
       await savePrivacySettings(newSettings);
       return newSettings;
@@ -67,9 +76,10 @@ class PrivacyService {
       PrivacyPreset(
         level: PrivacyPresetLevel.minimal,
         title: 'Maximum Privacy',
-        description: 'Location off, minimal permissions, 1 week retention',
+        description:
+            'Approximate location, minimal permissions, 1 week retention',
         features: [
-          'Location tracking: OFF',
+          'Location precision: Approximate',
           'Data retention: 1 Week',
           'All permissions: OFF',
           'Biometric lock: ON',
@@ -81,7 +91,8 @@ class PrivacyService {
       PrivacyPreset(
         level: PrivacyPresetLevel.balanced,
         title: 'Balanced',
-        description: 'Approximate location, essential permissions, 6 month retention',
+        description:
+            'Approximate location, essential permissions, 6 month retention',
         features: [
           'Location tracking: Approximate',
           'Data retention: 6 Months',
@@ -148,44 +159,44 @@ class PrivacyService {
 
     // Compare all relevant fields (ignoring metadata)
     return current.locationPrecision == presetSettings.locationPrecision &&
-           current.locationTrackingEnabled == presetSettings.locationTrackingEnabled &&
-           current.dataRetention == presetSettings.dataRetention &&
-           current.automaticCleanupEnabled == presetSettings.automaticCleanupEnabled &&
-           current.photoLibraryPermission == presetSettings.photoLibraryPermission &&
-           current.cameraPermission == presetSettings.cameraPermission &&
-           current.microphonePermission == presetSettings.microphonePermission &&
-           current.calendarPermission == presetSettings.calendarPermission &&
-           current.healthPermission == presetSettings.healthPermission &&
-           current.notificationPermission == presetSettings.notificationPermission &&
-           current.analyticsEnabled == presetSettings.analyticsEnabled &&
-           current.crashReportingEnabled == presetSettings.crashReportingEnabled &&
-           current.localOnlyMode == presetSettings.localOnlyMode &&
-           current.cloudBackupEnabled == presetSettings.cloudBackupEnabled &&
-           current.biometricLockEnabled == presetSettings.biometricLockEnabled &&
-           current.appLockEnabled == presetSettings.appLockEnabled;
+        current.dataRetention == presetSettings.dataRetention &&
+        current.automaticCleanupEnabled ==
+            presetSettings.automaticCleanupEnabled &&
+        current.photoLibraryPermission ==
+            presetSettings.photoLibraryPermission &&
+        current.cameraPermission == presetSettings.cameraPermission &&
+        current.microphonePermission == presetSettings.microphonePermission &&
+        current.calendarPermission == presetSettings.calendarPermission &&
+        current.healthPermission == presetSettings.healthPermission &&
+        current.notificationPermission ==
+            presetSettings.notificationPermission &&
+        current.analyticsEnabled == presetSettings.analyticsEnabled &&
+        current.crashReportingEnabled == presetSettings.crashReportingEnabled &&
+        current.localOnlyMode == presetSettings.localOnlyMode &&
+        current.cloudBackupEnabled == presetSettings.cloudBackupEnabled &&
+        current.biometricLockEnabled == presetSettings.biometricLockEnabled &&
+        current.appLockEnabled == presetSettings.appLockEnabled;
   }
 
   /// Validate privacy settings
   List<String> validateSettings(PrivacySettings settings) {
     final issues = <String>[];
 
-    // Location validation
-    if (settings.locationTrackingEnabled &&
-        settings.locationPrecision == LocationPrecision.off) {
-      issues.add('Location tracking is enabled but precision is set to off');
-    }
-
     // Security validation
     if (settings.presetLevel == PrivacyPresetLevel.minimal) {
       if (!settings.appLockEnabled && !settings.biometricLockEnabled) {
-        issues.add('Maximum privacy preset should have some form of app lock enabled');
+        issues.add(
+          'Maximum privacy preset should have some form of app lock enabled',
+        );
       }
     }
 
     // Data retention validation
     if (settings.dataRetention == DataRetentionPeriod.forever &&
         !settings.automaticCleanupEnabled) {
-      issues.add('Infinite data retention without cleanup may consume excessive storage');
+      issues.add(
+        'Infinite data retention without cleanup may consume excessive storage',
+      );
     }
 
     // Cloud backup validation

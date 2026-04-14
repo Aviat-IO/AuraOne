@@ -12,7 +12,6 @@ enum PrivacyPresetLevel {
 
 /// Location tracking precision levels
 enum LocationPrecision {
-  off('off', 'Off'),
   approximate('approximate', 'Approximate (City level)'),
   balanced('balanced', 'Balanced (Street level)'),
   precise('precise', 'Precise (GPS accurate)');
@@ -46,7 +45,6 @@ class PrivacySettings {
 
   // Location settings
   final LocationPrecision locationPrecision;
-  final bool locationTrackingEnabled;
 
   // Data retention settings
   final DataRetentionPeriod dataRetention;
@@ -79,7 +77,6 @@ class PrivacySettings {
     this.presetLevel = PrivacyPresetLevel.balanced,
     this.isCustomized = false,
     this.locationPrecision = LocationPrecision.balanced,
-    this.locationTrackingEnabled = true,
     this.dataRetention = DataRetentionPeriod.sixMonths,
     this.automaticCleanupEnabled = true,
     this.photoLibraryPermission = false,
@@ -106,8 +103,7 @@ class PrivacySettings {
         return const PrivacySettings(
           presetLevel: PrivacyPresetLevel.minimal,
           isCustomized: false,
-          locationPrecision: LocationPrecision.off,
-          locationTrackingEnabled: false,
+          locationPrecision: LocationPrecision.approximate,
           dataRetention: DataRetentionPeriod.week,
           automaticCleanupEnabled: true,
           photoLibraryPermission: false,
@@ -130,7 +126,6 @@ class PrivacySettings {
           presetLevel: PrivacyPresetLevel.balanced,
           isCustomized: false,
           locationPrecision: LocationPrecision.approximate,
-          locationTrackingEnabled: true,
           dataRetention: DataRetentionPeriod.sixMonths,
           automaticCleanupEnabled: true,
           photoLibraryPermission: true,
@@ -153,7 +148,6 @@ class PrivacySettings {
           presetLevel: PrivacyPresetLevel.maximum,
           isCustomized: false,
           locationPrecision: LocationPrecision.precise,
-          locationTrackingEnabled: true,
           dataRetention: DataRetentionPeriod.year,
           automaticCleanupEnabled: true,
           photoLibraryPermission: true,
@@ -178,7 +172,6 @@ class PrivacySettings {
     PrivacyPresetLevel? presetLevel,
     bool? isCustomized,
     LocationPrecision? locationPrecision,
-    bool? locationTrackingEnabled,
     DataRetentionPeriod? dataRetention,
     bool? automaticCleanupEnabled,
     bool? photoLibraryPermission,
@@ -201,22 +194,26 @@ class PrivacySettings {
       presetLevel: presetLevel ?? this.presetLevel,
       isCustomized: isCustomized ?? this.isCustomized,
       locationPrecision: locationPrecision ?? this.locationPrecision,
-      locationTrackingEnabled: locationTrackingEnabled ?? this.locationTrackingEnabled,
       dataRetention: dataRetention ?? this.dataRetention,
-      automaticCleanupEnabled: automaticCleanupEnabled ?? this.automaticCleanupEnabled,
-      photoLibraryPermission: photoLibraryPermission ?? this.photoLibraryPermission,
+      automaticCleanupEnabled:
+          automaticCleanupEnabled ?? this.automaticCleanupEnabled,
+      photoLibraryPermission:
+          photoLibraryPermission ?? this.photoLibraryPermission,
       cameraPermission: cameraPermission ?? this.cameraPermission,
       microphonePermission: microphonePermission ?? this.microphonePermission,
       calendarPermission: calendarPermission ?? this.calendarPermission,
       healthPermission: healthPermission ?? this.healthPermission,
-      notificationPermission: notificationPermission ?? this.notificationPermission,
+      notificationPermission:
+          notificationPermission ?? this.notificationPermission,
       analyticsEnabled: analyticsEnabled ?? this.analyticsEnabled,
-      crashReportingEnabled: crashReportingEnabled ?? this.crashReportingEnabled,
+      crashReportingEnabled:
+          crashReportingEnabled ?? this.crashReportingEnabled,
       localOnlyMode: localOnlyMode ?? this.localOnlyMode,
       cloudBackupEnabled: cloudBackupEnabled ?? this.cloudBackupEnabled,
       biometricLockEnabled: biometricLockEnabled ?? this.biometricLockEnabled,
       appLockEnabled: appLockEnabled ?? this.appLockEnabled,
-      autoLockTimeoutMinutes: autoLockTimeoutMinutes ?? this.autoLockTimeoutMinutes,
+      autoLockTimeoutMinutes:
+          autoLockTimeoutMinutes ?? this.autoLockTimeoutMinutes,
       lastUpdated: lastUpdated ?? this.lastUpdated,
       updatedBy: updatedBy ?? this.updatedBy,
     );
@@ -227,7 +224,6 @@ class PrivacySettings {
     'presetLevel': presetLevel.value,
     'isCustomized': isCustomized,
     'locationPrecision': locationPrecision.value,
-    'locationTrackingEnabled': locationTrackingEnabled,
     'dataRetention': dataRetention.value,
     'automaticCleanupEnabled': automaticCleanupEnabled,
     'photoLibraryPermission': photoLibraryPermission,
@@ -259,7 +255,6 @@ class PrivacySettings {
         (e) => e.value == json['locationPrecision'],
         orElse: () => LocationPrecision.balanced,
       ),
-      locationTrackingEnabled: json['locationTrackingEnabled'] ?? true,
       dataRetention: DataRetentionPeriod.values.firstWhere(
         (e) => e.value == json['dataRetention'],
         orElse: () => DataRetentionPeriod.sixMonths,
@@ -279,8 +274,8 @@ class PrivacySettings {
       appLockEnabled: json['appLockEnabled'] ?? false,
       autoLockTimeoutMinutes: json['autoLockTimeoutMinutes'] ?? 5,
       lastUpdated: json['lastUpdated'] != null
-        ? DateTime.parse(json['lastUpdated'])
-        : null,
+          ? DateTime.parse(json['lastUpdated'])
+          : null,
       updatedBy: json['updatedBy'] ?? 'system',
     );
   }

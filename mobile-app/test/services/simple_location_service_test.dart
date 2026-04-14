@@ -3,6 +3,10 @@ import 'dart:math' as dart_math;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:aura_one/services/simple_location_service.dart';
+import 'package:aura_one/providers/location_database_provider.dart';
+import 'package:aura_one/database/location_database.dart' as loc_db;
+import 'package:drift/drift.dart' show Value;
+import 'package:drift/native.dart';
 import 'package:geolocator/geolocator.dart';
 
 void main() {
@@ -24,6 +28,86 @@ void main() {
       // Just verify it exists
       expect(service, isNotNull);
     });
+
+    test(
+      'initialize is idempotent and provider disposal cancels owned lifecycle work',
+      () async {
+        final database = loc_db.LocationDatabase.forTesting(
+          NativeDatabase.memory(),
+        );
+        final testContainer = ProviderContainer(
+          overrides: [locationDatabaseProvider.overrideWithValue(database)],
+        );
+        addTearDown(() async {
+          await database.close();
+        });
+
+        final testService = testContainer.read(simpleLocationServiceProvider);
+
+        await testService.initialize();
+        await testService.initialize();
+
+        expect(testService.hasActiveDailyMaintenanceTimer, isTrue);
+
+        testContainer.dispose();
+
+        expect(testService.hasActiveDailyMaintenanceTimer, isFalse);
+      },
+    );
+
+    test(
+      'initialize loads only active geofences and restores inside state',
+      () async {
+        final database = loc_db.LocationDatabase.forTesting(
+          NativeDatabase.memory(),
+        );
+        final testContainer = ProviderContainer(
+          overrides: [locationDatabaseProvider.overrideWithValue(database)],
+        );
+        addTearDown(() async {
+          testContainer.dispose();
+          await database.close();
+        });
+
+        await database.insertGeofence(
+          loc_db.GeofenceAreasCompanion.insert(
+            id: 'active',
+            name: 'Active',
+            latitude: 37.7749,
+            longitude: -122.4194,
+            radius: 100,
+            isActive: const Value(true),
+          ),
+        );
+        await database.insertGeofence(
+          loc_db.GeofenceAreasCompanion.insert(
+            id: 'inactive',
+            name: 'Inactive',
+            latitude: 37.7800,
+            longitude: -122.4200,
+            radius: 100,
+            isActive: const Value(false),
+          ),
+        );
+        await database.insertGeofenceEvent(
+          loc_db.GeofenceEventsCompanion.insert(
+            geofenceId: 'active',
+            eventType: 'enter',
+            timestamp: DateTime(2026, 1, 1, 9),
+            latitude: 37.7749,
+            longitude: -122.4194,
+          ),
+        );
+
+        final testService = testContainer.read(simpleLocationServiceProvider);
+        await testService.initialize();
+
+        final geofences = testContainer.read(geofencesProvider);
+        expect(geofences.length, 1);
+        expect(geofences.single.id, 'active');
+        expect(geofences.single.isInside, isTrue);
+      },
+    );
 
     test('can add and remove geofences', () async {
       final geofence = GeofenceArea(
@@ -234,19 +318,25 @@ void main() {
 
 // Extension to expose private method for testing
 extension TestableLocationService on SimpleLocationService {
-  double calculateDistanceForTest(double lat1, double lon1, double lat2, double lon2) {
+  double calculateDistanceForTest(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
     // This would need to be implemented in the actual service as a public method
     // or tested through the public interface
     const double earthRadius = 6371000; // meters
     final double dLat = (lat2 - lat1) * (3.14159265359 / 180);
     final double dLon = (lon2 - lon1) * (3.14159265359 / 180);
-    
-    final double a = 
+
+    final double a =
         (dLat / 2).sin() * (dLat / 2).sin() +
-        (lat1 * 3.14159265359 / 180).cos() * 
-        (lat2 * 3.14159265359 / 180).cos() *
-        (dLon / 2).sin() * (dLon / 2).sin();
-    
+        (lat1 * 3.14159265359 / 180).cos() *
+            (lat2 * 3.14159265359 / 180).cos() *
+            (dLon / 2).sin() *
+            (dLon / 2).sin();
+
     final double c = 2 * a.sqrt().atan2((1 - a).sqrt());
     return earthRadius * c;
   }
